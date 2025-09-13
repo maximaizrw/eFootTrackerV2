@@ -138,12 +138,15 @@ export function generateIdealTeam(
     let substituteCandidate: CandidatePlayer | undefined;
     
     const findSubstitute = (candidates: CandidatePlayer[]) => {
-        const hotStreaks = candidates.filter(p => p.performance.isHotStreak);
+        // Prioritize players with < 10 matches to test them
         const promising = candidates.filter(p => p.performance.isPromising);
-        const others = candidates.filter(p => !p.performance.isHotStreak && !p.performance.isPromising);
+        // Then players on a hot streak
+        const hotStreaks = candidates.filter(p => p.performance.isHotStreak && !p.performance.isPromising);
+        // Then the rest
+        const others = candidates.filter(p => !p.performance.isPromising && !p.performance.isHotStreak);
 
-        return findBestPlayer(hotStreaks) || 
-               findBestPlayer(promising) ||
+        return findBestPlayer(promising) ||
+               findBestPlayer(hotStreaks) || 
                findBestPlayer(others);
     }
 
