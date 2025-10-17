@@ -8,7 +8,31 @@ export type PlayerStyle = typeof playerStyles[number];
 export const positions = ['PT', 'DFC', 'LI', 'LD', 'MCD', 'MC', 'MDI', 'MDD', 'MO', 'EXI', 'EXD', 'SD', 'DC'] as const;
 export type Position = typeof positions[number];
 
-export const leagues = ['Sin Liga', 'Liga Española', 'English League', 'Italian League', 'Ligue 1', 'Bundesliga', 'Liga Portuguesa', 'Dutch League', 'Internacional', 'J.League', 'American League'] as const;
+export const leagues = [
+    'Sin Liga',
+    'Premier League',
+    'Serie A',
+    'La Liga',
+    'Ligue 1 Uber Eats',
+    'Eredivisie',
+    'Primeira Liga',
+    'BRASILEIRAO ASSAI',
+    'Liga Profesional de Futbol',
+    'Campeonato PlanVital',
+    'J. League Div.1',
+    'J. League Div.2',
+    'Championship',
+    'Segunda Division',
+    'Ligue 2 BKT',
+    'Serie BKT',
+    'BRASILEIRAO SERIE B',
+    'Tinkoff Russian Premier Liga',
+    'Raiffeisen Super League',
+    'Super Lig',
+    'CFA Super League',
+    'TOYOTA Thai League',
+    'Internacional' // Keep for national teams
+] as const;
 export type League = typeof leagues[number];
 
 export const nationalities = [
