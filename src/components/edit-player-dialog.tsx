@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { nationalities, type Nationality } from "@/lib/types";
+import { nationalities } from "@/lib/types";
 
 const formSchema = z.object({
   playerId: z.string().min(1, "Se requiere el ID del jugador."),
