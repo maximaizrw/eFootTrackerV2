@@ -46,12 +46,13 @@ import {
 } from "@/components/ui/popover"
 import { Slider } from "@/components/ui/slider";
 import { cn, getAvailableStylesForPosition } from "@/lib/utils";
-import type { Player, Position, PlayerStyle, League } from "@/lib/types";
-import { positions, playerStyles, leagues } from "@/lib/types";
+import type { Player, Position, PlayerStyle, League, Nationality } from "@/lib/types";
+import { positions, playerStyles, leagues, nationalities } from "@/lib/types";
 
 const formSchema = z.object({
   playerId: z.string().optional(),
   playerName: z.string().min(2, "El nombre del jugador debe tener al menos 2 caracteres."),
+  nationality: z.enum(nationalities),
   cardName: z.string().min(2, "El nombre de la carta debe tener al menos 2 caracteres."),
   position: z.enum(positions),
   style: z.enum(playerStyles),
@@ -81,6 +82,7 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, players, init
     defaultValues: {
       playerId: undefined,
       playerName: "",
+      nationality: "Sin Nacionalidad",
       cardName: "Carta Base",
       position: "DC",
       style: "Ninguno",
@@ -99,6 +101,7 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, players, init
       const defaultValues = {
         playerId: undefined,
         playerName: '',
+        nationality: 'Sin Nacionalidad' as Nationality,
         cardName: 'Carta Base',
         position: 'DC' as Position,
         style: 'Ninguno' as PlayerStyle,
@@ -120,6 +123,9 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, players, init
       }
        if (form.getValues('playerId') !== selectedPlayer.id) {
         form.setValue('playerId', selectedPlayer.id);
+      }
+       if (form.getValues('nationality') !== selectedPlayer.nationality) {
+        form.setValue('nationality', selectedPlayer.nationality);
       }
       setCardNames(selectedPlayer.cards.map(c => c.name));
     } else {
@@ -165,6 +171,7 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, players, init
   }
   
   const isQuickAdd = !!initialData?.playerId;
+  const isNewPlayer = !playerIdValue && playerNameValue.length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -223,6 +230,7 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, players, init
                                 onSelect={() => {
                                   form.setValue("playerId", player.id, { shouldValidate: true });
                                   form.setValue("playerName", player.name, { shouldValidate: true });
+                                  form.setValue("nationality", player.nationality, { shouldValidate: true });
                                   setPlayerPopoverOpen(false);
                                 }}
                               >
@@ -240,6 +248,28 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, players, init
                       </Command>
                     </PopoverContent>
                   </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="nationality"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nacionalidad</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value} disabled={!isNewPlayer}>
+                    <FormControl>
+                    <SelectTrigger className={cn(!isNewPlayer && "text-muted-foreground")}>
+                        <SelectValue placeholder="Selecciona una nacionalidad" />
+                    </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {nationalities.map((nat) => (
+                        <SelectItem key={nat} value={nat}>{nat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

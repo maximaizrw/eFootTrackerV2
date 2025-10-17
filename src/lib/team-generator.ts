@@ -1,5 +1,5 @@
 
-import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League } from './types';
+import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality } from './types';
 import { calculateStats } from './utils';
 
 type CandidatePlayer = {
@@ -23,12 +23,18 @@ export function generateIdealTeam(
   players: Player[],
   formation: FormationStats,
   discardedCardIds: Set<string> = new Set(),
-  league: League | 'all' = 'all'
+  league: League | 'all' = 'all',
+  nationality: Nationality | 'all' = 'all'
 ): IdealTeamSlot[] {
   
   // Create a flat list of all possible player-card-position combinations
-  const allPlayerCandidates: CandidatePlayer[] = players.flatMap(player =>
-    (player.cards || []).flatMap(card => {
+  const allPlayerCandidates: CandidatePlayer[] = players.flatMap(player => {
+    // Filter by nationality if a specific one is selected
+    if (nationality !== 'all' && player.nationality !== nationality) {
+      return [];
+    }
+
+    return (player.cards || []).flatMap(card => {
       // Filter by league if a specific league is selected
       if (league !== 'all' && card.league !== league) {
         return [];
@@ -70,7 +76,7 @@ export function generateIdealTeam(
         };
       }).filter((p): p is CandidatePlayer => p !== null);
     })
-  );
+  });
 
   const usedPlayerIds = new Set<string>();
   const usedCardIds = new Set<string>();
@@ -172,9 +178,8 @@ export function generateIdealTeam(
   // --- FALLBACK FOR EMPTY SUBSTITUTE SLOTS ---
   finalTeamSlots.forEach((slot, index) => {
     if (!slot.substitute) {
-        // Find best available player from the correct league (if specified) who is not yet used, regardless of position
+        // Find best available player from the correct filters who is not yet used, regardless of position
         const fallbackCandidates = allPlayerCandidates
-            .filter(p => (league === 'all' || p.card.league === league))
             .sort((a, b) => b.average - a.average);
 
         const fallbackPlayer = findBestPlayer(fallbackCandidates);
@@ -199,14 +204,14 @@ export function generateIdealTeam(
     const formationSlot = formation.slots[index];
     return {
       starter: slot.starter || {
-          player: { id: `placeholder-S-${index}`, name: `Vacante`, cards: [] },
+          player: { id: `placeholder-S-${index}`, name: `Vacante`, cards: [], nationality: 'Sin Nacionalidad' },
           card: { id: `placeholder-card-S-${index}`, name: 'N/A', style: 'Ninguno', ratingsByPosition: {} },
           position: formationSlot.position,
           average: 0,
           performance: placeholderPerformance
       },
       substitute: slot.substitute || {
-           player: { id: `placeholder-SUB-${index}`, name: `Vacante`, cards: [] },
+           player: { id: `placeholder-SUB-${index}`, name: `Vacante`, cards: [], nationality: 'Sin Nacionalidad' },
           card: { id: `placeholder-card-SUB-${index}`, name: 'N/A', style: 'Ninguno', ratingsByPosition: {} },
           position: formationSlot.position,
           average: 0,

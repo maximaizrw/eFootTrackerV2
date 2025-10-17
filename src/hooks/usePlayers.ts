@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase-config';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import { v4 as uuidv4 } from 'uuid';
-import type { Player, PlayerCard, Position, AddRatingFormValues, EditCardFormValues, EditPlayerFormValues, TrainingBuild, League } from '@/lib/types';
+import type { Player, PlayerCard, Position, AddRatingFormValues, EditCardFormValues, EditPlayerFormValues, TrainingBuild, League, Nationality } from '@/lib/types';
 import { normalizeText } from '@/lib/utils';
 
 
@@ -31,6 +31,7 @@ export function usePlayers() {
             return {
                 id: doc.id,
                 name: data.name,
+                nationality: data.nationality || 'Sin Nacionalidad',
                 cards: (data.cards || []).map((card: any) => ({
                     ...card,
                     id: card.id || uuidv4(), // Ensure card has an ID
@@ -71,7 +72,7 @@ export function usePlayers() {
   }, [toast]);
 
   const addRating = async (values: AddRatingFormValues) => {
-    const { playerName, cardName, position, rating, style, league } = values;
+    const { playerName, cardName, position, rating, style, league, nationality } = values;
     let { playerId } = values;
 
     if (!db) {
@@ -119,6 +120,7 @@ export function usePlayers() {
       } else {
         const newPlayer = {
           name: playerName,
+          nationality: nationality,
           cards: [{ 
               id: uuidv4(), 
               name: cardName, 
@@ -167,8 +169,11 @@ export function usePlayers() {
   const editPlayer = async (values: EditPlayerFormValues) => {
     if (!db) return;
     try {
-      await updateDoc(doc(db, 'players', values.playerId), { name: values.currentPlayerName });
-      toast({ title: "Jugador Actualizado", description: "El nombre del jugador se ha actualizado." });
+      await updateDoc(doc(db, 'players', values.playerId), { 
+        name: values.currentPlayerName,
+        nationality: values.nationality,
+      });
+      toast({ title: "Jugador Actualizado", description: "Los datos del jugador se han actualizado." });
     } catch (error) {
       console.error("Error updating player: ", error);
       toast({ variant: "destructive", title: "Error al Actualizar", description: "No se pudo guardar el cambio de nombre." });

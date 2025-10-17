@@ -11,6 +11,18 @@ export type Position = typeof positions[number];
 export const leagues = ['Sin Liga', 'Liga Española', 'English League', 'Italian League', 'Ligue 1', 'Bundesliga', 'Liga Portuguesa', 'Dutch League', 'Internacional', 'J.League', 'American League'] as const;
 export type League = typeof leagues[number];
 
+export const nationalities = [
+    'Sin Nacionalidad', 'Argentina', 'Brasil', 'Francia', 'Alemania', 'Inglaterra',
+    'España', 'Italia', 'Países Bajos', 'Portugal', 'Bélgica', 'Uruguay',
+    'Colombia', 'Croacia', 'Japón', 'Corea del Sur', 'Nigeria', 'Senegal',
+    'Marruecos', 'México', 'EE. UU.', 'Chile', 'Turquía', 'Polonia', 'Suecia',
+    'Noruega', 'Dinamarca', 'Suiza', 'Austria', 'Serbia', 'Costa de Marfil',
+    'Ghana', 'Egipto', 'Camerún', 'República Checa', 'Escocia', 'Irlanda',
+    'Gales', 'Rumanía', 'Rusia'
+] as const;
+export type Nationality = typeof nationalities[number];
+
+
 export const trainingAttributes = [
     'shooting', 'passing', 'dribbling', 'dexterity', 
     'lower_body_strength', 'aerial_strength', 'defending', 
@@ -37,12 +49,14 @@ export type PlayerCard = {
 export type Player = {
   id: string;
   name: string;
+  nationality: Nationality;
   cards: PlayerCard[];
 };
 
 export type AddRatingFormValues = {
     playerId?: string;
     playerName: string;
+    nationality: Nationality;
     cardName: string;
     position: Position;
     style: PlayerStyle;
@@ -62,6 +76,7 @@ export type EditCardFormValues = {
 export type EditPlayerFormValues = {
     playerId: string;
     currentPlayerName: string;
+    nationality: Nationality;
 };
 
 export type PlayersByPosition = {

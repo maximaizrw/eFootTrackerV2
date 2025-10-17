@@ -34,8 +34,8 @@ import { usePlayers } from '@/hooks/usePlayers';
 import { useFormations } from '@/hooks/useFormations';
 import { useToast } from "@/hooks/use-toast";
 
-import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League } from '@/lib/types';
-import { positions, leagues } from '@/lib/types';
+import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality } from '@/lib/types';
+import { positions, leagues, nationalities } from '@/lib/types';
 import { PlusCircle, Star, Download, Trophy, RotateCcw } from 'lucide-react';
 import { calculateStats, normalizeText } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
@@ -92,6 +92,7 @@ export default function Home() {
   
   const [selectedFormationId, setSelectedFormationId] = useState<string | undefined>(undefined);
   const [selectedLeague, setSelectedLeague] = useState<League | 'all'>('all');
+  const [selectedNationality, setSelectedNationality] = useState<Nationality | 'all'>('all');
   const [idealTeam, setIdealTeam] = useState<IdealTeamSlot[]>([]);
   const [discardedCardIds, setDiscardedCardIds] = useState<Set<string>>(new Set());
 
@@ -143,6 +144,7 @@ export default function Home() {
     setEditPlayerDialogInitialData({
       playerId: player.id,
       currentPlayerName: player.name,
+      nationality: player.nationality || 'Sin Nacionalidad',
     });
     setEditPlayerDialogOpen(true);
   };
@@ -188,7 +190,7 @@ export default function Home() {
       return;
     }
     
-    const newTeam = generateIdealTeam(players, formation, discardedCardIds, selectedLeague);
+    const newTeam = generateIdealTeam(players, formation, discardedCardIds, selectedLeague, selectedNationality);
 
     setIdealTeam(newTeam);
     if (document.activeElement instanceof HTMLElement) {
@@ -206,6 +208,10 @@ export default function Home() {
 
   const handleLeagueChange = (league: League | 'all') => {
     setSelectedLeague(league);
+  };
+
+  const handleNationalityChange = (nationality: Nationality | 'all') => {
+    setSelectedNationality(nationality);
   };
   
   const handleGoToIdealTeam = (formationId: string) => {
@@ -271,7 +277,7 @@ export default function Home() {
     switch(activeTab) {
       case 'formations':
         return (
-          <Button onClick={() => setAddFormationDialogOpen(true)}>
+          <Button onClick={() => setAddFormationDialogOpen(true)} size="sm">
             <PlusCircle className="mr-2 h-4 w-4" />
             <span className="hidden sm:inline">Añadir Formación</span>
             <span className="inline sm:hidden">Formación</span>
@@ -281,7 +287,7 @@ export default function Home() {
         return null;
       default:
         return (
-            <Button onClick={() => handleOpenAddRating({ position: activeTab as Position })}>
+            <Button onClick={() => handleOpenAddRating({ position: activeTab as Position })} size="sm">
               <PlusCircle className="mr-2 h-4 w-4" />
               <span className="hidden sm:inline">Añadir Valoración</span>
               <span className="inline sm:hidden">Valoración</span>
@@ -387,7 +393,7 @@ export default function Home() {
 
 
       <header className="sticky top-0 z-10 bg-background/70 backdrop-blur-md border-b">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
           <h1 className="text-xl sm:text-3xl font-bold font-headline text-primary">
             eFootTracker
           </h1>
@@ -404,18 +410,18 @@ export default function Home() {
       <main className="container mx-auto p-4 md:p-8">
         <Tabs defaultValue="DC" className="w-full" onValueChange={handleTabChange} value={activeTab}>
            <ScrollArea className="w-full whitespace-nowrap rounded-md border">
-            <TabsList className="inline-flex w-max">
+            <TabsList className="inline-flex h-auto p-1">
               {positions.map((pos) => (
-                <TabsTrigger key={pos} value={pos} className="py-2">
+                <TabsTrigger key={pos} value={pos} className="py-2 px-3 text-sm">
                   <PositionIcon position={pos} className="mr-2 h-5 w-5"/>
                   {pos}
                 </TabsTrigger>
               ))}
-              <TabsTrigger value="formations" className="py-2 data-[state=active]:text-accent-foreground data-[state=active]:bg-accent">
+              <TabsTrigger value="formations" className="py-2 px-3 text-sm data-[state=active]:text-accent-foreground data-[state=active]:bg-accent">
                   <Trophy className="mr-2 h-5 w-5"/>
                   Formaciones
               </TabsTrigger>
-              <TabsTrigger value="ideal-11" className="py-2 data-[state=active]:text-accent-foreground data-[state=active]:bg-accent">
+              <TabsTrigger value="ideal-11" className="py-2 px-3 text-sm data-[state=active]:text-accent-foreground data-[state=active]:bg-accent">
                   <Star className="mr-2 h-5 w-5"/>
                   11 Ideal
               </TabsTrigger>
@@ -576,6 +582,9 @@ export default function Home() {
                     leagues={['all', ...leagues]}
                     selectedLeague={selectedLeague}
                     onLeagueChange={handleLeagueChange}
+                    nationalities={['all', ...nationalities]}
+                    selectedNationality={selectedNationality}
+                    onNationalityChange={handleNationalityChange}
                   />
                   <div className="flex items-center gap-4 mt-6">
                     <Button onClick={handleGenerateTeam} disabled={!selectedFormationId}>
