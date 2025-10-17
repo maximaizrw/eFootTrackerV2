@@ -29,6 +29,7 @@ import { IdealTeamDisplay } from '@/components/ideal-team-display';
 import { IdealTeamSetup } from '@/components/ideal-team-setup';
 import { PlayerTable } from '@/components/player-table';
 import { PositionIcon } from '@/components/position-icon';
+import { NationalityDistribution } from '@/components/nationality-distribution';
 
 import { usePlayers } from '@/hooks/usePlayers';
 import { useFormations } from '@/hooks/useFormations';
@@ -36,7 +37,7 @@ import { useToast } from "@/hooks/use-toast";
 
 import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality } from '@/lib/types';
 import { positions, leagues, nationalities } from '@/lib/types';
-import { PlusCircle, Star, Download, Trophy, RotateCcw } from 'lucide-react';
+import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe } from 'lucide-react';
 import { calculateStats, normalizeText } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -284,6 +285,7 @@ export default function Home() {
           </Button>
         );
       case 'ideal-11':
+      case 'nationalities':
         return null;
       default:
         return (
@@ -424,6 +426,10 @@ export default function Home() {
               <TabsTrigger value="ideal-11" className="py-2 px-3 text-sm data-[state=active]:text-accent-foreground data-[state=active]:bg-accent">
                   <Star className="mr-2 h-5 w-5"/>
                   11 Ideal
+              </TabsTrigger>
+               <TabsTrigger value="nationalities" className="py-2 px-3 text-sm data-[state=active]:text-accent-foreground data-[state=active]:bg-accent">
+                  <Globe className="mr-2 h-5 w-5"/>
+                  Nacionalidades
               </TabsTrigger>
             </TabsList>
             <ScrollBar orientation="horizontal" />
@@ -607,6 +613,10 @@ export default function Home() {
                 formation={selectedFormation} 
                 onDiscardPlayer={handleDiscardPlayer}
             />
+          </TabsContent>
+          
+          <TabsContent value="nationalities" className="mt-6">
+            <NationalityDistribution players={allPlayers} />
           </TabsContent>
 
         </Tabs>
