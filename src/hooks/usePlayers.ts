@@ -32,6 +32,7 @@ export function usePlayers() {
                 id: doc.id,
                 name: data.name,
                 nationality: data.nationality || 'Sin Nacionalidad',
+                selectable: data.selectable === undefined ? true : data.selectable,
                 cards: (data.cards || []).map((card: any) => ({
                     ...card,
                     id: card.id || uuidv4(), // Ensure card has an ID
@@ -121,6 +122,7 @@ export function usePlayers() {
         const newPlayer = {
           name: playerName,
           nationality: nationality,
+          selectable: true,
           cards: [{ 
               id: uuidv4(), 
               name: cardName, 
@@ -172,6 +174,7 @@ export function usePlayers() {
       await updateDoc(doc(db, 'players', values.playerId), { 
         name: values.currentPlayerName,
         nationality: values.nationality,
+        selectable: values.selectable,
       });
       toast({ title: "Jugador Actualizado", description: "Los datos del jugador se han actualizado." });
     } catch (error) {

@@ -74,6 +74,7 @@ export type Player = {
   id: string;
   name: string;
   nationality: Nationality;
+  selectable: boolean;
   cards: PlayerCard[];
 };
 
@@ -101,6 +102,7 @@ export type EditPlayerFormValues = {
     playerId: string;
     currentPlayerName: string;
     nationality: Nationality;
+    selectable: boolean;
 };
 
 export type PlayersByPosition = {
@@ -203,7 +205,7 @@ export type PlayerPerformance = {
     stats: PlayerStats;
     isHotStreak: boolean;
     isConsistent: boolean;
-    isPromising: boolean;
+isPromising: boolean;
     isVersatile: boolean;
 };
 

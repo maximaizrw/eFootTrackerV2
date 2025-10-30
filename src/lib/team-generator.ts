@@ -27,8 +27,15 @@ export function generateIdealTeam(
   nationality: Nationality | 'all' = 'all'
 ): IdealTeamSlot[] {
   
+  const hasFilters = league !== 'all' || nationality !== 'all';
+  
   // Create a flat list of all possible player-card-position combinations
   const allPlayerCandidates: CandidatePlayer[] = players.flatMap(player => {
+    // If there are no filters, only include 'selectable' players
+    if (!hasFilters && !player.selectable) {
+        return [];
+    }
+
     // Filter by nationality if a specific one is selected
     if (nationality !== 'all' && player.nationality !== nationality) {
       return [];
@@ -204,14 +211,14 @@ export function generateIdealTeam(
     const formationSlot = formation.slots[index];
     return {
       starter: slot.starter || {
-          player: { id: `placeholder-S-${index}`, name: `Vacante`, cards: [], nationality: 'Sin Nacionalidad' },
+          player: { id: `placeholder-S-${index}`, name: `Vacante`, cards: [], nationality: 'Sin Nacionalidad', selectable: true },
           card: { id: `placeholder-card-S-${index}`, name: 'N/A', style: 'Ninguno', ratingsByPosition: {} },
           position: formationSlot.position,
           average: 0,
           performance: placeholderPerformance
       },
       substitute: slot.substitute || {
-           player: { id: `placeholder-SUB-${index}`, name: `Vacante`, cards: [], nationality: 'Sin Nacionalidad' },
+           player: { id: `placeholder-SUB-${index}`, name: `Vacante`, cards: [], nationality: 'Sin Nacionalidad', selectable: true },
           card: { id: `placeholder-card-SUB-${index}`, name: 'N/A', style: 'Ninguno', ratingsByPosition: {} },
           position: formationSlot.position,
           average: 0,
