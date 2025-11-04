@@ -100,7 +100,8 @@ export type Formation = {
 export type IdealTeamPlayer = {
   player: Player;
   card: PlayerCard;
-  position: Position;
+  position: Position; // The actual position of the player's rating
+  assignedPosition: Position | Position[]; // The slot they were assigned to in the formation
   average: number;
   performance: PlayerPerformance;
 };
@@ -129,7 +130,7 @@ export type MatchResult = {
 };
 
 export const FormationSlotSchema = z.object({
-  position: z.enum(positions),
+  position: z.union([z.enum(positions), z.array(z.enum(positions))]),
   styles: z.array(z.enum(playerStyles)).optional().default([]),
   top: z.number().optional(),
   left: z.number().optional(),

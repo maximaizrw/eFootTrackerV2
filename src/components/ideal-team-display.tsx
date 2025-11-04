@@ -32,6 +32,8 @@ const PlayerToken = ({ player, style, onDiscard }: { player: IdealTeamPlayer | n
     );
   }
 
+  const displayPosition = Array.isArray(player.assignedPosition) ? player.assignedPosition.join('/') : player.assignedPosition;
+
   return (
     <div 
       className="absolute -translate-x-1/2 -translate-y-1/2 w-24 flex flex-col items-center justify-between text-center transition-all duration-200 group"
@@ -73,7 +75,7 @@ const PlayerToken = ({ player, style, onDiscard }: { player: IdealTeamPlayer | n
        <div className="w-full relative -mt-3 text-white">
         <div className="inline-block bg-black/50 rounded-sm px-1.5 py-0.5" style={{textShadow: '0 1px 3px black'}}>
             <p className="font-bold text-sm leading-tight text-primary">
-            {player.position}
+            {displayPosition}
             </p>
             <p className="font-semibold text-xs truncate w-full" title={player.player.name}>
             {player.player.name}
@@ -96,10 +98,12 @@ const SubstitutePlayerRow = ({ player, onDiscard }: { player: IdealTeamPlayer | 
     );
   }
 
+  const displayPosition = Array.isArray(player.assignedPosition) ? player.assignedPosition.join('/') : player.assignedPosition;
+
   return (
     <Card className="group relative flex items-center gap-2 p-2 rounded-lg bg-card h-20 overflow-hidden">
       <div className="absolute top-0 right-0 p-1.5 leading-none text-xs font-bold bg-accent text-accent-foreground rounded-bl-lg">
-          {player.position}
+          {displayPosition}
       </div>
       <div className="relative w-16 h-full flex-shrink-0">
         {player.card.imageUrl && (
@@ -156,8 +160,11 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer }: Idea
     .map(slot => slot.substitute)
     .filter((sub): sub is IdealTeamPlayer => sub !== null && !sub.player.id.startsWith('placeholder'))
     .sort((a, b) => {
-        const indexA = substituteOrder.indexOf(a.position);
-        const indexB = substituteOrder.indexOf(b.position);
+        // Use the first position in the array if it's flexible
+        const posA = Array.isArray(a.assignedPosition) ? a.assignedPosition[0] : a.assignedPosition;
+        const posB = Array.isArray(b.assignedPosition) ? b.assignedPosition[0] : b.assignedPosition;
+        const indexA = substituteOrder.indexOf(posA);
+        const indexB = substituteOrder.indexOf(posB);
         if(indexA === -1 && indexB === -1) return 0;
         if(indexA === -1) return 1;
         if(indexB === -1) return -1;

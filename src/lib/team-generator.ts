@@ -56,8 +56,7 @@ export function generateIdealTeam(
       const positionsWithRatings = Object.keys(card.ratingsByPosition || {}) as Position[];
 
       return positionsWithRatings.map(pos => {
-        // If there are no filters, check if the position is selectable
-        // The `?? true` makes positions selectable by default if the object/property doesn't exist
+        // If there are no filters, check if the position is selectable for this card
         const isSelectable = card.selectablePositions?.[pos] ?? true;
         if (!hasFilters && !isSelectable) {
             return null;
@@ -91,12 +90,13 @@ export function generateIdealTeam(
   const usedCardIds = new Set<string>();
   const finalTeamSlots: IdealTeamSlot[] = [];
 
-  const createTeamPlayer = (candidate: CandidatePlayer | undefined, assignedPosition: Position): IdealTeamPlayer | null => {
+  const createTeamPlayer = (candidate: CandidatePlayer | undefined, assignedPosition: Position | Position[]): IdealTeamPlayer | null => {
       if (!candidate) return null;
       return {
           player: candidate.player,
           card: candidate.card,
-          position: assignedPosition,
+          position: candidate.position, // The actual position of the player's rating
+          assignedPosition: assignedPosition, // The slot they were assigned to
           average: candidate.average,
           performance: candidate.performance,
       }
@@ -110,10 +110,11 @@ export function generateIdealTeam(
   // --- STARTER SELECTION ---
   for (const formationSlot of formation.slots) {
     const hasStylePreference = formationSlot.styles && formationSlot.styles.length > 0;
+    const targetPositions = Array.isArray(formationSlot.position) ? formationSlot.position : [formationSlot.position];
     
-    // Get all candidates for the specific position, sorted by average rating.
+    // Get all candidates for the specific position(s), sorted by average rating.
     const positionCandidates = allPlayerCandidates
-      .filter(p => p.position === formationSlot.position)
+      .filter(p => targetPositions.includes(p.position))
       .sort((a, b) => b.average - a.average);
 
     let starterCandidate: CandidatePlayer | undefined;
@@ -144,10 +145,11 @@ export function generateIdealTeam(
   finalTeamSlots.forEach((slot, index) => {
     const formationSlot = formation.slots[index];
     const hasStylePreference = formationSlot.styles && formationSlot.styles.length > 0;
+    const targetPositions = Array.isArray(formationSlot.position) ? formationSlot.position : [formationSlot.position];
 
     // Candidates for this position, already sorted by average rating.
     const positionCandidates = allPlayerCandidates
-      .filter(p => p.position === formationSlot.position)
+      .filter(p => targetPositions.includes(p.position))
       .sort((a, b) => b.average - a.average);
 
     let substituteCandidate: CandidatePlayer | undefined;
@@ -211,18 +213,22 @@ export function generateIdealTeam(
 
   return finalTeamSlots.map((slot, index) => {
     const formationSlot = formation.slots[index];
+    const assignedPosition = formationSlot.position;
+
     return {
       starter: slot.starter || {
           player: { id: `placeholder-S-${index}`, name: `Vacante`, cards: [], nationality: 'Sin Nacionalidad' },
           card: { id: `placeholder-card-S-${index}`, name: 'N/A', style: 'Ninguno', ratingsByPosition: {} },
-          position: formationSlot.position,
+          position: Array.isArray(assignedPosition) ? assignedPosition[0] : assignedPosition,
+          assignedPosition: assignedPosition,
           average: 0,
           performance: placeholderPerformance
       },
       substitute: slot.substitute || {
            player: { id: `placeholder-SUB-${index}`, name: `Vacante`, cards: [], nationality: 'Sin Nacionalidad' },
           card: { id: `placeholder-card-SUB-${index}`, name: 'N/A', style: 'Ninguno', ratingsByPosition: {} },
-          position: formationSlot.position,
+          position: Array.isArray(assignedPosition) ? assignedPosition[0] : assignedPosition,
+          assignedPosition: assignedPosition,
           average: 0,
           performance: placeholderPerformance
       }

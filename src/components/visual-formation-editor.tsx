@@ -14,6 +14,7 @@ import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Check, ChevronsUpDown, Settings } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import type { FormationSlot, Position, PlayerStyle } from "@/lib/types";
 import { positions, playerStyles } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -48,6 +49,28 @@ const PlayerToken = ({
     onSlotChange({ ...slot, styles: newValues });
   };
   
+  const handlePositionChange = (newPos: Position) => {
+    const isFullback = newPos === 'LI' || newPos === 'LD';
+    if (isFullback && Array.isArray(slot.position) && slot.position.includes(newPos)) {
+        // If it's already a flexible fullback and we click the same pos, do nothing special
+         onSlotChange({ ...slot, position: newPos, styles: [] });
+    } else {
+        onSlotChange({ ...slot, position: newPos, styles: [] });
+    }
+  };
+
+  const handleFlexFullbackToggle = () => {
+    if (Array.isArray(slot.position)) {
+      onSlotChange({ ...slot, position: slot.position[0] });
+    } else if (slot.position === 'LI' || slot.position === 'LD') {
+      onSlotChange({ ...slot, position: ['LI', 'LD'] });
+    }
+  };
+
+  const isFlexibleFullback = Array.isArray(slot.position);
+  const displayPosition = isFlexibleFullback ? 'LI/LD' : slot.position;
+  const currentSinglePos = isFlexibleFullback ? slot.position[0] : slot.position;
+
   return (
     <div
         className={cn(
@@ -59,7 +82,7 @@ const PlayerToken = ({
         style={{...style, textShadow: '0 1px 2px rgba(0,0,0,0.4)'}}
         onMouseDown={onMouseDown}
     >
-      <span className="font-bold text-lg">{slot.position}</span>
+      <span className="font-bold text-base">{displayPosition}</span>
       <div className="absolute top-0.5 right-0.5 flex gap-0.5">
           <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
             <PopoverTrigger asChild>
@@ -77,8 +100,8 @@ const PlayerToken = ({
                   <div>
                     <label className="text-sm font-medium">Posición</label>
                     <Select
-                      value={slot.position}
-                      onValueChange={(newPos) => onSlotChange({ ...slot, position: newPos as Position, styles: [] })}
+                      value={currentSinglePos}
+                      onValueChange={(newPos) => handlePositionChange(newPos as Position)}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -92,6 +115,21 @@ const PlayerToken = ({
                       </SelectContent>
                     </Select>
                   </div>
+                  {(currentSinglePos === 'LI' || currentSinglePos === 'LD') && (
+                     <div className="flex items-center space-x-2">
+                        <Checkbox
+                            id="flex-fb"
+                            checked={isFlexibleFullback}
+                            onCheckedChange={handleFlexFullbackToggle}
+                        />
+                        <label
+                            htmlFor="flex-fb"
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                            Lateral Flexible (LI/LD)
+                        </label>
+                    </div>
+                  )}
                   <div>
                       <label className="text-sm font-medium mb-2 block">Estilos de Juego (Opcional)</label>
                       <Popover>
