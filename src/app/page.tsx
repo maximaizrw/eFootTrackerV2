@@ -137,6 +137,7 @@ export default function Home() {
         currentStyle: card.style,
         league: card.league || 'Sin Liga',
         imageUrl: card.imageUrl || '',
+        selectable: card.selectable,
     });
     setEditCardDialogOpen(true);
   };
@@ -146,7 +147,6 @@ export default function Home() {
       playerId: player.id,
       currentPlayerName: player.name,
       nationality: player.nationality || 'Sin Nacionalidad',
-      selectable: player.selectable,
     });
     setEditPlayerDialogOpen(true);
   };

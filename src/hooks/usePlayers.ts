@@ -32,13 +32,13 @@ export function usePlayers() {
                 id: doc.id,
                 name: data.name,
                 nationality: data.nationality || 'Sin Nacionalidad',
-                selectable: data.selectable === undefined ? true : data.selectable,
                 cards: (data.cards || []).map((card: any) => ({
                     ...card,
                     id: card.id || uuidv4(), // Ensure card has an ID
                     style: card.style || 'Ninguno',
                     league: card.league || 'Sin Liga',
                     imageUrl: card.imageUrl || '',
+                    selectable: card.selectable === undefined ? true : card.selectable,
                     ratingsByPosition: card.ratingsByPosition || {},
                     trainingBuilds: card.trainingBuilds || {}
                 })),
@@ -111,7 +111,8 @@ export function usePlayers() {
               name: cardName, 
               style: style, 
               league: league || 'Sin Liga',
-              imageUrl: '', 
+              imageUrl: '',
+              selectable: true,
               ratingsByPosition: { [position]: [rating] },
               trainingBuilds: {}
           };
@@ -122,13 +123,13 @@ export function usePlayers() {
         const newPlayer = {
           name: playerName,
           nationality: nationality,
-          selectable: true,
           cards: [{ 
               id: uuidv4(), 
               name: cardName, 
               style: style, 
               league: league || 'Sin Liga',
-              imageUrl: '', 
+              imageUrl: '',
+              selectable: true,
               ratingsByPosition: { [position]: [rating] },
               trainingBuilds: {}
           }],
@@ -158,6 +159,7 @@ export function usePlayers() {
           cardToUpdate.style = values.currentStyle;
           cardToUpdate.league = values.league || 'Sin Liga';
           cardToUpdate.imageUrl = values.imageUrl || '';
+          cardToUpdate.selectable = values.selectable;
           
           await updateDoc(playerRef, { cards: newCards });
           toast({ title: "Carta Actualizada", description: "Los datos de la carta se han actualizado." });
@@ -174,7 +176,6 @@ export function usePlayers() {
       await updateDoc(doc(db, 'players', values.playerId), { 
         name: values.currentPlayerName,
         nationality: values.nationality,
-        selectable: values.selectable,
       });
       toast({ title: "Jugador Actualizado", description: "Los datos del jugador se han actualizado." });
     } catch (error) {

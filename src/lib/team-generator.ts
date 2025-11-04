@@ -31,17 +31,17 @@ export function generateIdealTeam(
   
   // Create a flat list of all possible player-card-position combinations
   const allPlayerCandidates: CandidatePlayer[] = players.flatMap(player => {
-    // If there are no filters, only include 'selectable' players
-    if (!hasFilters && !player.selectable) {
-        return [];
-    }
-
     // Filter by nationality if a specific one is selected
     if (nationality !== 'all' && player.nationality !== nationality) {
       return [];
     }
 
     return (player.cards || []).flatMap(card => {
+      // If there are no filters, only include 'selectable' cards
+      if (!hasFilters && !card.selectable) {
+        return [];
+      }
+
       // Filter by league if a specific league is selected
       if (league !== 'all' && card.league !== league) {
         return [];
@@ -211,15 +211,15 @@ export function generateIdealTeam(
     const formationSlot = formation.slots[index];
     return {
       starter: slot.starter || {
-          player: { id: `placeholder-S-${index}`, name: `Vacante`, cards: [], nationality: 'Sin Nacionalidad', selectable: true },
-          card: { id: `placeholder-card-S-${index}`, name: 'N/A', style: 'Ninguno', ratingsByPosition: {} },
+          player: { id: `placeholder-S-${index}`, name: `Vacante`, cards: [], nationality: 'Sin Nacionalidad' },
+          card: { id: `placeholder-card-S-${index}`, name: 'N/A', style: 'Ninguno', ratingsByPosition: {}, selectable: false },
           position: formationSlot.position,
           average: 0,
           performance: placeholderPerformance
       },
       substitute: slot.substitute || {
-           player: { id: `placeholder-SUB-${index}`, name: `Vacante`, cards: [], nationality: 'Sin Nacionalidad', selectable: true },
-          card: { id: `placeholder-card-SUB-${index}`, name: 'N/A', style: 'Ninguno', ratingsByPosition: {} },
+           player: { id: `placeholder-SUB-${index}`, name: `Vacante`, cards: [], nationality: 'Sin Nacionalidad' },
+          card: { id: `placeholder-card-SUB-${index}`, name: 'N/A', style: 'Ninguno', ratingsByPosition: {}, selectable: false },
           position: formationSlot.position,
           average: 0,
           performance: placeholderPerformance

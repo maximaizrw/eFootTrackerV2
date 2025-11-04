@@ -26,13 +26,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { nationalities } from "@/lib/types";
-import { Switch } from "./ui/switch";
 
 const formSchema = z.object({
   playerId: z.string().min(1, "Se requiere el ID del jugador."),
   currentPlayerName: z.string().min(2, "El nombre del jugador debe tener al menos 2 caracteres."),
   nationality: z.enum(nationalities),
-  selectable: z.boolean(),
 });
 
 export type FormValues = z.infer<typeof formSchema>;
@@ -51,7 +49,6 @@ export function EditPlayerDialog({ open, onOpenChange, onEditPlayer, initialData
         playerId: '',
         currentPlayerName: '',
         nationality: 'Sin Nacionalidad',
-        selectable: true,
     }
   });
 
@@ -62,7 +59,6 @@ export function EditPlayerDialog({ open, onOpenChange, onEditPlayer, initialData
         playerId: initialData.playerId || '',
         currentPlayerName: initialData.currentPlayerName || '',
         nationality: initialData.nationality || 'Sin Nacionalidad',
-        selectable: initialData.selectable === undefined ? true : initialData.selectable,
       });
     }
   }, [open, initialData, form]);
@@ -115,24 +111,6 @@ export function EditPlayerDialog({ open, onOpenChange, onEditPlayer, initialData
                     </SelectContent>
                   </Select>
                   <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="selectable"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                  <div className="space-y-0.5">
-                    <FormLabel>Seleccionable</FormLabel>
-                     <FormMessage />
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
                 </FormItem>
               )}
             />

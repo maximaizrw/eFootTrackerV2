@@ -66,6 +66,7 @@ export type PlayerCard = {
   style: PlayerStyle;
   league?: League;
   imageUrl?: string;
+  selectable: boolean;
   ratingsByPosition: { [key in Position]?: number[] };
   trainingBuilds?: { [key in Position]?: TrainingBuild };
 };
@@ -74,7 +75,6 @@ export type Player = {
   id: string;
   name: string;
   nationality: Nationality;
-  selectable: boolean;
   cards: PlayerCard[];
 };
 
@@ -96,13 +96,13 @@ export type EditCardFormValues = {
     currentStyle: PlayerStyle;
     league?: League;
     imageUrl?: string;
+    selectable: boolean;
 };
 
 export type EditPlayerFormValues = {
     playerId: string;
     currentPlayerName: string;
     nationality: Nationality;
-    selectable: boolean;
 };
 
 export type PlayersByPosition = {
