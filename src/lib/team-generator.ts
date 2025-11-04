@@ -37,11 +37,6 @@ export function generateIdealTeam(
     }
 
     return (player.cards || []).flatMap(card => {
-      // If there are no filters, only include 'selectable' cards
-      if (!hasFilters && !card.selectable) {
-        return [];
-      }
-
       // Filter by league if a specific league is selected
       if (league !== 'all' && card.league !== league) {
         return [];
@@ -61,6 +56,13 @@ export function generateIdealTeam(
       const positionsWithRatings = Object.keys(card.ratingsByPosition || {}) as Position[];
 
       return positionsWithRatings.map(pos => {
+        // If there are no filters, check if the position is selectable
+        // The `?? true` makes positions selectable by default if the object/property doesn't exist
+        const isSelectable = card.selectablePositions?.[pos] ?? true;
+        if (!hasFilters && !isSelectable) {
+            return null;
+        }
+
         const ratings = card.ratingsByPosition![pos]!;
         const stats = calculateStats(ratings);
         const recentRatings = ratings.slice(-3);
@@ -212,14 +214,14 @@ export function generateIdealTeam(
     return {
       starter: slot.starter || {
           player: { id: `placeholder-S-${index}`, name: `Vacante`, cards: [], nationality: 'Sin Nacionalidad' },
-          card: { id: `placeholder-card-S-${index}`, name: 'N/A', style: 'Ninguno', ratingsByPosition: {}, selectable: false },
+          card: { id: `placeholder-card-S-${index}`, name: 'N/A', style: 'Ninguno', ratingsByPosition: {} },
           position: formationSlot.position,
           average: 0,
           performance: placeholderPerformance
       },
       substitute: slot.substitute || {
            player: { id: `placeholder-SUB-${index}`, name: `Vacante`, cards: [], nationality: 'Sin Nacionalidad' },
-          card: { id: `placeholder-card-SUB-${index}`, name: 'N/A', style: 'Ninguno', ratingsByPosition: {}, selectable: false },
+          card: { id: `placeholder-card-SUB-${index}`, name: 'N/A', style: 'Ninguno', ratingsByPosition: {} },
           position: formationSlot.position,
           average: 0,
           performance: placeholderPerformance

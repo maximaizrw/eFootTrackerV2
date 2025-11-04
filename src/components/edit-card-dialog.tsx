@@ -33,7 +33,6 @@ import {
 } from "@/components/ui/select";
 import type { PlayerStyle, League } from "@/lib/types";
 import { playerStyles, leagues } from "@/lib/types";
-import { Switch } from "./ui/switch";
 
 const formSchema = z.object({
   playerId: z.string(),
@@ -42,7 +41,6 @@ const formSchema = z.object({
   currentStyle: z.enum(playerStyles),
   league: z.enum(leagues).optional(),
   imageUrl: z.string().url("Debe ser una URL válida.").optional().or(z.literal('')),
-  selectable: z.boolean(),
 });
 
 export type FormValues = z.infer<typeof formSchema>;
@@ -64,7 +62,6 @@ export function EditCardDialog({ open, onOpenChange, onEditCard, initialData }: 
       form.reset({
           ...initialData,
           league: initialData.league || 'Sin Liga',
-          selectable: initialData.selectable === undefined ? true : initialData.selectable,
       });
     }
   }, [open, initialData, form]);
@@ -152,24 +149,6 @@ export function EditCardDialog({ open, onOpenChange, onEditCard, initialData }: 
                     <Input placeholder="https://ejemplo.com/imagen_carta.png" {...field} />
                   </FormControl>
                   <FormMessage />
-                </FormItem>
-              )}
-            />
-             <FormField
-              control={form.control}
-              name="selectable"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                  <div className="space-y-0.5">
-                    <FormLabel>Seleccionable</FormLabel>
-                     <FormMessage />
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
                 </FormItem>
               )}
             />

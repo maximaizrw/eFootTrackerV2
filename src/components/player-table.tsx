@@ -8,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, X, Wrench, Pencil, NotebookPen, Search } from 'lucide-react';
+import { PlusCircle, Trash2, X, Wrench, Pencil, NotebookPen, Search, EyeOff, Eye } from 'lucide-react';
 import { cn, formatAverage, getAverageColorClass } from '@/lib/utils';
 import type { Player, PlayerCard, Position, FlatPlayer } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
@@ -22,7 +22,8 @@ type PlayerTableProps = {
   onOpenEditPlayer: (player: Player) => void;
   onOpenPlayerDetail: (flatPlayer: FlatPlayer) => void;
   onViewImage: (url: string, name: string) => void;
-  onDeleteCard: (playerId: string, cardId: string, position: Position) => void;
+  onDeletePositionRatings: (playerId: string, cardId: string, position: Position) => void;
+  onToggleSelectable: (playerId: string, cardId: string, position: Position, currentSelectable?: boolean) => void;
   onDeleteRating: (playerId: string, cardId: string, position: Position, ratingIndex: number) => void;
 };
 
@@ -124,7 +125,8 @@ export function PlayerTable({
   onOpenEditPlayer,
   onOpenPlayerDetail,
   onViewImage,
-  onDeleteCard,
+  onDeletePositionRatings,
+  onToggleSelectable,
   onDeleteRating,
 }: PlayerTableProps) {
   
@@ -161,9 +163,11 @@ export function PlayerTable({
             const cardMatches = performance.stats.matches;
             
             const averageColorClass = getAverageColorClass(cardAverage);
+            
+            const isPosSelectable = card.selectablePositions?.[position] ?? true;
 
             return (
-              <TableRow key={`${player.id}-${card.id}-${position}`}>
+              <TableRow key={`${player.id}-${card.id}-${position}`} className={!isPosSelectable ? 'bg-muted/30 hover:bg-muted/50' : ''}>
                 <TableCell className="p-2 md:p-4">
                   <div className="flex items-center gap-2">
                     {card.imageUrl ? (
@@ -260,6 +264,18 @@ export function PlayerTable({
                         <TooltipContent><p>Añadir valoración</p></TooltipContent>
                       </Tooltip>
                       <div className="hidden md:flex">
+                         <Tooltip>
+                            <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost" size="icon" className="h-8 w-8 rounded-full"
+                                aria-label={`Activar/Desactivar para ${position}`}
+                                onClick={() => onToggleSelectable(player.id, card.id, position, isPosSelectable)}
+                                >
+                                {isPosSelectable ? <Eye className="h-4 w-4 text-muted-foreground/80 hover:text-muted-foreground" /> : <EyeOff className="h-4 w-4 text-destructive/80 hover:text-destructive" />}
+                            </Button>
+                            </TooltipTrigger>
+                            <TooltipContent><p>{isPosSelectable ? `No seleccionar para ${position}` : `Sí seleccionar para ${position}`}</p></TooltipContent>
+                        </Tooltip>
                         <Tooltip>
                             <TooltipTrigger asChild>
                             <Button
@@ -291,7 +307,7 @@ export function PlayerTable({
                             <Button
                                 variant="ghost" size="icon" className="h-8 w-8 rounded-full"
                                 aria-label={`Eliminar valoraciones de ${card.name} (${player.name}) para la posición ${position}`}
-                                onClick={() => onDeleteCard(player.id, card.id, position)}>
+                                onClick={() => onDeletePositionRatings(player.id, card.id, position)}>
                                 <Trash2 className="h-4 w-4 text-destructive/80 hover:text-destructive" />
                             </Button>
                             </TooltipTrigger>

@@ -9,29 +9,14 @@ export const positions = ['PT', 'DFC', 'LI', 'LD', 'MCD', 'MC', 'MDI', 'MDD', 'M
 export type Position = typeof positions[number];
 
 export const leagues = [
-    'Sin Liga',
-    'Premier League',
-    'Serie A',
-    'La Liga',
-    'Ligue 1 Uber Eats',
-    'Eredivisie',
-    'Primeira Liga',
-    'BRASILEIRAO ASSAI',
-    'Liga Profesional de Futbol',
-    'Campeonato PlanVital',
-    'J. League Div.1',
-    'J. League Div.2',
-    'Championship',
-    'Segunda Division',
-    'Ligue 2 BKT',
-    'Serie BKT',
-    'BRASILEIRAO SERIE B',
-    'Tinkoff Russian Premier Liga',
-    'Raiffeisen Super League',
-    'Super Lig',
-    'CFA Super League',
-    'TOYOTA Thai League',
-    'Internacional' // Keep for national teams
+    "Sin Liga", "Premier League", "Ligue 1 Uber Eats", "Serie A TIM", "LaLiga EA SPORTS",
+    "Eredivisie", "Liga Portugal Betclic", "Credit Suisse Super League", "Super Lig",
+    "Scottish Premiership", "3F Superliga", "Jupiler Pro League", "Championship",
+    "Serie BKT", "Ligue 2 BKT", "LaLiga Hypermotion", "BELGIAN LEAGUE",
+    "SWISS LEAGUE", "BRASILEIRAO ASSAI", "BRASILEIRAO SERIE B",
+    "Liga BBVA MX", "Major League Soccer", "Liga Profesional de Futbol",
+    "Campeonato PlanVital", "K LEAGUE 1", "Hilux Revo Thai League 1",
+    "J. League Div.1", 'Internacional'
 ] as const;
 export type League = typeof leagues[number];
 
@@ -66,9 +51,9 @@ export type PlayerCard = {
   style: PlayerStyle;
   league?: League;
   imageUrl?: string;
-  selectable: boolean;
   ratingsByPosition: { [key in Position]?: number[] };
   trainingBuilds?: { [key in Position]?: TrainingBuild };
+  selectablePositions?: { [key in Position]?: boolean };
 };
 
 export type Player = {
@@ -96,7 +81,6 @@ export type EditCardFormValues = {
     currentStyle: PlayerStyle;
     league?: League;
     imageUrl?: string;
-    selectable: boolean;
 };
 
 export type EditPlayerFormValues = {

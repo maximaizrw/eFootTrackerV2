@@ -52,10 +52,11 @@ export default function Home() {
     addRating,
     editCard,
     editPlayer,
-    deleteCard,
     deleteRating,
     downloadBackup: downloadPlayersBackup,
     saveTrainingBuild,
+    deletePositionRatings,
+    toggleSelectablePosition,
   } = usePlayers();
 
   const {
@@ -137,7 +138,6 @@ export default function Home() {
         currentStyle: card.style,
         league: card.league || 'Sin Liga',
         imageUrl: card.imageUrl || '',
-        selectable: card.selectable,
     });
     setEditCardDialogOpen(true);
   };
@@ -557,7 +557,8 @@ export default function Home() {
                       onOpenEditPlayer={handleOpenEditPlayer}
                       onOpenPlayerDetail={handleOpenPlayerDetail}
                       onViewImage={handleViewImage}
-                      onDeleteCard={deleteCard}
+                      onDeletePositionRatings={deletePositionRatings}
+                      onToggleSelectable={toggleSelectablePosition}
                       onDeleteRating={deleteRating}
                     />
                     <PlayerTable.Pagination
