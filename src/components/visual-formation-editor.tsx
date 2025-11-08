@@ -50,26 +50,30 @@ const PlayerToken = ({
   };
   
   const handlePositionChange = (newPos: Position) => {
-    const isFullback = newPos === 'LI' || newPos === 'LD';
-    if (isFullback && Array.isArray(slot.position) && slot.position.includes(newPos)) {
-        // If it's already a flexible fullback and we click the same pos, do nothing special
+    const isFlexible = (newPos === 'LI' || newPos === 'LD' || newPos === 'EXI' || newPos === 'EXD');
+    if (isFlexible && Array.isArray(slot.position) && slot.position.includes(newPos)) {
          onSlotChange({ ...slot, position: newPos, styles: [] });
     } else {
         onSlotChange({ ...slot, position: newPos, styles: [] });
     }
   };
 
-  const handleFlexFullbackToggle = () => {
+  const handleFlexToggle = () => {
+    const currentPos = Array.isArray(slot.position) ? slot.position[0] : slot.position;
     if (Array.isArray(slot.position)) {
-      onSlotChange({ ...slot, position: slot.position[0] });
-    } else if (slot.position === 'LI' || slot.position === 'LD') {
+      onSlotChange({ ...slot, position: currentPos });
+    } else if (currentPos === 'LI' || currentPos === 'LD') {
       onSlotChange({ ...slot, position: ['LI', 'LD'] });
+    } else if (currentPos === 'EXI' || currentPos === 'EXD') {
+      onSlotChange({ ...slot, position: ['EXI', 'EXD'] });
     }
   };
 
-  const isFlexibleFullback = Array.isArray(slot.position);
-  const displayPosition = isFlexibleFullback ? 'LI/LD' : slot.position;
-  const currentSinglePos = isFlexibleFullback ? slot.position[0] : slot.position;
+  const isFlexible = Array.isArray(slot.position);
+  const displayPosition = isFlexible ? slot.position.join('/') : slot.position;
+  const currentSinglePos = isFlexible ? slot.position[0] : slot.position;
+  const canBeFlexible = currentSinglePos === 'LI' || currentSinglePos === 'LD' || currentSinglePos === 'EXI' || currentSinglePos === 'EXD';
+  const flexLabel = (currentSinglePos === 'LI' || currentSinglePos === 'LD') ? 'Lateral Flexible (LI/LD)' : 'Extremo Flexible (EXI/EXD)';
 
   return (
     <div
@@ -115,18 +119,18 @@ const PlayerToken = ({
                       </SelectContent>
                     </Select>
                   </div>
-                  {(currentSinglePos === 'LI' || currentSinglePos === 'LD') && (
+                  {canBeFlexible && (
                      <div className="flex items-center space-x-2">
                         <Checkbox
-                            id="flex-fb"
-                            checked={isFlexibleFullback}
-                            onCheckedChange={handleFlexFullbackToggle}
+                            id="flex-pos"
+                            checked={isFlexible}
+                            onCheckedChange={handleFlexToggle}
                         />
                         <label
-                            htmlFor="flex-fb"
+                            htmlFor="flex-pos"
                             className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                         >
-                            Lateral Flexible (LI/LD)
+                            {flexLabel}
                         </label>
                     </div>
                   )}
@@ -263,3 +267,5 @@ export function VisualFormationEditor({ value, onChange }: VisualFormationEditor
     </FootballPitch>
   );
 }
+
+    
