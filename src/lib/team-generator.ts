@@ -54,8 +54,20 @@ export function generateIdealTeam(
       const isVersatile = highPerfPositions.size >= 3;
       
       const positionsWithRatings = Object.keys(card.ratingsByPosition || {}) as Position[];
+      const trainedPositions = card.trainingBuilds ? Object.keys(card.trainingBuilds).filter(p => Object.keys(card.trainingBuilds![p as Position]!).length > 0) as Position[] : [];
+      const hasTrainingBuilds = trainedPositions.length > 0;
 
-      return positionsWithRatings.map(pos => {
+      // If a card has training builds, it can ONLY be selected for those trained positions.
+      // Otherwise, it can be selected for any position it has ratings for.
+      const eligiblePositions = hasTrainingBuilds ? trainedPositions : positionsWithRatings;
+
+
+      return eligiblePositions.map(pos => {
+        // A player with a build is always eligible for that position, but we still need to check if they have ratings.
+        if (!card.ratingsByPosition?.[pos] || card.ratingsByPosition[pos]!.length === 0) {
+            return null;
+        }
+
         // If there are no filters, check if the position is selectable for this card
         const isSelectable = card.selectablePositions?.[pos] ?? true;
         if (!hasFilters && !isSelectable) {
