@@ -98,6 +98,7 @@ export default function Home() {
   const [selectedNationality, setSelectedNationality] = useState<Nationality | 'all'>('all');
   const [idealTeam, setIdealTeam] = useState<IdealTeamSlot[]>([]);
   const [discardedCardIds, setDiscardedCardIds] = useState<Set<string>>(new Set());
+  const [sortBy, setSortBy] = useState<'average' | 'general'>('average');
 
   // State for filters and pagination
   const [styleFilter, setStyleFilter] = useState<string>('all');
@@ -193,7 +194,7 @@ export default function Home() {
       return;
     }
     
-    const newTeam = generateIdealTeam(players, formation, discardedCardIds, selectedLeague, selectedNationality);
+    const newTeam = generateIdealTeam(players, formation, discardedCardIds, selectedLeague, selectedNationality, sortBy);
 
     setIdealTeam(newTeam);
     if (document.activeElement instanceof HTMLElement) {
@@ -581,7 +582,7 @@ export default function Home() {
                    Generador de 11 Ideal
                  </CardTitle>
                  <CardDescription>
-                   Selecciona una de tus formaciones tácticas y generaremos el mejor equipo posible (titulares y suplentes) basado en el promedio y estilo de tus jugadores.
+                   Selecciona una formación, define tus filtros y elige si ordenar por promedio o por una valoración "General" (promedio + afinidad) para crear tu equipo.
                  </CardDescription>
                </CardHeader>
                <CardContent>
@@ -595,6 +596,8 @@ export default function Home() {
                     nationalities={['all', ...nationalities]}
                     selectedNationality={selectedNationality}
                     onNationalityChange={handleNationalityChange}
+                    sortBy={sortBy}
+                    onSortByChange={setSortBy}
                   />
                   <div className="flex items-center gap-4 mt-6">
                     <Button onClick={handleGenerateTeam} disabled={!selectedFormationId}>

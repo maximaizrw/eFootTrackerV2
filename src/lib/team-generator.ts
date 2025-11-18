@@ -6,6 +6,7 @@ type CandidatePlayer = {
   player: Player;
   card: PlayerCard;
   average: number;
+  generalScore: number;
   position: Position;
   performance: PlayerPerformance;
 };
@@ -17,6 +18,9 @@ type CandidatePlayer = {
  * @param players - The list of all available players.
  * @param formation - The selected formation with defined slots.
  * @param discardedCardIds - A set of card IDs to exclude from the selection.
+ * @param league - The league to filter by.
+ * @param nationality - The nationality to filter by.
+ * @param sortBy - The metric to sort players by ('average' or 'general').
  * @returns An array of 11 slots, each with a starter and a substitute.
  */
 export function generateIdealTeam(
@@ -24,7 +28,8 @@ export function generateIdealTeam(
   formation: FormationStats,
   discardedCardIds: Set<string> = new Set(),
   league: League | 'all' = 'all',
-  nationality: Nationality | 'all' = 'all'
+  nationality: Nationality | 'all' = 'all',
+  sortBy: 'average' | 'general' = 'average'
 ): IdealTeamSlot[] {
   
   const hasFilters = league !== 'all' || nationality !== 'all';
@@ -68,7 +73,6 @@ export function generateIdealTeam(
             return null;
         }
 
-        // If there are no filters, check if the position is selectable for this card
         const isSelectable = card.selectablePositions?.[pos] ?? true;
         if (!hasFilters && !isSelectable) {
             return null;
@@ -87,11 +91,16 @@ export function generateIdealTeam(
             isVersatile: isVersatile,
         };
 
+        const customScore = card.customScores?.[pos] ?? 0;
+        const matchAverageScore = (stats.average - 1) / 9 * 100; // Normalize 1-10 scale to 0-100
+        const generalScore = Math.max(0, Math.min(100, (matchAverageScore + customScore) / 2));
+
         return {
           player,
           card,
           position: pos,
           average: stats.average,
+          generalScore: generalScore,
           performance: performance,
         };
       }).filter((p): p is CandidatePlayer => p !== null);
@@ -101,6 +110,14 @@ export function generateIdealTeam(
   const usedPlayerIds = new Set<string>();
   const usedCardIds = new Set<string>();
   const finalTeamSlots: IdealTeamSlot[] = [];
+  
+  const sortFunction = (a: CandidatePlayer, b: CandidatePlayer) => {
+    if (sortBy === 'general') {
+        return b.generalScore - a.generalScore;
+    }
+    return b.average - a.average;
+  };
+
 
   const createTeamPlayer = (candidate: CandidatePlayer | undefined, assignedPosition: Position | Position[]): IdealTeamPlayer | null => {
       if (!candidate) return null;
@@ -124,10 +141,10 @@ export function generateIdealTeam(
     const hasStylePreference = formationSlot.styles && formationSlot.styles.length > 0;
     const targetPositions = Array.isArray(formationSlot.position) ? formationSlot.position : [formationSlot.position];
     
-    // Get all candidates for the specific position(s), sorted by average rating.
+    // Get all candidates for the specific position(s), sorted by the chosen metric.
     const positionCandidates = allPlayerCandidates
       .filter(p => targetPositions.includes(p.position))
-      .sort((a, b) => b.average - a.average);
+      .sort(sortFunction);
 
     let starterCandidate: CandidatePlayer | undefined;
     
@@ -159,10 +176,10 @@ export function generateIdealTeam(
     const hasStylePreference = formationSlot.styles && formationSlot.styles.length > 0;
     const targetPositions = Array.isArray(formationSlot.position) ? formationSlot.position : [formationSlot.position];
 
-    // Candidates for this position, already sorted by average rating.
+    // Candidates for this position, already sorted by the chosen metric.
     const positionCandidates = allPlayerCandidates
       .filter(p => targetPositions.includes(p.position))
-      .sort((a, b) => b.average - a.average);
+      .sort(sortFunction);
 
     let substituteCandidate: CandidatePlayer | undefined;
     
@@ -202,8 +219,7 @@ export function generateIdealTeam(
   finalTeamSlots.forEach((slot, index) => {
     if (!slot.substitute) {
         // Find best available player from the correct filters who is not yet used, regardless of position
-        const fallbackCandidates = allPlayerCandidates
-            .sort((a, b) => b.average - a.average);
+        const fallbackCandidates = allPlayerCandidates.sort(sortFunction);
 
         const fallbackPlayer = findBestPlayer(fallbackCandidates);
         

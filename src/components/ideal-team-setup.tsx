@@ -4,6 +4,8 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { FormationStats, League, Nationality } from '@/lib/types';
 import { Label } from './ui/label';
+import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
+import { BarChart2, Star } from 'lucide-react';
 
 type IdealTeamSetupProps = {
   formations: FormationStats[];
@@ -15,6 +17,8 @@ type IdealTeamSetupProps = {
   nationalities: (Nationality | 'all')[];
   selectedNationality: Nationality | 'all';
   onNationalityChange: (nationality: Nationality | 'all') => void;
+  sortBy: 'average' | 'general';
+  onSortByChange: (value: 'average' | 'general') => void;
 };
 
 export function IdealTeamSetup({ 
@@ -27,6 +31,8 @@ export function IdealTeamSetup({
     nationalities,
     selectedNationality,
     onNationalityChange,
+    sortBy,
+    onSortByChange,
 }: IdealTeamSetupProps) {
   if (formations.length === 0) {
     return (
@@ -37,8 +43,8 @@ export function IdealTeamSetup({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div className="space-y-2">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="space-y-2 lg:col-span-2">
         <Label>
           Plantilla Táctica
         </Label>
@@ -57,6 +63,26 @@ export function IdealTeamSetup({
             ))}
           </SelectContent>
         </Select>
+      </div>
+       <div className="space-y-2">
+        <Label>
+          Ordenar Por
+        </Label>
+        <ToggleGroup 
+            type="single" 
+            value={sortBy} 
+            onValueChange={(value: 'average' | 'general') => value && onSortByChange(value)}
+            className="w-full"
+        >
+          <ToggleGroupItem value="average" aria-label="Ordenar por promedio" className="w-1/2">
+            <BarChart2 className="mr-2 h-4 w-4" />
+            Promedio
+          </ToggleGroupItem>
+          <ToggleGroupItem value="general" aria-label="Ordenar por general" className="w-1/2">
+             <Star className="mr-2 h-4 w-4" />
+            General
+          </ToggleGroupItem>
+        </ToggleGroup>
       </div>
       <div className="space-y-2">
         <Label>
