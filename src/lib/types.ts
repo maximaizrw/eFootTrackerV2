@@ -54,6 +54,7 @@ export type PlayerCard = {
   ratingsByPosition: { [key in Position]?: number[] };
   trainingBuilds?: { [key in Position]?: TrainingBuild };
   selectablePositions?: { [key in Position]?: boolean };
+  customScores?: { [key in Position]?: number };
 };
 
 export type Player = {

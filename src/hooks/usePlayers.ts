@@ -40,7 +40,8 @@ export function usePlayers() {
                     imageUrl: card.imageUrl || '',
                     ratingsByPosition: card.ratingsByPosition || {},
                     trainingBuilds: card.trainingBuilds || {},
-                    selectablePositions: card.selectablePositions || {}
+                    selectablePositions: card.selectablePositions || {},
+                    customScores: card.customScores || {}
                 })),
             } as Player;
         });
@@ -108,6 +109,8 @@ export function usePlayers() {
           
           if (!card.selectablePositions) card.selectablePositions = {};
           card.selectablePositions[position] = true;
+          
+          if (!card.customScores) card.customScores = {};
 
         } else {
           card = { 
@@ -119,6 +122,7 @@ export function usePlayers() {
               ratingsByPosition: { [position]: [rating] },
               trainingBuilds: {},
               selectablePositions: { [position]: true },
+              customScores: {},
           };
           newCards.push(card);
         }
@@ -136,6 +140,7 @@ export function usePlayers() {
               ratingsByPosition: { [position]: [rating] },
               trainingBuilds: {},
               selectablePositions: { [position]: true },
+              customScores: {},
           }],
         };
         await addDoc(collection(db, 'players'), newPlayer);
@@ -310,6 +315,30 @@ export function usePlayers() {
         toast({ variant: "destructive", title: "Error al Guardar", description: "No se pudo guardar la build de entrenamiento." });
     }
   };
+  
+  const saveCustomScore = async (playerId: string, cardId: string, position: Position, score: number) => {
+    if (!db) return;
+    const playerRef = doc(db, 'players', playerId);
+    try {
+        const playerDoc = await getDoc(playerRef);
+        if (!playerDoc.exists()) throw new Error("Player not found");
+
+        const playerData = playerDoc.data() as Player;
+        const newCards: PlayerCard[] = JSON.parse(JSON.stringify(playerData.cards));
+        const cardToUpdate = newCards.find(c => c.id === cardId);
+
+        if (cardToUpdate) {
+            if (!cardToUpdate.customScores) cardToUpdate.customScores = {};
+            cardToUpdate.customScores[position] = score;
+
+            await updateDoc(playerRef, { cards: newCards });
+            toast({ title: "Afinidad Guardada", description: `La puntuación de ${playerData.name} para ${position} es ahora ${score}.` });
+        }
+    } catch (error) {
+        console.error("Error saving custom score: ", error);
+        toast({ variant: "destructive", title: "Error al Guardar", description: "No se pudo guardar la puntuación de afinidad." });
+    }
+};
 
   const downloadBackup = async () => {
     if (!db) return null;
@@ -326,5 +355,5 @@ export function usePlayers() {
     }
   };
 
-  return { players, loading, error, addRating, editCard, editPlayer, deleteRating, saveTrainingBuild, downloadBackup, deletePositionRatings, toggleSelectablePosition };
+  return { players, loading, error, addRating, editCard, editPlayer, deleteRating, saveTrainingBuild, downloadBackup, deletePositionRatings, toggleSelectablePosition, saveCustomScore };
 }

@@ -57,6 +57,7 @@ export default function Home() {
     saveTrainingBuild,
     deletePositionRatings,
     toggleSelectablePosition,
+    saveCustomScore,
   } = usePlayers();
 
   const {
@@ -560,6 +561,7 @@ export default function Home() {
                       onDeletePositionRatings={deletePositionRatings}
                       onToggleSelectable={toggleSelectablePosition}
                       onDeleteRating={deleteRating}
+                      onSaveCustomScore={saveCustomScore}
                     />
                     <PlayerTable.Pagination
                       currentPage={currentPage}

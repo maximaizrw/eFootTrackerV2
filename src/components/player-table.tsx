@@ -2,6 +2,7 @@
 "use client";
 
 import Image from 'next/image';
+import { useState, useRef, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -25,6 +26,7 @@ type PlayerTableProps = {
   onDeletePositionRatings: (playerId: string, cardId: string, position: Position) => void;
   onToggleSelectable: (playerId: string, cardId: string, position: Position, currentSelectable?: boolean) => void;
   onDeleteRating: (playerId: string, cardId: string, position: Position, ratingIndex: number) => void;
+  onSaveCustomScore: (playerId: string, cardId: string, position: Position, score: number) => void;
 };
 
 type FilterProps = {
@@ -117,6 +119,80 @@ const Pagination = ({ currentPage, totalPages, onPageChange }: PaginationProps) 
     );
 };
 
+
+const EditableScore = ({
+    score,
+    onSave
+}: {
+    score: number;
+    onSave: (newScore: number) => void;
+}) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [value, setValue] = useState(score.toString());
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        setValue(score.toString());
+    }, [score]);
+
+    useEffect(() => {
+        if (isEditing) {
+            inputRef.current?.focus();
+            inputRef.current?.select();
+        }
+    }, [isEditing]);
+
+    const handleSave = () => {
+        let newScore = parseInt(value, 10);
+        if (isNaN(newScore)) {
+            newScore = 0;
+        }
+        newScore = Math.max(-100, Math.min(100, newScore));
+        onSave(newScore);
+        setIsEditing(false);
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            handleSave();
+        } else if (e.key === 'Escape') {
+            setValue(score.toString());
+            setIsEditing(false);
+        }
+    };
+    
+    const scoreColor = 
+        score > 0 ? 'text-blue-400' :
+        score < 0 ? 'text-red-400' :
+        'text-muted-foreground';
+
+    if (isEditing) {
+        return (
+            <Input
+                ref={inputRef}
+                type="number"
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                onBlur={handleSave}
+                onKeyDown={handleKeyDown}
+                className="w-16 h-8 text-center"
+                min="-100"
+                max="100"
+            />
+        );
+    }
+
+    return (
+        <button
+            onClick={() => setIsEditing(true)}
+            className={cn("font-semibold text-center w-16 py-1 rounded-md hover:bg-muted", scoreColor)}
+        >
+            {score > 0 ? `+${score}` : score}
+        </button>
+    );
+};
+
+
 export function PlayerTable({
   players: flatPlayers,
   position,
@@ -128,6 +204,7 @@ export function PlayerTable({
   onDeletePositionRatings,
   onToggleSelectable,
   onDeleteRating,
+  onSaveCustomScore,
 }: PlayerTableProps) {
   
   if (flatPlayers.length === 0) {
@@ -152,6 +229,7 @@ export function PlayerTable({
             <TableHead className="hidden md:table-cell">Estilo</TableHead>
             <TableHead>Prom.</TableHead>
             <TableHead>Partidos</TableHead>
+            <TableHead>Afinidad</TableHead>
             <TableHead className="w-[35%] min-w-[200px] hidden md:table-cell">Valoraciones</TableHead>
             <TableHead className="text-right">Acciones</TableHead>
           </TableRow>
@@ -165,6 +243,8 @@ export function PlayerTable({
             const averageColorClass = getAverageColorClass(cardAverage);
             
             const isPosSelectable = card.selectablePositions?.[position] ?? true;
+            
+            const customScore = card.customScores?.[position] ?? 0;
 
             return (
               <TableRow key={`${player.id}-${card.id}-${position}`} className={!isPosSelectable ? 'bg-muted/30 hover:bg-muted/50' : ''}>
@@ -218,6 +298,12 @@ export function PlayerTable({
                   </div>
                 </TableCell>
                 <TableCell className="text-center">{cardMatches}</TableCell>
+                <TableCell>
+                    <EditableScore 
+                        score={customScore} 
+                        onSave={(newScore) => onSaveCustomScore(player.id, card.id, position, newScore)} 
+                    />
+                </TableCell>
                 <TableCell className="hidden md:table-cell p-2">
                   <div className="flex flex-wrap items-center gap-1">
                     {ratingsForPos.slice(-5).map((rating, index) => {
