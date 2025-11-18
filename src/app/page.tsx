@@ -479,7 +479,11 @@ export default function Home() {
                         isVersatile: highPerfPositions.size >= 3,
                     };
 
-                    return { player, card, ratingsForPos, performance, hasTrainingBuild: hasBuildForPos };
+                    const customScore = card.customScores?.[pos] ?? 0;
+                    const matchAverageScore = (stats.average - 1) / 9 * 100;
+                    const generalScore = Math.max(0, Math.min(100, (matchAverageScore + customScore) / 2));
+
+                    return { player, card, ratingsForPos, performance, hasTrainingBuild: hasBuildForPos, generalScore };
                 })
             );
             

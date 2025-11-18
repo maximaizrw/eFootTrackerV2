@@ -9,7 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, X, Wrench, Pencil, NotebookPen, Search, EyeOff, Eye } from 'lucide-react';
+import { PlusCircle, Trash2, X, Wrench, Pencil, NotebookPen, Search, EyeOff, Eye, Star } from 'lucide-react';
 import { cn, formatAverage, getAverageColorClass } from '@/lib/utils';
 import type { Player, PlayerCard, Position, FlatPlayer } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
@@ -228,7 +228,7 @@ export function PlayerTable({
             <TableHead className="w-[40%] min-w-[150px]">Jugador</TableHead>
             <TableHead className="hidden md:table-cell">Estilo</TableHead>
             <TableHead>Prom.</TableHead>
-            <TableHead>Partidos</TableHead>
+            <TableHead>General</TableHead>
             <TableHead>Afinidad</TableHead>
             <TableHead className="w-[35%] min-w-[200px] hidden md:table-cell">Valoraciones</TableHead>
             <TableHead className="text-right">Acciones</TableHead>
@@ -236,11 +236,11 @@ export function PlayerTable({
         </TableHeader>
         <TableBody>
           {flatPlayers.map((flatPlayer) => {
-            const { player, card, ratingsForPos, performance, hasTrainingBuild } = flatPlayer;
+            const { player, card, ratingsForPos, performance, hasTrainingBuild, generalScore } = flatPlayer;
             const cardAverage = performance.stats.average;
-            const cardMatches = performance.stats.matches;
             
             const averageColorClass = getAverageColorClass(cardAverage);
+            const generalColorClass = getAverageColorClass(generalScore / 10);
             
             const isPosSelectable = card.selectablePositions?.[position] ?? true;
             
@@ -283,7 +283,7 @@ export function PlayerTable({
                           )}
                           <PerformanceBadges performance={performance} className="hidden md:flex" />
                       </div>
-                      <div className="text-xs text-muted-foreground">{card.name}</div>
+                      <div className="text-xs text-muted-foreground">{card.name} ({performance.stats.matches} P.)</div>
                     </div>
                   </div>
                 </TableCell>
@@ -297,7 +297,12 @@ export function PlayerTable({
                     {formatAverage(cardAverage)}
                   </div>
                 </TableCell>
-                <TableCell className="text-center">{cardMatches}</TableCell>
+                <TableCell>
+                  <div className={cn("text-base md:text-lg font-bold flex items-center gap-1", generalColorClass)}>
+                    <Star className="w-4 h-4" />
+                    {generalScore.toFixed(0)}
+                  </div>
+                </TableCell>
                 <TableCell>
                     <EditableScore 
                         score={customScore} 
