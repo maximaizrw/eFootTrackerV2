@@ -499,20 +499,20 @@ export default function Home() {
                 return searchMatch && styleMatch && cardMatch;
             
             }).sort((a, b) => {
-              // 3. Sort the list
+              // 3. Sort the list by General Score by default
+              const generalA = a.generalScore;
+              const generalB = b.generalScore;
+
+              if (generalB !== generalA) return generalB - generalA;
+              
+              // As a tie-breaker, use average rating
               const avgA = a.performance.stats.average;
               const avgB = b.performance.stats.average;
+              if (avgB !== avgA) return avgB - avgA;
+              
+              // Finally, sort by number of matches
               const matchesA = a.performance.stats.matches;
               const matchesB = b.performance.stats.matches;
-
-              // Prioritize players with ratings over those without
-              if (matchesB > 0 && matchesA === 0) return 1;
-              if (matchesA > 0 && matchesB === 0) return -1;
-              
-              // Then sort by average rating
-              if (avgB !== avgA) return avgB - avgA;
-
-              // Finally, sort by number of matches
               return matchesB - matchesA;
             });
 
