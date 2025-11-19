@@ -120,79 +120,6 @@ const Pagination = ({ currentPage, totalPages, onPageChange }: PaginationProps) 
 };
 
 
-const EditableScore = ({
-    score,
-    onSave
-}: {
-    score: number;
-    onSave: (newScore: number) => void;
-}) => {
-    const [isEditing, setIsEditing] = useState(false);
-    const [value, setValue] = useState(score.toString());
-    const inputRef = useRef<HTMLInputElement>(null);
-
-    useEffect(() => {
-        setValue(score.toString());
-    }, [score]);
-
-    useEffect(() => {
-        if (isEditing) {
-            inputRef.current?.focus();
-            inputRef.current?.select();
-        }
-    }, [isEditing]);
-
-    const handleSave = () => {
-        let newScore = parseInt(value, 10);
-        if (isNaN(newScore)) {
-            newScore = 0;
-        }
-        newScore = Math.max(-100, Math.min(100, newScore));
-        onSave(newScore);
-        setIsEditing(false);
-    };
-
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-            handleSave();
-        } else if (e.key === 'Escape') {
-            setValue(score.toString());
-            setIsEditing(false);
-        }
-    };
-    
-    const scoreColor = 
-        score > 0 ? 'text-blue-400' :
-        score < 0 ? 'text-red-400' :
-        'text-muted-foreground';
-
-    if (isEditing) {
-        return (
-            <Input
-                ref={inputRef}
-                type="number"
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                onBlur={handleSave}
-                onKeyDown={handleKeyDown}
-                className="w-16 h-8 text-center"
-                min="-100"
-                max="100"
-            />
-        );
-    }
-
-    return (
-        <button
-            onClick={() => setIsEditing(true)}
-            className={cn("font-semibold text-center w-16 py-1 rounded-md hover:bg-muted", scoreColor)}
-        >
-            {score > 0 ? `+${score}` : score}
-        </button>
-    );
-};
-
-
 export function PlayerTable({
   players: flatPlayers,
   position,
@@ -204,7 +131,6 @@ export function PlayerTable({
   onDeletePositionRatings,
   onToggleSelectable,
   onDeleteRating,
-  onSaveCustomScore,
 }: PlayerTableProps) {
   
   if (flatPlayers.length === 0) {
@@ -229,22 +155,19 @@ export function PlayerTable({
             <TableHead className="hidden md:table-cell">Estilo</TableHead>
             <TableHead>Prom.</TableHead>
             <TableHead>General</TableHead>
-            <TableHead>Afinidad</TableHead>
             <TableHead className="w-[35%] min-w-[200px] hidden md:table-cell">Valoraciones</TableHead>
             <TableHead className="text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {flatPlayers.map((flatPlayer) => {
-            const { player, card, ratingsForPos, performance, hasTrainingBuild, generalScore } = flatPlayer;
+            const { player, card, ratingsForPos, performance, hasStatsBuild, generalScore } = flatPlayer;
             const cardAverage = performance.stats.average;
             
             const averageColorClass = getAverageColorClass(cardAverage);
             const generalColorClass = getAverageColorClass(generalScore / 10);
             
             const isPosSelectable = card.selectablePositions?.[position] ?? true;
-            
-            const customScore = card.customScores?.[position] ?? 0;
 
             return (
               <TableRow key={`${player.id}-${card.id}-${position}`} className={!isPosSelectable ? 'bg-muted/30 hover:bg-muted/50' : ''}>
@@ -271,13 +194,13 @@ export function PlayerTable({
                           >
                               {player.name}
                           </button>
-                          {hasTrainingBuild && (
+                          {hasStatsBuild && (
                               <TooltipProvider>
                                   <Tooltip>
                                       <TooltipTrigger>
                                           <NotebookPen className="h-4 w-4 text-accent" />
                                       </TooltipTrigger>
-                                      <TooltipContent><p>Build de Entrenamiento Guardada</p></TooltipContent>
+                                      <TooltipContent><p>Build de Estadísticas Guardada</p></TooltipContent>
                                   </Tooltip>
                               </TooltipProvider>
                           )}
@@ -302,12 +225,6 @@ export function PlayerTable({
                     <Star className="w-4 h-4" />
                     {generalScore.toFixed(0)}
                   </div>
-                </TableCell>
-                <TableCell>
-                    <EditableScore 
-                        score={customScore} 
-                        onSave={(newScore) => onSaveCustomScore(player.id, card.id, position, newScore)} 
-                    />
                 </TableCell>
                 <TableCell className="hidden md:table-cell p-2">
                   <div className="flex flex-wrap items-center gap-1">

@@ -3,8 +3,8 @@
 
 import * as React from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell, LabelList } from 'recharts';
-import type { Position, TrainingBuild, TrainingAttribute, FlatPlayer } from "@/lib/types";
-import { trainingAttributes } from "@/lib/types";
+import type { Position, PlayerStatsBuild, PlayerAttribute, FlatPlayer } from "@/lib/types";
+import { playerAttributes } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -17,13 +17,14 @@ import { formatAverage, getPositionGroupColor, normalizeText } from "@/lib/utils
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Label } from "./ui/label";
-import { Slider } from "./ui/slider";
+import { Input } from "./ui/input";
+import { ScrollArea } from "./ui/scroll-area";
 
 type PlayerDetailDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   flatPlayer: FlatPlayer | null;
-  onSaveTrainingBuild: (playerId: string, cardId: string, position: Position, build: TrainingBuild) => void;
+  onSaveTrainingBuild: (playerId: string, cardId: string, position: Position, build: PlayerStatsBuild) => void;
 };
 
 type PerformanceData = {
@@ -32,14 +33,21 @@ type PerformanceData = {
   matches: number;
 };
 
-const TrainingBuildEditor = ({ build: initialBuild, onSave, onCancel }: { build: TrainingBuild, onSave: (newBuild: TrainingBuild) => void, onCancel: () => void }) => {
-    const [build, setBuild] = React.useState<TrainingBuild>(initialBuild);
+const PlayerStatsEditor = ({ build: initialBuild, onSave, onCancel }: { build: PlayerStatsBuild, onSave: (newBuild: PlayerStatsBuild) => void, onCancel: () => void }) => {
+    const [build, setBuild] = React.useState<PlayerStatsBuild>(initialBuild);
     
-    const handleSliderChange = (attribute: TrainingAttribute, value: number) => {
-        setBuild(prev => ({ ...prev, [attribute]: value }));
+    const handleStatChange = (attribute: PlayerAttribute, value: string) => {
+        const numValue = parseInt(value, 10);
+        if (!isNaN(numValue) && numValue >= 0 && numValue <= 99) {
+            setBuild(prev => ({ ...prev, [attribute]: numValue }));
+        } else if (value === '') {
+            setBuild(prev => {
+                const newBuild = { ...prev };
+                delete newBuild[attribute];
+                return newBuild;
+            });
+        }
     };
-    
-    const totalPoints = Object.values(build).reduce((sum, val) => sum + (val || 0), 0);
     
     const handleSave = () => {
         onSave(build);
@@ -47,24 +55,26 @@ const TrainingBuildEditor = ({ build: initialBuild, onSave, onCancel }: { build:
 
     return (
         <div className="space-y-4 pt-4">
-            {trainingAttributes.map(attr => (
-                <div key={attr} className="space-y-2">
-                    <div className="flex justify-between items-center">
-                       <Label htmlFor={attr} className="capitalize">{normalizeText(attr).replace(/_/g, ' ')}</Label>
-                       <span className="text-sm font-bold w-6 text-center rounded bg-primary/20 text-primary">{build[attr] || 0}</span>
-                    </div>
-                    <Slider
-                        id={attr}
-                        min={0}
-                        max={18}
-                        step={1}
-                        value={[build[attr] || 0]}
-                        onValueChange={(value) => handleSliderChange(attr, value[0])}
-                    />
-                </div>
-            ))}
-            <div className="flex justify-between items-center pt-4 border-t border-border">
-                <p className="text-sm font-medium">Puntos Totales: <span className="text-accent font-bold">{totalPoints}</span></p>
+            <ScrollArea className="h-72">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-3 pr-4">
+                  {playerAttributes.map(attr => (
+                      <div key={attr} className="grid grid-cols-3 items-center gap-2">
+                          <Label htmlFor={attr} className="col-span-2 text-xs capitalize truncate text-muted-foreground">{normalizeText(attr).replace(/([A-Z])/g, ' $1')}</Label>
+                          <Input
+                              id={attr}
+                              type="number"
+                              min="0"
+                              max="99"
+                              value={build[attr] || ''}
+                              onChange={(e) => handleStatChange(attr, e.target.value)}
+                              className="h-8 text-center font-bold"
+                              placeholder="-"
+                          />
+                      </div>
+                  ))}
+              </div>
+            </ScrollArea>
+            <div className="flex justify-end items-center pt-4 border-t border-border">
                 <div className="flex gap-2">
                     <Button onClick={onCancel} variant="outline">Cancelar</Button>
                     <Button onClick={handleSave}>Guardar Build</Button>
@@ -81,9 +91,6 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveTrain
   
   React.useEffect(() => {
     if (open && flatPlayer) {
-      // The `flatPlayer` object comes from a specific row in the table,
-      // which corresponds to a specific position. We can get that position from it.
-      // The `position` property is not standard on FlatPlayer, so we cast to `any`.
       const positionFromTable = (flatPlayer as any).position as Position;
       
       const card = flatPlayer.card;
@@ -134,11 +141,10 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveTrain
   const card = flatPlayer?.card;
   const player = flatPlayer?.player;
   
-  // Directly use flatPlayer.card, as it's the specific card instance
-  const currentBuild = (card && selectedPosition && card.trainingBuilds?.[selectedPosition]) || {};
+  const currentBuild = (card && selectedPosition && card.statsBuilds?.[selectedPosition]) || {};
   const availablePositions = card?.ratingsByPosition ? Object.keys(card.ratingsByPosition) as Position[] : [];
 
-  const handleSave = (newBuild: TrainingBuild) => {
+  const handleSave = (newBuild: PlayerStatsBuild) => {
     if (player && card && selectedPosition) {
       onSaveTrainingBuild(player.id, card.id, selectedPosition, newBuild);
       setIsEditingBuild(false);
@@ -192,7 +198,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveTrain
 
             <Card>
               <CardHeader>
-                <CardTitle>Build de Entrenamiento</CardTitle>
+                <CardTitle>Build de Estadísticas</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {availablePositions.length > 0 ? (
@@ -214,19 +220,23 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveTrain
                   </div>
 
                   {isEditingBuild ? (
-                    <TrainingBuildEditor
+                    <PlayerStatsEditor
                         build={currentBuild}
                         onSave={handleSave}
                         onCancel={() => setIsEditingBuild(false)}
                       />
                   ) : (
                     <div className="space-y-2 pt-4">
-                      {trainingAttributes.map(attr => (
-                          <div key={attr} className="flex items-center justify-between text-sm">
-                              <span className="text-muted-foreground capitalize">{normalizeText(attr).replace(/_/g, ' ')}</span>
-                              <span className="font-bold">{currentBuild[attr] || 0}</span>
-                          </div>
-                      ))}
+                       <ScrollArea className="h-72">
+                         <div className="grid grid-cols-2 gap-x-4 gap-y-2 pr-4">
+                            {playerAttributes.map(attr => (
+                                <div key={attr} className="flex items-center justify-between text-sm">
+                                    <span className="text-muted-foreground capitalize">{normalizeText(attr).replace(/([A-Z])/g, ' $1')}</span>
+                                    <span className="font-bold">{currentBuild[attr] || '-'}</span>
+                                </div>
+                            ))}
+                         </div>
+                       </ScrollArea>
                       <div className="flex justify-end pt-4">
                         <Button onClick={() => setIsEditingBuild(true)} disabled={!selectedPosition}>Editar Build</Button>
                       </div>

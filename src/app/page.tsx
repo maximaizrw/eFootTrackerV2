@@ -38,7 +38,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality } from '@/lib/types';
 import { positions, leagues, nationalities } from '@/lib/types';
 import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe } from 'lucide-react';
-import { calculateStats, normalizeText } from '@/lib/utils';
+import { calculateStats, normalizeText, getAffinityScoreForPosition } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
@@ -469,7 +469,7 @@ export default function Home() {
                         }
                     }
                     
-                    const hasBuildForPos = !!(card.trainingBuilds?.[pos] && Object.keys(card.trainingBuilds[pos]!).length > 0);
+                    const hasBuildForPos = !!(card.statsBuilds?.[pos] && Object.keys(card.statsBuilds[pos]!).length > 0);
 
                     const performance: PlayerPerformance = {
                         stats,
@@ -479,11 +479,15 @@ export default function Home() {
                         isVersatile: highPerfPositions.size >= 3,
                     };
 
-                    const customScore = card.customScores?.[pos] ?? 0;
+                    const affinityScore = hasBuildForPos ? getAffinityScoreForPosition(pos, card.statsBuilds![pos]!) : 0;
+                    // Normalize affinity to 0-100. Let's assume max affinity score around 1200 for a top striker.
+                    // This is a rough estimation and can be tuned.
+                    const normalizedAffinity = (affinityScore / 1200) * 100;
                     const matchAverageScore = (stats.average - 1) / 9 * 100;
-                    const generalScore = Math.max(0, Math.min(100, (matchAverageScore + customScore) / 2));
+                    const generalScore = Math.max(0, Math.min(100, (matchAverageScore + normalizedAffinity) / 2));
 
-                    return { player, card, ratingsForPos, performance, hasTrainingBuild: hasBuildForPos, generalScore };
+
+                    return { player, card, ratingsForPos, performance, hasStatsBuild: hasBuildForPos, generalScore };
                 })
             );
             
@@ -562,7 +566,7 @@ export default function Home() {
                       onOpenEditCard={handleOpenEditCard}
                       onOpenEditPlayer={handleOpenEditPlayer}
                       onOpenPlayerDetail={handleOpenPlayerDetail}
-                      onViewImage={handleViewImage}
+                      onViewImage={onViewImage}
                       onDeletePositionRatings={deletePositionRatings}
                       onToggleSelectable={toggleSelectablePosition}
                       onDeleteRating={deleteRating}

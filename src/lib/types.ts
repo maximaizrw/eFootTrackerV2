@@ -32,15 +32,19 @@ export const nationalities = [
 export type Nationality = typeof nationalities[number];
 
 
-export const trainingAttributes = [
-    'shooting', 'passing', 'dribbling', 'dexterity', 
-    'lower_body_strength', 'aerial_strength', 'defending', 
-    'gk_1', 'gk_2', 'gk_3'
+export const playerAttributes = [
+    "offensiveAwareness", "ballControl", "dribbling", "tightPossession",
+    "lowPass", "loftedPass", "finishing", "heading", "setPieceTaking", "curl",
+    "speed", "acceleration", "kickingPower", "jump", "physicalContact",
+    "balance", "stamina", "defensiveAwareness", "tackling",
+    "defensiveEngagement", "gkAwareness", "gkCatching", "gkClearing",
+    "gkReflexes", "gkReach"
 ] as const;
-export type TrainingAttribute = typeof trainingAttributes[number];
 
-export type TrainingBuild = {
-    [key in TrainingAttribute]?: number;
+export type PlayerAttribute = typeof playerAttributes[number];
+
+export type PlayerStatsBuild = {
+    [key in PlayerAttribute]?: number;
 };
 
 export type PositionGroup = 'Goalkeeper' | 'Defender' | 'Midfielder' | 'Forward';
@@ -52,8 +56,9 @@ export type PlayerCard = {
   league?: League;
   imageUrl?: string;
   ratingsByPosition: { [key in Position]?: number[] };
-  trainingBuilds?: { [key in Position]?: TrainingBuild };
+  statsBuilds?: { [key in Position]?: PlayerStatsBuild };
   selectablePositions?: { [key in Position]?: boolean };
+  // customScores is deprecated in favor of statsBuilds
   customScores?: { [key in Position]?: number };
 };
 
@@ -181,17 +186,17 @@ export type AddMatchFormValues = {
 
 // --- Tipos para componentes refactorizados
 
-export type PlayerStats = {
+export type PlayerRatingStats = {
     average: number;
     matches: number;
     stdDev: number;
 };
 
 export type PlayerPerformance = {
-    stats: PlayerStats;
+    stats: PlayerRatingStats;
     isHotStreak: boolean;
     isConsistent: boolean;
-isPromising: boolean;
+    isPromising: boolean;
     isVersatile: boolean;
 };
 
@@ -201,5 +206,5 @@ export type FlatPlayer = {
   ratingsForPos: number[];
   performance: PlayerPerformance;
   generalScore: number;
-  hasTrainingBuild: boolean;
+  hasStatsBuild: boolean;
 };

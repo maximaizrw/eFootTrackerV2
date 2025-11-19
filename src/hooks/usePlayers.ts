@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase-config';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import { v4 as uuidv4 } from 'uuid';
-import type { Player, PlayerCard, Position, AddRatingFormValues, EditCardFormValues, EditPlayerFormValues, TrainingBuild, League, Nationality } from '@/lib/types';
+import type { Player, PlayerCard, Position, AddRatingFormValues, EditCardFormValues, EditPlayerFormValues, PlayerStatsBuild, League, Nationality } from '@/lib/types';
 import { normalizeText } from '@/lib/utils';
 
 
@@ -39,9 +39,8 @@ export function usePlayers() {
                     league: card.league || 'Sin Liga',
                     imageUrl: card.imageUrl || '',
                     ratingsByPosition: card.ratingsByPosition || {},
-                    trainingBuilds: card.trainingBuilds || {},
+                    statsBuilds: card.statsBuilds || {},
                     selectablePositions: card.selectablePositions || {},
-                    customScores: card.customScores || {}
                 })),
             } as Player;
         });
@@ -110,7 +109,7 @@ export function usePlayers() {
           if (!card.selectablePositions) card.selectablePositions = {};
           card.selectablePositions[position] = true;
           
-          if (!card.customScores) card.customScores = {};
+          if (!card.statsBuilds) card.statsBuilds = {};
 
         } else {
           card = { 
@@ -120,9 +119,8 @@ export function usePlayers() {
               league: league || 'Sin Liga',
               imageUrl: '',
               ratingsByPosition: { [position]: [rating] },
-              trainingBuilds: {},
+              statsBuilds: {},
               selectablePositions: { [position]: true },
-              customScores: {},
           };
           newCards.push(card);
         }
@@ -138,9 +136,8 @@ export function usePlayers() {
               league: league || 'Sin Liga',
               imageUrl: '',
               ratingsByPosition: { [position]: [rating] },
-              trainingBuilds: {},
+              statsBuilds: {},
               selectablePositions: { [position]: true },
-              customScores: {},
           }],
         };
         await addDoc(collection(db, 'players'), newPlayer);
@@ -286,7 +283,7 @@ export function usePlayers() {
     }
   };
   
-  const saveTrainingBuild = async (playerId: string, cardId: string, position: Position, build: TrainingBuild) => {
+  const saveTrainingBuild = async (playerId: string, cardId: string, position: Position, build: PlayerStatsBuild) => {
     if (!db) return;
     const playerRef = doc(db, 'players', playerId);
     try {
@@ -300,10 +297,10 @@ export function usePlayers() {
         const cardToUpdate = newCards.find(c => c.id === cardId);
 
         if (cardToUpdate) {
-            if (!cardToUpdate.trainingBuilds) {
-                cardToUpdate.trainingBuilds = {};
+            if (!cardToUpdate.statsBuilds) {
+                cardToUpdate.statsBuilds = {};
             }
-            cardToUpdate.trainingBuilds[position] = build;
+            cardToUpdate.statsBuilds[position] = build;
             
             await updateDoc(playerRef, { cards: newCards });
             toast({ title: "Build Guardada", description: "La progresión de entrenamiento se ha guardado correctamente." });
@@ -317,27 +314,9 @@ export function usePlayers() {
   };
   
   const saveCustomScore = async (playerId: string, cardId: string, position: Position, score: number) => {
-    if (!db) return;
-    const playerRef = doc(db, 'players', playerId);
-    try {
-        const playerDoc = await getDoc(playerRef);
-        if (!playerDoc.exists()) throw new Error("Player not found");
-
-        const playerData = playerDoc.data() as Player;
-        const newCards: PlayerCard[] = JSON.parse(JSON.stringify(playerData.cards));
-        const cardToUpdate = newCards.find(c => c.id === cardId);
-
-        if (cardToUpdate) {
-            if (!cardToUpdate.customScores) cardToUpdate.customScores = {};
-            cardToUpdate.customScores[position] = score;
-
-            await updateDoc(playerRef, { cards: newCards });
-            toast({ title: "Afinidad Guardada", description: `La puntuación de ${playerData.name} para ${position} es ahora ${score}.` });
-        }
-    } catch (error) {
-        console.error("Error saving custom score: ", error);
-        toast({ variant: "destructive", title: "Error al Guardar", description: "No se pudo guardar la puntuación de afinidad." });
-    }
+    // This function is now deprecated as customScores are calculated from statsBuilds.
+    // Kept for compatibility, but should not be called from new UI.
+    console.warn("saveCustomScore is deprecated.");
 };
 
   const downloadBackup = async () => {

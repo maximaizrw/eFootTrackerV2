@@ -1,7 +1,7 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { Position, PositionGroup, PlayerStyle, PlayerStats } from "./types";
+import type { Position, PositionGroup, PlayerStyle, PlayerRatingStats, PlayerStatsBuild, PlayerAttribute } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -21,7 +21,7 @@ export function calculateStdDev(numbers: number[]): number {
   return Math.sqrt(variance);
 }
 
-export function calculateStats(numbers: number[]): PlayerStats {
+export function calculateStats(numbers: number[]): PlayerRatingStats {
   const average = calculateAverage(numbers);
   const stdDev = calculateStdDev(numbers);
   const matches = numbers.length;
@@ -112,5 +112,35 @@ export function normalizeText(text: string): string {
   return text
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+}
+
+const affinityConfig: Record<Position, PlayerAttribute[]> = {
+    PT: ["gkAwareness", "gkCatching", "gkClearing", "gkReflexes", "gkReach", "jump"],
+    DFC: ["heading", "jump", "physicalContact", "defensiveAwareness", "tackling", "defensiveEngagement", "speed", "acceleration"],
+    LI: ["speed", "acceleration", "stamina", "lowPass", "curl", "defensiveAwareness", "tackling", "defensiveEngagement"],
+    LD: ["speed", "acceleration", "stamina", "lowPass", "curl", "defensiveAwareness", "tackling", "defensiveEngagement"],
+    MCD: ["lowPass", "loftedPass", "stamina", "physicalContact", "defensiveAwareness", "tackling", "defensiveEngagement", "ballControl"],
+    MC: ["ballControl", "dribbling", "tightPossession", "lowPass", "loftedPass", "stamina", "balance", "offensiveAwareness"],
+    MDI: ["ballControl", "dribbling", "tightPossession", "lowPass", "loftedPass", "speed", "acceleration", "stamina", "curl"],
+    MDD: ["ballControl", "dribbling", "tightPossession", "lowPass", "loftedPass", "speed", "acceleration", "stamina", "curl"],
+    MO: ["offensiveAwareness", "ballControl", "dribbling", "tightPossession", "lowPass", "finishing", "kickingPower", "acceleration"],
+    EXI: ["speed", "acceleration", "dribbling", "tightPossession", "ballControl", "curl", "lowPass", "finishing"],
+    EXD: ["speed", "acceleration", "dribbling", "tightPossession", "ballControl", "curl", "lowPass", "finishing"],
+    SD: ["offensiveAwareness", "finishing", "ballControl", "dribbling", "tightPossession", "kickingPower", "speed", "acceleration"],
+    DC: ["offensiveAwareness", "finishing", "kickingPower", "speed", "acceleration", "heading", "jump", "physicalContact"],
+};
+
+export function getAffinityScoreForPosition(position: Position, build: PlayerStatsBuild): number {
+    const relevantStats = affinityConfig[position];
+    if (!relevantStats || !build) {
+        return 0;
+    }
+    
+    const score = relevantStats.reduce((total, stat) => {
+        return total + (build[stat] || 0);
+    }, 0);
+    
+    return score;
 }

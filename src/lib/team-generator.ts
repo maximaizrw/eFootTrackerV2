@@ -1,6 +1,6 @@
 
 import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality } from './types';
-import { calculateStats } from './utils';
+import { calculateStats, getAffinityScoreForPosition } from './utils';
 
 type CandidatePlayer = {
   player: Player;
@@ -59,7 +59,7 @@ export function generateIdealTeam(
       const isVersatile = highPerfPositions.size >= 3;
       
       const positionsWithRatings = Object.keys(card.ratingsByPosition || {}) as Position[];
-      const trainedPositions = card.trainingBuilds ? Object.keys(card.trainingBuilds).filter(p => Object.keys(card.trainingBuilds![p as Position]!).length > 0) as Position[] : [];
+      const trainedPositions = card.statsBuilds ? Object.keys(card.statsBuilds).filter(p => Object.keys(card.statsBuilds![p as Position]!).length > 0) as Position[] : [];
       const hasTrainingBuilds = trainedPositions.length > 0;
 
       // If a card has training builds, it can ONLY be selected for those trained positions.
@@ -91,9 +91,11 @@ export function generateIdealTeam(
             isVersatile: isVersatile,
         };
 
-        const customScore = card.customScores?.[pos] ?? 0;
+        const hasBuildForPos = !!(card.statsBuilds?.[pos] && Object.keys(card.statsBuilds[pos]!).length > 0);
+        const affinityScore = hasBuildForPos ? getAffinityScoreForPosition(pos, card.statsBuilds![pos]!) : 0;
+        const normalizedAffinity = (affinityScore / 1200) * 100;
         const matchAverageScore = (stats.average - 1) / 9 * 100; // Normalize 1-10 scale to 0-100
-        const generalScore = Math.max(0, Math.min(100, (matchAverageScore + customScore) / 2));
+        const generalScore = Math.max(0, Math.min(100, (matchAverageScore + normalizedAffinity) / 2));
 
         return {
           player,
@@ -113,9 +115,10 @@ export function generateIdealTeam(
   
   const sortFunction = (a: CandidatePlayer, b: CandidatePlayer) => {
     if (sortBy === 'general') {
-        return b.generalScore - a.generalScore;
+        if (b.generalScore !== a.generalScore) return b.generalScore - a.generalScore;
     }
-    return b.average - a.average;
+    if (b.average !== a.average) return b.average - a.average;
+    return b.performance.stats.matches - a.performance.stats.matches;
   };
 
 
@@ -176,7 +179,7 @@ export function generateIdealTeam(
     const hasStylePreference = formationSlot.styles && formationSlot.styles.length > 0;
     const targetPositions = Array.isArray(formationSlot.position) ? formationSlot.position : [formationSlot.position];
 
-    // Candidates for this position, already sorted by the chosen metric.
+    // Candidates for this position, already sorted.
     const positionCandidates = allPlayerCandidates
       .filter(p => targetPositions.includes(p.position))
       .sort(sortFunction);
