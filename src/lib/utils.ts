@@ -2,6 +2,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { Position, PositionGroup, PlayerStyle, PlayerRatingStats, PlayerStatsBuild, PlayerAttribute } from "./types";
+import { playerAttributes } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -116,7 +117,7 @@ export function normalizeText(text: string): string {
     .replace(/[^a-z0-9]/g, '');
 }
 
-const affinityConfig: Record<Position, PlayerAttribute[]> = {
+export const affinityConfig: Record<Position, PlayerAttribute[]> = {
     PT: ["gkAwareness", "gkCatching", "gkClearing", "gkReflexes", "gkReach", "jump"],
     DFC: ["heading", "jump", "physicalContact", "defensiveAwareness", "tackling", "defensiveEngagement", "speed", "acceleration"],
     LI: ["speed", "acceleration", "stamina", "lowPass", "curl", "defensiveAwareness", "tackling", "defensiveEngagement"],
@@ -143,4 +144,8 @@ export function getAffinityScoreForPosition(position: Position, build: PlayerSta
     }, 0);
     
     return score;
+}
+
+export function getRelevantAttributesForPosition(position: Position): PlayerAttribute[] {
+    return affinityConfig[position] || [];
 }

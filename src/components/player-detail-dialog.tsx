@@ -4,7 +4,6 @@
 import * as React from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell, LabelList } from 'recharts';
 import type { Position, PlayerStatsBuild, PlayerAttribute, FlatPlayer } from "@/lib/types";
-import { playerAttributes } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -13,7 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
-import { formatAverage, getPositionGroupColor, normalizeText } from "@/lib/utils";
+import { formatAverage, getPositionGroupColor, normalizeText, getRelevantAttributesForPosition } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Label } from "./ui/label";
@@ -33,9 +32,11 @@ type PerformanceData = {
   matches: number;
 };
 
-const PlayerStatsEditor = ({ build: initialBuild, onSave, onCancel }: { build: PlayerStatsBuild, onSave: (newBuild: PlayerStatsBuild) => void, onCancel: () => void }) => {
+const PlayerStatsEditor = ({ position, build: initialBuild, onSave, onCancel }: { position: Position, build: PlayerStatsBuild, onSave: (newBuild: PlayerStatsBuild) => void, onCancel: () => void }) => {
     const [build, setBuild] = React.useState<PlayerStatsBuild>(initialBuild);
     
+    const relevantAttributes = getRelevantAttributesForPosition(position);
+
     const handleStatChange = (attribute: PlayerAttribute, value: string) => {
         const numValue = parseInt(value, 10);
         if (!isNaN(numValue) && numValue >= 0 && numValue <= 99) {
@@ -57,7 +58,7 @@ const PlayerStatsEditor = ({ build: initialBuild, onSave, onCancel }: { build: P
         <div className="space-y-4 pt-4">
             <ScrollArea className="h-72">
               <div className="grid grid-cols-2 gap-x-4 gap-y-3 pr-4">
-                  {playerAttributes.map(attr => (
+                  {relevantAttributes.map(attr => (
                       <div key={attr} className="grid grid-cols-3 items-center gap-2">
                           <Label htmlFor={attr} className="col-span-2 text-xs capitalize truncate text-muted-foreground">{normalizeText(attr).replace(/([A-Z])/g, ' $1')}</Label>
                           <Input
@@ -143,6 +144,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveTrain
   
   const currentBuild = (card && selectedPosition && card.statsBuilds?.[selectedPosition]) || {};
   const availablePositions = card?.ratingsByPosition ? Object.keys(card.ratingsByPosition) as Position[] : [];
+  const relevantAttributes = selectedPosition ? getRelevantAttributesForPosition(selectedPosition) : [];
 
   const handleSave = (newBuild: PlayerStatsBuild) => {
     if (player && card && selectedPosition) {
@@ -220,16 +222,19 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveTrain
                   </div>
 
                   {isEditingBuild ? (
-                    <PlayerStatsEditor
-                        build={currentBuild}
-                        onSave={handleSave}
-                        onCancel={() => setIsEditingBuild(false)}
-                      />
+                    selectedPosition && (
+                        <PlayerStatsEditor
+                            position={selectedPosition}
+                            build={currentBuild}
+                            onSave={handleSave}
+                            onCancel={() => setIsEditingBuild(false)}
+                        />
+                    )
                   ) : (
                     <div className="space-y-2 pt-4">
                        <ScrollArea className="h-72">
                          <div className="grid grid-cols-2 gap-x-4 gap-y-2 pr-4">
-                            {playerAttributes.map(attr => (
+                            {relevantAttributes.map(attr => (
                                 <div key={attr} className="flex items-center justify-between text-sm">
                                     <span className="text-muted-foreground capitalize">{normalizeText(attr).replace(/([A-Z])/g, ' $1')}</span>
                                     <span className="font-bold">{currentBuild[attr] || '-'}</span>
