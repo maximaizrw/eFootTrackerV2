@@ -200,19 +200,21 @@ export function PlayerTable({
             <TableHead className="hidden md:table-cell">Estilo</TableHead>
             <TableHead>Prom.</TableHead>
             <TableHead>Afinidad</TableHead>
+            <TableHead>General</TableHead>
             <TableHead className="w-[35%] min-w-[200px] hidden md:table-cell">Valoraciones</TableHead>
             <TableHead className="text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {flatPlayers.map((flatPlayer) => {
-            const { player, card, ratingsForPos, performance } = flatPlayer;
+            const { player, card, ratingsForPos, performance, generalScore } = flatPlayer;
             const cardAverage = performance.stats.average;
             const affinityScore = card.customScores?.[position] || 0;
             const isEditing = editingAffinityId === `${card.id}-${position}`;
             
             const averageColorClass = getAverageColorClass(cardAverage);
             const affinityColorClass = getAverageColorClass(affinityScore / 10);
+             const generalColorClass = getAverageColorClass(generalScore / 10);
             
             const isPosSelectable = card.selectablePositions?.[position] ?? true;
 
@@ -269,6 +271,11 @@ export function PlayerTable({
                             {affinityScore}
                         </div>
                     )}
+                </TableCell>
+                 <TableCell>
+                  <div className={cn("text-base md:text-lg font-bold", generalColorClass)}>
+                    {generalScore.toFixed(0)}
+                  </div>
                 </TableCell>
                 <TableCell className="hidden md:table-cell p-2">
                   <div className="flex flex-wrap items-center gap-1">

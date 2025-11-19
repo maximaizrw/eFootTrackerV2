@@ -49,12 +49,10 @@ const AffinityEditor = ({ position, card, onSaveCustomScore, onCancel }: { posit
         <div className="space-y-4 pt-4">
             <h3 className="font-semibold text-lg text-center">Editar Afinidad para {position}</h3>
              <div className="space-y-2 max-w-xs mx-auto">
-                <Label htmlFor="affinity-score" className="text-center block">Puntuación de Afinidad (0-100)</Label>
+                <Label htmlFor="affinity-score" className="text-center block">Puntuación de Afinidad</Label>
                 <Input
                     id="affinity-score"
                     type="number"
-                    min="0"
-                    max="100"
                     value={score}
                     onChange={(e) => setScore(parseInt(e.target.value, 10) || 0)}
                     className="h-12 text-center text-2xl font-bold"

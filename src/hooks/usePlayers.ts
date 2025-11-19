@@ -298,7 +298,7 @@ export function usePlayers() {
             if (!cardToUpdate.customScores) {
                 cardToUpdate.customScores = {};
             }
-            cardToUpdate.customScores[position] = Math.max(0, Math.min(100, score)); // Clamp score between 0 and 100
+            cardToUpdate.customScores[position] = score; // Allow negative values
             
             await updateDoc(playerRef, { cards: newCards });
             toast({ title: "Afinidad Guardada", description: "La puntuación de afinidad se ha guardado." });
