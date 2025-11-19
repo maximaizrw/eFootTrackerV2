@@ -3,8 +3,7 @@
 
 import * as React from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell, LabelList } from 'recharts';
-import type { Position, PlayerStatsBuild, PlayerAttribute, FlatPlayer, ProgressionBuild } from "@/lib/types";
-import { progressionCategories, statPasteOrder } from "@/lib/types";
+import type { Position, FlatPlayer } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -19,13 +18,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { ScrollArea } from "./ui/scroll-area";
-import { Textarea } from "./ui/textarea";
+
 
 type PlayerDetailDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   flatPlayer: FlatPlayer | null;
-  onSaveTrainingBuild: (playerId: string, cardId: string, position: Position, build: PlayerStatsBuild) => void;
+  onSaveCustomScore: (playerId: string, cardId: string, position: Position, score: number) => void;
 };
 
 type PerformanceData = {
@@ -34,117 +33,37 @@ type PerformanceData = {
   matches: number;
 };
 
-
-const BuildEditor = ({ position, card, onSaveTrainingBuild, onCancel }: { position: Position, card: FlatPlayer['card'], onSaveTrainingBuild: (build: PlayerStatsBuild) => void, onCancel: () => void }) => {
-    const initialBuild = card.statsBuilds?.[position];
-    const [stats, setStats] = React.useState<PlayerStatsBuild['stats']>(initialBuild?.stats || {});
-    const [progression, setProgression] = React.useState<PlayerStatsBuild['progression']>(initialBuild?.progression || {});
-    const [pasteValue, setPasteValue] = React.useState('');
+const AffinityEditor = ({ position, card, onSaveCustomScore, onCancel }: { position: Position, card: FlatPlayer['card'], onSaveCustomScore: (score: number) => void, onCancel: () => void }) => {
+    const initialScore = card.customScores?.[position] || 0;
+    const [score, setScore] = React.useState(initialScore);
 
     React.useEffect(() => {
-        const build = card.statsBuilds?.[position];
-        setStats(build?.stats || {});
-        setProgression(build?.progression || {});
-        setPasteValue('');
+        setScore(card.customScores?.[position] || 0);
     }, [card, position]);
-
-
-    const handleStatChange = (attr: PlayerAttribute, value: string) => {
-        const numValue = parseInt(value, 10);
-        setStats(prev => ({ ...prev, [attr]: isNaN(numValue) ? undefined : numValue }));
-    };
     
-    const handleProgressionChange = (cat: ProgressionCategory, value: number) => {
-        setProgression(prev => ({...prev, [cat]: value}));
-    };
-
-    const handlePasteAndFill = () => {
-        const numbers = pasteValue.trim().split(/\s+/).map(s => parseInt(s, 10)).filter(n => !isNaN(n));
-        
-        const newStats: PlayerStatsBuild['stats'] = {};
-        statPasteOrder.forEach((attr, index) => {
-            if (numbers[index] !== undefined) {
-                newStats[attr] = numbers[index];
-            }
-        });
-        setStats(prev => ({ ...prev, ...newStats }));
-    };
-
     const handleSave = () => {
-        onSaveTrainingBuild({ stats, progression });
+        onSaveCustomScore(score);
     };
-    
-    const allAttributes: PlayerAttribute[] = [
-      ...statPasteOrder,
-      'defensiveAwareness', 'tackling', 'defensiveEngagement',
-      'gkAwareness', 'gkCatching', 'gkClearing', 'gkReflexes', 'gkReach'
-    ];
-
 
     return (
         <div className="space-y-4 pt-4">
-            <h3 className="font-semibold text-lg text-center">Editor de Build para {position}</h3>
-            
-            <div className="space-y-2">
-                <Label htmlFor="quick-paste-stats">Pegado Rápido de Stats</Label>
-                <div className="flex gap-2">
-                    <Textarea 
-                        id="quick-paste-stats"
-                        placeholder="Pega las 14 estadísticas aquí, separadas por espacios o saltos de línea."
-                        value={pasteValue}
-                        onChange={(e) => setPasteValue(e.target.value)}
-                        className="h-24 text-xs"
-                    />
-                    <Button onClick={handlePasteAndFill} type="button">Pegar y Rellenar</Button>
-                </div>
-            </div>
-
-             <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <Label>Estadísticas del Jugador</Label>
-                    <ScrollArea className="h-64 border rounded-md p-4">
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                           {allAttributes.map(attr => (
-                                <div key={attr} className="grid grid-cols-2 items-center gap-2">
-                                <Label htmlFor={`stat-${attr}`} className="text-xs capitalize">{attr.replace(/([A-Z])/g, ' $1')}</Label>
-                                <Input
-                                    id={`stat-${attr}`}
-                                    type="number"
-                                    min="40"
-                                    max="99"
-                                    value={stats?.[attr] || ''}
-                                    onChange={(e) => handleStatChange(attr, e.target.value)}
-                                    className="h-8 text-center"
-                                />
-                                </div>
-                            ))}
-                        </div>
-                    </ScrollArea>
-                </div>
-                 <div className="space-y-2">
-                    <Label>Puntos de Progresión</Label>
-                    <div className="space-y-3 rounded-md border p-4 h-64">
-                        {progressionCategories.map(cat => (
-                            <div key={cat} className="space-y-1">
-                                <Label htmlFor={`prog-${cat}`} className="text-xs capitalize">{cat.replace(/([A-Z])/g, ' $1')}: {progression?.[cat] || 0}</Label>
-                                <Input
-                                    id={`prog-${cat}`}
-                                    type="number"
-                                    min="0"
-                                    max="12"
-                                    value={progression?.[cat] || 0}
-                                    onChange={(e) => handleProgressionChange(cat, parseInt(e.target.value, 10) || 0)}
-                                    className="h-8 text-center"
-                                />
-                            </div>
-                        ))}
-                    </div>
-                </div>
+            <h3 className="font-semibold text-lg text-center">Editar Afinidad para {position}</h3>
+             <div className="space-y-2 max-w-xs mx-auto">
+                <Label htmlFor="affinity-score" className="text-center block">Puntuación de Afinidad (0-100)</Label>
+                <Input
+                    id="affinity-score"
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={score}
+                    onChange={(e) => setScore(parseInt(e.target.value, 10) || 0)}
+                    className="h-12 text-center text-2xl font-bold"
+                />
             </div>
             <div className="flex justify-end items-center pt-4 border-t border-border">
                 <div className="flex gap-2">
                     <Button onClick={onCancel} variant="outline">Cancelar</Button>
-                    <Button onClick={handleSave}>Guardar Build</Button>
+                    <Button onClick={handleSave}>Guardar Afinidad</Button>
                 </div>
             </div>
         </div>
@@ -152,9 +71,9 @@ const BuildEditor = ({ position, card, onSaveTrainingBuild, onCancel }: { positi
 };
 
 
-export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveTrainingBuild }: PlayerDetailDialogProps) {
+export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveCustomScore }: PlayerDetailDialogProps) {
   const [selectedPosition, setSelectedPosition] = React.useState<Position | undefined>();
-  const [isEditingBuild, setIsEditingBuild] = React.useState(false);
+  const [isEditing, setIsEditing] = React.useState(false);
   
   React.useEffect(() => {
     if (open && flatPlayer) {
@@ -174,7 +93,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveTrain
     } else {
       setSelectedPosition(undefined);
     }
-    setIsEditingBuild(false);
+    setIsEditing(false);
   }, [open, flatPlayer]);
 
   const performanceData = React.useMemo(() => {
@@ -210,20 +129,20 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveTrain
   
   const availablePositions = card?.ratingsByPosition ? Object.keys(card.ratingsByPosition) as Position[] : [];
 
-  const handleSaveBuild = (build: PlayerStatsBuild) => {
+  const handleSave = (score: number) => {
     if (player && card && selectedPosition) {
-      onSaveTrainingBuild(player.id, card.id, selectedPosition, build);
-      setIsEditingBuild(false);
+      onSaveCustomScore(player.id, card.id, selectedPosition, score);
+      setIsEditing(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => { onOpenChange(isOpen); if (!isOpen) setIsEditingBuild(false); }}>
+    <Dialog open={open} onOpenChange={(isOpen) => { onOpenChange(isOpen); if (!isOpen) setIsEditing(false); }}>
       <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle>Estadísticas de {player?.name} <span className="text-muted-foreground">({card?.name})</span></DialogTitle>
           <DialogDescription>
-            Análisis detallado del rendimiento y la build de entrenamiento del jugador para esta carta.
+            Análisis detallado del rendimiento y la afinidad del jugador para esta carta.
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="max-h-[70vh] pr-4 -mr-4">
@@ -265,14 +184,14 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveTrain
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Build de Entrenamiento</CardTitle>
+                    <CardTitle>Afinidad Manual</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {availablePositions.length > 0 ? (
                       <>
                       <div className="grid grid-cols-1 gap-4">
                         <div>
-                          <Label>Posición de la Build</Label>
+                          <Label>Posición</Label>
                           <Select value={selectedPosition} onValueChange={(v) => setSelectedPosition(v as Position)}>
                             <SelectTrigger>
                               <SelectValue placeholder="Selecciona una posición" />
@@ -286,33 +205,33 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveTrain
                         </div>
                       </div>
 
-                      {isEditingBuild && selectedPosition && card ? (
-                        <BuildEditor
+                      {isEditing && selectedPosition && card ? (
+                        <AffinityEditor
                           position={selectedPosition}
                           card={card}
-                          onSaveTrainingBuild={handleSaveBuild}
-                          onCancel={() => setIsEditingBuild(false)}
+                          onSaveCustomScore={handleSave}
+                          onCancel={() => setIsEditing(false)}
                         />
                       ) : (
                         <div className="space-y-2 pt-4">
-                          {selectedPosition && card?.statsBuilds?.[selectedPosition]?.stats ? (
-                             <div className="text-sm space-y-1">
-                                <p className="font-semibold">Build guardada para {selectedPosition}</p>
-                                 <p className="text-muted-foreground">Esta es la progresión guardada para esta posición.</p>
+                          {selectedPosition ? (
+                             <div className="text-sm space-y-1 text-center">
+                                <p className="text-muted-foreground">Afinidad para {selectedPosition}</p>
+                                <p className="text-5xl font-bold text-primary">{card?.customScores?.[selectedPosition] || 0}</p>
                              </div>
                           ) : (
-                             <p className="text-muted-foreground pt-4 text-center">No hay build de entrenamiento guardada para esta posición.</p>
+                             <p className="text-muted-foreground pt-4 text-center">Selecciona una posición para ver o editar la afinidad.</p>
                           )}
                           <div className="flex justify-end pt-4">
-                            <Button onClick={() => setIsEditingBuild(true)} disabled={!selectedPosition}>
-                              {card?.statsBuilds?.[selectedPosition] ? 'Editar Build' : 'Crear Build'}
+                            <Button onClick={() => setIsEditing(true)} disabled={!selectedPosition}>
+                              Editar Afinidad
                             </Button>
                           </div>
                         </div>
                       )}
                       </>
                     ) : (
-                      <p className="text-muted-foreground pt-4">No hay posiciones con valoraciones para definir una build.</p>
+                      <p className="text-muted-foreground pt-4">No hay posiciones con valoraciones para definir una afinidad.</p>
                     )}
                   </CardContent>
                 </Card>
@@ -322,5 +241,3 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveTrain
     </Dialog>
   );
 }
-
-    

@@ -42,48 +42,6 @@ export const playerAttributes = [
 ] as const;
 export type PlayerAttribute = typeof playerAttributes[number];
 
-export const statPasteOrder: PlayerAttribute[] = [
-    "finishing",
-    "lowPass",
-    "ballControl",
-    "dribbling",
-    "tightPossession",
-    "offensiveAwareness",
-    "acceleration",
-    "balance",
-    "speed",
-    "kickingPower",
-    "stamina",
-    "heading",
-    "jump",
-    "physicalContact",
-];
-
-export const progressionCategories = [
-    "shooting", "passing", "dribbling", "dexterity", "lowerBodyStrength",
-    "aerialStrength", "defending", "gk1", "gk2", "gk3"
-] as const;
-export type ProgressionCategory = typeof progressionCategories[number];
-
-export const statGroups = [
-    "Shooting", "Passing", "Dribbling", "Dexterity",
-    "Lower Body Strength", "Aerial Strength", "Goalkeeping"
-] as const;
-export type StatGroup = typeof statGroups[number];
-
-
-export type ProgressionBuild = {
-    [key in ProgressionCategory]?: number;
-};
-
-export type PlayerStatsBuild = {
-    stats?: {
-        [key in PlayerAttribute]?: number;
-    };
-    progression?: ProgressionBuild;
-};
-
-
 export type PositionGroup = 'Goalkeeper' | 'Defender' | 'Midfielder' | 'Forward';
 
 export type PlayerCard = {
@@ -93,7 +51,6 @@ export type PlayerCard = {
   league?: League;
   imageUrl?: string;
   ratingsByPosition: { [key in Position]?: number[] };
-  statsBuilds?: { [key in Position]?: PlayerStatsBuild };
   selectablePositions?: { [key in Position]?: boolean };
   customScores?: { [key in Position]?: number };
 };
@@ -232,7 +189,7 @@ export type PlayerPerformance = {
     stats: PlayerRatingStats;
     isHotStreak: boolean;
     isConsistent: boolean;
-isPromising: boolean;
+    isPromising: boolean;
     isVersatile: boolean;
 };
 
@@ -242,15 +199,4 @@ export type FlatPlayer = {
   ratingsForPos: number[];
   performance: PlayerPerformance;
   generalScore: number;
-  hasStatsBuild: boolean;
 };
-
-export type IdealBuild = {
-    [key in PlayerAttribute]?: number;
-};
-
-export type IdealBuilds = {
-    [key in Position]?: IdealBuild;
-};
-
-    

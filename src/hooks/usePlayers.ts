@@ -39,7 +39,6 @@ export function usePlayers() {
                     league: card.league || 'Sin Liga',
                     imageUrl: card.imageUrl || '',
                     ratingsByPosition: card.ratingsByPosition || {},
-                    statsBuilds: card.statsBuilds || {},
                     selectablePositions: card.selectablePositions || {},
                     customScores: card.customScores || {},
                 })),
@@ -109,7 +108,6 @@ export function usePlayers() {
           if (!card.selectablePositions) card.selectablePositions = {};
           card.selectablePositions[position] = card.selectablePositions[position] ?? true;
           
-          if (!card.statsBuilds) card.statsBuilds = {};
           if (!card.customScores) card.customScores = {};
 
         } else {
@@ -120,7 +118,6 @@ export function usePlayers() {
               league: league || 'Sin Liga',
               imageUrl: '',
               ratingsByPosition: { [position]: [rating] },
-              statsBuilds: {},
               selectablePositions: { [position]: true },
               customScores: {},
           };
@@ -138,7 +135,6 @@ export function usePlayers() {
               league: league || 'Sin Liga',
               imageUrl: '',
               ratingsByPosition: { [position]: [rating] },
-              statsBuilds: {},
               selectablePositions: { [position]: true },
               customScores: {},
           }],
@@ -285,7 +281,7 @@ export function usePlayers() {
     }
   };
   
-  const saveTrainingBuild = async (playerId: string, cardId: string, position: Position, build: PlayerStatsBuild) => {
+  const saveCustomScore = async (playerId: string, cardId: string, position: Position, score: number) => {
     if (!db) return;
     const playerRef = doc(db, 'players', playerId);
     try {
@@ -299,19 +295,19 @@ export function usePlayers() {
         const cardToUpdate = newCards.find(c => c.id === cardId);
 
         if (cardToUpdate) {
-            if (!cardToUpdate.statsBuilds) {
-                cardToUpdate.statsBuilds = {};
+            if (!cardToUpdate.customScores) {
+                cardToUpdate.customScores = {};
             }
-            cardToUpdate.statsBuilds[position] = build;
+            cardToUpdate.customScores[position] = Math.max(0, Math.min(100, score)); // Clamp score between 0 and 100
             
             await updateDoc(playerRef, { cards: newCards });
-            toast({ title: "Build Guardada", description: "La progresión de entrenamiento se ha guardado correctamente." });
+            toast({ title: "Afinidad Guardada", description: "La puntuación de afinidad se ha guardado." });
         } else {
             throw new Error("Card not found in player data!");
         }
     } catch (error) {
-        console.error("Error saving training build: ", error);
-        toast({ variant: "destructive", title: "Error al Guardar", description: "No se pudo guardar la build de entrenamiento." });
+        console.error("Error saving custom score: ", error);
+        toast({ variant: "destructive", title: "Error al Guardar", description: "No se pudo guardar la afinidad." });
     }
   };
 
@@ -330,7 +326,5 @@ export function usePlayers() {
     }
   };
 
-  return { players, loading, error, addRating, editCard, editPlayer, deleteRating, saveTrainingBuild, downloadBackup, deletePositionRatings, toggleSelectablePosition };
+  return { players, loading, error, addRating, editCard, editPlayer, deleteRating, saveCustomScore, downloadBackup, deletePositionRatings, toggleSelectablePosition };
 }
-
-    

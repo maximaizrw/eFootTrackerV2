@@ -1,8 +1,7 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { Position, PositionGroup, PlayerStyle, PlayerRatingStats, PlayerStatsBuild, PlayerAttribute, StatGroup, IdealBuild } from "./types";
-import { playerAttributes } from "./types";
+import type { Position, PositionGroup, PlayerStyle, PlayerRatingStats } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -116,58 +115,3 @@ export function normalizeText(text: string): string {
     .toLowerCase()
     .replace(/([A-Z])/g, ' $1');
 }
-
-export const getAffinityScoreFromBuild = (
-  playerBuild: PlayerStatsBuild | undefined,
-  idealBuild: IdealBuild | undefined
-): number => {
-  if (!playerBuild?.stats || !idealBuild) {
-    return 0; // No score if either build is missing
-  }
-
-  const playerStats = playerBuild.stats;
-  const relevantIdealAttributes = Object.keys(idealBuild) as PlayerAttribute[];
-  
-  if (relevantIdealAttributes.length === 0) {
-      return 50; // Return a neutral score if no ideal build is set
-  }
-
-  let totalScore = 0;
-
-  for (const attr of relevantIdealAttributes) {
-    const idealValue = idealBuild[attr];
-    const playerValue = playerStats[attr];
-
-    if (idealValue === undefined) continue;
-    
-    if (playerValue === undefined) {
-      // Harsh penalty if a relevant stat is completely missing from the player's build
-      totalScore -= idealValue;
-      continue;
-    }
-
-    const diff = playerValue - idealValue;
-    let scoreForAttr = 0;
-
-    if (diff >= 5) {
-      scoreForAttr = Math.floor(diff / 5) * 0.25;
-    } else if (diff <= -5) {
-      scoreForAttr = diff * (1 + 0.25 * Math.floor(Math.abs(diff) / 5));
-    } else {
-      scoreForAttr = 0; // Zone of indifference
-    }
-    totalScore += scoreForAttr;
-  }
-  
-  return 100 + totalScore;
-};
-
-export const attributeGroups: Record<StatGroup, PlayerAttribute[]> = {
-  "Shooting": ["finishing"],
-  "Passing": ["lowPass"],
-  "Dribbling": ["ballControl", "dribbling", "tightPossession"],
-  "Dexterity": ["offensiveAwareness", "acceleration", "balance"],
-  "Lower Body Strength": ["speed", "kickingPower", "stamina"],
-  "Aerial Strength": ["heading", "jump", "physicalContact"],
-  "Goalkeeping": ["gkAwareness", "gkCatching", "gkClearing", "gkReflexes", "gkReach"],
-};
