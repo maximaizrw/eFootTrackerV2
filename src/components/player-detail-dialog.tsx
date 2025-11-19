@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { ScrollArea } from "./ui/scroll-area";
+import { Textarea } from "./ui/textarea";
 
 type PlayerDetailDialogProps = {
   open: boolean;
@@ -34,6 +35,7 @@ type PerformanceData = {
 
 const PlayerStatsEditor = ({ position, build: initialBuild, onSave, onCancel }: { position: Position, build: PlayerStatsBuild, onSave: (newBuild: PlayerStatsBuild) => void, onCancel: () => void }) => {
     const [build, setBuild] = React.useState<PlayerStatsBuild>(initialBuild);
+    const [bulkText, setBulkText] = React.useState('');
     
     const relevantAttributes = getRelevantAttributesForPosition(position);
 
@@ -54,9 +56,42 @@ const PlayerStatsEditor = ({ position, build: initialBuild, onSave, onCancel }: 
         onSave(build);
     };
 
+    const handleBulkApply = () => {
+        const lines = bulkText.split('\n').filter(line => line.trim() !== '');
+        const newBuild: PlayerStatsBuild = {};
+
+        lines.forEach((line, index) => {
+            if (index < relevantAttributes.length) {
+                const attribute = relevantAttributes[index];
+                const value = parseInt(line.trim(), 10);
+                if (!isNaN(value) && value >= 0 && value <= 99) {
+                    newBuild[attribute] = value;
+                }
+            }
+        });
+
+        // We merge with the existing build to not lose other stats
+        // if the pasted text is shorter than the list of attributes.
+        setBuild(prev => ({ ...prev, ...newBuild }));
+    };
+
     return (
         <div className="space-y-4 pt-4">
-            <ScrollArea className="h-72">
+            <div className="space-y-2">
+                <Label htmlFor="bulk-stats">Pegar Stats en bloque</Label>
+                <div className="flex gap-2">
+                    <Textarea 
+                        id="bulk-stats"
+                        placeholder="Pega aquí la lista de stats, una por línea..."
+                        value={bulkText}
+                        onChange={(e) => setBulkText(e.target.value)}
+                        className="h-24 text-xs"
+                    />
+                    <Button onClick={handleBulkApply} type="button" variant="secondary">Aplicar</Button>
+                </div>
+            </div>
+
+            <ScrollArea className="h-60">
               <div className="grid grid-cols-2 gap-x-4 gap-y-3 pr-4">
                   {relevantAttributes.map(attr => (
                       <div key={attr} className="grid grid-cols-3 items-center gap-2">
