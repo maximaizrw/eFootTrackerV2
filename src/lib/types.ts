@@ -42,6 +42,23 @@ export const playerAttributes = [
 ] as const;
 export type PlayerAttribute = typeof playerAttributes[number];
 
+export const statPasteOrder: PlayerAttribute[] = [
+    "finishing",
+    "lowPass",
+    "ballControl",
+    "dribbling",
+    "tightPossession",
+    "offensiveAwareness",
+    "acceleration",
+    "balance",
+    "speed",
+    "kickingPower",
+    "stamina",
+    "heading",
+    "jump",
+    "physicalContact",
+];
+
 export const progressionCategories = [
     "shooting", "passing", "dribbling", "dexterity", "lowerBodyStrength",
     "aerialStrength", "defending", "gk1", "gk2", "gk3"
@@ -235,3 +252,5 @@ export type IdealBuild = {
 export type IdealBuilds = {
     [key in Position]?: IdealBuild;
 };
+
+    

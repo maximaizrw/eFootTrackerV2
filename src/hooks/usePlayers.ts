@@ -107,7 +107,7 @@ export function usePlayers() {
           card.league = league || card.league || 'Sin Liga';
           
           if (!card.selectablePositions) card.selectablePositions = {};
-          card.selectablePositions[position] = true;
+          card.selectablePositions[position] = card.selectablePositions[position] ?? true;
           
           if (!card.statsBuilds) card.statsBuilds = {};
           if (!card.customScores) card.customScores = {};
@@ -332,3 +332,5 @@ export function usePlayers() {
 
   return { players, loading, error, addRating, editCard, editPlayer, deleteRating, saveTrainingBuild, downloadBackup, deletePositionRatings, toggleSelectablePosition };
 }
+
+    
