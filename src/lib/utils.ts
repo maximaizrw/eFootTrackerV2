@@ -129,7 +129,7 @@ const affinityConfig: Record<Position, PlayerAttribute[]> = {
     EXI: ["speed", "acceleration", "dribbling", "tightPossession", "ballControl", "curl", "lowPass", "finishing"],
     EXD: ["speed", "acceleration", "dribbling", "tightPossession", "ballControl", "curl", "lowPass", "finishing"],
     SD: ["offensiveAwareness", "finishing", "ballControl", "dribbling", "tightPossession", "kickingPower", "speed", "acceleration"],
-    DC: ["offensiveAwareness", "finishing", "kickingPower", "speed", "acceleration", "heading", "jump", "physicalContact"],
+    DC: ["finishing", "lowPass", "ballControl", "dribbling", "tightPossession", "offensiveAwareness", "acceleration", "balance", "speed", "kickingPower", "stamina", "heading", "jump", "physicalContact"],
 };
 
 export function getAffinityScoreForPosition(position: Position, build: PlayerStatsBuild): number {
