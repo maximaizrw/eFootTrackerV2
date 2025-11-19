@@ -437,7 +437,6 @@ export default function Home() {
           position={activeTab as Position}
           idealBuild={idealBuilds[activeTab as Position] || {}}
           onSave={handleSaveIdealBuild}
-          idealBuilds={idealBuilds}
         />
       )}
       <AlertDialog open={isImageViewerOpen} onOpenChange={setImageViewerOpen}>
@@ -545,7 +544,7 @@ export default function Home() {
                         isVersatile: highPerfPositions.size >= 3,
                     };
 
-                    const affinityScore = hasBuildForPos ? getAffinityScoreForPosition(pos, card.statsBuilds![pos]!, idealBuilds) : 0;
+                    const affinityScore = hasBuildForPos ? getAffinityScoreForPosition(pos, card.statsBuilds![pos]!, idealBuilds[pos]) : 0;
                     const matchAverageScore = stats.average > 0 ? (stats.average - 1) / 9 * 100 : 0; // Normalize 1-10 scale to 0-100
                     const generalScore = (matchAverageScore * 0.4) + (affinityScore * 0.6);
 

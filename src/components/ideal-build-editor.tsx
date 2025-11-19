@@ -23,17 +23,16 @@ type IdealBuildEditorProps = {
   position: Position;
   idealBuild: Partial<Record<PlayerAttribute, number>>;
   onSave: (position: Position, newBuild: Partial<Record<PlayerAttribute, number>>) => void;
-  idealBuilds: Record<Position, Partial<Record<PlayerAttribute, number>>>;
 };
 
-export function IdealBuildEditor({ open, onOpenChange, position, idealBuild, onSave, idealBuilds }: IdealBuildEditorProps) {
+export function IdealBuildEditor({ open, onOpenChange, position, idealBuild, onSave }: IdealBuildEditorProps) {
   const [build, setBuild] = React.useState(idealBuild);
 
   React.useEffect(() => {
     setBuild(idealBuild);
   }, [idealBuild, open]);
 
-  const relevantAttributes = getRelevantAttributesForPosition(position, idealBuilds);
+  const relevantAttributes = getRelevantAttributesForPosition(position);
   
   const handleStatChange = (attribute: PlayerAttribute, value: string) => {
     const numValue = parseInt(value, 10);

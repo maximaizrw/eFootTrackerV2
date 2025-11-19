@@ -116,7 +116,28 @@ export function normalizeText(text: string): string {
     .replace(/[^a-z0-9]/g, '');
 }
 
-export function getAffinityScoreForPosition(position: Position, build: PlayerStatsBuild, idealBuild?: Partial<Record<PlayerAttribute, number>>): number {
+const affinityConfig: Partial<Record<Position, Partial<Record<PlayerAttribute, number>>>> = {
+    DC: {
+        finishing: 88,
+        lowPass: 76,
+        ballControl: 86,
+        dribbling: 89,
+        tightPossession: 86,
+        offensiveAwareness: 88,
+        acceleration: 92,
+        balance: 84,
+        speed: 93,
+        kickingPower: 90,
+        stamina: 85,
+        heading: 76,
+        jump: 83,
+        physicalContact: 83,
+    },
+};
+
+export function getAffinityScoreForPosition(position: Position, build: PlayerStatsBuild, idealBuildOverride?: Partial<Record<PlayerAttribute, number>>): number {
+    const idealBuild = idealBuildOverride || affinityConfig[position];
+
     if (!idealBuild || Object.keys(idealBuild).length === 0) {
         return 0;
     }
@@ -126,16 +147,16 @@ export function getAffinityScoreForPosition(position: Position, build: PlayerSta
 
     relevantAttributes.forEach(stat => {
         const idealValue = idealBuild[stat]!;
-        const playerValue = build.stats?.[stat] || 0; // If player stat is missing, default to 0
+        const playerValue = build.stats?.[stat] || 0;
         
         const diff = Math.abs(playerValue - idealValue);
-        const statScore = Math.max(0, 100 - (diff * 2));
+        const statScore = Math.max(0, 100 - (diff * 2)); // Each point of difference subtracts 2 from 100.
         totalScore += statScore;
     });
 
     return totalScore / relevantAttributes.length;
 }
 
-export function getRelevantAttributesForPosition(position: Position, idealBuilds: Record<Position, Partial<Record<PlayerAttribute, number>>>): PlayerAttribute[] {
-    return Object.keys(idealBuilds[position] || {}) as PlayerAttribute[];
+export function getRelevantAttributesForPosition(position: Position): PlayerAttribute[] {
+    return Object.keys(affinityConfig[position] || {}) as PlayerAttribute[];
 }

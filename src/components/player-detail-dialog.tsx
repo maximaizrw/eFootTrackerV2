@@ -65,11 +65,11 @@ const ProgressionEditor = ({ progression, onProgressionChange }: { progression: 
 };
 
 
-const PlayerStatsEditor = ({ position, build: initialBuild, onSave, onCancel, idealBuilds }: { position: Position, build: PlayerStatsBuild, onSave: (newBuild: PlayerStatsBuild) => void, onCancel: () => void, idealBuilds: Record<Position, Partial<Record<PlayerAttribute, number>>> }) => {
+const PlayerStatsEditor = ({ position, build: initialBuild, onSave, onCancel }: { position: Position, build: PlayerStatsBuild, onSave: (newBuild: PlayerStatsBuild) => void, onCancel: () => void }) => {
     const [build, setBuild] = React.useState<PlayerStatsBuild>(initialBuild);
     const [bulkText, setBulkText] = React.useState('');
     
-    const relevantAttributes = getRelevantAttributesForPosition(position, idealBuilds);
+    const relevantAttributes = getRelevantAttributesForPosition(position);
 
     const handleStatChange = (attribute: PlayerAttribute, value: string) => {
         const numValue = parseInt(value, 10);
@@ -218,7 +218,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveTrain
   
   const currentBuild = (card && selectedPosition && card.statsBuilds?.[selectedPosition]) || { stats: {}, progression: {} };
   const availablePositions = card?.ratingsByPosition ? Object.keys(card.ratingsByPosition) as Position[] : [];
-  const relevantAttributes = selectedPosition ? getRelevantAttributesForPosition(selectedPosition, idealBuilds) : [];
+  const relevantAttributes = selectedPosition ? getRelevantAttributesForPosition(selectedPosition) : [];
 
   const handleSave = (newBuild: PlayerStatsBuild) => {
     if (player && card && selectedPosition) {
@@ -302,7 +302,6 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveTrain
                             build={currentBuild}
                             onSave={handleSave}
                             onCancel={() => setIsEditingBuild(false)}
-                            idealBuilds={idealBuilds}
                         />
                     )
                   ) : (

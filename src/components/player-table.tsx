@@ -193,6 +193,7 @@ export function PlayerTable({
                           >
                               {player.name}
                           </button>
+                          <PerformanceBadges performance={performance} className="hidden md:flex" />
                           {hasStatsBuild && (
                               <TooltipProvider>
                                   <Tooltip>
@@ -203,7 +204,6 @@ export function PlayerTable({
                                   </Tooltip>
                               </TooltipProvider>
                           )}
-                          <PerformanceBadges performance={performance} className="hidden md:flex" />
                       </div>
                       <div className="text-xs text-muted-foreground">{card.name} ({performance.stats.matches} P.)</div>
                     </div>
