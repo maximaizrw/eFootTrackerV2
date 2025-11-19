@@ -14,8 +14,9 @@ import { Button } from '@/components/ui/button';
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { ScrollArea } from "./ui/scroll-area";
-import type { Position, PlayerAttribute } from "@/lib/types";
-import { getRelevantAttributesForPosition, normalizeText } from "@/lib/utils";
+import type { Position, PlayerAttribute, StatGroup } from "@/lib/types";
+import { getRelevantAttributesForPosition, normalizeText, statGroups } from "@/lib/utils";
+import { Separator } from "./ui/separator";
 
 type IdealBuildEditorProps = {
   open: boolean;
@@ -51,6 +52,25 @@ export function IdealBuildEditor({ open, onOpenChange, position, idealBuild, onS
     onSave(position, build);
     onOpenChange(false);
   };
+  
+  const groupedAttributes = React.useMemo(() => {
+    const grouped: Record<StatGroup, PlayerAttribute[]> = {
+      Shooting: [], Passing: [], Dribbling: [], Dexterity: [],
+      'Lower Body Strength': [], 'Aerial Strength': [], Goalkeeping: []
+    };
+    
+    relevantAttributes.forEach(attr => {
+      for (const groupName in statGroups) {
+        if ((statGroups[groupName as StatGroup] as readonly PlayerAttribute[]).includes(attr)) {
+          grouped[groupName as StatGroup].push(attr);
+          break;
+        }
+      }
+    });
+
+    return grouped;
+  }, [relevantAttributes]);
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -62,22 +82,33 @@ export function IdealBuildEditor({ open, onOpenChange, position, idealBuild, onS
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="h-96 pr-6">
-            <div className="space-y-3">
-            {relevantAttributes.map(attr => (
-                <div key={attr} className="grid grid-cols-3 items-center gap-2">
-                    <Label htmlFor={attr} className="col-span-2 text-sm capitalize truncate text-muted-foreground">{normalizeText(attr).replace(/([A-Z])/g, ' $1')}</Label>
-                    <Input
-                        id={attr}
-                        type="number"
-                        min="0"
-                        max="99"
-                        value={build[attr] || ''}
-                        onChange={(e) => handleStatChange(attr, e.target.value)}
-                        className="h-9 text-center font-bold"
-                        placeholder="-"
-                    />
+            <div className="space-y-4">
+            {Object.entries(groupedAttributes).map(([group, attributes]) => {
+              if (attributes.length === 0) return null;
+              return (
+                <div key={group}>
+                  <h4 className="text-sm font-semibold text-primary mb-2">{group}</h4>
+                  <div className="space-y-3">
+                    {attributes.map(attr => (
+                      <div key={attr} className="grid grid-cols-3 items-center gap-2">
+                        <Label htmlFor={attr} className="col-span-2 text-sm capitalize truncate text-muted-foreground">{normalizeText(attr).replace(/([A-Z])/g, ' $1')}</Label>
+                        <Input
+                            id={attr}
+                            type="number"
+                            min="0"
+                            max="99"
+                            value={build[attr] || ''}
+                            onChange={(e) => handleStatChange(attr, e.target.value)}
+                            className="h-9 text-center font-bold"
+                            placeholder="-"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <Separator className="mt-4" />
                 </div>
-            ))}
+              )
+            })}
             </div>
         </ScrollArea>
         <DialogFooter>

@@ -48,6 +48,13 @@ export const progressionCategories = [
 ] as const;
 export type ProgressionCategory = typeof progressionCategories[number];
 
+export const statGroups = [
+    "Shooting", "Passing", "Dribbling", "Dexterity",
+    "Lower Body Strength", "Aerial Strength", "Goalkeeping"
+] as const;
+export type StatGroup = typeof statGroups[number];
+
+
 export type ProgressionBuild = {
     [key in ProgressionCategory]?: number;
 };

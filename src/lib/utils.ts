@@ -1,7 +1,7 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { Position, PositionGroup, PlayerStyle, PlayerRatingStats, PlayerStatsBuild, PlayerAttribute } from "./types";
+import type { Position, PositionGroup, PlayerStyle, PlayerRatingStats, PlayerStatsBuild, PlayerAttribute, StatGroup } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -113,59 +113,90 @@ export function normalizeText(text: string): string {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
-    .replace(/[^a-z0-9]/g, '');
+    .replace(/([A-Z])/g, ' $1');
 }
 
-export const affinityConfig: Partial<Record<Position, Partial<Record<PlayerAttribute, number>>>> = {
-    DC: {
-        finishing: 88, lowPass: 76, ballControl: 86, dribbling: 89, tightPossession: 86,
-        offensiveAwareness: 88, acceleration: 92, balance: 84, speed: 93,
-        kickingPower: 90, stamina: 85, heading: 76, jump: 83, physicalContact: 83,
-    },
+export const statGroups: Record<StatGroup, readonly PlayerAttribute[]> = {
+    Shooting: ["finishing", "setPieceTaking", "curl"],
+    Passing: ["lowPass", "loftedPass"],
+    Dribbling: ["ballControl", "dribbling", "tightPossession"],
+    Dexterity: ["offensiveAwareness", "acceleration", "balance"],
+    "Lower Body Strength": ["speed", "kickingPower", "stamina"],
+    "Aerial Strength": ["heading", "jump", "physicalContact"],
+    Goalkeeping: ["gkAwareness", "gkCatching", "gkClearing", "gkReflexes", "gkReach"],
 };
 
-export function getAffinityScoreForPosition(position: Position, build: PlayerStatsBuild, idealBuildOverride?: Partial<Record<PlayerAttribute, number>>): number {
-    const idealBuild = idealBuildOverride || affinityConfig[position];
+export const groupPriorities: Partial<Record<Position, { group: StatGroup, weight: number }[]>> = {
+    DC: [
+        { group: 'Lower Body Strength', weight: 6 },
+        { group: 'Shooting', weight: 5 },
+        { group: 'Dexterity', weight: 4 },
+        { group: 'Dribbling', weight: 3 },
+        { group: 'Aerial Strength', weight: 2 },
+        { group: 'Passing', weight: 1 },
+    ],
+    // Priorities for other positions can be added here
+};
 
+
+export function getAffinityScoreForPosition(position: Position, build: PlayerStatsBuild, idealBuild?: Partial<Record<PlayerAttribute, number>>): number {
     if (!idealBuild || Object.keys(idealBuild).length === 0) {
         return 0;
     }
-    
-    const relevantAttributes = Object.keys(idealBuild) as PlayerAttribute[];
-    const scores: number[] = [];
 
-    relevantAttributes.forEach(stat => {
-        const idealValue = idealBuild[stat]!;
-        
-        if (!build.stats || build.stats[stat] === undefined || build.stats[stat] === null) {
-            // Penalize heavily if a stat is missing entirely
-            scores.push(0);
-            return;
-        }
-        
-        const playerValue = build.stats[stat]!;
+    const priorities = groupPriorities[position];
+    if (!priorities) return 0; // No priorities defined for this position
 
-        if (playerValue >= idealValue) {
-            // Reward for meeting or exceeding the ideal value
-            scores.push(100);
-        } else {
-            // Penalize based on the difference if below the ideal value
-            const diff = idealValue - playerValue;
-            const statScore = Math.max(0, 100 - (diff * 2));
-            scores.push(statScore);
+    const groupScores: { score: number, weight: number }[] = [];
+    const totalWeight = priorities.reduce((sum, p) => sum + p.weight, 0);
+
+    priorities.forEach(({ group, weight }) => {
+        const statsInGroup = statGroups[group];
+        const groupStatScores: number[] = [];
+
+        statsInGroup.forEach(stat => {
+            const idealValue = idealBuild[stat];
+            if (idealValue === undefined) return; // This stat is not in the ideal build for this position
+
+            if (build.stats?.[stat] === undefined || build.stats?.[stat] === null) {
+                // Heavily penalize if a stat is missing entirely
+                groupStatScores.push(0);
+                return;
+            }
+            
+            const playerValue = build.stats[stat]!;
+
+            if (playerValue >= idealValue) {
+                groupStatScores.push(100);
+            } else {
+                const diff = idealValue - playerValue;
+                const statScore = Math.max(0, 100 - (diff * 2));
+                groupStatScores.push(statScore);
+            }
+        });
+        
+        if (groupStatScores.length > 0) {
+            const groupAverage = groupStatScores.reduce((sum, score) => sum + score, 0) / groupStatScores.length;
+            groupScores.push({ score: groupAverage, weight });
         }
     });
 
-    if (scores.length === 0) {
+    if (groupScores.length === 0 || totalWeight === 0) {
         return 0;
     }
 
-    const totalScore = scores.reduce((sum, current) => sum + current, 0);
-    return totalScore / scores.length;
+    const weightedScore = groupScores.reduce((sum, { score, weight }) => sum + (score * weight), 0) / totalWeight;
+    return weightedScore;
 }
 
 
 export function getRelevantAttributesForPosition(position: Position): PlayerAttribute[] {
-    const idealBuild = affinityConfig[position] || {};
-    return Object.keys(idealBuild) as PlayerAttribute[];
+    const priorities = groupPriorities[position];
+    if (!priorities) return [];
+
+    // Get all stats from the prioritized groups
+    const attributes = priorities.flatMap(({ group }) => statGroups[group]);
+    
+    // Return a unique set of attributes
+    return [...new Set(attributes)];
 }
