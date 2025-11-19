@@ -117,7 +117,7 @@ export function normalizeText(text: string): string {
 }
 
 export function getAffinityScoreForPosition(position: Position, build: PlayerStatsBuild, idealBuild?: Partial<Record<PlayerAttribute, number>>): number {
-    if (!idealBuild || Object.keys(idealBuild).length === 0 || !build.stats) {
+    if (!idealBuild || Object.keys(idealBuild).length === 0) {
         return 0;
     }
     
@@ -126,9 +126,9 @@ export function getAffinityScoreForPosition(position: Position, build: PlayerSta
 
     relevantAttributes.forEach(stat => {
         const idealValue = idealBuild[stat]!;
-        const playerValue = build.stats![stat] || 0;
-        const diff = Math.abs(playerValue - idealValue);
+        const playerValue = build.stats?.[stat] || 0; // If player stat is missing, default to 0
         
+        const diff = Math.abs(playerValue - idealValue);
         const statScore = Math.max(0, 100 - (diff * 2));
         totalScore += statScore;
     });
