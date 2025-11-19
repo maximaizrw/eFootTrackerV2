@@ -153,24 +153,21 @@ export function getAffinityScoreForPosition(position: Position, build: PlayerSta
         return 0;
     }
     
-    let totalDeviationScore = 0;
     const relevantAttributes = Object.keys(idealBuild) as PlayerAttribute[];
+    let totalScore = 0;
 
     relevantAttributes.forEach(stat => {
         const idealValue = idealBuild[stat]!;
         const playerValue = build[stat] || 0;
-        const diff = Math.abs(idealValue - playerValue);
+        const diff = Math.abs(playerValue - idealValue);
         
-        // Simple scoring: 0 diff = 10 points, 1 diff = 9 points, etc. down to 0
-        const statScore = Math.max(0, 10 - diff);
-        totalDeviationScore += statScore;
+        // PuntuaciónStat = 100 – (diferencia × 2), asegurando que no sea negativo
+        const statScore = Math.max(0, 100 - (diff * 2));
+        totalScore += statScore;
     });
 
-    // Normalize the score to a 0-100 scale
-    const maxPossibleScore = relevantAttributes.length * 10;
-    if (maxPossibleScore === 0) return 0;
-    
-    return (totalDeviationScore / maxPossibleScore) * 100;
+    // Devolver el promedio de las puntuaciones de cada stat
+    return totalScore / relevantAttributes.length;
 }
 
 export function getRelevantAttributesForPosition(position: Position): PlayerAttribute[] {

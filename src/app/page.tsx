@@ -480,11 +480,11 @@ export default function Home() {
                     };
 
                     const affinityScore = hasBuildForPos ? getAffinityScoreForPosition(pos, card.statsBuilds![pos]!) : 0;
-                    // Normalize affinity to 0-100. Let's assume max affinity score around 1500 for a top striker.
-                    // This is a rough estimation and can be tuned.
-                    const normalizedAffinity = (affinityScore / 100) * 100;
-                    const matchAverageScore = (stats.average - 1) / 9 * 100;
-                    const generalScore = Math.max(0, Math.min(100, (matchAverageScore + normalizedAffinity) / 2));
+                    // Normalize match average to 0-100 and combine with affinity
+                    const matchAverageScore = stats.average > 0 ? (stats.average - 1) / 9 * 100 : 0; // Normalize 1-10 scale to 0-100
+                    const generalScore = hasBuildForPos 
+                        ? (matchAverageScore + affinityScore) / 2
+                        : matchAverageScore / 2; // If no build, affinity is 0, so general score is half of match avg. Consider if this logic is desired.
 
 
                     return { player, card, ratingsForPos, performance, hasStatsBuild: hasBuildForPos, generalScore };
