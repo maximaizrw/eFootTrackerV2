@@ -110,11 +110,16 @@ export default function Home() {
   const [discardedCardIds, setDiscardedCardIds] = useState<Set<string>>(new Set());
   const [sortBy, setSortBy] = useState<'average' | 'general'>('general');
   const [idealBuilds, setIdealBuilds] = useState<Record<Position, Partial<Record<PlayerAttribute, number>>>>(() => {
-    if (typeof window !== 'undefined') {
-        const savedBuilds = localStorage.getItem('idealBuilds');
-        return savedBuilds ? JSON.parse(savedBuilds) : initialIdealBuilds;
+    if (typeof window === 'undefined') {
+        return initialIdealBuilds;
     }
-    return initialIdealBuilds;
+    try {
+        const savedBuilds = window.localStorage.getItem('idealBuilds');
+        return savedBuilds ? JSON.parse(savedBuilds) : initialIdealBuilds;
+    } catch (error) {
+        console.error("Error reading idealBuilds from localStorage", error);
+        return initialIdealBuilds;
+    }
   });
 
   // State for filters and pagination
@@ -130,7 +135,11 @@ export default function Home() {
   
   useEffect(() => {
     if (typeof window !== 'undefined') {
-        localStorage.setItem('idealBuilds', JSON.stringify(idealBuilds));
+        try {
+            window.localStorage.setItem('idealBuilds', JSON.stringify(idealBuilds));
+        } catch (error) {
+            console.error("Error saving idealBuilds to localStorage", error);
+        }
     }
   }, [idealBuilds]);
 
