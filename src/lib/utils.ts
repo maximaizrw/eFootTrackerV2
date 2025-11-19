@@ -128,11 +128,23 @@ export const getAffinityScoreFromBuild = (
   const playerStats = playerBuild.stats;
   const relevantIdealAttributes = Object.keys(idealBuild) as PlayerAttribute[];
   
+  if (relevantIdealAttributes.length === 0) {
+      return 50; // Return a neutral score if no ideal build is set
+  }
+
   let totalScore = 0;
 
   for (const attr of relevantIdealAttributes) {
-    const idealValue = idealBuild[attr] ?? 0;
-    const playerValue = playerStats[attr] ?? 0; // Default to 0 if missing
+    const idealValue = idealBuild[attr];
+    const playerValue = playerStats[attr];
+
+    if (idealValue === undefined) continue;
+    
+    if (playerValue === undefined) {
+      // Harsh penalty if a relevant stat is completely missing from the player's build
+      totalScore -= idealValue;
+      continue;
+    }
 
     const diff = playerValue - idealValue;
     let scoreForAttr = 0;
@@ -140,8 +152,7 @@ export const getAffinityScoreFromBuild = (
     if (diff >= 5) {
       scoreForAttr = Math.floor(diff / 5) * 0.25;
     } else if (diff <= -5) {
-      const penaltyMultiplier = 1 + 0.25 * Math.floor(Math.abs(diff) / 5);
-      scoreForAttr = diff * penaltyMultiplier;
+      scoreForAttr = diff * (1 + 0.25 * Math.floor(Math.abs(diff) / 5));
     } else {
       scoreForAttr = 0; // Zone of indifference
     }
