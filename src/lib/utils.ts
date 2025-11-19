@@ -116,22 +116,11 @@ export function normalizeText(text: string): string {
     .replace(/[^a-z0-9]/g, '');
 }
 
-const affinityConfig: Partial<Record<Position, Partial<Record<PlayerAttribute, number>>>> = {
+export const affinityConfig: Partial<Record<Position, Partial<Record<PlayerAttribute, number>>>> = {
     DC: {
-        finishing: 88,
-        lowPass: 76,
-        ballControl: 86,
-        dribbling: 89,
-        tightPossession: 86,
-        offensiveAwareness: 88,
-        acceleration: 92,
-        balance: 84,
-        speed: 93,
-        kickingPower: 90,
-        stamina: 85,
-        heading: 76,
-        jump: 83,
-        physicalContact: 83,
+        finishing: 88, lowPass: 76, ballControl: 86, dribbling: 89, tightPossession: 86,
+        offensiveAwareness: 88, acceleration: 92, balance: 84, speed: 93,
+        kickingPower: 90, stamina: 85, heading: 76, jump: 83, physicalContact: 83,
     },
 };
 
@@ -147,10 +136,16 @@ export function getAffinityScoreForPosition(position: Position, build: PlayerSta
 
     relevantAttributes.forEach(stat => {
         const idealValue = idealBuild[stat]!;
-        const playerValue = build.stats?.[stat] || 0;
         
+        // If a stat is missing from the player's build, the score for that stat is 0.
+        if (!build.stats || build.stats[stat] === undefined || build.stats[stat] === null) {
+            totalScore += 0;
+            return;
+        }
+        
+        const playerValue = build.stats[stat]!;
         const diff = Math.abs(playerValue - idealValue);
-        const statScore = Math.max(0, 100 - (diff * 2)); // Each point of difference subtracts 2 from 100.
+        const statScore = Math.max(0, 100 - (diff * 2));
         totalScore += statScore;
     });
 
@@ -158,5 +153,7 @@ export function getAffinityScoreForPosition(position: Position, build: PlayerSta
 }
 
 export function getRelevantAttributesForPosition(position: Position): PlayerAttribute[] {
-    return Object.keys(affinityConfig[position] || {}) as PlayerAttribute[];
+    // This now directly uses the keys from the dynamic ideal build configuration
+    const idealBuild = affinityConfig[position] || {};
+    return Object.keys(idealBuild) as PlayerAttribute[];
 }
