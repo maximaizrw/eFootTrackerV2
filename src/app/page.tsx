@@ -545,9 +545,9 @@ export default function Home() {
                         isVersatile: highPerfPositions.size >= 3,
                     };
 
-                    const affinityScore = hasBuildForPos ? getAffinityScoreForPosition(pos, card.statsBuilds![pos]!, idealBuilds[pos]) : 0;
+                    const affinityScore = hasBuildForPos ? getAffinityScoreForPosition(pos, card.statsBuilds![pos]!, idealBuilds) : 0;
                     const matchAverageScore = stats.average > 0 ? (stats.average - 1) / 9 * 100 : 0; // Normalize 1-10 scale to 0-100
-                    const generalScore = (matchAverageScore * 0.5) + (affinityScore * 0.5);
+                    const generalScore = (matchAverageScore * 0.4) + (affinityScore * 0.6);
 
 
                     return { player, card, ratingsForPos, performance, hasStatsBuild: hasBuildForPos, generalScore };

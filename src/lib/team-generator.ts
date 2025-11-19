@@ -94,10 +94,10 @@ export function generateIdealTeam(
         };
 
         const hasBuildForPos = !!(card.statsBuilds?.[pos]?.stats && Object.keys(card.statsBuilds[pos]!.stats!).length > 0);
-        const affinityScore = hasBuildForPos ? getAffinityScoreForPosition(pos, card.statsBuilds![pos]!, idealBuilds[pos]) : 0;
+        const affinityScore = hasBuildForPos ? getAffinityScoreForPosition(pos, card.statsBuilds![pos]!, idealBuilds) : 0;
         const matchAverageScore = (stats.average - 1) / 9 * 100; // Normalize 1-10 scale to 0-100
         
-        const generalScore = (matchAverageScore * 0.5) + (affinityScore * 0.5);
+        const generalScore = (matchAverageScore * 0.4) + (affinityScore * 0.6);
 
         return {
           player,
