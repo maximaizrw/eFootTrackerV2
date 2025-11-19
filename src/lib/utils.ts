@@ -2,7 +2,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { Position, PositionGroup, PlayerStyle, PlayerRatingStats, PlayerStatsBuild, PlayerAttribute } from "./types";
-import { playerAttributes } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -117,35 +116,63 @@ export function normalizeText(text: string): string {
     .replace(/[^a-z0-9]/g, '');
 }
 
-export const affinityConfig: Record<Position, PlayerAttribute[]> = {
-    PT: ["gkAwareness", "gkCatching", "gkClearing", "gkReflexes", "gkReach", "jump"],
-    DFC: ["heading", "jump", "physicalContact", "defensiveAwareness", "tackling", "defensiveEngagement", "speed", "acceleration"],
-    LI: ["speed", "acceleration", "stamina", "lowPass", "curl", "defensiveAwareness", "tackling", "defensiveEngagement"],
-    LD: ["speed", "acceleration", "stamina", "lowPass", "curl", "defensiveAwareness", "tackling", "defensiveEngagement"],
-    MCD: ["lowPass", "loftedPass", "stamina", "physicalContact", "defensiveAwareness", "tackling", "defensiveEngagement", "ballControl"],
-    MC: ["ballControl", "dribbling", "tightPossession", "lowPass", "loftedPass", "stamina", "balance", "offensiveAwareness"],
-    MDI: ["ballControl", "dribbling", "tightPossession", "lowPass", "loftedPass", "speed", "acceleration", "stamina", "curl"],
-    MDD: ["ballControl", "dribbling", "tightPossession", "lowPass", "loftedPass", "speed", "acceleration", "stamina", "curl"],
-    MO: ["offensiveAwareness", "ballControl", "dribbling", "tightPossession", "lowPass", "finishing", "kickingPower", "acceleration"],
-    EXI: ["speed", "acceleration", "dribbling", "tightPossession", "ballControl", "curl", "lowPass", "finishing"],
-    EXD: ["speed", "acceleration", "dribbling", "tightPossession", "ballControl", "curl", "lowPass", "finishing"],
-    SD: ["offensiveAwareness", "finishing", "ballControl", "dribbling", "tightPossession", "kickingPower", "speed", "acceleration"],
-    DC: ["finishing", "lowPass", "ballControl", "dribbling", "tightPossession", "offensiveAwareness", "acceleration", "balance", "speed", "kickingPower", "stamina", "heading", "jump", "physicalContact"],
+export const affinityConfig: Record<Position, Partial<PlayerStatsBuild>> = {
+    PT: {},
+    DFC: {},
+    LI: {},
+    LD: {},
+    MCD: {},
+    MC: {},
+    MDI: {},
+    MDD: {},
+    MO: {},
+    EXI: {},
+    EXD: {},
+    SD: {},
+    DC: {
+        finishing: 88,
+        lowPass: 76,
+        ballControl: 86,
+        dribbling: 89,
+        tightPossession: 86,
+        offensiveAwareness: 88,
+        acceleration: 92,
+        balance: 84,
+        speed: 93,
+        kickingPower: 90,
+        stamina: 85,
+        heading: 76,
+        jump: 83,
+        physicalContact: 83,
+    },
 };
 
 export function getAffinityScoreForPosition(position: Position, build: PlayerStatsBuild): number {
-    const relevantStats = affinityConfig[position];
-    if (!relevantStats || !build) {
+    const idealBuild = affinityConfig[position];
+    if (!idealBuild || Object.keys(idealBuild).length === 0 || !build) {
         return 0;
     }
     
-    const score = relevantStats.reduce((total, stat) => {
-        return total + (build[stat] || 0);
-    }, 0);
+    let totalDeviationScore = 0;
+    const relevantAttributes = Object.keys(idealBuild) as PlayerAttribute[];
+
+    relevantAttributes.forEach(stat => {
+        const idealValue = idealBuild[stat]!;
+        const playerValue = build[stat] || 0;
+        const diff = Math.abs(idealValue - playerValue);
+        
+        // Simple scoring: 0 diff = 10 points, 1 diff = 9 points, etc. down to 0
+        const statScore = Math.max(0, 10 - diff);
+        totalDeviationScore += statScore;
+    });
+
+    // Normalize the score to a 0-100 scale
+    const maxPossibleScore = relevantAttributes.length * 10;
+    if (maxPossibleScore === 0) return 0;
     
-    return score;
+    return (totalDeviationScore / maxPossibleScore) * 100;
 }
 
 export function getRelevantAttributesForPosition(position: Position): PlayerAttribute[] {
-    return affinityConfig[position] || [];
+    return Object.keys(affinityConfig[position]) as PlayerAttribute[];
 }

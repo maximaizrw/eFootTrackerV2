@@ -480,9 +480,9 @@ export default function Home() {
                     };
 
                     const affinityScore = hasBuildForPos ? getAffinityScoreForPosition(pos, card.statsBuilds![pos]!) : 0;
-                    // Normalize affinity to 0-100. Let's assume max affinity score around 1200 for a top striker.
+                    // Normalize affinity to 0-100. Let's assume max affinity score around 1500 for a top striker.
                     // This is a rough estimation and can be tuned.
-                    const normalizedAffinity = (affinityScore / 1200) * 100;
+                    const normalizedAffinity = (affinityScore / 100) * 100;
                     const matchAverageScore = (stats.average - 1) / 9 * 100;
                     const generalScore = Math.max(0, Math.min(100, (matchAverageScore + normalizedAffinity) / 2));
 
