@@ -482,9 +482,7 @@ export default function Home() {
                     const affinityScore = hasBuildForPos ? getAffinityScoreForPosition(pos, card.statsBuilds![pos]!) : 0;
                     // Normalize match average to 0-100 and combine with affinity
                     const matchAverageScore = stats.average > 0 ? (stats.average - 1) / 9 * 100 : 0; // Normalize 1-10 scale to 0-100
-                    const generalScore = hasBuildForPos 
-                        ? (matchAverageScore + affinityScore) / 2
-                        : matchAverageScore / 2; // If no build, affinity is 0, so general score is half of match avg. Consider if this logic is desired.
+                    const generalScore = (matchAverageScore * 0.6) + (affinityScore * 0.4);
 
 
                     return { player, card, ratingsForPos, performance, hasStatsBuild: hasBuildForPos, generalScore };

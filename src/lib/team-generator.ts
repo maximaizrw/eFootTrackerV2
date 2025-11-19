@@ -93,9 +93,9 @@ export function generateIdealTeam(
 
         const hasBuildForPos = !!(card.statsBuilds?.[pos] && Object.keys(card.statsBuilds[pos]!).length > 0);
         const affinityScore = hasBuildForPos ? getAffinityScoreForPosition(pos, card.statsBuilds![pos]!) : 0;
-        const normalizedAffinity = (affinityScore / 1200) * 100;
         const matchAverageScore = (stats.average - 1) / 9 * 100; // Normalize 1-10 scale to 0-100
-        const generalScore = Math.max(0, Math.min(100, (matchAverageScore + normalizedAffinity) / 2));
+        
+        const generalScore = (matchAverageScore * 0.6) + (affinityScore * 0.4);
 
         return {
           player,
