@@ -26,7 +26,6 @@ type PlayerTableProps = {
   onDeletePositionRatings: (playerId: string, cardId: string, position: Position) => void;
   onToggleSelectable: (playerId: string, cardId: string, position: Position, currentSelectable?: boolean) => void;
   onDeleteRating: (playerId: string, cardId: string, position: Position, ratingIndex: number) => void;
-  onSaveCustomScore: (playerId: string, cardId: string, position: Position, score: number) => void;
 };
 
 type FilterProps = {

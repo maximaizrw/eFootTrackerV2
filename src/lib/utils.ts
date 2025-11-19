@@ -116,40 +116,8 @@ export function normalizeText(text: string): string {
     .replace(/[^a-z0-9]/g, '');
 }
 
-export const affinityConfig: Record<Position, Partial<PlayerStatsBuild>> = {
-    PT: {},
-    DFC: {},
-    LI: {},
-    LD: {},
-    MCD: {},
-    MC: {},
-    MDI: {},
-    MDD: {},
-    MO: {},
-    EXI: {},
-    EXD: {},
-    SD: {},
-    DC: {
-        finishing: 88,
-        lowPass: 76,
-        ballControl: 86,
-        dribbling: 89,
-        tightPossession: 86,
-        offensiveAwareness: 88,
-        acceleration: 92,
-        balance: 84,
-        speed: 93,
-        kickingPower: 90,
-        stamina: 85,
-        heading: 76,
-        jump: 83,
-        physicalContact: 83,
-    },
-};
-
-export function getAffinityScoreForPosition(position: Position, build: PlayerStatsBuild): number {
-    const idealBuild = affinityConfig[position];
-    if (!idealBuild || Object.keys(idealBuild).length === 0 || !build) {
+export function getAffinityScoreForPosition(position: Position, build: PlayerStatsBuild, idealBuild?: Partial<Record<PlayerAttribute, number>>): number {
+    if (!idealBuild || Object.keys(idealBuild).length === 0 || !build.stats) {
         return 0;
     }
     
@@ -158,18 +126,16 @@ export function getAffinityScoreForPosition(position: Position, build: PlayerSta
 
     relevantAttributes.forEach(stat => {
         const idealValue = idealBuild[stat]!;
-        const playerValue = build[stat] || 0;
+        const playerValue = build.stats![stat] || 0;
         const diff = Math.abs(playerValue - idealValue);
         
-        // PuntuaciónStat = 100 – (diferencia × 2), asegurando que no sea negativo
         const statScore = Math.max(0, 100 - (diff * 2));
         totalScore += statScore;
     });
 
-    // Devolver el promedio de las puntuaciones de cada stat
     return totalScore / relevantAttributes.length;
 }
 
-export function getRelevantAttributesForPosition(position: Position): PlayerAttribute[] {
-    return Object.keys(affinityConfig[position]) as PlayerAttribute[];
+export function getRelevantAttributesForPosition(position: Position, idealBuilds: Record<Position, Partial<Record<PlayerAttribute, number>>>): PlayerAttribute[] {
+    return Object.keys(idealBuilds[position] || {}) as PlayerAttribute[];
 }

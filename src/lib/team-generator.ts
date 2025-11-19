@@ -1,5 +1,5 @@
 
-import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality } from './types';
+import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, PlayerAttribute } from './types';
 import { calculateStats, getAffinityScoreForPosition } from './utils';
 
 type CandidatePlayer = {
@@ -17,6 +17,7 @@ type CandidatePlayer = {
  * 
  * @param players - The list of all available players.
  * @param formation - The selected formation with defined slots.
+ * @param idealBuilds - The map of ideal statistics for each position.
  * @param discardedCardIds - A set of card IDs to exclude from the selection.
  * @param league - The league to filter by.
  * @param nationality - The nationality to filter by.
@@ -26,6 +27,7 @@ type CandidatePlayer = {
 export function generateIdealTeam(
   players: Player[],
   formation: FormationStats,
+  idealBuilds: Record<Position, Partial<Record<PlayerAttribute, number>>>,
   discardedCardIds: Set<string> = new Set(),
   league: League | 'all' = 'all',
   nationality: Nationality | 'all' = 'all',
@@ -92,7 +94,7 @@ export function generateIdealTeam(
         };
 
         const hasBuildForPos = !!(card.statsBuilds?.[pos] && Object.keys(card.statsBuilds[pos]!).length > 0);
-        const affinityScore = hasBuildForPos ? getAffinityScoreForPosition(pos, card.statsBuilds![pos]!) : 0;
+        const affinityScore = hasBuildForPos ? getAffinityScoreForPosition(pos, card.statsBuilds![pos]!, idealBuilds[pos]) : 0;
         const matchAverageScore = (stats.average - 1) / 9 * 100; // Normalize 1-10 scale to 0-100
         
         const generalScore = (matchAverageScore * 0.6) + (affinityScore * 0.4);

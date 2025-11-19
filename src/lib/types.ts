@@ -40,12 +40,25 @@ export const playerAttributes = [
     "defensiveEngagement", "gkAwareness", "gkCatching", "gkClearing",
     "gkReflexes", "gkReach"
 ] as const;
-
 export type PlayerAttribute = typeof playerAttributes[number];
 
-export type PlayerStatsBuild = {
-    [key in PlayerAttribute]?: number;
+export const progressionCategories = [
+    "shooting", "passing", "dribbling", "dexterity", "lowerBodyStrength",
+    "aerialStrength", "defending", "gk1", "gk2", "gk3"
+] as const;
+export type ProgressionCategory = typeof progressionCategories[number];
+
+export type ProgressionBuild = {
+    [key in ProgressionCategory]?: number;
 };
+
+export type PlayerStatsBuild = {
+    stats?: {
+        [key in PlayerAttribute]?: number;
+    };
+    progression?: ProgressionBuild;
+};
+
 
 export type PositionGroup = 'Goalkeeper' | 'Defender' | 'Midfielder' | 'Forward';
 

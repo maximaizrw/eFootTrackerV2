@@ -3,7 +3,8 @@
 
 import * as React from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell, LabelList } from 'recharts';
-import type { Position, PlayerStatsBuild, PlayerAttribute, FlatPlayer } from "@/lib/types";
+import type { Position, PlayerStatsBuild, PlayerAttribute, FlatPlayer, ProgressionCategory, ProgressionBuild } from "@/lib/types";
+import { progressionCategories } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -19,12 +20,15 @@ import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { ScrollArea } from "./ui/scroll-area";
 import { Textarea } from "./ui/textarea";
+import { Slider } from "./ui/slider";
+import { Separator } from "./ui/separator";
 
 type PlayerDetailDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   flatPlayer: FlatPlayer | null;
   onSaveTrainingBuild: (playerId: string, cardId: string, position: Position, build: PlayerStatsBuild) => void;
+  idealBuilds: Record<Position, Partial<Record<PlayerAttribute, number>>>;
 };
 
 type PerformanceData = {
@@ -33,23 +37,54 @@ type PerformanceData = {
   matches: number;
 };
 
-const PlayerStatsEditor = ({ position, build: initialBuild, onSave, onCancel }: { position: Position, build: PlayerStatsBuild, onSave: (newBuild: PlayerStatsBuild) => void, onCancel: () => void }) => {
+const ProgressionEditor = ({ progression, onProgressionChange }: { progression: ProgressionBuild, onProgressionChange: (newProgression: ProgressionBuild) => void }) => {
+    
+    const handleProgressionChange = (category: ProgressionCategory, value: number) => {
+        onProgressionChange({ ...progression, [category]: value });
+    };
+
+    return (
+        <div className="space-y-3 pt-4">
+            {progressionCategories.map(category => (
+                <div key={category} className="grid grid-cols-5 items-center gap-2">
+                    <Label htmlFor={category} className="col-span-2 text-xs capitalize truncate text-muted-foreground">{normalizeText(category).replace(/([A-Z])/g, ' $1')}</Label>
+                    <Slider
+                        id={category}
+                        min={0}
+                        max={12}
+                        step={1}
+                        value={[progression[category] || 0]}
+                        onValueChange={(value) => handleProgressionChange(category, value[0])}
+                        className="col-span-2"
+                    />
+                    <div className="text-center font-bold text-sm">{progression[category] || 0}</div>
+                </div>
+            ))}
+        </div>
+    );
+};
+
+
+const PlayerStatsEditor = ({ position, build: initialBuild, onSave, onCancel, idealBuilds }: { position: Position, build: PlayerStatsBuild, onSave: (newBuild: PlayerStatsBuild) => void, onCancel: () => void, idealBuilds: Record<Position, Partial<Record<PlayerAttribute, number>>> }) => {
     const [build, setBuild] = React.useState<PlayerStatsBuild>(initialBuild);
     const [bulkText, setBulkText] = React.useState('');
     
-    const relevantAttributes = getRelevantAttributesForPosition(position);
+    const relevantAttributes = getRelevantAttributesForPosition(position, idealBuilds);
 
     const handleStatChange = (attribute: PlayerAttribute, value: string) => {
         const numValue = parseInt(value, 10);
+        const stats = build.stats || {};
         if (!isNaN(numValue) && numValue >= 0 && numValue <= 99) {
-            setBuild(prev => ({ ...prev, [attribute]: numValue }));
+            setBuild(prev => ({ ...prev, stats: { ...stats, [attribute]: numValue } }));
         } else if (value === '') {
-            setBuild(prev => {
-                const newBuild = { ...prev };
-                delete newBuild[attribute];
-                return newBuild;
-            });
+            const newStats = { ...stats };
+            delete newStats[attribute];
+            setBuild(prev => ({ ...prev, stats: newStats }));
         }
+    };
+
+    const handleProgressionChange = (newProgression: ProgressionBuild) => {
+        setBuild(prev => ({ ...prev, progression: newProgression }));
     };
     
     const handleSave = () => {
@@ -58,21 +93,19 @@ const PlayerStatsEditor = ({ position, build: initialBuild, onSave, onCancel }: 
 
     const handleBulkApply = () => {
         const lines = bulkText.split('\n').filter(line => line.trim() !== '');
-        const newBuild: PlayerStatsBuild = {};
+        const newStats: Partial<Record<PlayerAttribute, number>> = {};
 
         lines.forEach((line, index) => {
             if (index < relevantAttributes.length) {
                 const attribute = relevantAttributes[index];
                 const value = parseInt(line.trim(), 10);
                 if (!isNaN(value) && value >= 0 && value <= 99) {
-                    newBuild[attribute] = value;
+                    newStats[attribute] = value;
                 }
             }
         });
-
-        // We merge with the existing build to not lose other stats
-        // if the pasted text is shorter than the list of attributes.
-        setBuild(prev => ({ ...prev, ...newBuild }));
+        
+        setBuild(prev => ({ ...prev, stats: { ...(prev.stats || {}), ...newStats } }));
     };
 
     return (
@@ -91,7 +124,7 @@ const PlayerStatsEditor = ({ position, build: initialBuild, onSave, onCancel }: 
                 </div>
             </div>
 
-            <ScrollArea className="h-60">
+            <ScrollArea className="h-48">
               <div className="grid grid-cols-2 gap-x-4 gap-y-3 pr-4">
                   {relevantAttributes.map(attr => (
                       <div key={attr} className="grid grid-cols-3 items-center gap-2">
@@ -101,7 +134,7 @@ const PlayerStatsEditor = ({ position, build: initialBuild, onSave, onCancel }: 
                               type="number"
                               min="0"
                               max="99"
-                              value={build[attr] || ''}
+                              value={build.stats?.[attr] || ''}
                               onChange={(e) => handleStatChange(attr, e.target.value)}
                               className="h-8 text-center font-bold"
                               placeholder="-"
@@ -110,6 +143,12 @@ const PlayerStatsEditor = ({ position, build: initialBuild, onSave, onCancel }: 
                   ))}
               </div>
             </ScrollArea>
+            
+            <Separator />
+            
+            <Label>Puntos de Progresión</Label>
+            <ProgressionEditor progression={build.progression || {}} onProgressionChange={handleProgressionChange} />
+            
             <div className="flex justify-end items-center pt-4 border-t border-border">
                 <div className="flex gap-2">
                     <Button onClick={onCancel} variant="outline">Cancelar</Button>
@@ -121,7 +160,7 @@ const PlayerStatsEditor = ({ position, build: initialBuild, onSave, onCancel }: 
 };
 
 
-export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveTrainingBuild }: PlayerDetailDialogProps) {
+export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveTrainingBuild, idealBuilds }: PlayerDetailDialogProps) {
   const [selectedPosition, setSelectedPosition] = React.useState<Position | undefined>();
   const [isEditingBuild, setIsEditingBuild] = React.useState(false);
   
@@ -177,9 +216,9 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveTrain
   const card = flatPlayer?.card;
   const player = flatPlayer?.player;
   
-  const currentBuild = (card && selectedPosition && card.statsBuilds?.[selectedPosition]) || {};
+  const currentBuild = (card && selectedPosition && card.statsBuilds?.[selectedPosition]) || { stats: {}, progression: {} };
   const availablePositions = card?.ratingsByPosition ? Object.keys(card.ratingsByPosition) as Position[] : [];
-  const relevantAttributes = selectedPosition ? getRelevantAttributesForPosition(selectedPosition) : [];
+  const relevantAttributes = selectedPosition ? getRelevantAttributesForPosition(selectedPosition, idealBuilds) : [];
 
   const handleSave = (newBuild: PlayerStatsBuild) => {
     if (player && card && selectedPosition) {
@@ -263,18 +302,28 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveTrain
                             build={currentBuild}
                             onSave={handleSave}
                             onCancel={() => setIsEditingBuild(false)}
+                            idealBuilds={idealBuilds}
                         />
                     )
                   ) : (
                     <div className="space-y-2 pt-4">
-                       <ScrollArea className="h-72">
+                       <ScrollArea className="h-[26rem]">
                          <div className="grid grid-cols-2 gap-x-4 gap-y-2 pr-4">
                             {relevantAttributes.map(attr => (
                                 <div key={attr} className="flex items-center justify-between text-sm">
                                     <span className="text-muted-foreground capitalize">{normalizeText(attr).replace(/([A-Z])/g, ' $1')}</span>
-                                    <span className="font-bold">{currentBuild[attr] || '-'}</span>
+                                    <span className="font-bold">{currentBuild.stats?.[attr] || '-'}</span>
                                 </div>
                             ))}
+                         </div>
+                         <Separator className="my-4" />
+                         <div className="pr-4 space-y-2">
+                             {progressionCategories.map(category => (
+                                <div key={category} className="flex items-center justify-between text-sm">
+                                    <span className="text-muted-foreground capitalize">{normalizeText(category).replace(/([A-Z])/g, ' $1')}</span>
+                                    <span className="font-bold">{currentBuild.progression?.[category] || 0}</span>
+                                </div>
+                             ))}
                          </div>
                        </ScrollArea>
                       <div className="flex justify-end pt-4">
