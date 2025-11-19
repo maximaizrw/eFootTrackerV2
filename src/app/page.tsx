@@ -98,7 +98,7 @@ export default function Home() {
   const [selectedNationality, setSelectedNationality] = useState<Nationality | 'all'>('all');
   const [idealTeam, setIdealTeam] = useState<IdealTeamSlot[]>([]);
   const [discardedCardIds, setDiscardedCardIds] = useState<Set<string>>(new Set());
-  const [sortBy, setSortBy] = useState<'average' | 'general'>('average');
+  const [sortBy, setSortBy] = useState<'average' | 'general'>('general');
 
   // State for filters and pagination
   const [styleFilter, setStyleFilter] = useState<string>('all');
@@ -566,7 +566,7 @@ export default function Home() {
                       onOpenEditCard={handleOpenEditCard}
                       onOpenEditPlayer={handleOpenEditPlayer}
                       onOpenPlayerDetail={handleOpenPlayerDetail}
-                      onViewImage={onViewImage}
+                      onViewImage={handleViewImage}
                       onDeletePositionRatings={deletePositionRatings}
                       onToggleSelectable={toggleSelectablePosition}
                       onDeleteRating={deleteRating}
