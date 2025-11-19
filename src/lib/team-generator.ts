@@ -89,7 +89,7 @@ export function generateIdealTeam(
             stats,
             isHotStreak: stats.matches >= 3 && recentStats.average > stats.average + 0.5,
             isConsistent: stats.matches >= 5 && stats.stdDev < 0.5,
-            isPromising: stats.matches > 0 && stats.matches < 10,
+            isPromising: stats.matches > 0 && stats.matches < 10 && stats.average >= 7.0,
             isVersatile: isVersatile,
         };
 

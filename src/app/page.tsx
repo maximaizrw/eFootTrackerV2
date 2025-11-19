@@ -540,7 +540,7 @@ export default function Home() {
                         stats,
                         isHotStreak: stats.matches >= 3 && recentStats.average > stats.average + 0.5,
                         isConsistent: stats.matches >= 5 && stats.stdDev < 0.5,
-                        isPromising: stats.matches > 0 && stats.matches < 10, // Must have at least 1 match
+                        isPromising: stats.matches > 0 && stats.matches < 10 && stats.average >= 7.0,
                         isVersatile: highPerfPositions.size >= 3,
                     };
 
