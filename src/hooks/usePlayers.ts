@@ -41,6 +41,7 @@ export function usePlayers() {
                     ratingsByPosition: card.ratingsByPosition || {},
                     statsBuilds: card.statsBuilds || {},
                     selectablePositions: card.selectablePositions || {},
+                    customScores: card.customScores || {},
                 })),
             } as Player;
         });
@@ -110,6 +111,7 @@ export function usePlayers() {
           card.selectablePositions[position] = true;
           
           if (!card.statsBuilds) card.statsBuilds = {};
+          if (!card.customScores) card.customScores = {};
 
         } else {
           card = { 
@@ -121,6 +123,7 @@ export function usePlayers() {
               ratingsByPosition: { [position]: [rating] },
               statsBuilds: {},
               selectablePositions: { [position]: true },
+              customScores: {},
           };
           newCards.push(card);
         }
@@ -138,6 +141,7 @@ export function usePlayers() {
               ratingsByPosition: { [position]: [rating] },
               statsBuilds: {},
               selectablePositions: { [position]: true },
+              customScores: {},
           }],
         };
         await addDoc(collection(db, 'players'), newPlayer);
@@ -314,9 +318,31 @@ export function usePlayers() {
   };
   
   const saveCustomScore = async (playerId: string, cardId: string, position: Position, score: number) => {
-    // This function is now deprecated as customScores are calculated from statsBuilds.
-    // Kept for compatibility, but should not be called from new UI.
-    console.warn("saveCustomScore is deprecated.");
+    if (!db) return;
+    const playerRef = doc(db, 'players', playerId);
+    try {
+        const playerDoc = await getDoc(playerRef);
+        if (!playerDoc.exists()) throw new Error("Player document not found!");
+        
+        const playerData = playerDoc.data() as Player;
+        const newCards = JSON.parse(JSON.stringify(playerData.cards || [])) as PlayerCard[];
+        const cardToUpdate = newCards.find(c => c.id === cardId);
+
+        if (cardToUpdate) {
+            if (!cardToUpdate.customScores) {
+                cardToUpdate.customScores = {};
+            }
+            cardToUpdate.customScores[position] = score;
+            
+            await updateDoc(playerRef, { cards: newCards });
+            toast({ title: "Afinidad Guardada", description: `La afinidad para ${position} se ha guardado como ${score}.` });
+        } else {
+             throw new Error("Card not found in player data!");
+        }
+    } catch (error) {
+        console.error("Error saving custom score: ", error);
+        toast({ variant: "destructive", title: "Error al Guardar", description: "No se pudo guardar la afinidad." });
+    }
 };
 
   const downloadBackup = async () => {

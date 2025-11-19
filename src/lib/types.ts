@@ -78,7 +78,6 @@ export type PlayerCard = {
   ratingsByPosition: { [key in Position]?: number[] };
   statsBuilds?: { [key in Position]?: PlayerStatsBuild };
   selectablePositions?: { [key in Position]?: boolean };
-  // customScores is deprecated in favor of statsBuilds
   customScores?: { [key in Position]?: number };
 };
 

@@ -23,7 +23,6 @@ import { AddFormationDialog, type AddFormationFormValues } from '@/components/ad
 import { EditFormationDialog, type EditFormationFormValues } from '@/components/edit-formation-dialog';
 import { AddMatchDialog, type AddMatchFormValues } from '@/components/add-match-dialog';
 import { PlayerDetailDialog } from '@/components/player-detail-dialog';
-import { IdealBuildEditor } from '@/components/ideal-build-editor';
 
 import { FormationsDisplay } from '@/components/formations-display';
 import { IdealTeamDisplay } from '@/components/ideal-team-display';
@@ -38,21 +37,12 @@ import { useToast } from "@/hooks/use-toast";
 
 import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerAttribute } from '@/lib/types';
 import { positions, leagues, nationalities } from '@/lib/types';
-import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Settings } from 'lucide-react';
-import { calculateStats, normalizeText, getAffinityScoreForPosition } from '@/lib/utils';
+import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe } from 'lucide-react';
+import { calculateStats, normalizeText } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 const ITEMS_PER_PAGE = 10;
-
-const initialIdealBuilds: Record<Position, Partial<Record<PlayerAttribute, number>>> = {
-    PT: {}, DFC: {}, LI: {}, LD: {}, MCD: {}, MC: {}, MDI: {}, MDD: {}, MO: {}, EXI: {}, EXD: {}, SD: {},
-    DC: {
-        finishing: 88, lowPass: 76, ballControl: 86, dribbling: 89, tightPossession: 86,
-        offensiveAwareness: 88, acceleration: 92, balance: 84, speed: 93,
-        kickingPower: 90, stamina: 85, heading: 76, jump: 83, physicalContact: 83,
-    },
-};
 
 export default function Home() {
   const { 
@@ -65,6 +55,7 @@ export default function Home() {
     deleteRating,
     downloadBackup: downloadPlayersBackup,
     saveTrainingBuild,
+    saveCustomScore,
     deletePositionRatings,
     toggleSelectablePosition,
   } = usePlayers();
@@ -92,7 +83,6 @@ export default function Home() {
   const [isEditCardDialogOpen, setEditCardDialogOpen] = useState(false);
   const [isEditPlayerDialogOpen, setEditPlayerDialogOpen] = useState(false);
   const [isPlayerDetailDialogOpen, setPlayerDetailDialogOpen] = useState(false);
-  const [isIdealBuildEditorOpen, setIdealBuildEditorOpen] = useState(false);
   const [isImageViewerOpen, setImageViewerOpen] = useState(false);
   const [viewingImageUrl, setViewingImageUrl] = useState<string | null>(null);
   const [viewingImageName, setViewingImageName] = useState<string | null>(null);
@@ -109,19 +99,7 @@ export default function Home() {
   const [idealTeam, setIdealTeam] = useState<IdealTeamSlot[]>([]);
   const [discardedCardIds, setDiscardedCardIds] = useState<Set<string>>(new Set());
   const [sortBy, setSortBy] = useState<'average' | 'general'>('general');
-  const [idealBuilds, setIdealBuilds] = useState<Record<Position, Partial<Record<PlayerAttribute, number>>>>(() => {
-    if (typeof window === 'undefined') {
-        return initialIdealBuilds;
-    }
-    try {
-        const savedBuilds = window.localStorage.getItem('idealBuilds');
-        return savedBuilds ? JSON.parse(savedBuilds) : initialIdealBuilds;
-    } catch (error) {
-        console.error("Error reading idealBuilds from localStorage", error);
-        return initialIdealBuilds;
-    }
-  });
-
+  
   // State for filters and pagination
   const [styleFilter, setStyleFilter] = useState<string>('all');
   const [cardFilter, setCardFilter] = useState<string>('all');
@@ -133,16 +111,6 @@ export default function Home() {
     return formations.find(f => f.id === selectedFormationId);
   }, [formations, selectedFormationId]);
   
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-        try {
-            window.localStorage.setItem('idealBuilds', JSON.stringify(idealBuilds));
-        } catch (error) {
-            console.error("Error saving idealBuilds to localStorage", error);
-        }
-    }
-  }, [idealBuilds]);
-
   useEffect(() => {
     // Select first formation by default if available
     if (!selectedFormationId && formations && formations.length > 0) {
@@ -226,7 +194,7 @@ export default function Home() {
       return;
     }
     
-    const newTeam = generateIdealTeam(players, formation, idealBuilds, discardedCardIds, selectedLeague, selectedNationality, sortBy);
+    const newTeam = generateIdealTeam(players, formation, discardedCardIds, selectedLeague, selectedNationality, sortBy);
 
     setIdealTeam(newTeam);
     if (document.activeElement instanceof HTMLElement) {
@@ -308,17 +276,6 @@ export default function Home() {
     setStyleFilter('all');
     setCardFilter('all');
   };
-  
-  const handleSaveIdealBuild = (position: Position, newBuild: Partial<Record<PlayerAttribute, number>>) => {
-    setIdealBuilds(prev => ({
-        ...prev,
-        [position]: newBuild,
-    }));
-    toast({
-        title: "Build Ideal Actualizada",
-        description: `La build ideal para ${position} ha sido guardada.`,
-    });
-  };
 
   const getHeaderButtons = () => {
     const isPositionTab = positions.includes(activeTab as Position);
@@ -326,10 +283,6 @@ export default function Home() {
     if (isPositionTab) {
         return (
             <div className="flex items-center gap-2">
-                <Button onClick={() => setIdealBuildEditorOpen(true)} variant="outline" size="sm">
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span className="hidden sm:inline">Editar Build Ideal</span>
-                </Button>
                 <Button onClick={() => handleOpenAddRating({ position: activeTab as Position })} size="sm">
                     <PlusCircle className="mr-2 h-4 w-4" />
                     <span className="hidden sm:inline">Añadir Valoración</span>
@@ -428,17 +381,8 @@ export default function Home() {
         onOpenChange={setPlayerDetailDialogOpen}
         flatPlayer={selectedFlatPlayer}
         onSaveTrainingBuild={saveTrainingBuild}
-        idealBuilds={idealBuilds}
+        onSaveCustomScore={saveCustomScore}
       />
-      {activeTab && positions.includes(activeTab as Position) && (
-        <IdealBuildEditor
-          open={isIdealBuildEditorOpen}
-          onOpenChange={setIdealBuildEditorOpen}
-          position={activeTab as Position}
-          idealBuild={idealBuilds[activeTab as Position] || {}}
-          onSave={handleSaveIdealBuild}
-        />
-      )}
       <AlertDialog open={isImageViewerOpen} onOpenChange={setImageViewerOpen}>
         <AlertDialogContent className="max-w-xl p-0">
           <AlertDialogHeader className="p-4 border-b">
@@ -530,7 +474,7 @@ export default function Home() {
                         const posRatings = card.ratingsByPosition[positionKey];
                         if (posRatings && posRatings.length > 0) {
                            const posAvg = calculateStats(posRatings).average;
-                           if (posAvg >= 7.5) highPerfPositions.add(positionKey);
+                           if (posAvg >= 7.0) highPerfPositions.add(positionKey);
                         }
                     }
                     
@@ -543,11 +487,10 @@ export default function Home() {
                         isPromising: stats.matches > 0 && stats.matches < 10 && stats.average >= 7.0,
                         isVersatile: highPerfPositions.size >= 3,
                     };
-
-                    const affinityScore = hasBuildForPos ? getAffinityScoreForPosition(pos, card.statsBuilds![pos]!, idealBuilds[pos]) : 0;
-                    const matchAverageScore = stats.average > 0 ? (stats.average - 1) / 9 * 100 : 0; // Normalize 1-10 scale to 0-100
+                    
+                    const affinityScore = card.customScores?.[pos] ?? 0;
+                    const matchAverageScore = stats.average > 0 ? (stats.average - 1) / 9 * 100 : 0;
                     const generalScore = (matchAverageScore * 0.4) + (affinityScore * 0.6);
-
 
                     return { player, card, ratingsForPos, performance, hasStatsBuild: hasBuildForPos, generalScore };
                 })

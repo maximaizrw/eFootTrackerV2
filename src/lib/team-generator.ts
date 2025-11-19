@@ -1,6 +1,6 @@
 
 import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, PlayerAttribute } from './types';
-import { calculateStats, getAffinityScoreForPosition } from './utils';
+import { calculateStats } from './utils';
 
 type CandidatePlayer = {
   player: Player;
@@ -17,7 +17,6 @@ type CandidatePlayer = {
  * 
  * @param players - The list of all available players.
  * @param formation - The selected formation with defined slots.
- * @param idealBuilds - The map of ideal statistics for each position.
  * @param discardedCardIds - A set of card IDs to exclude from the selection.
  * @param league - The league to filter by.
  * @param nationality - The nationality to filter by.
@@ -27,7 +26,6 @@ type CandidatePlayer = {
 export function generateIdealTeam(
   players: Player[],
   formation: FormationStats,
-  idealBuilds: Record<Position, Partial<Record<PlayerAttribute, number>>>,
   discardedCardIds: Set<string> = new Set(),
   league: League | 'all' = 'all',
   nationality: Nationality | 'all' = 'all',
@@ -55,22 +53,14 @@ export function generateIdealTeam(
           const posRatings = card.ratingsByPosition[positionKey];
           if (posRatings && posRatings.length > 0) {
               const posAvg = calculateStats(posRatings).average;
-              if (posAvg >= 7.5) highPerfPositions.add(positionKey);
+              if (posAvg >= 7.0) highPerfPositions.add(positionKey);
           }
       }
       const isVersatile = highPerfPositions.size >= 3;
       
       const positionsWithRatings = Object.keys(card.ratingsByPosition || {}) as Position[];
-      const trainedPositions = card.statsBuilds ? Object.keys(card.statsBuilds).filter(p => card.statsBuilds![p as Position]?.stats && Object.keys(card.statsBuilds![p as Position]!.stats!).length > 0) as Position[] : [];
-      const hasTrainingBuilds = trainedPositions.length > 0;
 
-      // If a card has training builds, it can ONLY be selected for those trained positions.
-      // Otherwise, it can be selected for any position it has ratings for.
-      const eligiblePositions = hasTrainingBuilds ? trainedPositions : positionsWithRatings;
-
-
-      return eligiblePositions.map(pos => {
-        // A player with a build is always eligible for that position, but we still need to check if they have ratings.
+      return positionsWithRatings.map(pos => {
         if (!card.ratingsByPosition?.[pos] || card.ratingsByPosition[pos]!.length === 0) {
             return null;
         }
@@ -93,9 +83,8 @@ export function generateIdealTeam(
             isVersatile: isVersatile,
         };
 
-        const hasBuildForPos = !!(card.statsBuilds?.[pos]?.stats && Object.keys(card.statsBuilds[pos]!.stats!).length > 0);
-        const affinityScore = hasBuildForPos ? getAffinityScoreForPosition(pos, card.statsBuilds![pos]!, idealBuilds[pos]) : 0;
-        const matchAverageScore = stats.average > 0 ? (stats.average - 1) / 9 * 100 : 0; // Normalize 1-10 scale to 0-100
+        const affinityScore = card.customScores?.[pos] ?? 0;
+        const matchAverageScore = stats.average > 0 ? (stats.average - 1) / 9 * 100 : 0;
         
         const generalScore = (matchAverageScore * 0.4) + (affinityScore * 0.6);
 
