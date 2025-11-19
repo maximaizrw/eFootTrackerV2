@@ -83,7 +83,6 @@ export function usePlayers() {
     }
 
     try {
-      // Find player ignoring case and accents
       if (!playerId) {
         const normalizedPlayerName = normalizeText(playerName);
         const existingPlayer = players.find(p => normalizeText(p.name) === normalizedPlayerName);
@@ -238,7 +237,6 @@ export function usePlayers() {
       
       delete cardToUpdate.ratingsByPosition[position];
 
-      // Also set it as not selectable for this position
       if (!cardToUpdate.selectablePositions) cardToUpdate.selectablePositions = {};
       cardToUpdate.selectablePositions[position] = false;
 
@@ -316,34 +314,6 @@ export function usePlayers() {
         toast({ variant: "destructive", title: "Error al Guardar", description: "No se pudo guardar la build de entrenamiento." });
     }
   };
-  
-  const saveCustomScore = async (playerId: string, cardId: string, position: Position, score: number) => {
-    if (!db) return;
-    const playerRef = doc(db, 'players', playerId);
-    try {
-        const playerDoc = await getDoc(playerRef);
-        if (!playerDoc.exists()) throw new Error("Player document not found!");
-        
-        const playerData = playerDoc.data() as Player;
-        const newCards = JSON.parse(JSON.stringify(playerData.cards || [])) as PlayerCard[];
-        const cardToUpdate = newCards.find(c => c.id === cardId);
-
-        if (cardToUpdate) {
-            if (!cardToUpdate.customScores) {
-                cardToUpdate.customScores = {};
-            }
-            cardToUpdate.customScores[position] = score;
-            
-            await updateDoc(playerRef, { cards: newCards });
-            toast({ title: "Afinidad Guardada", description: `La afinidad para ${position} se ha guardado como ${score}.` });
-        } else {
-             throw new Error("Card not found in player data!");
-        }
-    } catch (error) {
-        console.error("Error saving custom score: ", error);
-        toast({ variant: "destructive", title: "Error al Guardar", description: "No se pudo guardar la afinidad." });
-    }
-};
 
   const downloadBackup = async () => {
     if (!db) return null;
@@ -360,5 +330,5 @@ export function usePlayers() {
     }
   };
 
-  return { players, loading, error, addRating, editCard, editPlayer, deleteRating, saveTrainingBuild, downloadBackup, deletePositionRatings, toggleSelectablePosition, saveCustomScore };
+  return { players, loading, error, addRating, editCard, editPlayer, deleteRating, saveTrainingBuild, downloadBackup, deletePositionRatings, toggleSelectablePosition };
 }

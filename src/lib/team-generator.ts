@@ -1,6 +1,6 @@
 
-import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, PlayerAttribute } from './types';
-import { calculateStats } from './utils';
+import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, PlayerAttribute, IdealBuilds, IdealBuild } from './types';
+import { calculateStats, getAffinityScoreFromBuild } from './utils';
 
 type CandidatePlayer = {
   player: Player;
@@ -17,6 +17,7 @@ type CandidatePlayer = {
  * 
  * @param players - The list of all available players.
  * @param formation - The selected formation with defined slots.
+ * @param idealBuilds - The object containing the ideal build for each position.
  * @param discardedCardIds - A set of card IDs to exclude from the selection.
  * @param league - The league to filter by.
  * @param nationality - The nationality to filter by.
@@ -26,6 +27,7 @@ type CandidatePlayer = {
 export function generateIdealTeam(
   players: Player[],
   formation: FormationStats,
+  idealBuilds: IdealBuilds,
   discardedCardIds: Set<string> = new Set(),
   league: League | 'all' = 'all',
   nationality: Nationality | 'all' = 'all',
@@ -34,15 +36,12 @@ export function generateIdealTeam(
   
   const hasFilters = league !== 'all' || nationality !== 'all';
   
-  // Create a flat list of all possible player-card-position combinations
   const allPlayerCandidates: CandidatePlayer[] = players.flatMap(player => {
-    // Filter by nationality if a specific one is selected
     if (nationality !== 'all' && player.nationality !== nationality) {
       return [];
     }
 
     return (player.cards || []).flatMap(card => {
-      // Filter by league if a specific league is selected
       if (league !== 'all' && card.league !== league) {
         return [];
       }
@@ -83,10 +82,12 @@ export function generateIdealTeam(
             isVersatile: isVersatile,
         };
 
-        const affinityScore = card.customScores?.[pos] ?? 0;
+        const playerBuild = card.statsBuilds?.[pos];
+        const idealBuildForPos = idealBuilds[pos];
+        const affinityScore = getAffinityScoreFromBuild(playerBuild, idealBuildForPos);
         const matchAverageScore = stats.average > 0 ? (stats.average - 1) / 9 * 100 : 0;
         
-        const generalScore = (matchAverageScore * 0.4) + (affinityScore * 0.6);
+        const generalScore = (affinityScore * 0.6) + (matchAverageScore * 0.4);
 
         return {
           player,
@@ -118,14 +119,13 @@ export function generateIdealTeam(
       return {
           player: candidate.player,
           card: candidate.card,
-          position: candidate.position, // The actual position of the player's rating
-          assignedPosition: assignedPosition, // The slot they were assigned to
+          position: candidate.position,
+          assignedPosition: assignedPosition,
           average: candidate.average,
           performance: candidate.performance,
       }
   }
 
-  // Finds the best player from a list of candidates who hasn't been used yet.
   const findBestPlayer = (candidates: CandidatePlayer[]): CandidatePlayer | undefined => {
       return candidates.find(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id) && !discardedCardIds.has(p.card.id));
   };
@@ -135,20 +135,17 @@ export function generateIdealTeam(
     const hasStylePreference = formationSlot.styles && formationSlot.styles.length > 0;
     const targetPositions = Array.isArray(formationSlot.position) ? formationSlot.position : [formationSlot.position];
     
-    // Get all candidates for the specific position(s), sorted by the chosen metric.
     const positionCandidates = allPlayerCandidates
       .filter(p => targetPositions.includes(p.position))
       .sort(sortFunction);
 
     let starterCandidate: CandidatePlayer | undefined;
     
-    // 1. Try to find a player matching the preferred style.
     if (hasStylePreference) {
         const styleCandidates = positionCandidates.filter(p => formationSlot.styles!.includes(p.card.style));
         starterCandidate = findBestPlayer(styleCandidates);
     }
     
-    // 2. Fallback: If no style-matching player is found, find the best overall for the position.
     if (!starterCandidate) {
         starterCandidate = findBestPlayer(positionCandidates);
     }
@@ -160,7 +157,7 @@ export function generateIdealTeam(
     
     finalTeamSlots.push({
       starter: createTeamPlayer(starterCandidate, formationSlot.position),
-      substitute: null, // Substitute will be found in the next loop
+      substitute: null,
     });
   }
   
@@ -170,7 +167,6 @@ export function generateIdealTeam(
     const hasStylePreference = formationSlot.styles && formationSlot.styles.length > 0;
     const targetPositions = Array.isArray(formationSlot.position) ? formationSlot.position : [formationSlot.position];
 
-    // Candidates for this position, already sorted.
     const positionCandidates = allPlayerCandidates
       .filter(p => targetPositions.includes(p.position))
       .sort(sortFunction);
@@ -178,11 +174,8 @@ export function generateIdealTeam(
     let substituteCandidate: CandidatePlayer | undefined;
     
     const findSubstitute = (candidates: CandidatePlayer[]) => {
-        // Prioritize players with < 10 matches to test them
         const promising = candidates.filter(p => p.performance.isPromising);
-        // Then players on a hot streak
         const hotStreaks = candidates.filter(p => p.performance.isHotStreak && !p.performance.isPromising);
-        // Then the rest
         const others = candidates.filter(p => !p.performance.isPromising && !p.performance.isHotStreak);
 
         return findBestPlayer(promising) ||
@@ -190,13 +183,11 @@ export function generateIdealTeam(
                findBestPlayer(others);
     }
 
-    // Attempt to find a substitute with the preferred style first.
     if (hasStylePreference) {
         const styleCandidates = positionCandidates.filter(p => formationSlot.styles!.includes(p.card.style));
         substituteCandidate = findSubstitute(styleCandidates);
     }
     
-    // Fallback: If no style match, find from the general pool for the position.
     if (!substituteCandidate) {
         substituteCandidate = findSubstitute(positionCandidates);
     }
@@ -212,22 +203,18 @@ export function generateIdealTeam(
   // --- FALLBACK FOR EMPTY SUBSTITUTE SLOTS ---
   finalTeamSlots.forEach((slot, index) => {
     if (!slot.substitute) {
-        // Find best available player from the correct filters who is not yet used, regardless of position
         const fallbackCandidates = allPlayerCandidates.sort(sortFunction);
-
         const fallbackPlayer = findBestPlayer(fallbackCandidates);
         
         if (fallbackPlayer) {
             usedPlayerIds.add(fallbackPlayer.player.id);
             usedCardIds.add(fallbackPlayer.card.id);
-            // The assigned position is the original intended substitute position
             slot.substitute = createTeamPlayer(fallbackPlayer, formation.slots[index].position);
         }
     }
   });
 
 
-  // Fill any empty slots with placeholders.
   const placeholderPerformance: PlayerPerformance = {
         stats: { average: 0, matches: 0, stdDev: 0 },
         isHotStreak: false, isConsistent: false, isPromising: false, isVersatile: false

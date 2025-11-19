@@ -21,13 +21,13 @@ import { Input } from "./ui/input";
 import { ScrollArea } from "./ui/scroll-area";
 import { Textarea } from "./ui/textarea";
 import { Separator } from "./ui/separator";
+import { Slider } from "./ui/slider";
 
 type PlayerDetailDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   flatPlayer: FlatPlayer | null;
   onSaveTrainingBuild: (playerId: string, cardId: string, position: Position, build: PlayerStatsBuild) => void;
-  onSaveCustomScore: (playerId: string, cardId: string, position: Position, score: number) => void;
 };
 
 type PerformanceData = {
@@ -36,32 +36,72 @@ type PerformanceData = {
   matches: number;
 };
 
-const CustomScoreEditor = ({ position, card, onSaveCustomScore, onCancel }: { position: Position, card: FlatPlayer['card'], onSaveCustomScore: (score: number) => void, onCancel: () => void }) => {
-    const [score, setScore] = React.useState<number>(card.customScores?.[position] ?? 0);
+
+const BuildEditor = ({ position, card, onSaveTrainingBuild, onCancel }: { position: Position, card: FlatPlayer['card'], onSaveTrainingBuild: (build: PlayerStatsBuild) => void, onCancel: () => void }) => {
+    const initialBuild = card.statsBuilds?.[position];
+    const [stats, setStats] = React.useState<PlayerStatsBuild['stats']>(initialBuild?.stats || {});
+    const [progression, setProgression] = React.useState<PlayerStatsBuild['progression']>(initialBuild?.progression || {});
+
+    const handleStatChange = (attr: PlayerAttribute, value: number) => {
+        setStats(prev => ({ ...prev, [attr]: value }));
+    };
+    
+    const handleProgressionChange = (cat: ProgressionCategory, value: number) => {
+        setProgression(prev => ({...prev, [cat]: value}));
+    };
 
     const handleSave = () => {
-        onSaveCustomScore(score);
+        onSaveTrainingBuild({ stats, progression });
     };
 
     return (
         <div className="space-y-4 pt-4">
-            <div className="space-y-2">
-                <Label htmlFor="custom-score">Afinidad para {position}</Label>
-                <Input
-                    id="custom-score"
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={score}
-                    onChange={(e) => setScore(parseInt(e.target.value, 10) || 0)}
-                    className="h-12 text-center text-2xl font-bold"
-                    placeholder="0-100"
-                />
+            <h3 className="font-semibold text-lg text-center">Editor de Build para {position}</h3>
+             <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label>Estadísticas del Jugador</Label>
+                    <ScrollArea className="h-64 border rounded-md p-4">
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                           {(Object.keys(card.ratingsByPosition || {}) as PlayerAttribute[]).map(attr => (
+                                <div key={attr} className="grid grid-cols-2 items-center gap-2">
+                                <Label htmlFor={`stat-${attr}`} className="text-xs">{attr.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</Label>
+                                <Input
+                                    id={`stat-${attr}`}
+                                    type="number"
+                                    min="40"
+                                    max="99"
+                                    value={stats?.[attr] || ''}
+                                    onChange={(e) => handleStatChange(attr, parseInt(e.target.value, 10) || 0)}
+                                    className="h-8 text-center"
+                                />
+                                </div>
+                            ))}
+                        </div>
+                    </ScrollArea>
+                </div>
+                 <div className="space-y-2">
+                    <Label>Puntos de Progresión</Label>
+                    <div className="space-y-3 rounded-md border p-4">
+                        {progressionCategories.map(cat => (
+                            <div key={cat} className="space-y-1">
+                                <Label htmlFor={`prog-${cat}`} className="text-xs">{cat.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}: {progression?.[cat] || 0}</Label>
+                                <Slider
+                                    id={`prog-${cat}`}
+                                    min={0}
+                                    max={12}
+                                    step={1}
+                                    value={[progression?.[cat] || 0]}
+                                    onValueChange={(val) => handleProgressionChange(cat, val[0])}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </div>
             <div className="flex justify-end items-center pt-4 border-t border-border">
                 <div className="flex gap-2">
                     <Button onClick={onCancel} variant="outline">Cancelar</Button>
-                    <Button onClick={handleSave}>Guardar Afinidad</Button>
+                    <Button onClick={handleSave}>Guardar Build</Button>
                 </div>
             </div>
         </div>
@@ -69,9 +109,9 @@ const CustomScoreEditor = ({ position, card, onSaveCustomScore, onCancel }: { po
 };
 
 
-export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveTrainingBuild, onSaveCustomScore }: PlayerDetailDialogProps) {
+export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveTrainingBuild }: PlayerDetailDialogProps) {
   const [selectedPosition, setSelectedPosition] = React.useState<Position | undefined>();
-  const [isEditingScore, setIsEditingScore] = React.useState(false);
+  const [isEditingBuild, setIsEditingBuild] = React.useState(false);
   
   React.useEffect(() => {
     if (open && flatPlayer) {
@@ -91,7 +131,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveTrain
     } else {
       setSelectedPosition(undefined);
     }
-    setIsEditingScore(false);
+    setIsEditingBuild(false);
   }, [open, flatPlayer]);
 
   const performanceData = React.useMemo(() => {
@@ -125,23 +165,22 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveTrain
   const card = flatPlayer?.card;
   const player = flatPlayer?.player;
   
-  const customScore = (card && selectedPosition && card.customScores?.[selectedPosition]) ?? 0;
   const availablePositions = card?.ratingsByPosition ? Object.keys(card.ratingsByPosition) as Position[] : [];
 
-  const handleSaveScore = (score: number) => {
+  const handleSaveBuild = (build: PlayerStatsBuild) => {
     if (player && card && selectedPosition) {
-      onSaveCustomScore(player.id, card.id, selectedPosition, score);
-      setIsEditingScore(false);
+      onSaveTrainingBuild(player.id, card.id, selectedPosition, build);
+      setIsEditingBuild(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => { onOpenChange(isOpen); if (!isOpen) setIsEditingScore(false); }}>
+    <Dialog open={open} onOpenChange={(isOpen) => { onOpenChange(isOpen); if (!isOpen) setIsEditingBuild(false); }}>
       <DialogContent className="sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle>Estadísticas de {player?.name} <span className="text-muted-foreground">({card?.name})</span></DialogTitle>
           <DialogDescription>
-            Análisis detallado del rendimiento y la afiniad del jugador para esta carta.
+            Análisis detallado del rendimiento y la build de entrenamiento del jugador para esta carta.
           </DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 max-h-[70vh] overflow-y-auto pr-4">
@@ -182,14 +221,14 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveTrain
 
             <Card>
               <CardHeader>
-                <CardTitle>Afinidad por Posición</CardTitle>
+                <CardTitle>Build de Entrenamiento</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {availablePositions.length > 0 ? (
                   <>
                   <div className="grid grid-cols-1 gap-4">
                     <div>
-                      <Label>Posición de la Afinidad</Label>
+                      <Label>Posición de la Build</Label>
                       <Select value={selectedPosition} onValueChange={(v) => setSelectedPosition(v as Position)}>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecciona una posición" />
@@ -203,27 +242,33 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveTrain
                     </div>
                   </div>
 
-                  {isEditingScore && selectedPosition && card ? (
-                    <CustomScoreEditor
+                  {isEditingBuild && selectedPosition && card ? (
+                    <BuildEditor
                       position={selectedPosition}
                       card={card}
-                      onSaveCustomScore={handleSaveScore}
-                      onCancel={() => setIsEditingScore(false)}
+                      onSaveTrainingBuild={handleSaveBuild}
+                      onCancel={() => setIsEditingBuild(false)}
                     />
                   ) : (
                     <div className="space-y-2 pt-4">
-                       <div className="text-center">
-                          <p className="text-6xl font-bold text-primary">{customScore}</p>
-                          <p className="text-muted-foreground">Puntuación de Afinidad Manual</p>
-                       </div>
+                      {selectedPosition && card?.statsBuilds?.[selectedPosition]?.stats ? (
+                         <div className="text-sm space-y-1">
+                            <p className="font-semibold">Build guardada para {selectedPosition}</p>
+                             <p className="text-muted-foreground">Esta es la progresión guardada para esta posición.</p>
+                         </div>
+                      ) : (
+                         <p className="text-muted-foreground pt-4 text-center">No hay build de entrenamiento guardada para esta posición.</p>
+                      )}
                       <div className="flex justify-end pt-4">
-                        <Button onClick={() => setIsEditingScore(true)} disabled={!selectedPosition}>Editar Afinidad</Button>
+                        <Button onClick={() => setIsEditingBuild(true)} disabled={!selectedPosition}>
+                          {card?.statsBuilds?.[selectedPosition] ? 'Editar Build' : 'Crear Build'}
+                        </Button>
                       </div>
                     </div>
                   )}
                   </>
                 ) : (
-                  <p className="text-muted-foreground pt-4">No hay posiciones con valoraciones para definir una afinidad.</p>
+                  <p className="text-muted-foreground pt-4">No hay posiciones con valoraciones para definir una build.</p>
                 )}
               </CardContent>
             </Card>

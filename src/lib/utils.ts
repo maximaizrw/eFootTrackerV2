@@ -1,7 +1,8 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { Position, PositionGroup, PlayerStyle, PlayerRatingStats, PlayerStatsBuild, PlayerAttribute, StatGroup } from "./types";
+import type { Position, PositionGroup, PlayerStyle, PlayerRatingStats, PlayerStatsBuild, PlayerAttribute, StatGroup, IdealBuild } from "./types";
+import { playerAttributes } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -115,3 +116,47 @@ export function normalizeText(text: string): string {
     .toLowerCase()
     .replace(/([A-Z])/g, ' $1');
 }
+
+export const getAffinityScoreFromBuild = (
+  playerBuild: PlayerStatsBuild | undefined,
+  idealBuild: IdealBuild | undefined
+): number => {
+  if (!playerBuild?.stats || !idealBuild) {
+    return 0; // No score if either build is missing
+  }
+
+  const playerStats = playerBuild.stats;
+  const relevantIdealAttributes = Object.keys(idealBuild) as PlayerAttribute[];
+  
+  let totalScore = 0;
+
+  for (const attr of relevantIdealAttributes) {
+    const idealValue = idealBuild[attr] ?? 0;
+    const playerValue = playerStats[attr] ?? 0; // Default to 0 if missing
+
+    const diff = playerValue - idealValue;
+    let scoreForAttr = 0;
+
+    if (diff >= 5) {
+      scoreForAttr = Math.floor(diff / 5) * 0.25;
+    } else if (diff <= -5) {
+      const penaltyMultiplier = 1 + 0.25 * Math.floor(Math.abs(diff) / 5);
+      scoreForAttr = diff * penaltyMultiplier;
+    } else {
+      scoreForAttr = 0; // Zone of indifference
+    }
+    totalScore += scoreForAttr;
+  }
+  
+  return 100 + totalScore;
+};
+
+export const attributeGroups: Record<StatGroup, PlayerAttribute[]> = {
+  "Shooting": ["finishing"],
+  "Passing": ["lowPass"],
+  "Dribbling": ["ballControl", "dribbling", "tightPossession"],
+  "Dexterity": ["offensiveAwareness", "acceleration", "balance"],
+  "Lower Body Strength": ["speed", "kickingPower", "stamina"],
+  "Aerial Strength": ["heading", "jump", "physicalContact"],
+  "Goalkeeping": ["gkAwareness", "gkCatching", "gkClearing", "gkReflexes", "gkReach"],
+};

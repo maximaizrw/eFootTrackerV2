@@ -215,7 +215,7 @@ export type PlayerPerformance = {
     stats: PlayerRatingStats;
     isHotStreak: boolean;
     isConsistent: boolean;
-    isPromising: boolean;
+isPromising: boolean;
     isVersatile: boolean;
 };
 
@@ -226,4 +226,12 @@ export type FlatPlayer = {
   performance: PlayerPerformance;
   generalScore: number;
   hasStatsBuild: boolean;
+};
+
+export type IdealBuild = {
+    [key in PlayerAttribute]?: number;
+};
+
+export type IdealBuilds = {
+    [key in Position]?: IdealBuild;
 };

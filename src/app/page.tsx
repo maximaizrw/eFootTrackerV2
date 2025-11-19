@@ -23,6 +23,7 @@ import { AddFormationDialog, type AddFormationFormValues } from '@/components/ad
 import { EditFormationDialog, type EditFormationFormValues } from '@/components/edit-formation-dialog';
 import { AddMatchDialog, type AddMatchFormValues } from '@/components/add-match-dialog';
 import { PlayerDetailDialog } from '@/components/player-detail-dialog';
+import { IdealBuildEditor } from '@/components/ideal-build-editor';
 
 import { FormationsDisplay } from '@/components/formations-display';
 import { IdealTeamDisplay } from '@/components/ideal-team-display';
@@ -35,12 +36,13 @@ import { usePlayers } from '@/hooks/usePlayers';
 import { useFormations } from '@/hooks/useFormations';
 import { useToast } from "@/hooks/use-toast";
 
-import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerAttribute } from '@/lib/types';
+import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerAttribute, IdealBuilds } from '@/lib/types';
 import { positions, leagues, nationalities } from '@/lib/types';
-import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe } from 'lucide-react';
-import { calculateStats, normalizeText } from '@/lib/utils';
+import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Target as TargetIcon } from 'lucide-react';
+import { calculateStats, normalizeText, getAffinityScoreFromBuild } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { initialIdealBuilds } from '@/lib/ideal-builds-presets';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -55,7 +57,6 @@ export default function Home() {
     deleteRating,
     downloadBackup: downloadPlayersBackup,
     saveTrainingBuild,
-    saveCustomScore,
     deletePositionRatings,
     toggleSelectablePosition,
   } = usePlayers();
@@ -84,6 +85,7 @@ export default function Home() {
   const [isEditPlayerDialogOpen, setEditPlayerDialogOpen] = useState(false);
   const [isPlayerDetailDialogOpen, setPlayerDetailDialogOpen] = useState(false);
   const [isImageViewerOpen, setImageViewerOpen] = useState(false);
+  const [isIdealBuildEditorOpen, setIdealBuildEditorOpen] = useState(false);
   const [viewingImageUrl, setViewingImageUrl] = useState<string | null>(null);
   const [viewingImageName, setViewingImageName] = useState<string | null>(null);
   const [addDialogInitialData, setAddDialogInitialData] = useState<Partial<AddRatingFormValues> | undefined>(undefined);
@@ -100,12 +102,32 @@ export default function Home() {
   const [discardedCardIds, setDiscardedCardIds] = useState<Set<string>>(new Set());
   const [sortBy, setSortBy] = useState<'average' | 'general'>('general');
   
-  // State for filters and pagination
   const [styleFilter, setStyleFilter] = useState<string>('all');
   const [cardFilter, setCardFilter] = useState<string>('all');
   const [pagination, setPagination] = useState<Record<string, number>>({});
   
+  const [idealBuilds, setIdealBuilds] = useState<IdealBuilds>(() => {
+    if (typeof window !== 'undefined') {
+      const savedBuilds = localStorage.getItem('idealBuilds');
+      if (savedBuilds) {
+        try {
+          return JSON.parse(savedBuilds);
+        } catch (e) {
+          console.error("Failed to parse ideal builds from localStorage", e);
+          return initialIdealBuilds;
+        }
+      }
+    }
+    return initialIdealBuilds;
+  });
+
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('idealBuilds', JSON.stringify(idealBuilds));
+    }
+  }, [idealBuilds]);
 
   const selectedFormation = useMemo(() => {
     return formations.find(f => f.id === selectedFormationId);
@@ -118,13 +140,12 @@ export default function Home() {
     }
   }, [formations, selectedFormationId]);
 
-  // Regenerate team if discarded players change
   useEffect(() => {
     if (idealTeam.length > 0) {
       handleGenerateTeam();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [discardedCardIds]);
+  }, [discardedCardIds, idealBuilds]);
 
 
   const handleOpenAddRating = (initialData?: Partial<AddRatingFormValues>) => {
@@ -194,7 +215,7 @@ export default function Home() {
       return;
     }
     
-    const newTeam = generateIdealTeam(players, formation, discardedCardIds, selectedLeague, selectedNationality, sortBy);
+    const newTeam = generateIdealTeam(players, formation, idealBuilds, discardedCardIds, selectedLeague, selectedNationality, sortBy);
 
     setIdealTeam(newTeam);
     if (document.activeElement instanceof HTMLElement) {
@@ -251,6 +272,7 @@ export default function Home() {
     const backupData = {
       players: playersData,
       formations: formationsData,
+      idealBuilds: idealBuilds,
     };
 
     const jsonData = JSON.stringify(backupData, null, 2);
@@ -280,33 +302,29 @@ export default function Home() {
   const getHeaderButtons = () => {
     const isPositionTab = positions.includes(activeTab as Position);
 
-    if (isPositionTab) {
-        return (
-            <div className="flex items-center gap-2">
+    return (
+        <div className="flex items-center gap-2">
+            {isPositionTab && (
+                 <Button onClick={() => setIdealBuildEditorOpen(true)} variant="outline" size="sm">
+                    <TargetIcon className="mr-2 h-4 w-4" />
+                    <span className="hidden sm:inline">Editar Build Ideal</span>
+                 </Button>
+            )}
+            {isPositionTab ? (
                 <Button onClick={() => handleOpenAddRating({ position: activeTab as Position })} size="sm">
                     <PlusCircle className="mr-2 h-4 w-4" />
                     <span className="hidden sm:inline">Añadir Valoración</span>
                     <span className="inline sm:hidden">Valorar</span>
                 </Button>
-            </div>
-        );
-    }
-
-    switch(activeTab) {
-      case 'formations':
-        return (
-          <Button onClick={() => setAddFormationDialogOpen(true)} size="sm">
-            <PlusCircle className="mr-2 h-4 w-4" />
-            <span className="hidden sm:inline">Añadir Formación</span>
-            <span className="inline sm:hidden">Formación</span>
-          </Button>
-        );
-      case 'ideal-11':
-      case 'nationalities':
-        return null;
-      default:
-        return null;
-    }
+            ) : activeTab === 'formations' ? (
+                <Button onClick={() => setAddFormationDialogOpen(true)} size="sm">
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    <span className="hidden sm:inline">Añadir Formación</span>
+                    <span className="inline sm:hidden">Formación</span>
+                </Button>
+            ) : null}
+        </div>
+    );
   };
   
   const handlePageChange = (position: Position, direction: 'next' | 'prev') => {
@@ -381,8 +399,16 @@ export default function Home() {
         onOpenChange={setPlayerDetailDialogOpen}
         flatPlayer={selectedFlatPlayer}
         onSaveTrainingBuild={saveTrainingBuild}
-        onSaveCustomScore={saveCustomScore}
       />
+       {positions.includes(activeTab as Position) && (
+         <IdealBuildEditor
+            open={isIdealBuildEditorOpen}
+            onOpenChange={setIdealBuildEditorOpen}
+            position={activeTab as Position}
+            idealBuilds={idealBuilds}
+            onIdealBuildsChange={setIdealBuilds}
+         />
+        )}
       <AlertDialog open={isImageViewerOpen} onOpenChange={setImageViewerOpen}>
         <AlertDialogContent className="max-w-xl p-0">
           <AlertDialogHeader className="p-4 border-b">
@@ -460,7 +486,8 @@ export default function Home() {
           </TabsContent>
 
           {positions.map((pos) => {
-            // 1. Calculate detailed stats for each player/card combination
+            const idealBuildForPos = idealBuilds[pos];
+            
             const flatPlayerList: FlatPlayer[] = allPlayers.flatMap(player => 
                 (player.cards || []).map(card => {
                     const ratingsForPos = card.ratingsByPosition?.[pos] || [];
@@ -479,6 +506,7 @@ export default function Home() {
                     }
                     
                     const hasBuildForPos = !!(card.statsBuilds?.[pos]?.stats && Object.keys(card.statsBuilds[pos]!.stats!).length > 0);
+                    const playerBuild = card.statsBuilds?.[pos];
 
                     const performance: PlayerPerformance = {
                         stats,
@@ -488,7 +516,7 @@ export default function Home() {
                         isVersatile: highPerfPositions.size >= 3,
                     };
                     
-                    const affinityScore = card.customScores?.[pos] ?? 0;
+                    const affinityScore = getAffinityScoreFromBuild(playerBuild, idealBuildForPos);
                     const matchAverageScore = stats.average > 0 ? (stats.average - 1) / 9 * 100 : 0;
                     const generalScore = (matchAverageScore * 0.4) + (affinityScore * 0.6);
 
@@ -496,9 +524,7 @@ export default function Home() {
                 })
             );
             
-            // 2. Filter the list
             const filteredPlayerList = flatPlayerList.filter(({ ratingsForPos }) => {
-                // This is the strict filter: only show if there are ratings for this specific position.
                 return ratingsForPos.length > 0;
 
             }).filter(({ player, card }) => {
@@ -508,18 +534,15 @@ export default function Home() {
                 return searchMatch && styleMatch && cardMatch;
             
             }).sort((a, b) => {
-              // 3. Sort the list by General Score by default
               const generalA = a.generalScore;
               const generalB = b.generalScore;
 
               if (generalB !== generalA) return generalB - generalA;
               
-              // As a tie-breaker, use average rating
               const avgA = a.performance.stats.average;
               const avgB = b.performance.stats.average;
               if (avgB !== avgA) return avgB - avgA;
               
-              // Finally, sort by number of matches
               const matchesA = a.performance.stats.matches;
               const matchesB = b.performance.stats.matches;
               return matchesB - matchesA;
