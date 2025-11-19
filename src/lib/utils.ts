@@ -132,28 +132,40 @@ export function getAffinityScoreForPosition(position: Position, build: PlayerSta
     }
     
     const relevantAttributes = Object.keys(idealBuild) as PlayerAttribute[];
-    let totalScore = 0;
+    const scores: number[] = [];
 
     relevantAttributes.forEach(stat => {
         const idealValue = idealBuild[stat]!;
         
-        // If a stat is missing from the player's build, the score for that stat is 0.
         if (!build.stats || build.stats[stat] === undefined || build.stats[stat] === null) {
-            totalScore += 0;
+            // Penalize heavily if a stat is missing entirely
+            scores.push(0);
             return;
         }
         
         const playerValue = build.stats[stat]!;
-        const diff = Math.abs(playerValue - idealValue);
-        const statScore = Math.max(0, 100 - (diff * 2));
-        totalScore += statScore;
+
+        if (playerValue >= idealValue) {
+            // Reward for meeting or exceeding the ideal value
+            scores.push(100);
+        } else {
+            // Penalize based on the difference if below the ideal value
+            const diff = idealValue - playerValue;
+            const statScore = Math.max(0, 100 - (diff * 2));
+            scores.push(statScore);
+        }
     });
 
-    return totalScore / relevantAttributes.length;
+    if (scores.length === 0) {
+        return 0;
+    }
+
+    const totalScore = scores.reduce((sum, current) => sum + current, 0);
+    return totalScore / scores.length;
 }
 
+
 export function getRelevantAttributesForPosition(position: Position): PlayerAttribute[] {
-    // This now directly uses the keys from the dynamic ideal build configuration
     const idealBuild = affinityConfig[position] || {};
     return Object.keys(idealBuild) as PlayerAttribute[];
 }
