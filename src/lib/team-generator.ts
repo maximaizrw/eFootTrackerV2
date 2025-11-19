@@ -61,7 +61,7 @@ export function generateIdealTeam(
       const isVersatile = highPerfPositions.size >= 3;
       
       const positionsWithRatings = Object.keys(card.ratingsByPosition || {}) as Position[];
-      const trainedPositions = card.statsBuilds ? Object.keys(card.statsBuilds).filter(p => Object.keys(card.statsBuilds![p as Position]!).length > 0) as Position[] : [];
+      const trainedPositions = card.statsBuilds ? Object.keys(card.statsBuilds).filter(p => card.statsBuilds![p as Position]?.stats && Object.keys(card.statsBuilds![p as Position]!.stats!).length > 0) as Position[] : [];
       const hasTrainingBuilds = trainedPositions.length > 0;
 
       // If a card has training builds, it can ONLY be selected for those trained positions.
@@ -93,11 +93,11 @@ export function generateIdealTeam(
             isVersatile: isVersatile,
         };
 
-        const hasBuildForPos = !!(card.statsBuilds?.[pos] && Object.keys(card.statsBuilds[pos]!).length > 0);
+        const hasBuildForPos = !!(card.statsBuilds?.[pos]?.stats && Object.keys(card.statsBuilds[pos]!.stats!).length > 0);
         const affinityScore = hasBuildForPos ? getAffinityScoreForPosition(pos, card.statsBuilds![pos]!, idealBuilds[pos]) : 0;
         const matchAverageScore = (stats.average - 1) / 9 * 100; // Normalize 1-10 scale to 0-100
         
-        const generalScore = (matchAverageScore * 0.6) + (affinityScore * 0.4);
+        const generalScore = (matchAverageScore * 0.5) + (affinityScore * 0.5);
 
         return {
           player,
