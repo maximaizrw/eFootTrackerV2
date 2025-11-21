@@ -47,8 +47,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 import type { Player, Position, PlayerStyle, League, Nationality } from "@/lib/types";
-import { positions, playerStyles, leagues, nationalities } from "@/lib/types";
-import { getAvailableStylesForPosition } from "@/lib/utils";
+import { positions, playerStyles, leagues, nationalities, getAvailableStylesForPosition } from "@/lib/types";
 
 const formSchema = z.object({
   playerId: z.string().optional(),
@@ -436,5 +435,7 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, players, init
 }
 
   
+
+    
 
     

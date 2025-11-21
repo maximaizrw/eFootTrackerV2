@@ -76,17 +76,16 @@ export const positionGroups = {
 
 export type PositionGroupName = keyof typeof positionGroups;
 
-// Data model stored in Firestore for ideal builds. Historically, the app stored
-// the builds grouped by position group names (e.g. "Portero"), but some
-// existing documents may still be keyed directly by position codes (e.g. "PT"
-// or "DFC"). We support both shapes to keep backward compatibility with
-// earlier backups.
+// Data model stored in Firestore for ideal builds.
+// This is now the single source of truth for the shape.
 export type DbIdealBuilds = {
-    [key in PositionGroupName | Position]?: {
+    [key in PositionGroupName]?: {
         [key in PlayerStyle]?: PlayerStatsBuild;
     };
 };
 
+// This type is no longer used for storage, but represents the fully "hydrated"
+// object that the application will use after loading data from `DbIdealBuilds`.
 export type IdealBuilds = {
     [key in Position]: {
         [key in PlayerStyle]?: PlayerStatsBuild;
@@ -253,13 +252,31 @@ export type FlatPlayer = {
   position: Position;
 };
 
-export function getPositionGroup(position: Position): PositionGroupName {
-  for (const groupName in positionGroups) {
-    const typedGroupName = groupName as PositionGroupName;
-    if ((positionGroups[typedGroupName] as readonly Position[]).includes(position)) {
-      return typedGroupName;
+export function getAvailableStylesForPosition(position: Position, includeNinguno = false): PlayerStyle[] {
+    const baseStyles: PlayerStyle[] = includeNinguno ? ['Ninguno'] : [];
+
+    const gkStyles: PlayerStyle[] = ['Portero defensivo', 'Portero ofensivo'];
+    const fbStyles: PlayerStyle[] = ['Lateral defensivo', 'Lateral ofensivo', 'Lateral finalizador'];
+    const dfcStyles: PlayerStyle[] = ['El destructor', 'Creador de juego', 'Atacante extra'];
+    const mcdStyles: PlayerStyle[] = ['Omnipresente', 'Medio escudo', 'Organizador', 'El destructor'];
+    const mcStyles: PlayerStyle[] = ['Jugador de huecos', 'Omnipresente', 'Medio escudo', 'El destructor', 'Organizador', 'Creador de jugadas'];
+    const mdiMddStyles: PlayerStyle[] = ['Omnipresente', 'Jugador de huecos', 'Especialista en centros', 'Extremo móvil', 'Creador de jugadas'];
+    const moStyles: PlayerStyle[] = ['Creador de jugadas', 'Diez Clasico', 'Jugador de huecos', 'Señuelo'];
+    const sdStyles: PlayerStyle[] = ['Segundo delantero', 'Creador de jugadas', 'Diez Clasico', 'Jugador de huecos', 'Señuelo'];
+    const wingerStyles: PlayerStyle[] = ['Creador de jugadas', 'Extremo prolífico', 'Extremo móvil', 'Especialista en centros'];
+    const dcStyles: PlayerStyle[] = ['Cazagoles', 'Hombre de área', 'Señuelo', 'Hombre objetivo', 'Segundo delantero'];
+
+    switch (position) {
+        case 'PT': return [...baseStyles, ...gkStyles];
+        case 'LI': case 'LD': return [...baseStyles, ...fbStyles];
+        case 'DFC': return [...baseStyles, ...dfcStyles];
+        case 'MCD': return [...baseStyles, ...mcdStyles];
+        case 'MC': return [...baseStyles, ...mcStyles];
+        case 'MDI': case 'MDD': return [...baseStyles, ...mdiMddStyles];
+        case 'MO': return [...baseStyles, ...moStyles];
+        case 'SD': return [...baseStyles, ...sdStyles];
+        case 'EXI': case 'EXD': return [...baseStyles, ...wingerStyles];
+        case 'DC': return [...baseStyles, ...dcStyles];
+        default: return baseStyles;
     }
-  }
-  // This should not happen with valid Position types
-  throw new Error(`Could not find group for position: ${position}`);
 }

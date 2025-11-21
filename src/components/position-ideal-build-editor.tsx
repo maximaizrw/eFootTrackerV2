@@ -18,9 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Position, PlayerStyle, IdealBuilds, PlayerBuild, PlayerStatsBuild, PositionGroupName } from "@/lib/types";
-import { positionGroups, getPositionGroup } from "@/lib/types";
-import { getAvailableStylesForPosition } from "@/lib/utils";
+import type { Position, PlayerStyle, IdealBuilds, PlayerBuild, PlayerStatsBuild, PositionGroupName, DbIdealBuilds } from "@/lib/types";
+import { positionGroups, getAvailableStylesForPosition } from "@/lib/types";
+import { getPositionGroup } from "@/lib/utils";
 import { PlayerStatsEditor } from "./player-stats-editor";
 import { ScrollArea } from "./ui/scroll-area";
 
@@ -29,7 +29,7 @@ type PositionIdealBuildEditorProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   position: Position;
-  initialBuilds: IdealBuilds;
+  initialBuilds: DbIdealBuilds;
   onSave: (groupName: PositionGroupName, buildsForGroup: IdealBuilds[Position]) => void;
 };
 
@@ -45,7 +45,7 @@ export function PositionIdealBuildEditor({
   const positionGroup = React.useMemo(() => getPositionGroup(position), [position]);
   const relevantPositions = React.useMemo(() => {
     const group = getPositionGroup(position);
-    const positions = (positionGroups as any)[group] || [position];
+    const positions = positionGroups[group] || [position];
     return positions.join(', ');
   }, [position]);
   const availableStyles = React.useMemo(() => getAvailableStylesForPosition(position, true), [position]);
@@ -55,26 +55,8 @@ export function PositionIdealBuildEditor({
   React.useEffect(() => {
     if (open) {
         const currentGroup = getPositionGroup(position);
-        const positionsInGroup = positionGroups[currentGroup];
-
-        const mergedBuilds = positionsInGroup.reduce<IdealBuilds[Position]>((acc, pos) => {
-          const buildsForPos = initialBuilds[pos] || {};
-
-          for (const styleKey of Object.keys(buildsForPos) as PlayerStyle[]) {
-            const stats = buildsForPos[styleKey];
-
-            // Reutilizamos el primer set de stats no vacío que encontremos
-            // para cada estilo del grupo, evitando perder builds guardadas
-            // en cualquiera de las posiciones (p. ej., LD o LI).
-            if (!acc[styleKey] || Object.keys(acc[styleKey] ?? {}).length === 0) {
-              acc[styleKey] = stats ?? {};
-            }
-          }
-
-          return acc;
-        }, {} as IdealBuilds[Position]);
-
-        setBuilds(mergedBuilds);
+        const buildsForGroup = initialBuilds[currentGroup] || {};
+        setBuilds(buildsForGroup);
 
         if (availableStyles.length > 0 && !availableStyles.includes(selectedStyle)) {
             setSelectedStyle(availableStyles[0]);

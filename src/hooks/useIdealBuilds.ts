@@ -6,25 +6,18 @@ import { db } from '@/lib/firebase-config';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import type { IdealBuilds, Position, PlayerStyle, PositionGroupName, DbIdealBuilds } from '@/lib/types';
-import { positions, positionGroups } from '@/lib/types';
-import { getAvailableStylesForPosition, getPositionGroup } from '@/lib/utils';
+import { positions, getAvailableStylesForPosition } from '@/lib/types';
+import { getPositionGroup } from '@/lib/utils';
 
 
-const generateInitialIdealBuilds = (): IdealBuilds => {
-  const initialBuilds = {} as IdealBuilds;
-  for (const pos of positions) {
-    initialBuilds[pos] = {};
-    const availableStyles = getAvailableStylesForPosition(pos, true);
-    for (const style of availableStyles) {
-      initialBuilds[pos][style] = {};
-    }
-  }
-  return initialBuilds;
+// This function now simply initializes the structure, but doesn't hydrate.
+const generateInitialIdealBuilds = (): DbIdealBuilds => {
+  return {};
 };
 
 
 export function useIdealBuilds() {
-  const [idealBuilds, setIdealBuilds] = useState<IdealBuilds>(generateInitialIdealBuilds());
+  const [idealBuilds, setIdealBuilds] = useState<DbIdealBuilds>(generateInitialIdealBuilds());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -41,51 +34,12 @@ export function useIdealBuilds() {
 
     const unsub = onSnapshot(docRef, (docSnap) => {
       try {
-        const hydratedBuilds = generateInitialIdealBuilds();
-        
         if (docSnap.exists()) {
-          const dataFromDb = docSnap.data() as DbIdealBuilds;
-          
-          // Newer versions store builds grouped by position groups, but older
-          // backups may use position codes directly. We hydrate both shapes to
-          // ensure affinities are calculated correctly regardless of the stored
-          // format.
-
-          // 1) Grouped by position group name (current format)
-          for (const groupName in dataFromDb) {
-            const groupKey = groupName as PositionGroupName;
-            const positionsInGroup = positionGroups[groupKey] as readonly Position[] | undefined;
-            const buildsForGroup = dataFromDb[groupKey];
-
-            if (positionsInGroup && buildsForGroup) {
-              for (const pos of positionsInGroup) {
-                if (hydratedBuilds[pos]) {
-                  for (const style in buildsForGroup) {
-                    const styleKey = style as PlayerStyle;
-                    if (Object.prototype.hasOwnProperty.call(hydratedBuilds[pos], styleKey)) {
-                      hydratedBuilds[pos][styleKey] = buildsForGroup[styleKey];
-                    }
-                  }
-                }
-              }
-            }
-          }
-
-          // 2) Directly keyed by position code (legacy format)
-          for (const pos of positions) {
-            const buildsForPosition = (dataFromDb as any)[pos];
-            if (buildsForPosition && hydratedBuilds[pos]) {
-              for (const style in buildsForPosition) {
-                const styleKey = style as PlayerStyle;
-                if (Object.prototype.hasOwnProperty.call(hydratedBuilds[pos], styleKey)) {
-                  hydratedBuilds[pos][styleKey] = buildsForPosition[styleKey];
-                }
-              }
-            }
-          }
+            const dataFromDb = docSnap.data() as DbIdealBuilds;
+            setIdealBuilds(dataFromDb);
+        } else {
+            setIdealBuilds(generateInitialIdealBuilds());
         }
-        
-        setIdealBuilds(hydratedBuilds);
         setError(null);
       } catch (err) {
         console.error("Error processing ideal builds snapshot: ", err);

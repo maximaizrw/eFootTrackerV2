@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import type { Position, FlatPlayer, IdealBuilds, PlayerBuild } from "@/lib/types";
+import type { Position, FlatPlayer, IdealBuilds, PlayerBuild, DbIdealBuilds } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { PlayerStatsEditor } from "./player-stats-editor";
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -23,7 +22,7 @@ type PlayerDetailDialogProps = {
   onOpenChange: (open: boolean) => void;
   flatPlayer: FlatPlayer | null;
   onSavePlayerBuild: (playerId: string, cardId: string, build: PlayerBuild) => void;
-  idealBuilds: IdealBuilds;
+  idealBuilds: DbIdealBuilds;
 };
 
 export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlayerBuild, idealBuilds }: PlayerDetailDialogProps) {
@@ -39,8 +38,6 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
 
   const card = flatPlayer?.card;
   const player = flatPlayer?.player;
-  const position = flatPlayer?.position;
-  const style = card?.style;
   const updatedAt = card?.build?.updatedAt;
 
   const handleSave = () => {
