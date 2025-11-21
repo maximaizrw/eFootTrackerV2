@@ -124,16 +124,22 @@ export function getAffinityScoreFromBuild(
   style: PlayerStyle,
   idealBuilds: IdealBuilds
 ): number {
-  // Find the specific ideal build for the position and style. Fallback to 'Ninguno' if the specific style is not defined.
   const idealBuild = idealBuilds[position]?.[style] || idealBuilds[position]?.['Ninguno'];
 
   if (!playerBuild || !idealBuild) {
     return 0;
   }
 
+  const gkAttributes: PlayerAttribute[] = [
+    "gkAwareness", "gkCatching", "gkParrying", "gkReflexes", "gkReach",
+    "speed", "acceleration", "kickingPower", "jump"
+  ];
+  
+  const attributesToIterate = position === 'PT' ? gkAttributes : playerAttributes;
+
   let totalScore = 0;
 
-  for (const attr of playerAttributes) {
+  for (const attr of attributesToIterate) {
     const playerStat = playerBuild[attr];
     const idealStat = idealBuild[attr];
 
