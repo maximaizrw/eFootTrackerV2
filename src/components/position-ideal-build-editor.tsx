@@ -2,7 +2,6 @@
 "use client";
 
 import * as React from "react";
-import { useForm, useFieldArray, Controller } from "react-hook-form";
 import {
   Dialog,
   DialogContent,
@@ -76,7 +75,9 @@ export function PositionIdealBuildEditor({
   
 
   const onSubmit = () => {
-    onSave(position, builds);
+    // Crucially, we always save using the representative position of the group.
+    const representativePosition = positionGroups[positionGroup][0];
+    onSave(representativePosition, builds);
     onOpenChange(false);
   };
   
@@ -128,5 +129,3 @@ export function PositionIdealBuildEditor({
     </Dialog>
   );
 }
-
-    

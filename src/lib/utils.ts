@@ -2,7 +2,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { Position, PlayerStyle, PlayerRatingStats, PlayerStatsBuild, PlayerAttribute, IdealBuilds } from "./types";
-import { playerAttributes, positionGroups as posGroups } from "./types";
+import { playerAttributes } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -34,7 +34,7 @@ export function formatAverage(avg: number): string {
   return avg.toFixed(1);
 }
 
-export type PositionGroupName = keyof typeof posGroups;
+export type PositionGroupName = keyof typeof positionGroups;
 
 export const positionGroups: Record<PositionGroupName, Position[]> = {
   'Portero': ['PT'],
@@ -181,5 +181,3 @@ export function calculateGeneralScore(affinityScore: number, average: number): n
   const matchAverageScore = average > 0 ? average * 10 : 0;
   return (affinityScore * 0.6) + (matchAverageScore * 0.4);
 }
-
-    

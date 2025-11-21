@@ -3,11 +3,11 @@
 
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase-config';
-import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import type { IdealBuilds, Position } from '@/lib/types';
-import { positions, getAvailableStylesForPosition, positionGroups } from '@/lib/types';
-import { getPositionGroup } from '@/lib/utils';
+import { positions, getAvailableStylesForPosition } from '@/lib/types';
+import { getPositionGroup, positionGroups } from '@/lib/utils';
 
 
 const generateInitialIdealBuilds = (): IdealBuilds => {
@@ -88,18 +88,15 @@ export function useIdealBuilds() {
     return () => unsub();
   }, [toast]);
 
-  const saveIdealBuildsForPosition = async (position: Position, buildsForPosition: IdealBuilds[Position]) => {
+  const saveIdealBuildsForPosition = async (representativePosition: Position, buildsForPosition: IdealBuilds[Position]) => {
     if (!db) {
         toast({ variant: "destructive", title: "Error de Conexión", description: "No se puede conectar a la base de datos." });
         return;
     }
     try {
       const docRef = doc(db, 'idealBuilds', 'user_default');
+      const positionGroup = getPositionGroup(representativePosition);
       
-      const positionGroup = getPositionGroup(position);
-      const representativePosition = positionGroups[positionGroup][0];
-
-      // We only save under the representative position for the entire group.
       const dataToUpdate = {
         [representativePosition]: buildsForPosition
       };

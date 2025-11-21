@@ -67,19 +67,6 @@ export type IdealBuilds = {
     };
 };
 
-export const positionGroups = {
-  'Portero': ['PT'],
-  'Defensa Central': ['DFC'],
-  'Laterales': ['LI', 'LD'],
-  'Pivote Defensivo': ['MCD'],
-  'Mediocentro': ['MC'],
-  'Interiores': ['MDI', 'MDD'],
-  'Mediapunta': ['MO'],
-  'Extremos': ['EXI', 'EXD'],
-  'Segundo Delantero': ['SD'],
-  'Delantero Centro': ['DC'],
-} as const;
-
 export type PositionCard = {
   id: string;
   name: string; // e.g., "Highlight", "Player of the Week"
@@ -226,7 +213,7 @@ export type PlayerPerformance = {
     isHotStreak: boolean;
     isConsistent: boolean;
     isPromising: boolean;
-    isVersatile: boolean;
+isVersatile: boolean;
 };
 
 export type FlatPlayer = {
@@ -268,5 +255,3 @@ export function getAvailableStylesForPosition(position: Position, includeNinguno
     
     return baseStyles;
 }
-
-    
