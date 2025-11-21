@@ -38,6 +38,7 @@ type FilterProps = {
   uniqueStyles: string[];
   uniqueCardNames: string[];
   position: Position;
+  onOpenIdealBuildEditor: () => void;
 };
 
 const Filters = ({
@@ -49,38 +50,47 @@ const Filters = ({
   onCardFilterChange,
   uniqueStyles,
   uniqueCardNames,
-  position
+  position,
+  onOpenIdealBuildEditor,
 }: FilterProps) => (
-  <div className="flex flex-col md:flex-row gap-2">
-    <div className="relative flex-grow">
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-      <Input
-        placeholder={`Buscar en ${position}...`}
-        value={searchTerm}
-        onChange={(e) => onSearchTermChange(e.target.value)}
-        className="pl-10 w-full"
-      />
+  <div className="flex flex-col gap-2">
+    <div className="flex flex-col md:flex-row gap-2">
+      <div className="relative flex-grow">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder={`Buscar en ${position}...`}
+          value={searchTerm}
+          onChange={(e) => onSearchTermChange(e.target.value)}
+          className="pl-10 w-full"
+        />
+      </div>
+      <Select value={styleFilter} onValueChange={onStyleFilterChange}>
+        <SelectTrigger className="w-full md:w-[180px]">
+          <SelectValue placeholder="Filtrar por estilo" />
+        </SelectTrigger>
+        <SelectContent>
+          {uniqueStyles.map(style => (
+            <SelectItem key={style} value={style}>{style === 'all' ? 'Todos los Estilos' : style}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Select value={cardFilter} onValueChange={onCardFilterChange}>
+        <SelectTrigger className="w-full md:w-[180px]">
+          <SelectValue placeholder="Filtrar por carta" />
+        </SelectTrigger>
+        <SelectContent>
+          {uniqueCardNames.map(name => (
+            <SelectItem key={name} value={name}>{name === 'all' ? 'Todas las Cartas' : name}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
-    <Select value={styleFilter} onValueChange={onStyleFilterChange}>
-      <SelectTrigger className="w-full md:w-[180px]">
-        <SelectValue placeholder="Filtrar por estilo" />
-      </SelectTrigger>
-      <SelectContent>
-        {uniqueStyles.map(style => (
-          <SelectItem key={style} value={style}>{style === 'all' ? 'Todos los Estilos' : style}</SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-    <Select value={cardFilter} onValueChange={onCardFilterChange}>
-      <SelectTrigger className="w-full md:w-[180px]">
-        <SelectValue placeholder="Filtrar por carta" />
-      </SelectTrigger>
-      <SelectContent>
-        {uniqueCardNames.map(name => (
-          <SelectItem key={name} value={name}>{name === 'all' ? 'Todas las Cartas' : name}</SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className="flex justify-start">
+        <Button onClick={onOpenIdealBuildEditor} variant="outline" size="sm">
+            <Wrench className="mr-2 h-4 w-4" />
+            Builds Ideales de {position}
+        </Button>
+    </div>
   </div>
 );
 
@@ -340,3 +350,5 @@ export function PlayerTable({
 
 PlayerTable.Filters = Filters;
 PlayerTable.Pagination = Pagination;
+
+    

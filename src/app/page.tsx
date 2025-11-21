@@ -22,6 +22,7 @@ import { AddFormationDialog, type AddFormationFormValues } from '@/components/ad
 import { EditFormationDialog, type EditFormationFormValues } from '@/components/edit-formation-dialog';
 import { AddMatchDialog, type AddMatchFormValues } from '@/components/add-match-dialog';
 import { PlayerDetailDialog } from '@/components/player-detail-dialog';
+import { PositionIdealBuildEditor } from '@/components/position-ideal-build-editor';
 
 import { FormationsDisplay } from '@/components/formations-display';
 import { IdealTeamDisplay } from '@/components/ideal-team-display';
@@ -29,7 +30,6 @@ import { IdealTeamSetup } from '@/components/ideal-team-setup';
 import { PlayerTable } from '@/components/player-table';
 import { PositionIcon } from '@/components/position-icon';
 import { NationalityDistribution } from '@/components/nationality-distribution';
-import { IdealBuildEditor } from '@/components/ideal-build-editor';
 import { PlayerTester } from '@/components/player-tester';
 
 import { usePlayers } from '@/hooks/usePlayers';
@@ -77,7 +77,7 @@ export default function Home() {
     idealBuilds,
     loading: idealBuildsLoading,
     error: idealBuildsError,
-    saveIdealBuilds,
+    saveIdealBuildsForPosition,
   } = useIdealBuilds();
   
   const allPlayers = players || [];
@@ -289,10 +289,6 @@ export default function Home() {
 
     return (
         <div className="flex items-center gap-2">
-             <Button onClick={() => setIdealBuildEditorOpen(true)} variant="outline" size="sm" disabled={idealBuildsLoading}>
-                <Wrench className="mr-0 sm:mr-2 h-4 w-4" />
-                <span className="hidden sm:inline">Editar Builds Ideales</span>
-            </Button>
             {isPositionTab ? (
                 <Button onClick={() => handleOpenAddRating({ position: activeTab as Position })} size="sm">
                     <PlusCircle className="mr-2 h-4 w-4" />
@@ -341,11 +337,12 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
-      <IdealBuildEditor
+      <PositionIdealBuildEditor
         open={isIdealBuildEditorOpen}
         onOpenChange={setIdealBuildEditorOpen}
+        position={activeTab as Position}
         initialBuilds={idealBuilds}
-        onSave={saveIdealBuilds}
+        onSave={saveIdealBuildsForPosition}
       />
        <AddRatingDialog
         open={isAddRatingDialogOpen}
@@ -563,6 +560,7 @@ export default function Home() {
                           uniqueStyles={uniqueStyles}
                           uniqueCardNames={uniqueCardNames}
                           position={pos}
+                          onOpenIdealBuildEditor={() => setIdealBuildEditorOpen(true)}
                         />
                     </CardHeader>
                     <PlayerTable
@@ -648,5 +646,7 @@ export default function Home() {
     </div>
   );
 }
+
+    
 
     

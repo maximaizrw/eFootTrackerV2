@@ -1,8 +1,8 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { Position, PositionGroup, PlayerStyle, PlayerRatingStats, PlayerStatsBuild, PlayerAttribute, IdealBuilds } from "./types";
-import { playerAttributes } from "./types";
+import type { Position, PlayerStyle, PlayerRatingStats, PlayerStatsBuild, PlayerAttribute, IdealBuilds } from "./types";
+import { playerAttributes, positionGroups as posGroups } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -34,38 +34,47 @@ export function formatAverage(avg: number): string {
   return avg.toFixed(1);
 }
 
-export function getPositionGroup(position: Position): PositionGroup {
-  switch (position) {
-    case 'PT':
-      return 'Goalkeeper';
-    case 'DFC':
-    case 'LI':
-    case 'LD':
-      return 'Defender';
-    case 'MCD':
-    case 'MC':
-    case 'MDI':
-    case 'MDD':
-    case 'MO':
-      return 'Midfielder';
-    case 'EXI':
-    case 'EXD':
-    case 'SD':
-    case 'DC':
-      return 'Forward';
+export type PositionGroupName = keyof typeof posGroups;
+
+export const positionGroups: Record<PositionGroupName, Position[]> = {
+  'Portero': ['PT'],
+  'Defensa Central': ['DFC'],
+  'Laterales': ['LI', 'LD'],
+  'Pivote Defensivo': ['MCD'],
+  'Mediocentro': ['MC'],
+  'Interiores': ['MDI', 'MDD'],
+  'Mediapunta': ['MO'],
+  'Extremos': ['EXI', 'EXD'],
+  'Segundo Delantero': ['SD'],
+  'Delantero Centro': ['DC'],
+};
+
+export function getPositionGroup(position: Position): PositionGroupName {
+  for (const groupName in positionGroups) {
+    if (positionGroups[groupName as PositionGroupName].includes(position)) {
+      return groupName as PositionGroupName;
+    }
   }
+  return 'Delantero Centro'; // Fallback, should not happen
 }
 
+
 export function getPositionGroupColor(position: Position): string {
-  const group = getPositionGroup(position);
-  switch (group) {
-    case 'Goalkeeper':
+  const groupName = getPositionGroup(position);
+  switch (groupName) {
+    case 'Portero':
       return '#FAC748'; // Yellow
-    case 'Defender':
+    case 'Defensa Central':
+    case 'Laterales':
+    case 'Pivote Defensivo':
       return '#57A6FF'; // Blue
-    case 'Midfielder':
+    case 'Mediocentro':
+    case 'Interiores':
+    case 'Mediapunta':
       return '#5DD972'; // Green
-    case 'Forward':
+    case 'Extremos':
+    case 'Segundo Delantero':
+    case 'Delantero Centro':
       return '#FF6B6B'; // Red
     default:
       return 'hsl(var(--primary))';
@@ -170,3 +179,5 @@ export function calculateGeneralScore(affinityScore: number, average: number): n
   const matchAverageScore = average > 0 ? average * 10 : 0;
   return (affinityScore * 0.6) + (matchAverageScore * 0.4);
 }
+
+    

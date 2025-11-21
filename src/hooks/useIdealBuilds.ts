@@ -5,8 +5,9 @@ import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase-config';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { useToast } from './use-toast';
-import type { IdealBuilds } from '@/lib/types';
-import { positions, getAvailableStylesForPosition } from '@/lib/types';
+import type { IdealBuilds, Position } from '@/lib/types';
+import { positions, getAvailableStylesForPosition, positionGroups } from '@/lib/types';
+
 
 const generateInitialIdealBuilds = (): IdealBuilds => {
   const initialBuilds = {} as IdealBuilds;
@@ -86,19 +87,28 @@ export function useIdealBuilds() {
     return () => unsub();
   }, [toast]);
 
-  const saveIdealBuilds = async (newBuilds: IdealBuilds) => {
+  const saveIdealBuildsForPosition = async (position: Position, buildsForPosition: IdealBuilds[Position]) => {
     if (!db) {
         toast({ variant: "destructive", title: "Error de Conexión", description: "No se puede conectar a la base de datos." });
         return;
     }
     try {
       const docRef = doc(db, 'idealBuilds', 'user_default');
-      // Create a deep copy to avoid issues with shared object references before saving
-      const buildsToSave = JSON.parse(JSON.stringify(newBuilds));
-      await setDoc(docRef, buildsToSave, { merge: true });
+      
+      const positionGroup = Object.keys(positionGroups).find(group => positionGroups[group as keyof typeof positionGroups].includes(position));
+      const positionsToUpdate = positionGroup ? positionGroups[positionGroup as keyof typeof positionGroups] : [position];
+
+      const dataToUpdate: Partial<IdealBuilds> = {};
+
+      for (const pos of positionsToUpdate) {
+        dataToUpdate[pos] = buildsForPosition;
+      }
+      
+      await setDoc(docRef, dataToUpdate, { merge: true });
+      
       toast({
         title: "Builds Ideales Guardadas",
-        description: "Tus configuraciones se han guardado en la base de datos.",
+        description: `Las configuraciones para ${positionGroup} se han guardado.`,
       });
     } catch (error) {
       console.error("Error saving ideal builds: ", error);
@@ -110,5 +120,7 @@ export function useIdealBuilds() {
     }
   };
 
-  return { idealBuilds, loading, error, saveIdealBuilds };
+  return { idealBuilds, loading, error, saveIdealBuildsForPosition };
 }
+
+    
