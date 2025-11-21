@@ -137,7 +137,9 @@ export function getAffinityScoreFromBuild(
     return 0;
   }
   
-  const idealBuild = idealBuilds[position]?.[style];
+  const positionGroup = getPositionGroup(position);
+  const representativePosition = positionGroups[positionGroup][0];
+  const idealBuild = idealBuilds[representativePosition]?.[style];
 
   if (!playerBuild || !idealBuild || Object.keys(playerBuild).length === 0 || Object.keys(idealBuild).length === 0) {
     return 0;
