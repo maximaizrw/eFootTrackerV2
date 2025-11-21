@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase-config';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import { v4 as uuidv4 } from 'uuid';
-import type { Player, PlayerCard, Position, AddRatingFormValues, EditCardFormValues, EditPlayerFormValues, PlayerStatsBuild, League, Nationality } from '@/lib/types';
+import type { Player, PlayerCard, Position, AddRatingFormValues, EditCardFormValues, EditPlayerFormValues, PlayerBuild, League, Nationality } from '@/lib/types';
 import { normalizeText, getAvailableStylesForPosition } from '@/lib/utils';
 
 
@@ -40,7 +40,7 @@ export function usePlayers() {
                     imageUrl: card.imageUrl || '',
                     ratingsByPosition: card.ratingsByPosition || {},
                     selectablePositions: card.selectablePositions || {},
-                    build: card.build || { stats: {}, updatedAt: '' },
+                    build: card.build || { stats: {}, progression: {}, updatedAt: '' },
                 })),
             } as Player;
         });
@@ -123,7 +123,7 @@ export function usePlayers() {
               imageUrl: '',
               ratingsByPosition: { [position]: [rating] },
               selectablePositions: { [position]: true },
-              build: { stats: {}, updatedAt: '' },
+              build: { stats: {}, progression: {}, updatedAt: '' },
           };
           newCards.push(card);
         }
@@ -140,7 +140,7 @@ export function usePlayers() {
               imageUrl: '',
               ratingsByPosition: { [position]: [rating] },
               selectablePositions: { [position]: true },
-              build: { stats: {}, updatedAt: '' },
+              build: { stats: {}, progression: {}, updatedAt: '' },
           }],
         };
         await addDoc(collection(db, 'players'), newPlayer);
@@ -285,7 +285,7 @@ export function usePlayers() {
     }
   };
   
-  const savePlayerBuild = async (playerId: string, cardId: string, build: PlayerStatsBuild) => {
+  const savePlayerBuild = async (playerId: string, cardId: string, build: PlayerBuild) => {
     if (!db) return;
     const playerRef = doc(db, 'players', playerId);
     try {
@@ -300,7 +300,8 @@ export function usePlayers() {
 
         if (cardToUpdate) {
             cardToUpdate.build = {
-              stats: build,
+              progression: build.progression || {},
+              stats: build.stats || {},
               updatedAt: new Date().toISOString(),
             };
             await updateDoc(playerRef, { cards: newCards });
@@ -332,5 +333,3 @@ export function usePlayers() {
 
   return { players, loading, error, addRating, editCard, editPlayer, deleteRating, savePlayerBuild, downloadBackup, deletePositionRatings, toggleSelectablePosition };
 }
-
-  

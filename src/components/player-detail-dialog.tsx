@@ -23,18 +23,18 @@ type PlayerDetailDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   flatPlayer: FlatPlayer | null;
-  onSavePlayerBuild: (playerId: string, cardId: string, build: PlayerStatsBuild) => void;
+  onSavePlayerBuild: (playerId: string, cardId: string, build: PlayerBuild) => void;
   idealBuilds: IdealBuilds;
 };
 
 export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlayerBuild, idealBuilds }: PlayerDetailDialogProps) {
-  const [currentBuild, setCurrentBuild] = React.useState<PlayerStatsBuild>({});
+  const [currentBuild, setCurrentBuild] = React.useState<PlayerBuild>({ stats: {}, progression: {} });
 
   React.useEffect(() => {
     if (open && flatPlayer) {
-      setCurrentBuild(flatPlayer.card.build?.stats || {});
+      setCurrentBuild(flatPlayer.card.build || { stats: {}, progression: {} });
     } else {
-      setCurrentBuild({});
+      setCurrentBuild({ stats: {}, progression: {} });
     }
   }, [open, flatPlayer]);
 
@@ -86,7 +86,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
                <ScrollArea className="h-full w-full pr-6 flex-grow">
                 {idealBuildForPositionAndStyle ? (
                     <AffinityCalculationTable
-                      playerBuild={currentBuild}
+                      playerBuild={currentBuild.stats}
                       idealBuild={idealBuildForPositionAndStyle}
                     />
                   ) : (
@@ -105,5 +105,3 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
     </Dialog>
   );
 }
-
-  

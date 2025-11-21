@@ -83,7 +83,7 @@ export function getAvailableStylesForPosition(position: Position, includeNinguno
     const baseStyles: PlayerStyle[] = includeNinguno ? ['Ninguno'] : [];
 
     const gkStyles: PlayerStyle[] = ['Portero defensivo', 'Portero ofensivo'];
-    const fbStyles: PlayerStyle[] = ['Lateral defensivo', 'Lateral Ofensivo', 'Lateral finalizador'];
+    const fbStyles: PlayerStyle[] = ['Lateral defensivo', 'Lateral ofensivo', 'Lateral finalizador'];
     const dfcStyles: PlayerStyle[] = ['El destructor', 'Creador de juego', 'Atacante extra'];
     const mcdStyles: PlayerStyle[] = ['Omnipresente', 'Medio escudo', 'Organizador', 'El destructor'];
     const mcStyles: PlayerStyle[] = ['Jugador de huecos', 'Omnipresente', 'Medio escudo', 'El destructor', 'Organizador', 'Creador de jugadas'];
@@ -166,7 +166,6 @@ export function getAffinityScoreFromBuild(
 }
 
 export function calculateGeneralScore(affinityScore: number, average: number): number {
-  const matchAverageScore = average > 0 ? (average / 10) * 100 : 0;
+  const matchAverageScore = average > 0 ? average * 10 : 0;
   return (affinityScore * 0.6) + (matchAverageScore * 0.4);
 }
-  

@@ -44,7 +44,19 @@ export type PlayerStatsBuild = {
   [key in PlayerAttribute]?: number;
 };
 
+export const progressionCategories = [
+    "shooting", "passing", "dribbling", "dexterity",
+    "lowerBodyStrength", "aerialStrength", "defending",
+    "gk1", "gk2", "gk3"
+] as const;
+export type ProgressionCategory = typeof progressionCategories[number];
+
+export type ProgressionPoints = {
+  [key in ProgressionCategory]?: number;
+};
+
 export type PlayerBuild = {
+  progression?: ProgressionPoints;
   stats: PlayerStatsBuild;
   updatedAt?: string;
 };
@@ -245,5 +257,3 @@ export function getAvailableStylesForPosition(position: Position, includeNinguno
     
     return baseStyles;
 }
-
-    
