@@ -86,7 +86,7 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
 
     positionsToTest.forEach(({ label, value: positions }) => {
       const representativePosition = positions[0];
-      const stylesForPos = getAvailableStylesForPosition(representativePosition, true);
+      const stylesForPos = getAvailableStylesForPosition(representativePosition, false); // No "Ninguno"
       
       stylesForPos.forEach(style => {
         const affinity = getAffinityScoreFromBuild(playerBuild, representativePosition, style, idealBuilds);
@@ -178,7 +178,7 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
                                 <TableRow key={index}>
                                     <TableCell className="font-medium">{result.positionLabel}</TableCell>
                                     <TableCell>
-                                        {result.style !== 'Ninguno' ? <Badge variant="secondary">{result.style}</Badge> : <span className="text-muted-foreground">-</span>}
+                                        <Badge variant="secondary">{result.style}</Badge>
                                     </TableCell>
                                     <TableCell className={cn("text-right font-bold text-lg", getAverageColorClass(result.affinity / 10))}>
                                         {result.affinity.toFixed(2)}

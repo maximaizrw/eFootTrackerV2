@@ -124,7 +124,11 @@ export function getAffinityScoreFromBuild(
   style: PlayerStyle,
   idealBuilds: IdealBuilds
 ): number {
-  const idealBuild = idealBuilds[position]?.[style] || idealBuilds[position]?.['Ninguno'];
+  if (style === 'Ninguno') {
+    return 0;
+  }
+  
+  const idealBuild = idealBuilds[position]?.[style];
 
   if (!playerBuild || !idealBuild) {
     return 0;
