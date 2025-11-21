@@ -45,9 +45,9 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Slider } from "@/components/ui/slider";
-import { cn, getAvailableStylesForPosition } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import type { Player, Position, PlayerStyle, League, Nationality } from "@/lib/types";
-import { positions, playerStyles, leagues, nationalities } from "@/lib/types";
+import { positions, playerStyles, leagues, nationalities, getAvailableStylesForPosition } from "@/lib/types";
 
 const formSchema = z.object({
   playerId: z.string().optional(),
@@ -133,7 +133,7 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, players, init
     }
 
     const card = selectedPlayer?.cards.find(c => c.name.toLowerCase() === cardNameValue?.toLowerCase());
-    const availableStyles = getAvailableStylesForPosition(positionValue, true);
+    const availableStyles = getAvailableStylesForPosition(positionValue);
 
     if (card) {
       const isStyleValidForPosition = availableStyles.includes(card.style);
@@ -142,9 +142,9 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, players, init
         form.setValue('style', card.style, { shouldValidate: true });
         setIsStyleDisabled(true);
       } else {
-        // The card's style is invalid for the new position, so we reset it.
+        // The card's style is invalid for the new position, so we reset it to "Ninguno".
         form.setValue('style', 'Ninguno', { shouldValidate: true });
-        setIsStyleDisabled(false);
+        setIsStyleDisabled(false); // Let user pick a valid one for this new position rating
       }
       if (card.league) {
         form.setValue('league', card.league);
@@ -166,7 +166,12 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, players, init
 
 
   function onSubmit(values: FormValues) {
-    onAddRating(values);
+    const finalValues = { ...values };
+    const stylesForPosition = getAvailableStylesForPosition(finalValues.position);
+    if (!stylesForPosition.includes(finalValues.style)) {
+      finalValues.style = 'Ninguno';
+    }
+    onAddRating(finalValues);
     onOpenChange(false);
   }
   
@@ -428,3 +433,5 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, players, init
     </Dialog>
   );
 }
+
+  

@@ -22,14 +22,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Position, PlayerStatsBuild } from "@/lib/types";
-import { positions } from "@/lib/types";
+import type { Position, PlayerStyle, IdealBuilds, PlayerStatsBuild } from "@/lib/types";
+import { positions, playerStyles, getAvailableStylesForPosition } from "@/lib/types";
 import { PlayerStatsEditor } from "./player-stats-editor";
+import { ScrollArea } from "./ui/scroll-area";
 
 const formSchema = z.object({
   builds: z.array(z.object({
     position: z.enum(positions),
-    stats: z.any(), // Simplified for form handling, validation is implicit
+    style: z.enum(playerStyles),
+    stats: z.any(), // Simplified for form handling
   }))
 });
 
@@ -38,18 +40,27 @@ type FormValues = z.infer<typeof formSchema>;
 type IdealBuildEditorProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  initialBuilds: Record<Position, PlayerStatsBuild>;
-  onSave: (builds: Record<Position, PlayerStatsBuild>) => void;
+  initialBuilds: IdealBuilds;
+  onSave: (builds: IdealBuilds) => void;
 };
 
 export function IdealBuildEditor({ open, onOpenChange, initialBuilds, onSave }: IdealBuildEditorProps) {
   const [selectedPosition, setSelectedPosition] = React.useState<Position>("DC");
+  const [selectedStyle, setSelectedStyle] = React.useState<PlayerStyle>("Cazagoles");
 
+  const availableStyles = React.useMemo(() => getAvailableStylesForPosition(selectedPosition, true), [selectedPosition]);
+
+  React.useEffect(() => {
+    if (!availableStyles.includes(selectedStyle)) {
+      setSelectedStyle(availableStyles[0] || "Ninguno");
+    }
+  }, [availableStyles, selectedStyle]);
+  
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
   });
 
-  const { fields, update } = useFieldArray({
+  const { fields, update, reset } = useFieldArray({
     control: form.control,
     name: "builds",
     keyName: "fieldId",
@@ -57,24 +68,38 @@ export function IdealBuildEditor({ open, onOpenChange, initialBuilds, onSave }: 
 
   React.useEffect(() => {
     if (open) {
-      const buildsArray = positions.map(pos => ({
-        position: pos,
-        stats: initialBuilds[pos] || {},
-      }));
-      form.reset({ builds: buildsArray });
+      const buildsArray = [];
+      for (const pos of positions) {
+        const stylesForPos = getAvailableStylesForPosition(pos, true);
+        for (const style of stylesForPos) {
+          buildsArray.push({
+            position: pos,
+            style: style,
+            stats: initialBuilds[pos]?.[style] || {},
+          });
+        }
+      }
+      reset({ builds: buildsArray });
     }
-  }, [open, initialBuilds, form]);
+  }, [open, initialBuilds, reset]);
 
   const onSubmit = (data: FormValues) => {
-    const buildsObject = data.builds.reduce((acc, build) => {
-      acc[build.position] = build.stats;
+    const buildsObject = positions.reduce((acc, pos) => {
+      acc[pos] = {};
       return acc;
-    }, {} as Record<Position, PlayerStatsBuild>);
+    }, {} as IdealBuilds);
+
+    data.builds.forEach(build => {
+      buildsObject[build.position][build.style] = build.stats;
+    });
+
     onSave(buildsObject);
     onOpenChange(false);
   };
 
-  const selectedIndex = fields.findIndex(field => field.position === selectedPosition);
+  const selectedIndex = fields.findIndex(
+    field => field.position === selectedPosition && field.style === selectedStyle
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -82,31 +107,50 @@ export function IdealBuildEditor({ open, onOpenChange, initialBuilds, onSave }: 
         <DialogHeader>
           <DialogTitle>Editor de "Builds" Ideales</DialogTitle>
           <DialogDescription>
-            Configura la "build" ideal para cada posición. Estos valores se usarán para calcular la afinidad de tus jugadores.
+            Configura la "build" ideal para cada combinación de posición y estilo de juego.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex-grow flex flex-col overflow-hidden">
-            <div className="flex-shrink-0 mb-4">
-              <label className="text-sm font-medium">Posición</label>
-              <Select value={selectedPosition} onValueChange={pos => setSelectedPosition(pos as Position)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecciona una posición" />
-                </SelectTrigger>
-                <SelectContent>
-                  {positions.map(pos => <SelectItem key={pos} value={pos}>{pos}</SelectItem>)}
-                </SelectContent>
-              </Select>
+            <div className="flex-shrink-0 mb-4 grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">Posición</label>
+                <Select value={selectedPosition} onValueChange={pos => setSelectedPosition(pos as Position)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona una posición" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {positions.map(pos => <SelectItem key={pos} value={pos}>{pos}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Estilo de Juego</label>
+                 <Select value={selectedStyle} onValueChange={style => setSelectedStyle(style as PlayerStyle)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona un estilo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableStyles.map(style => <SelectItem key={style} value={style}>{style}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             
-            {selectedIndex !== -1 && (
-              <PlayerStatsEditor
-                playerBuild={fields[selectedIndex].stats}
-                onBuildChange={(newBuild) => {
-                  update(selectedIndex, { ...fields[selectedIndex], stats: newBuild });
-                }}
-              />
-            )}
+            <div className="flex-grow overflow-hidden">
+              {selectedIndex !== -1 ? (
+                <PlayerStatsEditor
+                  playerBuild={fields[selectedIndex].stats}
+                  onBuildChange={(newBuild) => {
+                    update(selectedIndex, { ...fields[selectedIndex], stats: newBuild });
+                  }}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground">
+                  Selecciona una posición y estilo para editar la build.
+                </div>
+              )}
+            </div>
 
             <DialogFooter className="flex-shrink-0 bg-background/95 py-4 border-t -mx-6 px-6 mt-4">
               <Button type="submit">Guardar Todas las Builds</Button>
@@ -117,3 +161,5 @@ export function IdealBuildEditor({ open, onOpenChange, initialBuilds, onSave }: 
     </Dialog>
   );
 }
+
+  

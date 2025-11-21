@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import type { Position, FlatPlayer, PlayerStatsBuild } from "@/lib/types";
+import type { Position, FlatPlayer, PlayerStatsBuild, IdealBuilds } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +21,7 @@ type PlayerDetailDialogProps = {
   onOpenChange: (open: boolean) => void;
   flatPlayer: FlatPlayer | null;
   onSavePlayerBuild: (playerId: string, cardId: string, build: PlayerStatsBuild) => void;
-  idealBuilds: Record<Position, PlayerStatsBuild>;
+  idealBuilds: IdealBuilds;
 };
 
 export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlayerBuild, idealBuilds }: PlayerDetailDialogProps) {
@@ -38,8 +38,9 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
   const card = flatPlayer?.card;
   const player = flatPlayer?.player;
   const position = flatPlayer?.position;
+  const style = card?.style;
 
-  const idealBuildForPosition = position ? idealBuilds[position] : undefined;
+  const idealBuildForPositionAndStyle = position && style ? idealBuilds[position]?.[style] : undefined;
 
   const handleSave = () => {
     if (player && card && currentBuild) {
@@ -54,7 +55,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
         <DialogHeader>
           <DialogTitle>Estadísticas de {player?.name} <span className="text-muted-foreground">({card?.name})</span></DialogTitle>
           <DialogDescription>
-            Análisis detallado del rendimiento y la afinidad del jugador para esta carta en la posición de {position}.
+            Análisis detallado de la afinidad del jugador para la posición de {position} con el estilo de juego {style}.
           </DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4 flex-grow overflow-hidden">
@@ -71,18 +72,18 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
           </Card>
           <Card className="flex flex-col lg:col-span-2 overflow-hidden">
             <CardHeader>
-              <CardTitle>Análisis de Afinidad vs. Build Ideal de {position}</CardTitle>
+              <CardTitle>Análisis de Afinidad vs. Build Ideal de {position} ({style})</CardTitle>
             </CardHeader>
-            <CardContent className="flex-grow overflow-hidden">
-               <ScrollArea className="h-full w-full pr-6">
-                {idealBuildForPosition ? (
+            <CardContent className="flex-grow flex flex-col overflow-hidden">
+               <ScrollArea className="h-full w-full pr-6 flex-grow">
+                {idealBuildForPositionAndStyle ? (
                     <AffinityCalculationTable
                       playerBuild={currentBuild}
-                      idealBuild={idealBuildForPosition}
+                      idealBuild={idealBuildForPositionAndStyle}
                     />
                   ) : (
                     <div className="text-center text-muted-foreground p-8">
-                      No se ha definido una "Build Ideal" para la posición de {position}.
+                      No se ha definido una "Build Ideal" para la posición de {position} con el estilo {style}.
                     </div>
                   )}
                </ScrollArea>
@@ -96,3 +97,5 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
     </Dialog>
   );
 }
+
+  

@@ -7,7 +7,7 @@ import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, getDoc, getD
 import { useToast } from './use-toast';
 import { v4 as uuidv4 } from 'uuid';
 import type { Player, PlayerCard, Position, AddRatingFormValues, EditCardFormValues, EditPlayerFormValues, PlayerStatsBuild, League, Nationality } from '@/lib/types';
-import { normalizeText } from '@/lib/utils';
+import { normalizeText, getAvailableStylesForPosition } from '@/lib/utils';
 
 
 export function usePlayers() {
@@ -73,13 +73,19 @@ export function usePlayers() {
   }, [toast]);
 
   const addRating = async (values: AddRatingFormValues) => {
-    const { playerName, cardName, position, rating, style, league, nationality } = values;
-    let { playerId } = values;
+    let { playerName, cardName, position, rating, style, league, nationality, playerId } = values;
 
     if (!db) {
         toast({ variant: "destructive", title: "Error de Conexión", description: "No se puede conectar a la base de datos." });
         return;
     }
+    
+    // Validate that the chosen style is valid for the position
+    const validStylesForPosition = getAvailableStylesForPosition(position);
+    if (!validStylesForPosition.includes(style)) {
+        style = 'Ninguno';
+    }
+
 
     try {
       if (!playerId) {
@@ -323,3 +329,5 @@ export function usePlayers() {
 
   return { players, loading, error, addRating, editCard, editPlayer, deleteRating, savePlayerBuild, downloadBackup, deletePositionRatings, toggleSelectablePosition };
 }
+
+  

@@ -1,7 +1,7 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { Position, PositionGroup, PlayerStyle, PlayerRatingStats, PlayerStatsBuild, PlayerAttribute } from "./types";
+import type { Position, PositionGroup, PlayerStyle, PlayerRatingStats, PlayerStatsBuild, PlayerAttribute, IdealBuilds } from "./types";
 import { playerAttributes } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
@@ -118,7 +118,15 @@ export function normalizeText(text: string): string {
 }
 
 
-export function getAffinityScoreFromBuild(playerBuild?: PlayerStatsBuild, idealBuild?: PlayerStatsBuild): number {
+export function getAffinityScoreFromBuild(
+  playerBuild: PlayerStatsBuild | undefined,
+  position: Position,
+  style: PlayerStyle,
+  idealBuilds: IdealBuilds
+): number {
+  // Find the specific ideal build for the position and style. Fallback to 'Ninguno' if the specific style is not defined.
+  const idealBuild = idealBuilds[position]?.[style] || idealBuilds[position]?.['Ninguno'];
+
   if (!playerBuild || !idealBuild) {
     return 0;
   }
@@ -141,9 +149,10 @@ export function getAffinityScoreFromBuild(playerBuild?: PlayerStatsBuild, idealB
       const blocks = Math.floor(Math.abs(diff) / 5);
       totalScore += diff * (1 + 0.25 * blocks);
     }
-    // if diff is between -4 and 4, it adds 0, which is correct.
   }
   
   const finalScore = 100 + totalScore;
   return Math.max(0, Math.min(100, finalScore));
 }
+
+  

@@ -35,8 +35,8 @@ import { usePlayers } from '@/hooks/usePlayers';
 import { useFormations } from '@/hooks/useFormations';
 import { useToast } from "@/hooks/use-toast";
 
-import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerStatsBuild } from '@/lib/types';
-import { positions, leagues, nationalities, playerAttributes } from '@/lib/types';
+import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerStatsBuild, PlayerStyle, IdealBuilds } from '@/lib/types';
+import { positions, leagues, nationalities, playerAttributes, playerStyles, getAvailableStylesForPosition } from '@/lib/types';
 import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Wrench } from 'lucide-react';
 import { calculateStats, normalizeText, getAffinityScoreFromBuild } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
@@ -44,9 +44,21 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 const ITEMS_PER_PAGE = 10;
 
-const initialIdealBuilds = Object.fromEntries(
-  positions.map(pos => [pos, Object.fromEntries(playerAttributes.map(attr => [attr, 0]))])
-) as Record<Position, PlayerStatsBuild>;
+const generateInitialIdealBuilds = (): IdealBuilds => {
+  const initialBuilds: Partial<IdealBuilds> = {};
+  for (const pos of positions) {
+    initialBuilds[pos] = {};
+    const availableStyles = getAvailableStylesForPosition(pos, true);
+    for (const style of availableStyles) {
+      const emptyBuild: PlayerStatsBuild = Object.fromEntries(
+        playerAttributes.map(attr => [attr, 0])
+      );
+      initialBuilds[pos]![style] = emptyBuild;
+    }
+  }
+  return initialBuilds as IdealBuilds;
+};
+
 
 export default function Home() {
   const { 
@@ -110,27 +122,40 @@ export default function Home() {
   
   const { toast } = useToast();
 
-  const [idealBuilds, setIdealBuilds] = useState<Record<Position, PlayerStatsBuild>>(initialIdealBuilds);
+  const [idealBuilds, setIdealBuilds] = useState<IdealBuilds>(generateInitialIdealBuilds());
   
   useEffect(() => {
     const savedBuilds = localStorage.getItem('idealBuilds');
+    const initialBuilds = generateInitialIdealBuilds();
+
     if (savedBuilds) {
-      const parsedBuilds = JSON.parse(savedBuilds);
-      // Ensure all positions and attributes are present
-      const completeBuilds = { ...initialIdealBuilds };
-      for (const pos of positions) {
-        if (parsedBuilds[pos]) {
-          completeBuilds[pos] = {
-            ...initialIdealBuilds[pos],
-            ...parsedBuilds[pos],
-          };
+      try {
+        const parsedBuilds = JSON.parse(savedBuilds);
+        // Deep merge to ensure all positions and styles are present
+        for (const pos of positions) {
+          if (parsedBuilds[pos]) {
+            for (const style of getAvailableStylesForPosition(pos, true)) {
+               if (parsedBuilds[pos][style]) {
+                initialBuilds[pos][style] = {
+                  ...initialBuilds[pos][style],
+                  ...parsedBuilds[pos][style],
+                };
+              }
+            }
+          }
         }
+        setIdealBuilds(initialBuilds);
+      } catch (e) {
+        console.error("Failed to parse ideal builds from localStorage", e);
+        setIdealBuilds(initialBuilds);
       }
-      setIdealBuilds(completeBuilds);
+    } else {
+      setIdealBuilds(initialBuilds);
     }
   }, []);
 
-  const handleSaveIdealBuilds = (newBuilds: Record<Position, PlayerStatsBuild>) => {
+
+  const handleSaveIdealBuilds = (newBuilds: IdealBuilds) => {
     setIdealBuilds(newBuilds);
     localStorage.setItem('idealBuilds', JSON.stringify(newBuilds));
     toast({
@@ -520,8 +545,7 @@ export default function Home() {
                             isVersatile: highPerfPositions.size >= 3,
                         };
                         
-                        const idealBuild = idealBuilds[ratedPos];
-                        const affinityScore = getAffinityScoreFromBuild(card.build, idealBuild);
+                        const affinityScore = getAffinityScoreFromBuild(card.build, ratedPos, card.style, idealBuilds);
 
                         const matchAverageScore = stats.average > 0 ? (stats.average / 10 * 100) : 0;
                         const generalScore = (affinityScore * 0.6) + (matchAverageScore * 0.4);
@@ -667,3 +691,5 @@ export default function Home() {
     </div>
   );
 }
+
+  
