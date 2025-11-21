@@ -17,8 +17,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Position, PlayerStyle, IdealBuilds, PlayerBuild, PlayerStatsBuild } from "@/lib/types";
-import { getAvailableStylesForPosition, getPositionGroup, positionGroups } from "@/lib/types";
+import type { Position, PlayerStyle, IdealBuilds, PlayerBuild, PlayerStatsBuild, PositionGroupName } from "@/lib/types";
+import { getAvailableStylesForPosition, getPositionGroup } from "@/lib/types";
 import { PlayerStatsEditor } from "./player-stats-editor";
 import { ScrollArea } from "./ui/scroll-area";
 
@@ -28,7 +28,7 @@ type PositionIdealBuildEditorProps = {
   onOpenChange: (open: boolean) => void;
   position: Position;
   initialBuilds: IdealBuilds;
-  onSave: (position: Position, buildsForPosition: IdealBuilds[Position]) => void;
+  onSave: (groupName: PositionGroupName, buildsForGroup: IdealBuilds[Position]) => void;
 };
 
 export function PositionIdealBuildEditor({ 
@@ -41,15 +41,19 @@ export function PositionIdealBuildEditor({
   const [selectedStyle, setSelectedStyle] = React.useState<PlayerStyle>("Ninguno");
   
   const positionGroup = React.useMemo(() => getPositionGroup(position), [position]);
-  const relevantPositions = React.useMemo(() => positionGroups[positionGroup], [positionGroup]);
+  const relevantPositions = React.useMemo(() => {
+    const group = getPositionGroup(position);
+    const positions = (positionGroups as any)[group] || [position];
+    return positions.join(', ');
+  }, [position]);
   const availableStyles = React.useMemo(() => getAvailableStylesForPosition(position, true), [position]);
   
   const [builds, setBuilds] = React.useState<IdealBuilds[Position]>({});
 
   React.useEffect(() => {
     if (open) {
-        // We get the builds from the currently active position, as the `useIdealBuilds` hook
-        // has already propagated the group builds to all positions in that group.
+        // Since useIdealBuilds now propagates group builds to all positions in the group,
+        // we can safely get the builds from the currently active position.
         const buildsForCurrentPos = initialBuilds[position] || {};
         setBuilds(buildsForCurrentPos);
         
@@ -67,10 +71,9 @@ export function PositionIdealBuildEditor({
   
 
   const onSubmit = () => {
-    // We always save using the position that was passed in, which represents the current tab.
-    // The `saveIdealBuildsForPosition` function in the hook is responsible for mapping this
-    // to the correct group name for storage.
-    onSave(position, builds);
+    // We get the group name and save the builds under that group name.
+    const groupName = getPositionGroup(position);
+    onSave(groupName, builds);
     onOpenChange(false);
   };
   
@@ -82,6 +85,7 @@ export function PositionIdealBuildEditor({
   };
 
   const currentBuildStats: PlayerStatsBuild = builds[selectedStyle] || {};
+  const { positionGroups } = require('@/lib/types');
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -89,7 +93,7 @@ export function PositionIdealBuildEditor({
         <DialogHeader>
           <DialogTitle>Editor de Builds Ideales para {positionGroup}</DialogTitle>
           <DialogDescription>
-            Configura la "build" ideal para cada estilo de juego de esta posición. Los cambios se aplicarán a todas las posiciones del grupo ({relevantPositions.join(', ')}).
+            Configura la "build" ideal para cada estilo de juego de esta posición. Los cambios se aplicarán a todas las posiciones del grupo ({relevantPositions}).
           </DialogDescription>
         </DialogHeader>
         <div className="flex-grow flex flex-col overflow-hidden">

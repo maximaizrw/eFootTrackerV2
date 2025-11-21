@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -5,7 +6,7 @@ import { db } from '@/lib/firebase-config';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import type { IdealBuilds, Position, PlayerStyle, PositionGroupName } from '@/lib/types';
-import { positions, getAvailableStylesForPosition, positionGroups, getPositionGroup } from '@/lib/types';
+import { positions, getAvailableStylesForPosition, positionGroups } from '@/lib/types';
 
 const generateInitialIdealBuilds = (): IdealBuilds => {
   const initialBuilds = {} as IdealBuilds;
@@ -51,16 +52,14 @@ export function useIdealBuilds() {
           // Propagate builds from groups to individual positions
           for (const groupName in dataFromDb) {
             const groupKey = groupName as PositionGroupName;
-            const positionsInGroup = positionGroups[groupKey];
+            const positionsInGroup = positionGroups[groupKey] as readonly Position[] | undefined;
             const buildsForGroup = dataFromDb[groupKey];
 
             if (positionsInGroup && buildsForGroup) {
               for (const pos of positionsInGroup) {
-                for (const style in buildsForGroup) {
-                  const styleKey = style as PlayerStyle;
-                   if (emptyShell[pos] && styleKey in emptyShell[pos]) {
-                     emptyShell[pos][styleKey] = buildsForGroup[styleKey];
-                   }
+                if (emptyShell[pos]) {
+                    // This ensures we merge with the existing structure for the position.
+                    emptyShell[pos] = { ...emptyShell[pos], ...buildsForGroup };
                 }
               }
             }
@@ -96,24 +95,23 @@ export function useIdealBuilds() {
     return () => unsub();
   }, [toast]);
 
-  const saveIdealBuildsForPosition = async (position: Position, buildsForPosition: IdealBuilds[Position]) => {
+  const saveIdealBuildsForPosition = async (groupName: PositionGroupName, buildsForGroup: IdealBuilds[Position]) => {
     if (!db) {
         toast({ variant: "destructive", title: "Error de Conexión", description: "No se puede conectar a la base de datos." });
         return;
     }
     try {
       const docRef = doc(db, 'idealBuilds', 'user_default');
-      const positionGroup = getPositionGroup(position);
       
       const dataToUpdate = {
-        [positionGroup]: buildsForPosition
+        [groupName]: buildsForGroup
       };
       
       await setDoc(docRef, dataToUpdate, { merge: true });
       
       toast({
         title: "Builds Ideales Guardadas",
-        description: `Las configuraciones para ${positionGroup} se han guardado.`,
+        description: `Las configuraciones para ${groupName} se han guardado.`,
       });
     } catch (error) {
       console.error("Error saving ideal builds: ", error);

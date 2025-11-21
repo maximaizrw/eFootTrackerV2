@@ -228,9 +228,7 @@ export type FlatPlayer = {
 
 // --- Funciones de utilidad movidas aquí para evitar importaciones circulares ---
 
-export type PositionGroupName = keyof typeof positionGroups;
-
-export const positionGroups: Record<string, Position[]> = {
+export const positionGroups = {
   'Portero': ['PT'],
   'Defensa Central': ['DFC'],
   'Laterales': ['LI', 'LD'],
@@ -241,15 +239,19 @@ export const positionGroups: Record<string, Position[]> = {
   'Extremos': ['EXI', 'EXD'],
   'Segundo Delantero': ['SD'],
   'Delantero Centro': ['DC'],
-};
+} as const;
+
+export type PositionGroupName = keyof typeof positionGroups;
 
 export function getPositionGroup(position: Position): PositionGroupName {
   for (const groupName in positionGroups) {
-    if (positionGroups[groupName as PositionGroupName].includes(position)) {
-      return groupName as PositionGroupName;
+    const typedGroupName = groupName as PositionGroupName;
+    if ((positionGroups[typedGroupName] as readonly Position[]).includes(position)) {
+      return typedGroupName;
     }
   }
-  return 'Delantero Centro'; // Fallback, should not happen
+  // Fallback for safety, though it should never be reached with valid positions
+  return 'Delantero Centro'; 
 }
 
 
