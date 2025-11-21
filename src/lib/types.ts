@@ -248,33 +248,13 @@ export type FlatPlayer = {
   position: Position;
 };
 
-// --- Funciones de utilidad movidas aquí para evitar importaciones circulares ---
-
-export function getAvailableStylesForPosition(position: Position, includeNinguno = false): PlayerStyle[] {
-    const baseStyles: PlayerStyle[] = includeNinguno ? ['Ninguno'] : [];
-
-    const gkStyles: PlayerStyle[] = ['Portero defensivo', 'Portero ofensivo'];
-    const fbStyles: PlayerStyle[] = ['Lateral defensivo', 'Lateral ofensivo', 'Lateral finalizador'];
-    const dfcStyles: PlayerStyle[] = ['El destructor', 'Creador de juego', 'Atacante extra'];
-    const mcdStyles: PlayerStyle[] = ['Omnipresente', 'Medio escudo', 'Organizador', 'El destructor'];
-    const mcStyles: PlayerStyle[] = ['Jugador de huecos', 'Omnipresente', 'Medio escudo', 'El destructor', 'Organizador', 'Creador de jugadas'];
-    const mdiMddStyles: PlayerStyle[] = ['Omnipresente', 'Jugador de huecos', 'Especialista en centros', 'Extremo móvil', 'Creador de jugadas'];
-    const moStyles: PlayerStyle[] = ['Creador de jugadas', 'Diez Clasico', 'Jugador de huecos', 'Señuelo'];
-    const sdStyles: PlayerStyle[] = ['Segundo delantero', 'Creador de jugadas', 'Diez Clasico', 'Jugador de huecos', 'Señuelo'];
-    const wingerStyles: PlayerStyle[] = ['Creador de jugadas', 'Extremo prolífico', 'Extremo móvil', 'Especialista en centros'];
-    const dcStyles: PlayerStyle[] = ['Cazagoles', 'Hombre de área', 'Señuelo', 'Hombre objetivo', 'Segundo delantero'];
-
-    switch (position) {
-        case 'PT': return [...baseStyles, ...gkStyles];
-        case 'LI': case 'LD': return [...baseStyles, ...fbStyles];
-        case 'DFC': return [...baseStyles, ...dfcStyles];
-        case 'MCD': return [...baseStyles, ...mcdStyles];
-        case 'MC': return [...baseStyles, ...mcStyles];
-        case 'MDI': case 'MDD': return [...baseStyles, ...mdiMddStyles];
-        case 'MO': return [...baseStyles, ...moStyles];
-        case 'SD': return [...baseStyles, ...sdStyles];
-        case 'EXI': case 'EXD': return [...baseStyles, ...wingerStyles];
-        case 'DC': return [...baseStyles, ...dcStyles];
-        default: return baseStyles;
+export function getPositionGroup(position: Position): PositionGroupName {
+  for (const groupName in positionGroups) {
+    const typedGroupName = groupName as PositionGroupName;
+    if ((positionGroups[typedGroupName] as readonly Position[]).includes(position)) {
+      return typedGroupName;
     }
+  }
+  // This should not happen with valid Position types
+  throw new Error(`Could not find group for position: ${position}`);
 }

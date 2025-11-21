@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -18,8 +19,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Position, PlayerStyle, IdealBuilds, PlayerBuild, PlayerStatsBuild, PositionGroupName } from "@/lib/types";
-import { getAvailableStylesForPosition, positionGroups } from "@/lib/types";
-import { getPositionGroup } from "@/lib/utils";
+import { positionGroups } from "@/lib/types";
+import { getPositionGroup, getAvailableStylesForPosition } from "@/lib/utils";
 import { PlayerStatsEditor } from "./player-stats-editor";
 import { ScrollArea } from "./ui/scroll-area";
 

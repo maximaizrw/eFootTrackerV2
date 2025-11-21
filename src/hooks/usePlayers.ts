@@ -7,8 +7,7 @@ import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, getDoc, getD
 import { useToast } from './use-toast';
 import { v4 as uuidv4 } from 'uuid';
 import type { Player, PlayerCard, Position, AddRatingFormValues, EditCardFormValues, EditPlayerFormValues, PlayerBuild, League, Nationality } from '@/lib/types';
-import { getAvailableStylesForPosition } from '@/lib/types';
-import { normalizeText } from '@/lib/utils';
+import { normalizeText, getAvailableStylesForPosition } from '@/lib/utils';
 
 
 export function usePlayers() {

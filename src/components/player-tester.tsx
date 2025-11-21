@@ -19,8 +19,7 @@ import {
 } from "@/components/ui/table";
 import { PlayerStatsEditor } from "./player-stats-editor";
 import type { IdealBuilds, PlayerBuild, PlayerStyle } from "@/lib/types";
-import { getAvailableStylesForPosition } from "@/lib/types";
-import { getAffinityScoreFromBuild } from "@/lib/utils";
+import { getAffinityScoreFromBuild, getAvailableStylesForPosition } from "@/lib/utils";
 import { Beaker, Check, ChevronsUpDown } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { cn, getAverageColorClass } from '@/lib/utils';

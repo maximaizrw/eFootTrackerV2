@@ -5,8 +5,9 @@ import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase-config';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { useToast } from './use-toast';
-import type { IdealBuilds, Position, PlayerStyle, PositionGroupName } from '@/lib/types';
-import { positions, getAvailableStylesForPosition, positionGroups } from '@/lib/types';
+import type { IdealBuilds, Position, PlayerStyle, PositionGroupName, DbIdealBuilds } from '@/lib/types';
+import { positions, positionGroups, getAvailableStylesForPosition, getPositionGroup } from '@/lib/types';
+
 
 const generateInitialIdealBuilds = (): IdealBuilds => {
   const initialBuilds = {} as IdealBuilds;
@@ -18,12 +19,6 @@ const generateInitialIdealBuilds = (): IdealBuilds => {
     }
   }
   return initialBuilds;
-};
-
-type DbIdealBuilds = {
-    [key in PositionGroupName]?: {
-        [key in PlayerStyle]?: IdealBuilds[Position][PlayerStyle];
-    };
 };
 
 
@@ -45,7 +40,8 @@ export function useIdealBuilds() {
 
     const unsub = onSnapshot(docRef, (docSnap) => {
       try {
-        const emptyShell = generateInitialIdealBuilds();
+        const fullyHydratedBuilds = generateInitialIdealBuilds();
+        
         if (docSnap.exists()) {
           const dataFromDb = docSnap.data() as DbIdealBuilds;
           
@@ -57,17 +53,22 @@ export function useIdealBuilds() {
 
             if (positionsInGroup && buildsForGroup) {
               for (const pos of positionsInGroup) {
-                if (emptyShell[pos]) {
+                 if (fullyHydratedBuilds[pos]) {
                     // This ensures we merge with the existing structure for the position.
-                    emptyShell[pos] = { ...emptyShell[pos], ...buildsForGroup };
+                    // Merging the builds for each style within the group
+                     for (const style in buildsForGroup) {
+                        const styleKey = style as PlayerStyle;
+                        if (fullyHydratedBuilds[pos][styleKey]) {
+                            fullyHydratedBuilds[pos][styleKey] = buildsForGroup[styleKey];
+                        }
+                    }
                 }
               }
             }
           }
-          setIdealBuilds(emptyShell);
-        } else {
-          setIdealBuilds(emptyShell);
         }
+        
+        setIdealBuilds(fullyHydratedBuilds);
         setError(null);
       } catch (err) {
         console.error("Error processing ideal builds snapshot: ", err);
