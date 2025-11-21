@@ -35,8 +35,8 @@ export const playerAttributes = [
     "offensiveAwareness", "ballControl", "dribbling", "tightPossession",
     "lowPass", "loftedPass", "finishing", "heading", "setPieceTaking", "curl",
     "speed", "acceleration", "kickingPower", "jump", "physicalContact",
-    "balance", "stamina", "defensiveAwareness", "tackling", "aggression",
-    "defensiveEngagement", "gkAwareness", "gkCatching", "gkParrying",
+    "balance", "stamina", "defensiveAwareness", "defensiveEngagement", "tackling", "aggression",
+    "gkAwareness", "gkCatching", "gkParrying",
     "gkReflexes", "gkReach"
 ] as const;
 export type PlayerAttribute = typeof playerAttributes[number];
@@ -204,3 +204,4 @@ export type FlatPlayer = {
   affinityScore: number;
   generalScore: number;
 };
+

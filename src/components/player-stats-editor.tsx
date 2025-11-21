@@ -37,8 +37,8 @@ const statLabels: Record<string, string> = {
   defensiveEngagement: "Defensive Engagement",
   tackling: "Tackling",
   aggression: "Aggression",
-  gkAwareness: "Goalkeeping",
-  gkCatching: "Gk Catching",
+  gkAwareness: "GK Awareness",
+  gkCatching: "GK Catching",
   gkParrying: "GK Parrying",
   gkReflexes: "GK Reflexes",
   gkReach: "GK Reach",
@@ -66,9 +66,7 @@ export function PlayerStatsEditor({ playerBuild, onBuildChange }: PlayerStatsEdi
     if (!isNaN(numValue) && numValue >= 0 && numValue <= 99) {
       onBuildChange({ ...playerBuild, [stat]: numValue });
     } else if (value === '') {
-      const newBuild = { ...playerBuild };
-      delete newBuild[stat]; // Remove if empty
-      onBuildChange(newBuild);
+      onBuildChange({ ...playerBuild, [stat]: 0 });
     }
   };
   
@@ -76,7 +74,7 @@ export function PlayerStatsEditor({ playerBuild, onBuildChange }: PlayerStatsEdi
     const lines = pasteText.trim().split(/\s+/); // Splits by any whitespace including newlines and spaces
     if (lines.length === 0) return;
 
-    const newBuild = { ...playerBuild };
+    const newBuild: PlayerStatsBuild = { ...playerBuild };
     
     pasteOrder.forEach((stat, index) => {
         if (index < lines.length) {
@@ -121,7 +119,7 @@ export function PlayerStatsEditor({ playerBuild, onBuildChange }: PlayerStatsEdi
                             <Input
                             id={stat}
                             type="number"
-                            value={playerBuild?.[stat as keyof PlayerStatsBuild] ?? ''}
+                            value={playerBuild?.[stat as keyof PlayerStatsBuild] ?? 0}
                             onChange={e => handleStatChange(stat as keyof PlayerStatsBuild, e.target.value)}
                             className="h-9"
                             />
