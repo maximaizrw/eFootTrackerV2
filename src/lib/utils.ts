@@ -136,14 +136,12 @@ export function getAffinityScoreFromBuild(playerBuild?: PlayerStatsBuild, idealB
     const diff = playerStat - idealStat;
     let statScore = 0;
     
-    // This is a direct translation of the user's Excel formula:
-    // =IF(diff>=5, FLOOR(diff/5)*0.25, IF(diff<=-5, diff*(1+0.25*FLOOR(ABS(diff)/5)), 0))
     if (diff >= 5) {
       statScore = Math.floor(diff / 5) * 0.25;
     } else if (diff <= -5) {
       statScore = diff * (1 + 0.25 * Math.floor(Math.abs(diff) / 5));
     }
-    // If the difference is between -4 and 4, the score is 0, which is the default.
+    // If the difference is between -4 and 4, the score is 0, which is the default for statScore
 
     totalScore += statScore;
   }
