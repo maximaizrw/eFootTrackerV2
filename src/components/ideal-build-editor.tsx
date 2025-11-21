@@ -90,11 +90,13 @@ export function IdealBuildEditor({ open, onOpenChange, initialBuilds, onSave }: 
     defaultValues: { builds: [] },
   });
 
-  const { fields, update, reset } = useFieldArray({
+  const { fields, update } = useFieldArray({
     control: form.control,
     name: "builds",
     keyName: "fieldId",
   });
+  
+  const { reset } = form;
 
   React.useEffect(() => {
     if (open) {
