@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import type { Position, FlatPlayer, PlayerStatsBuild, IdealBuilds } from "@/lib/types";
+import type { Position, FlatPlayer, PlayerStatsBuild, IdealBuilds, PlayerBuild } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +15,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { PlayerStatsEditor } from "./player-stats-editor";
 import { AffinityCalculationTable } from "./affinity-calculation-table";
 import { ScrollArea } from "./ui/scroll-area";
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+
 
 type PlayerDetailDialogProps = {
   open: boolean;
@@ -29,7 +32,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
 
   React.useEffect(() => {
     if (open && flatPlayer) {
-      setCurrentBuild(flatPlayer.card.build || {});
+      setCurrentBuild(flatPlayer.card.build?.stats || {});
     } else {
       setCurrentBuild({});
     }
@@ -39,6 +42,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
   const player = flatPlayer?.player;
   const position = flatPlayer?.position;
   const style = card?.style;
+  const updatedAt = card?.build?.updatedAt;
 
   const idealBuildForPositionAndStyle = position && style ? idealBuilds[position]?.[style] : undefined;
 
@@ -48,6 +52,10 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
       onOpenChange(false);
     }
   };
+  
+  const formattedDate = updatedAt 
+    ? format(new Date(updatedAt), "d 'de' MMMM 'de' yyyy 'a las' HH:mm", { locale: es }) 
+    : 'N/A';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -55,7 +63,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
         <DialogHeader>
           <DialogTitle>Estadísticas de {player?.name} <span className="text-muted-foreground">({card?.name})</span></DialogTitle>
           <DialogDescription>
-            Análisis detallado de la afinidad del jugador para la posición de {position} con el estilo de juego {style}.
+            Análisis de afinidad para {position} ({style}). Última actualización: <span className="font-semibold text-foreground">{formattedDate}</span>
           </DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4 flex-grow overflow-hidden">

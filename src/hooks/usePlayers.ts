@@ -40,7 +40,7 @@ export function usePlayers() {
                     imageUrl: card.imageUrl || '',
                     ratingsByPosition: card.ratingsByPosition || {},
                     selectablePositions: card.selectablePositions || {},
-                    build: card.build || {},
+                    build: card.build || { stats: {}, updatedAt: '' },
                 })),
             } as Player;
         });
@@ -123,7 +123,7 @@ export function usePlayers() {
               imageUrl: '',
               ratingsByPosition: { [position]: [rating] },
               selectablePositions: { [position]: true },
-              build: {},
+              build: { stats: {}, updatedAt: '' },
           };
           newCards.push(card);
         }
@@ -140,7 +140,7 @@ export function usePlayers() {
               imageUrl: '',
               ratingsByPosition: { [position]: [rating] },
               selectablePositions: { [position]: true },
-              build: {},
+              build: { stats: {}, updatedAt: '' },
           }],
         };
         await addDoc(collection(db, 'players'), newPlayer);
@@ -299,7 +299,10 @@ export function usePlayers() {
         const cardToUpdate = newCards.find(c => c.id === cardId);
 
         if (cardToUpdate) {
-            cardToUpdate.build = build;
+            cardToUpdate.build = {
+              stats: build,
+              updatedAt: new Date().toISOString(),
+            };
             await updateDoc(playerRef, { cards: newCards });
             toast({ title: "Build Guardada", description: "La build del jugador se ha actualizado." });
         } else {

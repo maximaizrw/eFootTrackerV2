@@ -545,7 +545,7 @@ export default function Home() {
                             isVersatile: highPerfPositions.size >= 3,
                         };
                         
-                        const affinityScore = getAffinityScoreFromBuild(card.build, ratedPos, card.style, idealBuilds);
+                        const affinityScore = getAffinityScoreFromBuild(card.build?.stats, ratedPos, card.style, idealBuilds);
 
                         const matchAverageScore = stats.average > 0 ? (stats.average / 10 * 100) : 0;
                         const generalScore = (affinityScore * 0.6) + (matchAverageScore * 0.4);

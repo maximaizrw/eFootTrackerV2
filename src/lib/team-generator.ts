@@ -83,7 +83,7 @@ export function generateIdealTeam(
             isVersatile: isVersatile,
         };
         
-        const affinityScore = getAffinityScoreFromBuild(card.build, pos, card.style, idealBuilds);
+        const affinityScore = getAffinityScoreFromBuild(card.build?.stats, pos, card.style, idealBuilds);
         
         const matchAverageScore = stats.average > 0 ? (stats.average / 10 * 100) : 0;
         const generalScore = (affinityScore * 0.6) + (matchAverageScore * 0.4);

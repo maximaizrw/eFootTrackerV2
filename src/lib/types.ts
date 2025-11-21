@@ -44,6 +44,11 @@ export type PlayerStatsBuild = {
   [key in PlayerAttribute]?: number;
 };
 
+export type PlayerBuild = {
+  stats: PlayerStatsBuild;
+  updatedAt?: string;
+};
+
 export type IdealBuilds = {
     [key in Position]: {
         [key in PlayerStyle]?: PlayerStatsBuild;
@@ -60,7 +65,7 @@ export type PlayerCard = {
   imageUrl?: string;
   ratingsByPosition: { [key in Position]?: number[] };
   selectablePositions?: { [key in Position]?: boolean };
-  build?: PlayerStatsBuild;
+  build?: PlayerBuild;
 };
 
 export type Player = {
