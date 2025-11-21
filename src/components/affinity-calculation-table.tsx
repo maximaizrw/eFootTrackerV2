@@ -33,14 +33,22 @@ export function AffinityCalculationTable({ playerBuild, idealBuild }: AffinityCa
   const calculationRows = playerAttributes.map(attr => {
     const playerStat = playerBuild[attr] || 0;
     const idealStat = idealBuild[attr] || 0;
-    const difference = playerStat - idealStat;
 
+    if (idealStat === 0) {
+        return {
+          name: statLabels[attr] || attr,
+          idealStat, playerStat, difference: 0, statScore: 0,
+        };
+    }
+    
+    const difference = playerStat - idealStat;
     let statScore = 0;
+    
     if (difference >= 5) {
-      statScore = Math.floor(difference / 5) * 0.25;
+      statScore += Math.floor(difference / 5) * 0.25;
     } else if (difference <= -5) {
       const blocks = Math.floor(Math.abs(difference) / 5);
-      statScore = difference * (1 + 0.25 * (blocks - 1));
+      statScore += difference * (1 + 0.25 * blocks);
     }
     
     totalScoreSum += statScore;
@@ -54,7 +62,7 @@ export function AffinityCalculationTable({ playerBuild, idealBuild }: AffinityCa
     };
   });
 
-  const finalAffinity = 100 + totalScoreSum;
+  const finalAffinity = Math.max(0, Math.min(100, 100 + totalScoreSum));
 
   const getDifferenceColor = (diff: number) => {
     if (diff > 0) return "text-green-500";
@@ -102,7 +110,7 @@ export function AffinityCalculationTable({ playerBuild, idealBuild }: AffinityCa
             <span className={cn("text-lg font-bold", getTotalColor(totalScoreSum))}>{totalScoreSum.toFixed(2)}</span>
         </div>
         <div className="flex justify-end items-baseline gap-4 text-right mt-1 border-t pt-2">
-            <span className="text-lg font-bold">Afinidad Total (Suma + 100):</span>
+            <span className="text-lg font-bold">Afinidad Total:</span>
             <span className="text-2xl font-extrabold text-primary">{finalAffinity.toFixed(2)}</span>
         </div>
       </div>
