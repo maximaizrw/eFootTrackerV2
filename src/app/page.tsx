@@ -592,7 +592,7 @@ export default function Home() {
                       players={paginatedPlayers}
                       position={pos}
                       onOpenAddRating={handleOpenAddRating}
-                      onOpenEditCard={onOpenEditCard}
+                      onOpenEditCard={handleOpenEditCard}
                       onOpenEditPlayer={onOpenEditPlayer}
                       onOpenPlayerDetail={handleOpenPlayerDetail}
                       onViewImage={handleViewImage}
