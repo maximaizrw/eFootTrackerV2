@@ -38,7 +38,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerStatsBuild, PlayerStyle, IdealBuilds } from '@/lib/types';
 import { positions, leagues, nationalities, playerAttributes, playerStyles, getAvailableStylesForPosition } from '@/lib/types';
 import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Wrench } from 'lucide-react';
-import { calculateStats, normalizeText, getAffinityScoreFromBuild } from '@/lib/utils';
+import { calculateStats, normalizeText, getAffinityScoreFromBuild, calculateGeneralScore } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
@@ -546,9 +546,7 @@ export default function Home() {
                         };
                         
                         const affinityScore = getAffinityScoreFromBuild(card.build?.stats, ratedPos, card.style, idealBuilds);
-
-                        const matchAverageScore = stats.average > 0 ? (stats.average / 10 * 100) : 0;
-                        const generalScore = (affinityScore * 0.6) + (matchAverageScore * 0.4);
+                        const generalScore = calculateGeneralScore(affinityScore, stats.average);
 
                         return { player, card, ratingsForPos, performance, affinityScore, generalScore, position: ratedPos };
                     }).filter((p): p is FlatPlayer => p !== null);

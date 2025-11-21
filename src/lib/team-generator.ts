@@ -1,6 +1,6 @@
 
 import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, PlayerStatsBuild, IdealBuilds, PlayerStyle } from './types';
-import { calculateStats, getAffinityScoreFromBuild } from './utils';
+import { calculateStats, getAffinityScoreFromBuild, calculateGeneralScore } from './utils';
 
 type CandidatePlayer = {
   player: Player;
@@ -84,9 +84,7 @@ export function generateIdealTeam(
         };
         
         const affinityScore = getAffinityScoreFromBuild(card.build?.stats, pos, card.style, idealBuilds);
-        
-        const matchAverageScore = stats.average > 0 ? (stats.average / 10 * 100) : 0;
-        const generalScore = (affinityScore * 0.6) + (matchAverageScore * 0.4);
+        const generalScore = calculateGeneralScore(affinityScore, stats.average);
 
         return {
           player,

@@ -155,4 +155,8 @@ export function getAffinityScoreFromBuild(
   return Math.max(0, Math.min(100, finalScore));
 }
 
+export function calculateGeneralScore(affinityScore: number, average: number): number {
+  const matchAverageScore = average > 0 ? (average / 10) * 100 : 0;
+  return (affinityScore * 0.6) + (matchAverageScore * 0.4);
+}
   
