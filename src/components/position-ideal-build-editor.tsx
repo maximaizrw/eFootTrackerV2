@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -18,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Position, PlayerStyle, IdealBuilds, PlayerBuild } from "@/lib/types";
+import type { Position, PlayerStyle, IdealBuilds, PlayerBuild, PlayerStatsBuild } from "@/lib/types";
 import { getAvailableStylesForPosition, getPositionGroup, positionGroups } from "@/lib/types";
 import { PlayerStatsEditor } from "./player-stats-editor";
 import { ScrollArea } from "./ui/scroll-area";
@@ -49,45 +48,40 @@ export function PositionIdealBuildEditor({
 
   React.useEffect(() => {
     if (open) {
-        const representativePosition = relevantPositions[0];
-        const styles = getAvailableStylesForPosition(representativePosition, true);
-        const initialFilteredBuilds = initialBuilds[representativePosition] || {};
+        // We get the builds from the currently active position, as the `useIdealBuilds` hook
+        // has already propagated the group builds to all positions in that group.
+        const buildsForCurrentPos = initialBuilds[position] || {};
+        setBuilds(buildsForCurrentPos);
         
-        const newBuilds: IdealBuilds[Position] = {};
-        for(const style of styles) {
-            newBuilds[style] = initialFilteredBuilds[style] || {};
-        }
-
-        setBuilds(newBuilds);
-        
-        if (styles.length > 0) {
-            setSelectedStyle(styles[0]);
+        if (availableStyles.length > 0 && !availableStyles.includes(selectedStyle)) {
+            setSelectedStyle(availableStyles[0]);
         }
     }
-  }, [open, position, initialBuilds, relevantPositions]);
+  }, [open, position, initialBuilds, availableStyles, selectedStyle]);
   
   React.useEffect(() => {
-    if (!availableStyles.includes(selectedStyle) && availableStyles.length > 0) {
+    if (open && !availableStyles.includes(selectedStyle) && availableStyles.length > 0) {
       setSelectedStyle(availableStyles[0]);
     }
-  }, [availableStyles, selectedStyle]);
+  }, [open, availableStyles, selectedStyle]);
   
 
   const onSubmit = () => {
-    // Crucially, we always save using the representative position of the group.
-    const representativePosition = positionGroups[positionGroup as keyof typeof positionGroups][0];
-    onSave(representativePosition, builds);
+    // We always save using the position that was passed in, which represents the current tab.
+    // The `saveIdealBuildsForPosition` function in the hook is responsible for mapping this
+    // to the correct group name for storage.
+    onSave(position, builds);
     onOpenChange(false);
   };
   
-  const handleBuildChange = (newBuild: PlayerBuild) => {
+  const handleBuildChange = (changedBuild: PlayerBuild) => {
     setBuilds(prevBuilds => ({
       ...prevBuilds,
-      [selectedStyle]: newBuild.stats,
+      [selectedStyle]: changedBuild.stats,
     }));
   };
 
-  const currentBuildStats = builds[selectedStyle] || {};
+  const currentBuildStats: PlayerStatsBuild = builds[selectedStyle] || {};
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

@@ -1,8 +1,7 @@
-
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { Position, PlayerStyle, PlayerRatingStats, PlayerStatsBuild, PlayerAttribute, IdealBuilds } from "./types";
-import { playerAttributes, getPositionGroup, positionGroups } from "./types";
+import { playerAttributes } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -34,63 +33,12 @@ export function formatAverage(avg: number): string {
   return avg.toFixed(1);
 }
 
-export function getPositionGroupColor(position: Position): string {
-  const groupName = getPositionGroup(position);
-  switch (groupName) {
-    case 'Portero':
-      return '#FAC748'; // Yellow
-    case 'Defensa Central':
-    case 'Laterales':
-    case 'Pivote Defensivo':
-      return '#57A6FF'; // Blue
-    case 'Mediocentro':
-    case 'Interiores':
-    case 'Mediapunta':
-      return '#5DD972'; // Green
-    case 'Extremos':
-    case 'Segundo Delantero':
-    case 'Delantero Centro':
-      return '#FF6B6B'; // Red
-    default:
-      return 'hsl(var(--primary))';
-  }
-}
-
 export function getAverageColorClass(average: number): string {
   if (average >= 8.5) return 'text-green-400';
   if (average >= 7.5) return 'text-cyan-400';
   if (average >= 6.0) return 'text-yellow-400';
   return 'text-orange-400';
 }
-
-export function getAvailableStylesForPosition(position: Position, includeNinguno = false): PlayerStyle[] {
-    const baseStyles: PlayerStyle[] = includeNinguno ? ['Ninguno'] : [];
-
-    const gkStyles: PlayerStyle[] = ['Portero defensivo', 'Portero ofensivo'];
-    const fbStyles: PlayerStyle[] = ['Lateral defensivo', 'Lateral ofensivo', 'Lateral finalizador'];
-    const dfcStyles: PlayerStyle[] = ['El destructor', 'Creador de juego', 'Atacante extra'];
-    const mcdStyles: PlayerStyle[] = ['Omnipresente', 'Medio escudo', 'Organizador', 'El destructor'];
-    const mcStyles: PlayerStyle[] = ['Jugador de huecos', 'Omnipresente', 'Medio escudo', 'El destructor', 'Organizador', 'Creador de jugadas'];
-    const mdiMddStyles: PlayerStyle[] = ['Omnipresente', 'Jugador de huecos', 'Especialista en centros', 'Extremo móvil', 'Creador de jugadas'];
-    const moStyles: PlayerStyle[] = ['Creador de jugadas', 'Diez Clasico', 'Jugador de huecos', 'Señuelo'];
-    const sdStyles: PlayerStyle[] = ['Segundo delantero', 'Creador de jugadas', 'Diez Clasico', 'Jugador de huecos', 'Señuelo'];
-    const wingerStyles: PlayerStyle[] = ['Creador de jugadas', 'Extremo prolífico', 'Extremo móvil', 'Especialista en centros'];
-    const dcStyles: PlayerStyle[] = ['Cazagoles', 'Hombre de área', 'Señuelo', 'Hombre objetivo', 'Segundo delantero'];
-
-    if (position === 'PT') return [...baseStyles, ...gkStyles];
-    if (position === 'LI' || position === 'LD') return [...baseStyles, ...fbStyles];
-    if (position === 'DFC') return [...baseStyles, ...dfcStyles];
-    if (position === 'MCD') return [...baseStyles, ...mcdStyles];
-    if (position === 'MC') return [...baseStyles, ...mcStyles];
-    if (position === 'MDI' || position === 'MDD') return [...baseStyles, ...mdiMddStyles];
-    if (position === 'MO') return [...baseStyles, ...moStyles];
-    if (position === 'SD') return [...baseStyles, ...sdStyles];
-    if (position === 'EXI' || position === 'EXD') return [...baseStyles, ...wingerStyles];
-    if (position === 'DC') return [...baseStyles, ...dcStyles];
-    
-    return baseStyles;
-}
-
 
 export function normalizeText(text: string): string {
   if (!text) return '';
@@ -112,6 +60,8 @@ export function getAffinityScoreFromBuild(
     return 0;
   }
   
+  // Directly use the position to look up the build.
+  // The useIdealBuilds hook is now responsible for propagating group builds to individual positions.
   const idealBuild = idealBuilds[position]?.[style];
 
   if (!playerBuild || !idealBuild || Object.keys(playerBuild).length === 0 || Object.keys(idealBuild).length === 0) {

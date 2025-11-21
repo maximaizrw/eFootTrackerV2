@@ -1,13 +1,11 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase-config';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { useToast } from './use-toast';
-import type { IdealBuilds, Position, PositionGroupName } from '@/lib/types';
+import type { IdealBuilds, Position, PlayerStyle, PositionGroupName } from '@/lib/types';
 import { positions, getAvailableStylesForPosition, positionGroups, getPositionGroup } from '@/lib/types';
-
 
 const generateInitialIdealBuilds = (): IdealBuilds => {
   const initialBuilds = {} as IdealBuilds;
@@ -20,6 +18,13 @@ const generateInitialIdealBuilds = (): IdealBuilds => {
   }
   return initialBuilds;
 };
+
+type DbIdealBuilds = {
+    [key in PositionGroupName]?: {
+        [key in PlayerStyle]?: IdealBuilds[Position][PlayerStyle];
+    };
+};
+
 
 export function useIdealBuilds() {
   const [idealBuilds, setIdealBuilds] = useState<IdealBuilds>(generateInitialIdealBuilds());
@@ -41,28 +46,27 @@ export function useIdealBuilds() {
       try {
         const emptyShell = generateInitialIdealBuilds();
         if (docSnap.exists()) {
-          const dataFromDb = docSnap.data() as Partial<IdealBuilds>;
+          const dataFromDb = docSnap.data() as DbIdealBuilds;
           
-          // Deep merge to ensure all positions and styles are present
-           for (const pos of positions) {
-            const group = getPositionGroup(pos);
-            const representativePos = positionGroups[group][0];
-            const buildForGroup = dataFromDb[representativePos];
+          // Propagate builds from groups to individual positions
+          for (const groupName in dataFromDb) {
+            const groupKey = groupName as PositionGroupName;
+            const positionsInGroup = positionGroups[groupKey];
+            const buildsForGroup = dataFromDb[groupKey];
 
-            if (buildForGroup) {
-               for (const style of getAvailableStylesForPosition(pos, true)) {
-                 if (buildForGroup[style]) {
-                   emptyShell[pos][style] = {
-                    ...emptyShell[pos][style],
-                    ...buildForGroup[style],
-                  };
-                 }
-               }
+            if (positionsInGroup && buildsForGroup) {
+              for (const pos of positionsInGroup) {
+                for (const style in buildsForGroup) {
+                  const styleKey = style as PlayerStyle;
+                   if (emptyShell[pos] && styleKey in emptyShell[pos]) {
+                     emptyShell[pos][styleKey] = buildsForGroup[styleKey];
+                   }
+                }
+              }
             }
           }
-           setIdealBuilds(emptyShell);
+          setIdealBuilds(emptyShell);
         } else {
-          // If document doesn't exist, we use the empty shell
           setIdealBuilds(emptyShell);
         }
         setError(null);
@@ -92,17 +96,17 @@ export function useIdealBuilds() {
     return () => unsub();
   }, [toast]);
 
-  const saveIdealBuildsForPosition = async (representativePosition: Position, buildsForPosition: IdealBuilds[Position]) => {
+  const saveIdealBuildsForPosition = async (position: Position, buildsForPosition: IdealBuilds[Position]) => {
     if (!db) {
         toast({ variant: "destructive", title: "Error de Conexión", description: "No se puede conectar a la base de datos." });
         return;
     }
     try {
       const docRef = doc(db, 'idealBuilds', 'user_default');
-      const positionGroup = getPositionGroup(representativePosition);
+      const positionGroup = getPositionGroup(position);
       
       const dataToUpdate = {
-        [representativePosition]: buildsForPosition
+        [positionGroup]: buildsForPosition
       };
       
       await setDoc(docRef, dataToUpdate, { merge: true });
