@@ -46,6 +46,12 @@ export function useIdealBuilds() {
         if (docSnap.exists()) {
           const dataFromDb = docSnap.data() as DbIdealBuilds;
           
+          // Newer versions store builds grouped by position groups, but older
+          // backups may use position codes directly. We hydrate both shapes to
+          // ensure affinities are calculated correctly regardless of the stored
+          // format.
+
+          // 1) Grouped by position group name (current format)
           for (const groupName in dataFromDb) {
             const groupKey = groupName as PositionGroupName;
             const positionsInGroup = positionGroups[groupKey] as readonly Position[] | undefined;
@@ -53,13 +59,26 @@ export function useIdealBuilds() {
 
             if (positionsInGroup && buildsForGroup) {
               for (const pos of positionsInGroup) {
-                 if (hydratedBuilds[pos]) {
-                     for (const style in buildsForGroup) {
-                        const styleKey = style as PlayerStyle;
-                        if (Object.prototype.hasOwnProperty.call(hydratedBuilds[pos], styleKey)) {
-                            hydratedBuilds[pos][styleKey] = buildsForGroup[styleKey];
-                        }
+                if (hydratedBuilds[pos]) {
+                  for (const style in buildsForGroup) {
+                    const styleKey = style as PlayerStyle;
+                    if (Object.prototype.hasOwnProperty.call(hydratedBuilds[pos], styleKey)) {
+                      hydratedBuilds[pos][styleKey] = buildsForGroup[styleKey];
                     }
+                  }
+                }
+              }
+            }
+          }
+
+          // 2) Directly keyed by position code (legacy format)
+          for (const pos of positions) {
+            const buildsForPosition = (dataFromDb as any)[pos];
+            if (buildsForPosition && hydratedBuilds[pos]) {
+              for (const style in buildsForPosition) {
+                const styleKey = style as PlayerStyle;
+                if (Object.prototype.hasOwnProperty.call(hydratedBuilds[pos], styleKey)) {
+                  hydratedBuilds[pos][styleKey] = buildsForPosition[styleKey];
                 }
               }
             }
