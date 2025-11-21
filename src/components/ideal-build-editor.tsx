@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Position, PlayerStyle, IdealBuilds, PlayerStatsBuild } from "@/lib/types";
-import { positions, playerStyles, getAvailableStylesForPosition } from "@/lib/types";
+import { positions, getAvailableStylesForPosition, playerStyles } from "@/lib/types";
 import { PlayerStatsEditor } from "./player-stats-editor";
 import { ScrollArea } from "./ui/scroll-area";
 
@@ -44,11 +44,40 @@ type IdealBuildEditorProps = {
   onSave: (builds: IdealBuilds) => void;
 };
 
+// Simplified positions for the UI
+const buildPositions = [
+  { label: 'PT', value: 'PT' },
+  { label: 'DFC', value: 'DFC' },
+  { label: 'Laterales (LI/LD)', value: 'Laterales' },
+  { label: 'MCD', value: 'MCD' },
+  { label: 'MC', value: 'MC' },
+  { label: 'Interiores (MDI/MDD)', value: 'Interiores' },
+  { label: 'MO', value: 'MO' },
+  { label: 'Extremos (EXI/EXD)', value: 'Extremos' },
+  { label: 'SD', value: 'SD' },
+  { label: 'DC', value: 'DC' },
+];
+
+const positionMap: Record<string, Position[]> = {
+  'PT': ['PT'],
+  'DFC': ['DFC'],
+  'Laterales': ['LI', 'LD'],
+  'MCD': ['MCD'],
+  'MC': ['MC'],
+  'Interiores': ['MDI', 'MDD'],
+  'MO': ['MO'],
+  'Extremos': ['EXI', 'EXD'],
+  'SD': ['SD'],
+  'DC': ['DC'],
+};
+
 export function IdealBuildEditor({ open, onOpenChange, initialBuilds, onSave }: IdealBuildEditorProps) {
-  const [selectedPosition, setSelectedPosition] = React.useState<Position>("DC");
+  const [selectedBuildPosition, setSelectedBuildPosition] = React.useState<string>("DC");
   const [selectedStyle, setSelectedStyle] = React.useState<PlayerStyle>("Cazagoles");
 
-  const availableStyles = React.useMemo(() => getAvailableStylesForPosition(selectedPosition, true), [selectedPosition]);
+  const representativePosition = positionMap[selectedBuildPosition][0];
+
+  const availableStyles = React.useMemo(() => getAvailableStylesForPosition(representativePosition, true), [representativePosition]);
 
   React.useEffect(() => {
     if (!availableStyles.includes(selectedStyle)) {
@@ -58,15 +87,14 @@ export function IdealBuildEditor({ open, onOpenChange, initialBuilds, onSave }: 
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
+    defaultValues: { builds: [] },
   });
 
-  const { fields, update } = useFieldArray({
+  const { fields, update, reset } = useFieldArray({
     control: form.control,
     name: "builds",
     keyName: "fieldId",
   });
-  
-  const { reset } = form;
 
   React.useEffect(() => {
     if (open) {
@@ -101,9 +129,21 @@ export function IdealBuildEditor({ open, onOpenChange, initialBuilds, onSave }: 
     onSave(buildsObject);
     onOpenChange(false);
   };
+  
+  const handleBuildChange = (newBuild: PlayerStatsBuild) => {
+    const targetPositions = positionMap[selectedBuildPosition];
+    targetPositions.forEach(pos => {
+      const indexToUpdate = fields.findIndex(
+        field => field.position === pos && field.style === selectedStyle
+      );
+      if (indexToUpdate !== -1) {
+        update(indexToUpdate, { ...fields[indexToUpdate], stats: newBuild });
+      }
+    });
+  };
 
   const selectedIndex = fields.findIndex(
-    field => field.position === selectedPosition && field.style === selectedStyle
+    field => field.position === representativePosition && field.style === selectedStyle
   );
 
   return (
@@ -112,7 +152,7 @@ export function IdealBuildEditor({ open, onOpenChange, initialBuilds, onSave }: 
         <DialogHeader>
           <DialogTitle>Editor de "Builds" Ideales</DialogTitle>
           <DialogDescription>
-            Configura la "build" ideal para cada combinación de posición y estilo de juego.
+            Configura la "build" ideal para cada combinación de posición y estilo de juego. Los cambios en posiciones simétricas (ej. Laterales) se aplicarán a ambos lados.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -120,12 +160,12 @@ export function IdealBuildEditor({ open, onOpenChange, initialBuilds, onSave }: 
             <div className="flex-shrink-0 mb-4 grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium">Posición</label>
-                <Select value={selectedPosition} onValueChange={pos => setSelectedPosition(pos as Position)}>
+                <Select value={selectedBuildPosition} onValueChange={pos => setSelectedBuildPosition(pos as string)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecciona una posición" />
                   </SelectTrigger>
                   <SelectContent>
-                    {positions.map(pos => <SelectItem key={pos} value={pos}>{pos}</SelectItem>)}
+                    {buildPositions.map(pos => <SelectItem key={pos.value} value={pos.value}>{pos.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -146,10 +186,8 @@ export function IdealBuildEditor({ open, onOpenChange, initialBuilds, onSave }: 
               {selectedIndex !== -1 ? (
                  <ScrollArea className="h-full pr-6">
                     <PlayerStatsEditor
-                    playerBuild={fields[selectedIndex].stats}
-                    onBuildChange={(newBuild) => {
-                        update(selectedIndex, { ...fields[selectedIndex], stats: newBuild });
-                    }}
+                      playerBuild={fields[selectedIndex].stats}
+                      onBuildChange={handleBuildChange}
                     />
                 </ScrollArea>
               ) : (
