@@ -129,21 +129,21 @@ export function getAffinityScoreFromBuild(playerBuild?: PlayerStatsBuild, idealB
     const playerStat = playerBuild[attr];
     const idealStat = idealBuild[attr];
     
-    // If either stat is missing or ideal is 0, this attribute doesn't contribute to the score.
     if (playerStat === undefined || idealStat === undefined || idealStat === 0) {
       continue;
     }
 
     const diff = playerStat - idealStat;
     
+    let statScore = 0;
     if (diff >= 5) {
-      const blocks = Math.floor(diff / 5);
-      totalScore += blocks * 0.25;
+        const blocks = Math.floor(diff / 5);
+        statScore = blocks * 0.25;
     } else if (diff <= -5) {
-      const blocks = Math.floor(Math.abs(diff) / 5);
-      totalScore += diff * (1 + 0.25 * blocks);
+        const blocks = Math.floor(Math.abs(diff) / 5);
+        statScore = diff * (1 + 0.25 * blocks);
     }
-    // If the difference is between -4 and 4, the statScore is 0, so we do nothing.
+    totalScore += statScore;
   }
 
   return 100 + totalScore;
