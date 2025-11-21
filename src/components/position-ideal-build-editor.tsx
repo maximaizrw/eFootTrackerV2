@@ -19,8 +19,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Position, PlayerStyle, IdealBuilds, PlayerBuild, PlayerStatsBuild, PositionGroupName } from "@/lib/types";
-import { positionGroups } from "@/lib/types";
-import { getPositionGroup, getAvailableStylesForPosition } from "@/lib/utils";
+import { positionGroups, getPositionGroup } from "@/lib/types";
+import { getAvailableStylesForPosition } from "@/lib/utils";
 import { PlayerStatsEditor } from "./player-stats-editor";
 import { ScrollArea } from "./ui/scroll-area";
 
@@ -54,10 +54,10 @@ export function PositionIdealBuildEditor({
 
   React.useEffect(() => {
     if (open) {
-        // Since useIdealBuilds now propagates group builds to all positions in the group,
-        // we can safely get the builds from the currently active position.
-        const buildsForCurrentPos = initialBuilds[position] || {};
-        setBuilds(buildsForCurrentPos);
+        const currentGroup = getPositionGroup(position);
+        const representativePosition = positionGroups[currentGroup][0];
+        const buildsForGroup = initialBuilds[representativePosition] || {};
+        setBuilds(buildsForGroup);
         
         if (availableStyles.length > 0 && !availableStyles.includes(selectedStyle)) {
             setSelectedStyle(availableStyles[0]);
@@ -73,7 +73,6 @@ export function PositionIdealBuildEditor({
   
 
   const onSubmit = () => {
-    // We get the group name and save the builds under that group name.
     const groupName = getPositionGroup(position);
     onSave(groupName, builds);
     onOpenChange(false);

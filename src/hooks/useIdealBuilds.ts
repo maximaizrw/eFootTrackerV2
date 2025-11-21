@@ -6,7 +6,8 @@ import { db } from '@/lib/firebase-config';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import type { IdealBuilds, Position, PlayerStyle, PositionGroupName, DbIdealBuilds } from '@/lib/types';
-import { positions, positionGroups, getAvailableStylesForPosition, getPositionGroup } from '@/lib/types';
+import { positions, positionGroups } from '@/lib/types';
+import { getAvailableStylesForPosition, getPositionGroup } from '@/lib/utils';
 
 
 const generateInitialIdealBuilds = (): IdealBuilds => {
@@ -40,12 +41,11 @@ export function useIdealBuilds() {
 
     const unsub = onSnapshot(docRef, (docSnap) => {
       try {
-        const fullyHydratedBuilds = generateInitialIdealBuilds();
+        const hydratedBuilds = generateInitialIdealBuilds();
         
         if (docSnap.exists()) {
           const dataFromDb = docSnap.data() as DbIdealBuilds;
           
-          // Propagate builds from groups to individual positions
           for (const groupName in dataFromDb) {
             const groupKey = groupName as PositionGroupName;
             const positionsInGroup = positionGroups[groupKey] as readonly Position[] | undefined;
@@ -53,13 +53,11 @@ export function useIdealBuilds() {
 
             if (positionsInGroup && buildsForGroup) {
               for (const pos of positionsInGroup) {
-                 if (fullyHydratedBuilds[pos]) {
-                    // This ensures we merge with the existing structure for the position.
-                    // Merging the builds for each style within the group
+                 if (hydratedBuilds[pos]) {
                      for (const style in buildsForGroup) {
                         const styleKey = style as PlayerStyle;
-                        if (fullyHydratedBuilds[pos][styleKey]) {
-                            fullyHydratedBuilds[pos][styleKey] = buildsForGroup[styleKey];
+                        if (Object.prototype.hasOwnProperty.call(hydratedBuilds[pos], styleKey)) {
+                            hydratedBuilds[pos][styleKey] = buildsForGroup[styleKey];
                         }
                     }
                 }
@@ -68,7 +66,7 @@ export function useIdealBuilds() {
           }
         }
         
-        setIdealBuilds(fullyHydratedBuilds);
+        setIdealBuilds(hydratedBuilds);
         setError(null);
       } catch (err) {
         console.error("Error processing ideal builds snapshot: ", err);
