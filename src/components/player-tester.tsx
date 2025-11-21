@@ -18,7 +18,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { PlayerStatsEditor } from "./player-stats-editor";
-import type { IdealBuilds, PlayerStatsBuild, Position, PlayerStyle } from "@/lib/types";
+import type { IdealBuilds, PlayerBuild, PlayerStyle } from "@/lib/types";
 import { getAvailableStylesForPosition } from "@/lib/types";
 import { getAffinityScoreFromBuild } from "@/lib/utils";
 import { Beaker, Check, ChevronsUpDown } from "lucide-react";
@@ -54,11 +54,11 @@ const buildPositions = [
 ];
 
 export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
-  const [playerBuild, setPlayerBuild] = React.useState<PlayerStatsBuild>({});
+  const [playerBuild, setPlayerBuild] = React.useState<PlayerBuild>({ stats: {}, progression: {} });
   const [affinityResults, setAffinityResults] = React.useState<AffinityResult[]>([]);
   const [selectedPositions, setSelectedPositions] = React.useState<Set<string>>(new Set(buildPositions.map(p => p.label)));
 
-  const handleBuildChange = (newBuild: PlayerStatsBuild) => {
+  const handleBuildChange = (newBuild: PlayerBuild) => {
     setPlayerBuild(newBuild);
   };
   
@@ -75,7 +75,7 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
   };
 
   React.useEffect(() => {
-    if (Object.keys(playerBuild).length === 0) {
+    if (Object.keys(playerBuild.stats).length === 0) {
       setAffinityResults([]);
       return;
     }
@@ -89,7 +89,7 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
       const stylesForPos = getAvailableStylesForPosition(representativePosition, false); // No "Ninguno"
       
       stylesForPos.forEach(style => {
-        const affinity = getAffinityScoreFromBuild(playerBuild, representativePosition, style, idealBuilds);
+        const affinity = getAffinityScoreFromBuild(playerBuild.stats, representativePosition, style, idealBuilds);
         if (affinity > 0) {
             results.push({ positionLabel: label, style, affinity });
         }
