@@ -30,6 +30,7 @@ import { PlayerTable } from '@/components/player-table';
 import { PositionIcon } from '@/components/position-icon';
 import { NationalityDistribution } from '@/components/nationality-distribution';
 import { IdealBuildEditor } from '@/components/ideal-build-editor';
+import { PlayerTester } from '@/components/player-tester';
 
 import { usePlayers } from '@/hooks/usePlayers';
 import { useFormations } from '@/hooks/useFormations';
@@ -37,7 +38,7 @@ import { useToast } from "@/hooks/use-toast";
 
 import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerStatsBuild, PlayerStyle, IdealBuilds } from '@/lib/types';
 import { positions, leagues, nationalities, playerAttributes, playerStyles, getAvailableStylesForPosition } from '@/lib/types';
-import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Wrench } from 'lucide-react';
+import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Wrench, Beaker } from 'lucide-react';
 import { calculateStats, normalizeText, getAffinityScoreFromBuild, calculateGeneralScore } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -499,6 +500,10 @@ export default function Home() {
                   <Globe className="mr-2 h-5 w-5"/>
                   Nacionalidades
               </TabsTrigger>
+              <TabsTrigger value="probar-jugador" className="py-2 px-3 text-sm data-[state=active]:text-accent-foreground data-[state=active]:bg-accent">
+                  <Beaker className="mr-2 h-5 w-5"/>
+                  Probar Jugador
+              </TabsTrigger>
             </TabsList>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
@@ -684,10 +689,12 @@ export default function Home() {
             <NationalityDistribution players={allPlayers} />
           </TabsContent>
 
+          <TabsContent value="probar-jugador" className="mt-6">
+            <PlayerTester idealBuilds={idealBuilds} />
+          </TabsContent>
+
         </Tabs>
       </main>
     </div>
   );
 }
-
-  
