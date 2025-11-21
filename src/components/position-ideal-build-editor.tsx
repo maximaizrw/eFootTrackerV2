@@ -18,7 +18,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Position, PlayerStyle, IdealBuilds, PlayerBuild, PlayerStatsBuild, PositionGroupName } from "@/lib/types";
-import { getAvailableStylesForPosition, getPositionGroup } from "@/lib/types";
+import { getAvailableStylesForPosition, positionGroups } from "@/lib/types";
+import { getPositionGroup } from "@/lib/utils";
 import { PlayerStatsEditor } from "./player-stats-editor";
 import { ScrollArea } from "./ui/scroll-area";
 
@@ -85,7 +86,6 @@ export function PositionIdealBuildEditor({
   };
 
   const currentBuildStats: PlayerStatsBuild = builds[selectedStyle] || {};
-  const { positionGroups } = require('@/lib/types');
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

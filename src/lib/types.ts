@@ -61,13 +61,35 @@ export type PlayerBuild = {
   updatedAt?: string;
 };
 
+export const positionGroups = {
+  'Portero': ['PT'] as const,
+  'Defensa Central': ['DFC'] as const,
+  'Laterales': ['LI', 'LD'] as const,
+  'Pivote Defensivo': ['MCD'] as const,
+  'Mediocentro': ['MC'] as const,
+  'Interiores': ['MDI', 'MDD'] as const,
+  'Mediapunta': ['MO'] as const,
+  'Extremos': ['EXI', 'EXD'] as const,
+  'Segundo Delantero': ['SD'] as const,
+  'Delantero Centro': ['DC'] as const,
+} as const;
+
+export type PositionGroupName = keyof typeof positionGroups;
+
+export type DbIdealBuilds = {
+    [key in PositionGroupName]?: {
+        [key in PlayerStyle]?: PlayerStatsBuild;
+    };
+};
+
 export type IdealBuilds = {
     [key in Position]: {
         [key in PlayerStyle]?: PlayerStatsBuild;
     };
 };
 
-export type PositionCard = {
+
+export type PlayerCard = {
   id: string;
   name: string; // e.g., "Highlight", "Player of the Week"
   style: PlayerStyle;
@@ -213,7 +235,7 @@ export type PlayerPerformance = {
     isHotStreak: boolean;
     isConsistent: boolean;
     isPromising: boolean;
-isVersatile: boolean;
+    isVersatile: boolean;
 };
 
 export type FlatPlayer = {
@@ -227,33 +249,6 @@ export type FlatPlayer = {
 };
 
 // --- Funciones de utilidad movidas aquí para evitar importaciones circulares ---
-
-export const positionGroups = {
-  'Portero': ['PT'],
-  'Defensa Central': ['DFC'],
-  'Laterales': ['LI', 'LD'],
-  'Pivote Defensivo': ['MCD'],
-  'Mediocentro': ['MC'],
-  'Interiores': ['MDI', 'MDD'],
-  'Mediapunta': ['MO'],
-  'Extremos': ['EXI', 'EXD'],
-  'Segundo Delantero': ['SD'],
-  'Delantero Centro': ['DC'],
-} as const;
-
-export type PositionGroupName = keyof typeof positionGroups;
-
-export function getPositionGroup(position: Position): PositionGroupName {
-  for (const groupName in positionGroups) {
-    const typedGroupName = groupName as PositionGroupName;
-    if ((positionGroups[typedGroupName] as readonly Position[]).includes(position)) {
-      return typedGroupName;
-    }
-  }
-  // Fallback for safety, though it should never be reached with valid positions
-  return 'Delantero Centro'; 
-}
-
 
 export function getAvailableStylesForPosition(position: Position, includeNinguno = false): PlayerStyle[] {
     const baseStyles: PlayerStyle[] = includeNinguno ? ['Ninguno'] : [];
@@ -269,16 +264,17 @@ export function getAvailableStylesForPosition(position: Position, includeNinguno
     const wingerStyles: PlayerStyle[] = ['Creador de jugadas', 'Extremo prolífico', 'Extremo móvil', 'Especialista en centros'];
     const dcStyles: PlayerStyle[] = ['Cazagoles', 'Hombre de área', 'Señuelo', 'Hombre objetivo', 'Segundo delantero'];
 
-    if (position === 'PT') return [...baseStyles, ...gkStyles];
-    if (position === 'LI' || position === 'LD') return [...baseStyles, ...fbStyles];
-    if (position === 'DFC') return [...baseStyles, ...dfcStyles];
-    if (position === 'MCD') return [...baseStyles, ...mcdStyles];
-    if (position === 'MC') return [...baseStyles, ...mcStyles];
-    if (position === 'MDI' || position === 'MDD') return [...baseStyles, ...mdiMddStyles];
-    if (position === 'MO') return [...baseStyles, ...moStyles];
-    if (position === 'SD') return [...baseStyles, ...sdStyles];
-    if (position === 'EXI' || position === 'EXD') return [...baseStyles, ...wingerStyles];
-    if (position === 'DC') return [...baseStyles, ...dcStyles];
-    
-    return baseStyles;
+    switch (position) {
+        case 'PT': return [...baseStyles, ...gkStyles];
+        case 'LI': case 'LD': return [...baseStyles, ...fbStyles];
+        case 'DFC': return [...baseStyles, ...dfcStyles];
+        case 'MCD': return [...baseStyles, ...mcdStyles];
+        case 'MC': return [...baseStyles, ...mcStyles];
+        case 'MDI': case 'MDD': return [...baseStyles, ...mdiMddStyles];
+        case 'MO': return [...baseStyles, ...moStyles];
+        case 'SD': return [...baseStyles, ...sdStyles];
+        case 'EXI': case 'EXD': return [...baseStyles, ...wingerStyles];
+        case 'DC': return [...baseStyles, ...dcStyles];
+        default: return baseStyles;
+    }
 }

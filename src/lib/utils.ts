@@ -1,8 +1,8 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { Position, PlayerStyle, PlayerRatingStats, PlayerStatsBuild, PlayerAttribute, IdealBuilds } from "./types";
-import { playerAttributes } from "./types";
+import type { Position, PlayerStyle, PlayerRatingStats, PlayerStatsBuild, PlayerAttribute, IdealBuilds, PositionGroupName } from "./types";
+import { playerAttributes, positionGroups } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -48,6 +48,17 @@ export function normalizeText(text: string): string {
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/([A-Z])/g, ' $1');
+}
+
+export function getPositionGroup(position: Position): PositionGroupName {
+  for (const groupName in positionGroups) {
+    const typedGroupName = groupName as PositionGroupName;
+    if ((positionGroups[typedGroupName] as readonly Position[]).includes(position)) {
+      return typedGroupName;
+    }
+  }
+  // This should not happen with valid Position types
+  throw new Error(`Could not find group for position: ${position}`);
 }
 
 
