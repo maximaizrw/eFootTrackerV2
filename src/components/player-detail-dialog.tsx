@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { PlayerStatsEditor } from "./player-stats-editor";
 import { AffinityCalculationTable } from "./affinity-calculation-table";
+import { ScrollArea } from "./ui/scroll-area";
 
 type PlayerDetailDialogProps = {
   open: boolean;
@@ -72,17 +73,19 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
             <CardHeader>
               <CardTitle>Análisis de Afinidad vs. Build Ideal de {position}</CardTitle>
             </CardHeader>
-            <CardContent className="flex-grow overflow-y-auto">
-               {idealBuildForPosition ? (
-                  <AffinityCalculationTable
-                    playerBuild={currentBuild}
-                    idealBuild={idealBuildForPosition}
-                  />
-                ) : (
-                  <div className="text-center text-muted-foreground p-8">
-                    No se ha definido una "Build Ideal" para la posición de {position}.
-                  </div>
-                )}
+            <CardContent className="flex-grow overflow-hidden flex flex-col">
+               <ScrollArea className="flex-grow pr-6">
+                {idealBuildForPosition ? (
+                    <AffinityCalculationTable
+                      playerBuild={currentBuild}
+                      idealBuild={idealBuildForPosition}
+                    />
+                  ) : (
+                    <div className="text-center text-muted-foreground p-8">
+                      No se ha definido una "Build Ideal" para la posición de {position}.
+                    </div>
+                  )}
+               </ScrollArea>
             </CardContent>
           </Card>
         </div>
