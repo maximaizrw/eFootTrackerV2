@@ -55,10 +55,27 @@ export function PositionIdealBuildEditor({
   React.useEffect(() => {
     if (open) {
         const currentGroup = getPositionGroup(position);
-        const representativePosition = positionGroups[currentGroup][0];
-        const buildsForGroup = initialBuilds[representativePosition] || {};
-        setBuilds(buildsForGroup);
-        
+        const positionsInGroup = positionGroups[currentGroup];
+
+        const mergedBuilds = positionsInGroup.reduce<IdealBuilds[Position]>((acc, pos) => {
+          const buildsForPos = initialBuilds[pos] || {};
+
+          for (const styleKey of Object.keys(buildsForPos) as PlayerStyle[]) {
+            const stats = buildsForPos[styleKey];
+
+            // Reutilizamos el primer set de stats no vacío que encontremos
+            // para cada estilo del grupo, evitando perder builds guardadas
+            // en cualquiera de las posiciones (p. ej., LD o LI).
+            if (!acc[styleKey] || Object.keys(acc[styleKey] ?? {}).length === 0) {
+              acc[styleKey] = stats ?? {};
+            }
+          }
+
+          return acc;
+        }, {} as IdealBuilds[Position]);
+
+        setBuilds(mergedBuilds);
+
         if (availableStyles.length > 0 && !availableStyles.includes(selectedStyle)) {
             setSelectedStyle(availableStyles[0]);
         }
