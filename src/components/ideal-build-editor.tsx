@@ -2,9 +2,7 @@
 "use client";
 
 import * as React from "react";
-import { useForm, useFieldArray } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { useForm } from "react-hook-form";
 import {
   Dialog,
   DialogContent,
@@ -14,7 +12,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Form } from "@/components/ui/form";
 import {
   Select,
   SelectContent,
@@ -23,19 +20,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Position, PlayerStyle, IdealBuilds, PlayerBuild } from "@/lib/types";
-import { positions, getAvailableStylesForPosition, playerStyles } from "@/lib/types";
+import { positions, getAvailableStylesForPosition } from "@/lib/types";
 import { PlayerStatsEditor } from "./player-stats-editor";
 import { ScrollArea } from "./ui/scroll-area";
-
-const formSchema = z.object({
-  builds: z.array(z.object({
-    position: z.enum(positions),
-    style: z.enum(playerStyles),
-    stats: z.any(), // Simplified for form handling
-  }))
-});
-
-type FormValues = z.infer<typeof formSchema>;
 
 type IdealBuildEditorProps = {
   open: boolean;
@@ -74,10 +61,20 @@ const positionMap: Record<string, Position[]> = {
 export function IdealBuildEditor({ open, onOpenChange, initialBuilds, onSave }: IdealBuildEditorProps) {
   const [selectedBuildPosition, setSelectedBuildPosition] = React.useState<string>("DC");
   const [selectedStyle, setSelectedStyle] = React.useState<PlayerStyle>("Cazagoles");
+  const [builds, setBuilds] = React.useState<IdealBuilds>(initialBuilds);
 
   const representativePosition = positionMap[selectedBuildPosition]?.[0] || 'DC';
 
   const availableStyles = React.useMemo(() => getAvailableStylesForPosition(representativePosition, true), [representativePosition]);
+  
+  const form = useForm();
+
+  React.useEffect(() => {
+    if (open) {
+      // Deep copy initialBuilds to avoid mutating the original prop
+      setBuilds(JSON.parse(JSON.stringify(initialBuilds)));
+    }
+  }, [open, initialBuilds]);
 
   React.useEffect(() => {
     if (!availableStyles.includes(selectedStyle)) {
@@ -85,70 +82,29 @@ export function IdealBuildEditor({ open, onOpenChange, initialBuilds, onSave }: 
     }
   }, [availableStyles, selectedStyle]);
   
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: { builds: [] },
-  });
 
-  const { fields, update } = useFieldArray({
-    control: form.control,
-    name: "builds",
-    keyName: "fieldId",
-  });
-  
-  const { reset } = form;
-
-  React.useEffect(() => {
-    if (open) {
-      const buildsArray = [];
-      for (const pos of positions) {
-        const stylesForPos = getAvailableStylesForPosition(pos, true);
-        for (const style of stylesForPos) {
-          buildsArray.push({
-            position: pos,
-            style: style,
-            stats: initialBuilds[pos]?.[style] || {},
-          });
-        }
-      }
-      reset({ builds: buildsArray });
-    }
-  }, [open, initialBuilds, reset]);
-
-  const onSubmit = (data: FormValues) => {
-    const buildsObject = {} as IdealBuilds;
-    positions.forEach(pos => {
-      buildsObject[pos] = {};
-    });
-
-    data.builds.forEach(build => {
-      if (!buildsObject[build.position]) {
-        buildsObject[build.position] = {};
-      }
-      buildsObject[build.position][build.style] = build.stats;
-    });
-
-    onSave(buildsObject);
+  const onSubmit = () => {
+    onSave(builds);
     onOpenChange(false);
   };
   
-  const handleBuildChange = (newBuild: PlayerStatsBuild) => {
-    const targetPositions = positionMap[selectedBuildPosition];
-    targetPositions.forEach(pos => {
-      const indexToUpdate = fields.findIndex(
-        field => field.position === pos && field.style === selectedStyle
-      );
-      if (indexToUpdate !== -1) {
-        // Deep copy the object to avoid reference issues
-        const clonedBuild = JSON.parse(JSON.stringify(newBuild));
-        update(indexToUpdate, { ...fields[indexToUpdate], stats: clonedBuild });
-      }
+  const handleBuildChange = (newBuild: PlayerBuild) => {
+    setBuilds(prevBuilds => {
+        const newBuildsState = { ...prevBuilds };
+        const targetPositions = positionMap[selectedBuildPosition];
+
+        targetPositions.forEach(pos => {
+            if (!newBuildsState[pos]) {
+                newBuildsState[pos] = {};
+            }
+            newBuildsState[pos][selectedStyle] = newBuild.stats;
+        });
+
+        return newBuildsState;
     });
   };
 
-  const selectedIndex = fields.findIndex(
-    field => field.position === representativePosition && field.style === selectedStyle
-  );
+  const currentBuild = builds[representativePosition]?.[selectedStyle] || {};
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -159,8 +115,7 @@ export function IdealBuildEditor({ open, onOpenChange, initialBuilds, onSave }: 
             Configura la "build" ideal para cada combinación de posición y estilo de juego. Los cambios en posiciones simétricas (ej. Laterales) se aplicarán a ambos lados.
           </DialogDescription>
         </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex-grow flex flex-col overflow-hidden">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="flex-grow flex flex-col overflow-hidden">
             <div className="flex-shrink-0 mb-4 grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium">Posición</label>
@@ -187,25 +142,18 @@ export function IdealBuildEditor({ open, onOpenChange, initialBuilds, onSave }: 
             </div>
             
             <div className="flex-grow overflow-hidden">
-              {selectedIndex !== -1 ? (
-                 <ScrollArea className="h-full pr-6">
+                <ScrollArea className="h-full pr-6">
                     <PlayerStatsEditor
-                      playerBuild={{stats: fields[selectedIndex].stats, progression: {}}}
-                      onBuildChange={(build) => handleBuildChange(build.stats)}
+                      playerBuild={{stats: currentBuild, progression: {}}}
+                      onBuildChange={handleBuildChange}
                     />
                 </ScrollArea>
-              ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
-                  Selecciona una posición y estilo para editar la build.
-                </div>
-              )}
             </div>
 
             <DialogFooter className="flex-shrink-0 bg-background/95 py-4 border-t -mx-6 px-6 mt-4">
               <Button type="submit">Guardar Todas las Builds</Button>
             </DialogFooter>
           </form>
-        </Form>
       </DialogContent>
     </Dialog>
   );

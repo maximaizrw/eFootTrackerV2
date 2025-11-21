@@ -5,19 +5,19 @@ import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase-config';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { useToast } from './use-toast';
-import type { IdealBuilds, Position, PlayerStyle } from '@/lib/types';
+import type { IdealBuilds } from '@/lib/types';
 import { positions, getAvailableStylesForPosition } from '@/lib/types';
 
 const generateInitialIdealBuilds = (): IdealBuilds => {
-  const initialBuilds: Partial<IdealBuilds> = {};
+  const initialBuilds = {} as IdealBuilds;
   for (const pos of positions) {
     initialBuilds[pos] = {};
     const availableStyles = getAvailableStylesForPosition(pos, true);
     for (const style of availableStyles) {
-      initialBuilds[pos]![style] = {};
+      initialBuilds[pos][style] = {};
     }
   }
-  return initialBuilds as IdealBuilds;
+  return initialBuilds;
 };
 
 export function useIdealBuilds() {
@@ -38,26 +38,26 @@ export function useIdealBuilds() {
 
     const unsub = onSnapshot(docRef, (docSnap) => {
       try {
-        const initialBuilds = generateInitialIdealBuilds();
+        const emptyShell = generateInitialIdealBuilds();
         if (docSnap.exists()) {
-          const dataFromDb = docSnap.data() as IdealBuilds;
+          const dataFromDb = docSnap.data() as Partial<IdealBuilds>;
           // Deep merge to ensure all positions and styles are present
-          for (const pos of positions) {
+           for (const pos of positions) {
             if (dataFromDb[pos]) {
               for (const style of getAvailableStylesForPosition(pos, true)) {
-                if (dataFromDb[pos][style]) {
-                  initialBuilds[pos][style] = {
-                    ...initialBuilds[pos][style],
-                    ...dataFromDb[pos][style],
+                if (dataFromDb[pos]![style]) {
+                  emptyShell[pos][style] = {
+                    ...emptyShell[pos][style],
+                    ...dataFromDb[pos]![style],
                   };
                 }
               }
             }
           }
-          setIdealBuilds(initialBuilds);
+           setIdealBuilds(emptyShell);
         } else {
           // If document doesn't exist, we use the empty shell
-          setIdealBuilds(initialBuilds);
+          setIdealBuilds(emptyShell);
         }
         setError(null);
       } catch (err) {
@@ -95,7 +95,7 @@ export function useIdealBuilds() {
       const docRef = doc(db, 'idealBuilds', 'user_default');
       // Create a deep copy to avoid issues with shared object references before saving
       const buildsToSave = JSON.parse(JSON.stringify(newBuilds));
-      await setDoc(docRef, buildsToSave);
+      await setDoc(docRef, buildsToSave, { merge: true });
       toast({
         title: "Builds Ideales Guardadas",
         description: "Tus configuraciones se han guardado en la base de datos.",
