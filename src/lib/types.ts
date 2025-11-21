@@ -76,8 +76,13 @@ export const positionGroups = {
 
 export type PositionGroupName = keyof typeof positionGroups;
 
+// Data model stored in Firestore for ideal builds. Historically, the app stored
+// the builds grouped by position group names (e.g. "Portero"), but some
+// existing documents may still be keyed directly by position codes (e.g. "PT"
+// or "DFC"). We support both shapes to keep backward compatibility with
+// earlier backups.
 export type DbIdealBuilds = {
-    [key in PositionGroupName]?: {
+    [key in PositionGroupName | Position]?: {
         [key in PlayerStyle]?: PlayerStatsBuild;
     };
 };
