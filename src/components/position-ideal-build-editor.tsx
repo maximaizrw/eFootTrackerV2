@@ -19,8 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Position, PlayerStyle, IdealBuilds, PlayerBuild, PlayerStatsBuild, PositionGroupName, DbIdealBuilds } from "@/lib/types";
-import { getPositionGroup } from "@/lib/types";
-import { getAvailableStylesForPosition } from "@/lib/utils";
+import { getPositionGroup, getAvailableStylesForPosition } from "@/lib/types";
 import { PlayerStatsEditor } from "./player-stats-editor";
 import { ScrollArea } from "./ui/scroll-area";
 

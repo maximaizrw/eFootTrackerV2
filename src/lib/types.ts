@@ -263,6 +263,37 @@ export function getPositionGroup(position: Position): PositionGroupName | null {
       return typedGroupName;
     }
   }
-  // This should not happen with valid Position types
-  throw new Error(`Could not find group for position: ${position}`);
+  return null;
+}
+
+export function getAvailableStylesForPosition(position: Position, includeNone: boolean = false): PlayerStyle[] {
+    const baseStyles: PlayerStyle[] = includeNone ? ['Ninguno'] : [];
+
+    switch (position) {
+        case 'PT':
+            return [...baseStyles, 'Portero defensivo', 'Portero ofensivo'];
+        case 'DFC':
+            return [...baseStyles, 'El destructor', 'Atacante extra', 'Creación'];
+        case 'LI':
+        case 'LD':
+            return [...baseStyles, 'Lateral defensivo', 'Lateral ofensivo', 'Lateral finalizador', 'Especialista en centros'];
+        case 'MCD':
+            return [...baseStyles, 'El destructor', 'Medio escudo', 'Omnipresente', 'Atacante extra', 'Organizador'];
+        case 'MC':
+            return [...baseStyles, 'Jugador de huecos', 'Omnipresente', 'Creador de jugadas', 'Organizador', 'El destructor', 'Medio escudo'];
+        case 'MDI':
+        case 'MDD':
+            return [...baseStyles, 'Omnipresente', 'Especialista en centros', 'Creador de jugadas', 'Jugador de huecos'];
+        case 'MO':
+            return [...baseStyles, 'Jugador de huecos', 'Creador de jugadas', 'Diez Clasico', 'Extremo móvil'];
+        case 'EXI':
+        case 'EXD':
+            return [...baseStyles, 'Extremo móvil', 'Extremo prolífico', 'Especialista en centros', 'Creador de jugadas'];
+        case 'SD':
+            return [...baseStyles, 'Cazagoles', 'Jugador de huecos', 'Señuelo', 'Hombre objetivo', 'Diez Clasico', 'Extremo móvil'];
+        case 'DC':
+            return [...baseStyles, 'Cazagoles', 'Hombre de área', 'Señuelo', 'Hombre objetivo', 'Jugador de huecos', 'Extremo móvil'];
+        default:
+            return playerStyles;
+    }
 }
