@@ -50,7 +50,7 @@ const PlayerToken = ({
   };
   
   const handlePositionChange = (newPos: Position) => {
-    const isFlexible = (newPos === 'LI' || newPos === 'LD' || newPos === 'EXI' || newPos === 'EXD');
+    const isFlexible = (newPos === 'LI' || newPos === 'LD' || newPos === 'EXI' || newPos === 'EXD' || newPos === 'MDI' || newPos === 'MDD');
     if (isFlexible && Array.isArray(slot.position) && slot.position.includes(newPos)) {
          onSlotChange({ ...slot, position: newPos, styles: [] });
     } else {
@@ -66,14 +66,21 @@ const PlayerToken = ({
       onSlotChange({ ...slot, position: ['LI', 'LD'] });
     } else if (currentPos === 'EXI' || currentPos === 'EXD') {
       onSlotChange({ ...slot, position: ['EXI', 'EXD'] });
+    } else if (currentPos === 'MDI' || currentPos === 'MDD') {
+        onSlotChange({ ...slot, position: ['MDI', 'MDD']});
     }
   };
 
   const isFlexible = Array.isArray(slot.position);
   const displayPosition = isFlexible ? slot.position.join('/') : slot.position;
   const currentSinglePos = isFlexible ? slot.position[0] : slot.position;
-  const canBeFlexible = currentSinglePos === 'LI' || currentSinglePos === 'LD' || currentSinglePos === 'EXI' || currentSinglePos === 'EXD';
-  const flexLabel = (currentSinglePos === 'LI' || currentSinglePos === 'LD') ? 'Lateral Flexible (LI/LD)' : 'Extremo Flexible (EXI/EXD)';
+  const canBeFlexible = currentSinglePos === 'LI' || currentSinglePos === 'LD' || currentSinglePos === 'EXI' || currentSinglePos === 'EXD' || currentSinglePos === 'MDI' || currentSinglePos === 'MDD';
+  
+  let flexLabel = '';
+  if (currentSinglePos === 'LI' || currentSinglePos === 'LD') flexLabel = 'Lateral Flexible (LI/LD)';
+  else if (currentSinglePos === 'EXI' || currentSinglePos === 'EXD') flexLabel = 'Extremo Flexible (EXI/EXD)';
+  else if (currentSinglePos === 'MDI' || currentSinglePos === 'MDD') flexLabel = 'Interior Flexible (MDI/MDD)';
+
 
   return (
     <div
