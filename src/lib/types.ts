@@ -1,7 +1,7 @@
 
 import * as z from "zod";
 
-export const playerStyles = ['Ninguno', 'Cazagoles', 'Señuelo', 'Hombre de área', 'Hombre objetivo', 'Creador de juego', 'El destructor', 'Portero defensivo', 'Portero ofensivo', 'Atacante extra', 'Lateral defensivo', 'Lateral ofensivo', 'Lateral finalizador', 'Omnipresente', 'Medio escudo', 'Organizador', 'Jugador de huecos', 'Especialista en centros', 'Extremo móvil', 'Creador de jugadas', 'Diez Clasico', 'Segundo delantero', 'Extremo prolífico'] as const;
+export const playerStyles = ['Ninguno', 'Cazagoles', 'Hombre de área', 'Señuelo', 'Hombre objetivo', 'Creador de juego', 'El destructor', 'Portero defensivo', 'Portero ofensivo', 'Atacante extra', 'Lateral defensivo', 'Lateral ofensivo', 'Lateral finalizador', 'Omnipresente', 'Medio escudo', 'Organizador', 'Jugador de huecos', 'Especialista en centros', 'Extremo móvil', 'Creador de jugadas', 'Diez Clasico', 'Segundo delantero', 'Extremo prolífico'] as const;
 export type PlayerStyle = typeof playerStyles[number];
 
 export const positions = ['PT', 'DFC', 'LI', 'LD', 'MCD', 'MC', 'MDI', 'MDD', 'MO', 'EXI', 'EXD', 'SD', 'DC'] as const;
@@ -228,6 +228,31 @@ export type FlatPlayer = {
 
 // --- Funciones de utilidad movidas aquí para evitar importaciones circulares ---
 
+export type PositionGroupName = keyof typeof positionGroups;
+
+export const positionGroups: Record<string, Position[]> = {
+  'Portero': ['PT'],
+  'Defensa Central': ['DFC'],
+  'Laterales': ['LI', 'LD'],
+  'Pivote Defensivo': ['MCD'],
+  'Mediocentro': ['MC'],
+  'Interiores': ['MDI', 'MDD'],
+  'Mediapunta': ['MO'],
+  'Extremos': ['EXI', 'EXD'],
+  'Segundo Delantero': ['SD'],
+  'Delantero Centro': ['DC'],
+};
+
+export function getPositionGroup(position: Position): PositionGroupName {
+  for (const groupName in positionGroups) {
+    if (positionGroups[groupName as PositionGroupName].includes(position)) {
+      return groupName as PositionGroupName;
+    }
+  }
+  return 'Delantero Centro'; // Fallback, should not happen
+}
+
+
 export function getAvailableStylesForPosition(position: Position, includeNinguno = false): PlayerStyle[] {
     const baseStyles: PlayerStyle[] = includeNinguno ? ['Ninguno'] : [];
 
@@ -240,7 +265,7 @@ export function getAvailableStylesForPosition(position: Position, includeNinguno
     const moStyles: PlayerStyle[] = ['Creador de jugadas', 'Diez Clasico', 'Jugador de huecos', 'Señuelo'];
     const sdStyles: PlayerStyle[] = ['Segundo delantero', 'Creador de jugadas', 'Diez Clasico', 'Jugador de huecos', 'Señuelo'];
     const wingerStyles: PlayerStyle[] = ['Creador de jugadas', 'Extremo prolífico', 'Extremo móvil', 'Especialista en centros'];
-    const dcStyles: PlayerStyle[] = ['Cazagoles', 'Señuelo', 'Hombre de área', 'Hombre objetivo', 'Segundo delantero'];
+    const dcStyles: PlayerStyle[] = ['Cazagoles', 'Hombre de área', 'Señuelo', 'Hombre objetivo', 'Segundo delantero'];
 
     if (position === 'PT') return [...baseStyles, ...gkStyles];
     if (position === 'LI' || position === 'LD') return [...baseStyles, ...fbStyles];

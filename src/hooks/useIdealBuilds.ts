@@ -5,9 +5,8 @@ import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase-config';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { useToast } from './use-toast';
-import type { IdealBuilds, Position } from '@/lib/types';
-import { positions, getAvailableStylesForPosition } from '@/lib/types';
-import { getPositionGroup, positionGroups } from '@/lib/utils';
+import type { IdealBuilds, Position, PositionGroupName } from '@/lib/types';
+import { positions, getAvailableStylesForPosition, positionGroups, getPositionGroup } from '@/lib/types';
 
 
 const generateInitialIdealBuilds = (): IdealBuilds => {
@@ -43,17 +42,22 @@ export function useIdealBuilds() {
         const emptyShell = generateInitialIdealBuilds();
         if (docSnap.exists()) {
           const dataFromDb = docSnap.data() as Partial<IdealBuilds>;
+          
           // Deep merge to ensure all positions and styles are present
            for (const pos of positions) {
-            if (dataFromDb[pos]) {
-              for (const style of getAvailableStylesForPosition(pos, true)) {
-                if (dataFromDb[pos]![style]) {
-                  emptyShell[pos][style] = {
+            const group = getPositionGroup(pos);
+            const representativePos = positionGroups[group][0];
+            const buildForGroup = dataFromDb[representativePos];
+
+            if (buildForGroup) {
+               for (const style of getAvailableStylesForPosition(pos, true)) {
+                 if (buildForGroup[style]) {
+                   emptyShell[pos][style] = {
                     ...emptyShell[pos][style],
-                    ...dataFromDb[pos]![style],
+                    ...buildForGroup[style],
                   };
-                }
-              }
+                 }
+               }
             }
           }
            setIdealBuilds(emptyShell);

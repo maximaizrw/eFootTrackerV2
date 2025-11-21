@@ -2,7 +2,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { Position, PlayerStyle, PlayerRatingStats, PlayerStatsBuild, PlayerAttribute, IdealBuilds } from "./types";
-import { playerAttributes } from "./types";
+import { playerAttributes, getPositionGroup, positionGroups } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -33,31 +33,6 @@ export function calculateStats(numbers: number[]): PlayerRatingStats {
 export function formatAverage(avg: number): string {
   return avg.toFixed(1);
 }
-
-export type PositionGroupName = keyof typeof positionGroups;
-
-export const positionGroups: Record<PositionGroupName, Position[]> = {
-  'Portero': ['PT'],
-  'Defensa Central': ['DFC'],
-  'Laterales': ['LI', 'LD'],
-  'Pivote Defensivo': ['MCD'],
-  'Mediocentro': ['MC'],
-  'Interiores': ['MDI', 'MDD'],
-  'Mediapunta': ['MO'],
-  'Extremos': ['EXI', 'EXD'],
-  'Segundo Delantero': ['SD'],
-  'Delantero Centro': ['DC'],
-};
-
-export function getPositionGroup(position: Position): PositionGroupName {
-  for (const groupName in positionGroups) {
-    if (positionGroups[groupName as PositionGroupName].includes(position)) {
-      return groupName as PositionGroupName;
-    }
-  }
-  return 'Delantero Centro'; // Fallback, should not happen
-}
-
 
 export function getPositionGroupColor(position: Position): string {
   const groupName = getPositionGroup(position);
@@ -100,7 +75,7 @@ export function getAvailableStylesForPosition(position: Position, includeNinguno
     const moStyles: PlayerStyle[] = ['Creador de jugadas', 'Diez Clasico', 'Jugador de huecos', 'Señuelo'];
     const sdStyles: PlayerStyle[] = ['Segundo delantero', 'Creador de jugadas', 'Diez Clasico', 'Jugador de huecos', 'Señuelo'];
     const wingerStyles: PlayerStyle[] = ['Creador de jugadas', 'Extremo prolífico', 'Extremo móvil', 'Especialista en centros'];
-    const dcStyles: PlayerStyle[] = ['Cazagoles', 'Señuelo', 'Hombre de área', 'Hombre objetivo', 'Segundo delantero'];
+    const dcStyles: PlayerStyle[] = ['Cazagoles', 'Hombre de área', 'Señuelo', 'Hombre objetivo', 'Segundo delantero'];
 
     if (position === 'PT') return [...baseStyles, ...gkStyles];
     if (position === 'LI' || position === 'LD') return [...baseStyles, ...fbStyles];
@@ -137,9 +112,7 @@ export function getAffinityScoreFromBuild(
     return 0;
   }
   
-  const positionGroup = getPositionGroup(position);
-  const representativePosition = positionGroups[positionGroup][0];
-  const idealBuild = idealBuilds[representativePosition]?.[style];
+  const idealBuild = idealBuilds[position]?.[style];
 
   if (!playerBuild || !idealBuild || Object.keys(playerBuild).length === 0 || Object.keys(idealBuild).length === 0) {
     return 0;

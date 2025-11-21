@@ -19,10 +19,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Position, PlayerStyle, IdealBuilds, PlayerBuild } from "@/lib/types";
-import { getAvailableStylesForPosition } from "@/lib/types";
+import { getAvailableStylesForPosition, getPositionGroup, positionGroups } from "@/lib/types";
 import { PlayerStatsEditor } from "./player-stats-editor";
 import { ScrollArea } from "./ui/scroll-area";
-import { getPositionGroup, positionGroups } from "@/lib/utils";
 
 
 type PositionIdealBuildEditorProps = {
@@ -76,7 +75,7 @@ export function PositionIdealBuildEditor({
 
   const onSubmit = () => {
     // Crucially, we always save using the representative position of the group.
-    const representativePosition = positionGroups[positionGroup][0];
+    const representativePosition = positionGroups[positionGroup as keyof typeof positionGroups][0];
     onSave(representativePosition, builds);
     onOpenChange(false);
   };

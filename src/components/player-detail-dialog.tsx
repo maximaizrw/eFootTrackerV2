@@ -3,6 +3,7 @@
 
 import * as React from "react";
 import type { Position, FlatPlayer, PlayerStatsBuild, IdealBuilds, PlayerBuild } from "@/lib/types";
+import { getPositionGroup, positionGroups } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +18,6 @@ import { AffinityCalculationTable } from "./affinity-calculation-table";
 import { ScrollArea } from "./ui/scroll-area";
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { getPositionGroup, positionGroups } from "@/lib/utils";
 
 
 type PlayerDetailDialogProps = {
@@ -47,9 +47,9 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
 
   const idealBuildForPositionAndStyle = React.useMemo(() => {
     if (!position || !style) return undefined;
-    const positionGroup = getPositionGroup(position);
-    const representativePosition = positionGroups[positionGroup][0];
-    return idealBuilds[representativePosition]?.[style];
+    // We don't need to look up the group here, because the useIdealBuilds hook
+    // has already propagated the builds to all positions in the group.
+    return idealBuilds[position]?.[style];
   }, [position, style, idealBuilds]);
 
   const handleSave = () => {
