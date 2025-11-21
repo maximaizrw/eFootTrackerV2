@@ -80,7 +80,7 @@ export function PlayerStatsEditor({ playerBuild, onBuildChange }: PlayerStatsEdi
   };
   
   const handlePasteAndFill = () => {
-    const lines = pasteText.trim().split(/\s+/); // Splits by any whitespace including newlines and spaces
+    const lines = pasteText.trim().split(/\s+/).filter(line => line.trim() !== '');
     if (lines.length === 0) return;
 
     const newBuild: PlayerStatsBuild = { ...internalBuild };
@@ -108,7 +108,7 @@ export function PlayerStatsEditor({ playerBuild, onBuildChange }: PlayerStatsEdi
                     id="quick-paste-stats"
                     value={pasteText}
                     onChange={(e) => setPasteText(e.target.value)}
-                    placeholder="Pega las 27 estadísticas aquí..."
+                    placeholder="Pega las 27 estadísticas aquí (separadas por espacios o saltos de línea)..."
                     className="h-24 resize-none"
                 />
                 <Button type="button" onClick={handlePasteAndFill} className="self-stretch">
