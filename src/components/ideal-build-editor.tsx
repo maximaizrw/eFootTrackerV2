@@ -60,11 +60,13 @@ export function IdealBuildEditor({ open, onOpenChange, initialBuilds, onSave }: 
     resolver: zodResolver(formSchema),
   });
 
-  const { fields, update, reset } = useFieldArray({
+  const { fields, update } = useFieldArray({
     control: form.control,
     name: "builds",
     keyName: "fieldId",
   });
+  
+  const { reset } = form;
 
   React.useEffect(() => {
     if (open) {
@@ -84,12 +86,15 @@ export function IdealBuildEditor({ open, onOpenChange, initialBuilds, onSave }: 
   }, [open, initialBuilds, reset]);
 
   const onSubmit = (data: FormValues) => {
-    const buildsObject = positions.reduce((acc, pos) => {
-      acc[pos] = {};
-      return acc;
-    }, {} as IdealBuilds);
+    const buildsObject = {} as IdealBuilds;
+    positions.forEach(pos => {
+      buildsObject[pos] = {};
+    });
 
     data.builds.forEach(build => {
+      if (!buildsObject[build.position]) {
+        buildsObject[build.position] = {};
+      }
       buildsObject[build.position][build.style] = build.stats;
     });
 
@@ -139,12 +144,14 @@ export function IdealBuildEditor({ open, onOpenChange, initialBuilds, onSave }: 
             
             <div className="flex-grow overflow-hidden">
               {selectedIndex !== -1 ? (
-                <PlayerStatsEditor
-                  playerBuild={fields[selectedIndex].stats}
-                  onBuildChange={(newBuild) => {
-                    update(selectedIndex, { ...fields[selectedIndex], stats: newBuild });
-                  }}
-                />
+                 <ScrollArea className="h-full pr-6">
+                    <PlayerStatsEditor
+                    playerBuild={fields[selectedIndex].stats}
+                    onBuildChange={(newBuild) => {
+                        update(selectedIndex, { ...fields[selectedIndex], stats: newBuild });
+                    }}
+                    />
+                </ScrollArea>
               ) : (
                 <div className="flex items-center justify-center h-full text-muted-foreground">
                   Selecciona una posición y estilo para editar la build.
@@ -161,5 +168,3 @@ export function IdealBuildEditor({ open, onOpenChange, initialBuilds, onSave }: 
     </Dialog>
   );
 }
-
-  
