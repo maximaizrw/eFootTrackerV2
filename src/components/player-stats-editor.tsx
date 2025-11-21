@@ -60,21 +60,30 @@ const pasteOrder: (keyof PlayerStatsBuild)[] = [
 
 export function PlayerStatsEditor({ playerBuild, onBuildChange }: PlayerStatsEditorProps) {
   const [pasteText, setPasteText] = React.useState("");
+  const [internalBuild, setInternalBuild] = React.useState(playerBuild);
+
+  React.useEffect(() => {
+    setInternalBuild(playerBuild);
+  }, [playerBuild]);
+
 
   const handleStatChange = (stat: keyof PlayerStatsBuild, value: string) => {
     const numValue = parseInt(value, 10);
+    const newBuild = { ...internalBuild };
     if (!isNaN(numValue) && numValue >= 0 && numValue <= 99) {
-      onBuildChange({ ...playerBuild, [stat]: numValue });
+      newBuild[stat] = numValue;
     } else if (value === '') {
-      onBuildChange({ ...playerBuild, [stat]: 0 });
+      newBuild[stat] = 0;
     }
+    setInternalBuild(newBuild);
+    onBuildChange(newBuild as PlayerStatsBuild);
   };
   
   const handlePasteAndFill = () => {
     const lines = pasteText.trim().split(/\s+/); // Splits by any whitespace including newlines and spaces
     if (lines.length === 0) return;
 
-    const newBuild: PlayerStatsBuild = { ...playerBuild };
+    const newBuild: PlayerStatsBuild = { ...internalBuild };
     
     pasteOrder.forEach((stat, index) => {
         if (index < lines.length) {
@@ -85,6 +94,7 @@ export function PlayerStatsEditor({ playerBuild, onBuildChange }: PlayerStatsEdi
         }
     });
 
+    setInternalBuild(newBuild);
     onBuildChange(newBuild);
     setPasteText(""); // Clear after processing
   };
@@ -119,7 +129,7 @@ export function PlayerStatsEditor({ playerBuild, onBuildChange }: PlayerStatsEdi
                             <Input
                             id={stat}
                             type="number"
-                            value={playerBuild?.[stat as keyof PlayerStatsBuild] ?? 0}
+                            value={internalBuild?.[stat as keyof PlayerStatsBuild] ?? 0}
                             onChange={e => handleStatChange(stat as keyof PlayerStatsBuild, e.target.value)}
                             className="h-9"
                             />
