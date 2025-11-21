@@ -19,8 +19,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Position, PlayerStyle, IdealBuilds, PlayerBuild, PlayerStatsBuild, PositionGroupName, DbIdealBuilds } from "@/lib/types";
-import { positionGroups, getAvailableStylesForPosition } from "@/lib/types";
-import { getPositionGroup } from "@/lib/utils";
+import { getPositionGroup } from "@/lib/types";
+import { getAvailableStylesForPosition } from "@/lib/utils";
 import { PlayerStatsEditor } from "./player-stats-editor";
 import { ScrollArea } from "./ui/scroll-area";
 
@@ -43,11 +43,7 @@ export function PositionIdealBuildEditor({
   const [selectedStyle, setSelectedStyle] = React.useState<PlayerStyle>("Ninguno");
   
   const positionGroup = React.useMemo(() => getPositionGroup(position), [position]);
-  const relevantPositions = React.useMemo(() => {
-    const group = getPositionGroup(position);
-    const positions = positionGroups[group] || [position];
-    return positions.join(', ');
-  }, [position]);
+  
   const availableStyles = React.useMemo(() => getAvailableStylesForPosition(position, true), [position]);
   
   const [builds, setBuilds] = React.useState<IdealBuilds[Position]>({});
@@ -55,8 +51,10 @@ export function PositionIdealBuildEditor({
   React.useEffect(() => {
     if (open) {
         const currentGroup = getPositionGroup(position);
-        const buildsForGroup = initialBuilds[currentGroup] || {};
-        setBuilds(buildsForGroup);
+        if (currentGroup) {
+            const buildsForGroup = initialBuilds[currentGroup] || {};
+            setBuilds(buildsForGroup);
+        }
 
         if (availableStyles.length > 0 && !availableStyles.includes(selectedStyle)) {
             setSelectedStyle(availableStyles[0]);
@@ -73,7 +71,9 @@ export function PositionIdealBuildEditor({
 
   const onSubmit = () => {
     const groupName = getPositionGroup(position);
-    onSave(groupName, builds);
+    if (groupName) {
+        onSave(groupName, builds);
+    }
     onOpenChange(false);
   };
   
@@ -92,7 +92,7 @@ export function PositionIdealBuildEditor({
         <DialogHeader>
           <DialogTitle>Editor de Builds Ideales para {positionGroup}</DialogTitle>
           <DialogDescription>
-            Configura la "build" ideal para cada estilo de juego de esta posición. Los cambios se aplicarán a todas las posiciones del grupo ({relevantPositions}).
+            Configura la "build" ideal para cada estilo de juego de la posición {position}.
           </DialogDescription>
         </DialogHeader>
         <div className="flex-grow flex flex-col overflow-hidden">

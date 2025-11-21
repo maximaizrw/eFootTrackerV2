@@ -14,7 +14,6 @@ import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Check, ChevronsUpDown, Settings } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
 import type { FormationSlot, Position, PlayerStyle } from "@/lib/types";
 import { positions, playerStyles } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -50,38 +49,11 @@ const PlayerToken = ({
   };
   
   const handlePositionChange = (newPos: Position) => {
-    const isFlexible = (newPos === 'LI' || newPos === 'LD' || newPos === 'EXI' || newPos === 'EXD' || newPos === 'MDI' || newPos === 'MDD');
-    if (isFlexible && Array.isArray(slot.position) && slot.position.includes(newPos)) {
-         onSlotChange({ ...slot, position: newPos, styles: [] });
-    } else {
-        onSlotChange({ ...slot, position: newPos, styles: [] });
-    }
+    onSlotChange({ ...slot, position: newPos, styles: [] });
   };
 
-  const handleFlexToggle = () => {
-    const currentPos = Array.isArray(slot.position) ? slot.position[0] : slot.position;
-    if (Array.isArray(slot.position)) {
-      onSlotChange({ ...slot, position: currentPos });
-    } else if (currentPos === 'LI' || currentPos === 'LD') {
-      onSlotChange({ ...slot, position: ['LI', 'LD'] });
-    } else if (currentPos === 'EXI' || currentPos === 'EXD') {
-      onSlotChange({ ...slot, position: ['EXI', 'EXD'] });
-    } else if (currentPos === 'MDI' || currentPos === 'MDD') {
-        onSlotChange({ ...slot, position: ['MDI', 'MDD']});
-    }
-  };
-
-  const isFlexible = Array.isArray(slot.position);
-  const displayPosition = isFlexible ? slot.position.join('/') : slot.position;
-  const currentSinglePos = isFlexible ? slot.position[0] : slot.position;
-  const canBeFlexible = currentSinglePos === 'LI' || currentSinglePos === 'LD' || currentSinglePos === 'EXI' || currentSinglePos === 'EXD' || currentSinglePos === 'MDI' || currentSinglePos === 'MDD';
+  const displayPosition = slot.position;
   
-  let flexLabel = '';
-  if (currentSinglePos === 'LI' || currentSinglePos === 'LD') flexLabel = 'Lateral Flexible (LI/LD)';
-  else if (currentSinglePos === 'EXI' || currentSinglePos === 'EXD') flexLabel = 'Extremo Flexible (EXI/EXD)';
-  else if (currentSinglePos === 'MDI' || currentSinglePos === 'MDD') flexLabel = 'Interior Flexible (MDI/MDD)';
-
-
   return (
     <div
         className={cn(
@@ -111,7 +83,7 @@ const PlayerToken = ({
                   <div>
                     <label className="text-sm font-medium">Posición</label>
                     <Select
-                      value={currentSinglePos}
+                      value={slot.position}
                       onValueChange={(newPos) => handlePositionChange(newPos as Position)}
                     >
                       <SelectTrigger>
@@ -126,21 +98,7 @@ const PlayerToken = ({
                       </SelectContent>
                     </Select>
                   </div>
-                  {canBeFlexible && (
-                     <div className="flex items-center space-x-2">
-                        <Checkbox
-                            id="flex-pos"
-                            checked={isFlexible}
-                            onCheckedChange={handleFlexToggle}
-                        />
-                        <label
-                            htmlFor="flex-pos"
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                            {flexLabel}
-                        </label>
-                    </div>
-                  )}
+                  
                   <div>
                       <label className="text-sm font-medium mb-2 block">Estilos de Juego (Opcional)</label>
                       <Popover>
@@ -274,5 +232,3 @@ export function VisualFormationEditor({ value, onChange }: VisualFormationEditor
     </FootballPitch>
   );
 }
-
-    

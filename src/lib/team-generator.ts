@@ -1,5 +1,5 @@
 
-import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, PlayerStatsBuild, IdealBuilds, PlayerStyle } from './types';
+import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, PlayerStatsBuild, DbIdealBuilds, PlayerStyle } from './types';
 import { calculateStats, getAffinityScoreFromBuild, calculateGeneralScore } from './utils';
 
 type CandidatePlayer = {
@@ -28,7 +28,7 @@ type CandidatePlayer = {
 export function generateIdealTeam(
   players: Player[],
   formation: FormationStats,
-  idealBuilds: IdealBuilds,
+  idealBuilds: DbIdealBuilds,
   discardedCardIds: Set<string> = new Set(),
   league: League | 'all' = 'all',
   nationality: Nationality | 'all' = 'all',
@@ -112,7 +112,7 @@ export function generateIdealTeam(
   };
 
 
-  const createTeamPlayer = (candidate: CandidatePlayer | undefined, assignedPosition: Position | Position[]): IdealTeamPlayer | null => {
+  const createTeamPlayer = (candidate: CandidatePlayer | undefined, assignedPosition: Position): IdealTeamPlayer | null => {
       if (!candidate) return null;
       return {
           player: candidate.player,
@@ -131,10 +131,10 @@ export function generateIdealTeam(
   // --- STARTER SELECTION ---
   for (const formationSlot of formation.slots) {
     const hasStylePreference = formationSlot.styles && formationSlot.styles.length > 0;
-    const targetPositions = Array.isArray(formationSlot.position) ? formationSlot.position : [formationSlot.position];
+    const targetPosition = formationSlot.position;
     
     const positionCandidates = allPlayerCandidates
-      .filter(p => targetPositions.includes(p.position))
+      .filter(p => p.position === targetPosition)
       .sort(sortFunction);
 
     let starterCandidate: CandidatePlayer | undefined;
@@ -163,10 +163,10 @@ export function generateIdealTeam(
   finalTeamSlots.forEach((slot, index) => {
     const formationSlot = formation.slots[index];
     const hasStylePreference = formationSlot.styles && formationSlot.styles.length > 0;
-    const targetPositions = Array.isArray(formationSlot.position) ? formationSlot.position : [formationSlot.position];
+    const targetPosition = formationSlot.position;
 
     const positionCandidates = allPlayerCandidates
-      .filter(p => targetPositions.includes(p.position))
+      .filter(p => p.position === targetPosition)
       .sort(sortFunction);
 
     let substituteCandidate: CandidatePlayer | undefined;
@@ -226,7 +226,7 @@ export function generateIdealTeam(
       starter: slot.starter || {
           player: { id: `placeholder-S-${index}`, name: `Vacante`, cards: [], nationality: 'Sin Nacionalidad' },
           card: { id: `placeholder-card-S-${index}`, name: 'N/A', style: 'Ninguno', ratingsByPosition: {} },
-          position: Array.isArray(assignedPosition) ? assignedPosition[0] : assignedPosition,
+          position: assignedPosition,
           assignedPosition: assignedPosition,
           average: 0,
           performance: placeholderPerformance
@@ -234,7 +234,7 @@ export function generateIdealTeam(
       substitute: slot.substitute || {
            player: { id: `placeholder-SUB-${index}`, name: `Vacante`, cards: [], nationality: 'Sin Nacionalidad' },
           card: { id: `placeholder-card-SUB-${index}`, name: 'N/A', style: 'Ninguno', ratingsByPosition: {} },
-          position: Array.isArray(assignedPosition) ? assignedPosition[0] : assignedPosition,
+          position: assignedPosition,
           assignedPosition: assignedPosition,
           average: 0,
           performance: placeholderPerformance
@@ -242,5 +242,3 @@ export function generateIdealTeam(
     };
   });
 }
-
-    

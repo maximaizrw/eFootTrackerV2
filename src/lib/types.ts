@@ -64,20 +64,23 @@ export type PlayerBuild = {
 export const positionGroups = {
   'Portero': ['PT'] as const,
   'Defensa Central': ['DFC'] as const,
-  'Laterales': ['LI', 'LD'] as const,
+  'Lateral Izquierdo': ['LI'] as const,
+  'Lateral Derecho': ['LD'] as const,
   'Pivote Defensivo': ['MCD'] as const,
   'Mediocentro': ['MC'] as const,
-  'Interiores': ['MDI', 'MDD'] as const,
+  'Interior Izquierdo': ['MDI'] as const,
+  'Interior Derecho': ['MDD'] as const,
   'Mediapunta': ['MO'] as const,
-  'Extremos': ['EXI', 'EXD'] as const,
+  'Extremo Izquierdo': ['EXI'] as const,
+  'Extremo Derecho': ['EXD'] as const,
   'Segundo Delantero': ['SD'] as const,
   'Delantero Centro': ['DC'] as const,
 } as const;
 
+
 export type PositionGroupName = keyof typeof positionGroups;
 
 // Data model stored in Firestore for ideal builds.
-// This is now the single source of truth for the shape.
 export type DbIdealBuilds = {
     [key in PositionGroupName]?: {
         [key in PlayerStyle]?: PlayerStatsBuild;
@@ -149,7 +152,7 @@ export type IdealTeamPlayer = {
   player: Player;
   card: PlayerCard;
   position: Position; // The actual position of the player's rating
-  assignedPosition: Position | Position[]; // The slot they were assigned to in the formation
+  assignedPosition: Position; // The slot they were assigned to in the formation
   average: number;
   performance: PlayerPerformance;
 };
@@ -178,11 +181,12 @@ export type MatchResult = {
 };
 
 export const FormationSlotSchema = z.object({
-  position: z.union([z.enum(positions), z.array(z.enum(positions))]),
+  position: z.enum(positions),
   styles: z.array(z.enum(playerStyles)).optional().default([]),
   top: z.number().optional(),
   left: z.number().optional(),
 });
+
 
 export type FormationSlot = z.infer<typeof FormationSlotSchema>;
 
@@ -252,31 +256,13 @@ export type FlatPlayer = {
   position: Position;
 };
 
-export function getAvailableStylesForPosition(position: Position, includeNinguno = false): PlayerStyle[] {
-    const baseStyles: PlayerStyle[] = includeNinguno ? ['Ninguno'] : [];
-
-    const gkStyles: PlayerStyle[] = ['Portero defensivo', 'Portero ofensivo'];
-    const fbStyles: PlayerStyle[] = ['Lateral defensivo', 'Lateral ofensivo', 'Lateral finalizador'];
-    const dfcStyles: PlayerStyle[] = ['El destructor', 'Creador de juego', 'Atacante extra'];
-    const mcdStyles: PlayerStyle[] = ['Omnipresente', 'Medio escudo', 'Organizador', 'El destructor'];
-    const mcStyles: PlayerStyle[] = ['Jugador de huecos', 'Omnipresente', 'Medio escudo', 'El destructor', 'Organizador', 'Creador de jugadas'];
-    const mdiMddStyles: PlayerStyle[] = ['Omnipresente', 'Jugador de huecos', 'Especialista en centros', 'Extremo móvil', 'Creador de jugadas'];
-    const moStyles: PlayerStyle[] = ['Creador de jugadas', 'Diez Clasico', 'Jugador de huecos', 'Señuelo'];
-    const sdStyles: PlayerStyle[] = ['Segundo delantero', 'Creador de jugadas', 'Diez Clasico', 'Jugador de huecos', 'Señuelo'];
-    const wingerStyles: PlayerStyle[] = ['Creador de jugadas', 'Extremo prolífico', 'Extremo móvil', 'Especialista en centros'];
-    const dcStyles: PlayerStyle[] = ['Cazagoles', 'Hombre de área', 'Señuelo', 'Hombre objetivo', 'Segundo delantero'];
-
-    switch (position) {
-        case 'PT': return [...baseStyles, ...gkStyles];
-        case 'LI': case 'LD': return [...baseStyles, ...fbStyles];
-        case 'DFC': return [...baseStyles, ...dfcStyles];
-        case 'MCD': return [...baseStyles, ...mcdStyles];
-        case 'MC': return [...baseStyles, ...mcStyles];
-        case 'MDI': case 'MDD': return [...baseStyles, ...mdiMddStyles];
-        case 'MO': return [...baseStyles, ...moStyles];
-        case 'SD': return [...baseStyles, ...sdStyles];
-        case 'EXI': case 'EXD': return [...baseStyles, ...wingerStyles];
-        case 'DC': return [...baseStyles, ...dcStyles];
-        default: return baseStyles;
+export function getPositionGroup(position: Position): PositionGroupName | null {
+  for (const groupName in positionGroups) {
+    const typedGroupName = groupName as PositionGroupName;
+    if ((positionGroups[typedGroupName] as readonly Position[]).includes(position)) {
+      return typedGroupName;
     }
+  }
+  // This should not happen with valid Position types
+  throw new Error(`Could not find group for position: ${position}`);
 }

@@ -433,9 +433,3 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, players, init
     </Dialog>
   );
 }
-
-  
-
-    
-
-    

@@ -32,7 +32,7 @@ const PlayerToken = ({ player, style, onDiscard }: { player: IdealTeamPlayer | n
     );
   }
 
-  const displayPosition = Array.isArray(player.assignedPosition) ? player.assignedPosition.join('/') : player.assignedPosition;
+  const displayPosition = player.assignedPosition;
 
   return (
     <div 
@@ -98,7 +98,7 @@ const SubstitutePlayerRow = ({ player, onDiscard }: { player: IdealTeamPlayer | 
     );
   }
 
-  const displayPosition = Array.isArray(player.assignedPosition) ? player.assignedPosition.join('/') : player.assignedPosition;
+  const displayPosition = player.assignedPosition;
 
   return (
     <Card className="group relative flex items-center gap-2 p-2 rounded-lg bg-card h-20 overflow-hidden">
@@ -160,9 +160,8 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer }: Idea
     .map(slot => slot.substitute)
     .filter((sub): sub is IdealTeamPlayer => sub !== null && !sub.player.id.startsWith('placeholder'))
     .sort((a, b) => {
-        // Use the first position in the array if it's flexible
-        const posA = Array.isArray(a.assignedPosition) ? a.assignedPosition[0] : a.assignedPosition;
-        const posB = Array.isArray(b.assignedPosition) ? b.assignedPosition[0] : b.assignedPosition;
+        const posA = a.assignedPosition;
+        const posB = b.assignedPosition;
         const indexA = substituteOrder.indexOf(posA);
         const indexB = substituteOrder.indexOf(posB);
         if(indexA === -1 && indexB === -1) return 0;
