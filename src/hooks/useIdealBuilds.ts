@@ -93,7 +93,9 @@ export function useIdealBuilds() {
     }
     try {
       const docRef = doc(db, 'idealBuilds', 'user_default');
-      await setDoc(docRef, newBuilds, { merge: true });
+      // Create a deep copy to avoid issues with shared object references before saving
+      const buildsToSave = JSON.parse(JSON.stringify(newBuilds));
+      await setDoc(docRef, buildsToSave);
       toast({
         title: "Builds Ideales Guardadas",
         description: "Tus configuraciones se han guardado en la base de datos.",
@@ -110,5 +112,3 @@ export function useIdealBuilds() {
 
   return { idealBuilds, loading, error, saveIdealBuilds };
 }
-
-    

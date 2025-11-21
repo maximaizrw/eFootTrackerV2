@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Position, PlayerStyle, IdealBuilds, PlayerStatsBuild } from "@/lib/types";
+import type { Position, PlayerStyle, IdealBuilds, PlayerBuild } from "@/lib/types";
 import { positions, getAvailableStylesForPosition, playerStyles } from "@/lib/types";
 import { PlayerStatsEditor } from "./player-stats-editor";
 import { ScrollArea } from "./ui/scroll-area";
@@ -48,12 +48,12 @@ type IdealBuildEditorProps = {
 const buildPositions = [
   { label: 'PT', value: 'PT' },
   { label: 'DFC', value: 'DFC' },
-  { label: 'Laterales (LI/LD)', value: 'Laterales' },
+  { label: 'Laterales', value: 'Laterales' },
   { label: 'MCD', value: 'MCD' },
   { label: 'MC', value: 'MC' },
-  { label: 'Interiores (MDI/MDD)', value: 'Interiores' },
+  { label: 'Interiores', value: 'Interiores' },
   { label: 'MO', value: 'MO' },
-  { label: 'Extremos (EXI/EXD)', value: 'Extremos' },
+  { label: 'Extremos', value: 'Extremos' },
   { label: 'SD', value: 'SD' },
   { label: 'DC', value: 'DC' },
 ];
@@ -75,7 +75,7 @@ export function IdealBuildEditor({ open, onOpenChange, initialBuilds, onSave }: 
   const [selectedBuildPosition, setSelectedBuildPosition] = React.useState<string>("DC");
   const [selectedStyle, setSelectedStyle] = React.useState<PlayerStyle>("Cazagoles");
 
-  const representativePosition = positionMap[selectedBuildPosition][0];
+  const representativePosition = positionMap[selectedBuildPosition]?.[0] || 'DC';
 
   const availableStyles = React.useMemo(() => getAvailableStylesForPosition(representativePosition, true), [representativePosition]);
 
@@ -139,7 +139,9 @@ export function IdealBuildEditor({ open, onOpenChange, initialBuilds, onSave }: 
         field => field.position === pos && field.style === selectedStyle
       );
       if (indexToUpdate !== -1) {
-        update(indexToUpdate, { ...fields[indexToUpdate], stats: newBuild });
+        // Deep copy the object to avoid reference issues
+        const clonedBuild = JSON.parse(JSON.stringify(newBuild));
+        update(indexToUpdate, { ...fields[indexToUpdate], stats: clonedBuild });
       }
     });
   };
@@ -188,8 +190,8 @@ export function IdealBuildEditor({ open, onOpenChange, initialBuilds, onSave }: 
               {selectedIndex !== -1 ? (
                  <ScrollArea className="h-full pr-6">
                     <PlayerStatsEditor
-                      playerBuild={fields[selectedIndex].stats}
-                      onBuildChange={handleBuildChange}
+                      playerBuild={{stats: fields[selectedIndex].stats, progression: {}}}
+                      onBuildChange={(build) => handleBuildChange(build.stats)}
                     />
                 </ScrollArea>
               ) : (
