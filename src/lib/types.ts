@@ -1,5 +1,4 @@
 
-import type { Player as PlayerType, PlayerCard as PlayerCardType, Position as PositionType } from './types';
 import * as z from "zod";
 
 export const playerStyles = ['Ninguno', 'Cazagoles', 'Señuelo', 'Hombre de área', 'Hombre objetivo', 'Creador de juego', 'El destructor', 'Portero defensivo', 'Portero ofensivo', 'Atacante extra', 'Lateral defensivo', 'Lateral Ofensivo', 'Lateral finalizador', 'Omnipresente', 'Medio escudo', 'Organizador', 'Jugador de huecos', 'Especialista en centros', 'Extremo móvil', 'Creador de jugadas', 'Diez Clasico', 'Segundo delantero', 'Extremo prolífico'] as const;
@@ -197,11 +196,11 @@ export type PlayerPerformance = {
 };
 
 export type FlatPlayer = {
-  player: PlayerType;
-  card: PlayerCardType;
+  player: Player;
+  card: PlayerCard;
   ratingsForPos: number[];
   performance: PlayerPerformance;
   affinityScore: number;
   generalScore: number;
+  position: Position;
 };
-

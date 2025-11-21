@@ -128,8 +128,8 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
                               borderColor: "hsl(var(--border))" 
                           }}
                           labelStyle={{ color: "hsl(var(--foreground))" }}
-                          formatter={(value: number, name: string) => {
-                             if (name === 'average') return [`${value} (${(performanceData.find(d => d.position === (name as any)) as any)?.matches} partidos)`, "Promedio"];
+                          formatter={(value: number, name: string, props) => {
+                             if (name === 'average') return [`${value.toFixed(1)} (${props.payload.matches} partidos)`, "Promedio"];
                              if (name === 'affinity') return [value.toFixed(0), "Afinidad"];
                              if (name === 'general') return [value.toFixed(0), "General"];
                              return [value, name];

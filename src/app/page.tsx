@@ -492,44 +492,46 @@ export default function Home() {
 
           {positions.map((pos) => {
             const flatPlayerList: FlatPlayer[] = allPlayers.flatMap(player => 
-                (player.cards || []).map(card => {
-                    const ratingsForPos = card.ratingsByPosition?.[pos] || [];
-                    const stats = calculateStats(ratingsForPos);
-                    const recentRatings = ratingsForPos.slice(-3);
-                    const recentStats = calculateStats(recentRatings);
+                (player.cards || []).flatMap(card => {
+                    return (Object.keys(card.ratingsByPosition || {}) as Position[]).map(ratedPos => {
+                        const ratingsForPos = card.ratingsByPosition?.[ratedPos] || [];
+                        if (ratingsForPos.length === 0) return null;
+                        if (ratedPos !== pos) return null;
 
-                    const highPerfPositions = new Set<Position>();
-                    for (const p in card.ratingsByPosition) {
-                        const positionKey = p as Position;
-                        const posRatings = card.ratingsByPosition[positionKey];
-                        if (posRatings && posRatings.length > 0) {
-                           const posAvg = calculateStats(posRatings).average;
-                           if (posAvg >= 7.0) highPerfPositions.add(positionKey);
+                        const stats = calculateStats(ratingsForPos);
+                        const recentRatings = ratingsForPos.slice(-3);
+                        const recentStats = calculateStats(recentRatings);
+
+                        const highPerfPositions = new Set<Position>();
+                        for (const p in card.ratingsByPosition) {
+                            const positionKey = p as Position;
+                            const posRatings = card.ratingsByPosition[positionKey];
+                            if (posRatings && posRatings.length > 0) {
+                               const posAvg = calculateStats(posRatings).average;
+                               if (posAvg >= 7.0) highPerfPositions.add(positionKey);
+                            }
                         }
-                    }
-                    
-                    const performance: PlayerPerformance = {
-                        stats,
-                        isHotStreak: stats.matches >= 3 && recentStats.average > stats.average + 0.5,
-                        isConsistent: stats.matches >= 5 && stats.stdDev < 0.5,
-                        isPromising: stats.matches > 0 && stats.matches < 10 && stats.average >= 7.0,
-                        isVersatile: highPerfPositions.size >= 3,
-                    };
-                    
-                    const idealBuild = idealBuilds[pos];
-                    const affinityScore = getAffinityScoreFromBuild(card.build, idealBuild);
+                        
+                        const performance: PlayerPerformance = {
+                            stats,
+                            isHotStreak: stats.matches >= 3 && recentStats.average > stats.average + 0.5,
+                            isConsistent: stats.matches >= 5 && stats.stdDev < 0.5,
+                            isPromising: stats.matches > 0 && stats.matches < 10 && stats.average >= 7.0,
+                            isVersatile: highPerfPositions.size >= 3,
+                        };
+                        
+                        const idealBuild = idealBuilds[ratedPos];
+                        const affinityScore = getAffinityScoreFromBuild(card.build, idealBuild);
 
-                    const matchAverageScore = stats.average > 0 ? (stats.average / 10 * 100) : 0;
-                    const generalScore = (affinityScore * 0.6) + (matchAverageScore * 0.4);
+                        const matchAverageScore = stats.average > 0 ? (stats.average / 10 * 100) : 0;
+                        const generalScore = (affinityScore * 0.6) + (matchAverageScore * 0.4);
 
-                    return { player, card, ratingsForPos, performance, affinityScore, generalScore };
+                        return { player, card, ratingsForPos, performance, affinityScore, generalScore, position: ratedPos };
+                    }).filter((p): p is FlatPlayer => p !== null);
                 })
             );
             
-            const filteredPlayerList = flatPlayerList.filter(({ ratingsForPos }) => {
-                return ratingsForPos.length > 0;
-
-            }).filter(({ player, card }) => {
+            const filteredPlayerList = flatPlayerList.filter(({ player, card }) => {
                 const searchMatch = normalizeText(player.name).includes(normalizeText(searchTerm));
                 const styleMatch = styleFilter === 'all' || card.style === styleFilter;
                 const cardMatch = cardFilter === 'all' || card.name === cardFilter;
@@ -560,17 +562,13 @@ export default function Home() {
             
             const allPositionalStyles = new Set<string>();
             flatPlayerList.forEach(p => {
-              if (p.ratingsForPos.length > 0 && p.card.style) {
                 allPositionalStyles.add(p.card.style)
-              }
             });
             const uniqueStyles = ['all', ...Array.from(allPositionalStyles)];
             
             const allPositionalCards = new Set<string>();
             flatPlayerList.forEach(p => {
-              if (p.ratingsForPos.length > 0) {
                 allPositionalCards.add(p.card.name)
-              }
             });
             const uniqueCardNames = ['all', ...Array.from(allPositionalCards)];
 
@@ -594,8 +592,8 @@ export default function Home() {
                       players={paginatedPlayers}
                       position={pos}
                       onOpenAddRating={handleOpenAddRating}
-                      onOpenEditCard={handleOpenEditCard}
-                      onOpenEditPlayer={handleOpenEditPlayer}
+                      onOpenEditCard={onOpenEditCard}
+                      onOpenEditPlayer={onOpenEditPlayer}
                       onOpenPlayerDetail={handleOpenPlayerDetail}
                       onViewImage={handleViewImage}
                       onDeletePositionRatings={deletePositionRatings}
