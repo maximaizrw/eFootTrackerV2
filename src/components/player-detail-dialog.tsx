@@ -17,6 +17,7 @@ import { AffinityCalculationTable } from "./affinity-calculation-table";
 import { ScrollArea } from "./ui/scroll-area";
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { getPositionGroup, positionGroups } from "@/lib/utils";
 
 
 type PlayerDetailDialogProps = {
@@ -44,7 +45,12 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
   const style = card?.style;
   const updatedAt = card?.build?.updatedAt;
 
-  const idealBuildForPositionAndStyle = position && style ? idealBuilds[position]?.[style] : undefined;
+  const idealBuildForPositionAndStyle = React.useMemo(() => {
+    if (!position || !style) return undefined;
+    const positionGroup = getPositionGroup(position);
+    const representativePosition = positionGroups[positionGroup][0];
+    return idealBuilds[representativePosition]?.[style];
+  }, [position, style, idealBuilds]);
 
   const handleSave = () => {
     if (player && card && currentBuild) {
