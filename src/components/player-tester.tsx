@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/table";
 import { PlayerStatsEditor } from "./player-stats-editor";
 import type { IdealBuilds, PlayerStatsBuild, Position, PlayerStyle } from "@/lib/types";
-import { positions, getAvailableStylesForPosition } from "@/lib/types";
+import { getAvailableStylesForPosition } from "@/lib/types";
 import { getAffinityScoreFromBuild } from "@/lib/utils";
 import { Beaker } from "lucide-react";
 import { Badge } from "./ui/badge";
@@ -30,10 +30,23 @@ type PlayerTesterProps = {
 };
 
 type AffinityResult = {
-    position: Position;
+    positionLabel: string;
     style: PlayerStyle;
     affinity: number;
 };
+
+const buildPositions = [
+  { label: 'PT', value: ['PT'] },
+  { label: 'DFC', value: ['DFC'] },
+  { label: 'Laterales', value: ['LI', 'LD'] },
+  { label: 'MCD', value: ['MCD'] },
+  { label: 'MC', value: ['MC'] },
+  { label: 'Interiores', value: ['MDI', 'MDD'] },
+  { label: 'MO', value: ['MO'] },
+  { label: 'Extremos', value: ['EXI', 'EXD'] },
+  { label: 'SD', value: ['SD'] },
+  { label: 'DC', value: ['DC'] },
+];
 
 export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
   const [playerBuild, setPlayerBuild] = React.useState<PlayerStatsBuild>({});
@@ -51,12 +64,14 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
 
     const results: AffinityResult[] = [];
     
-    positions.forEach(position => {
-      const stylesForPos = getAvailableStylesForPosition(position, true);
+    buildPositions.forEach(({ label, value: positions }) => {
+      const representativePosition = positions[0];
+      const stylesForPos = getAvailableStylesForPosition(representativePosition, true);
+      
       stylesForPos.forEach(style => {
-        const affinity = getAffinityScoreFromBuild(playerBuild, position, style, idealBuilds);
+        const affinity = getAffinityScoreFromBuild(playerBuild, representativePosition, style, idealBuilds);
         if (affinity > 0) {
-            results.push({ position, style, affinity });
+            results.push({ positionLabel: label, style, affinity });
         }
       });
     });
@@ -97,7 +112,7 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
                     {affinityResults.length > 0 ? (
                         affinityResults.map((result, index) => (
                             <TableRow key={index}>
-                                <TableCell className="font-medium">{result.position}</TableCell>
+                                <TableCell className="font-medium">{result.positionLabel}</TableCell>
                                 <TableCell>
                                     {result.style !== 'Ninguno' ? <Badge variant="secondary">{result.style}</Badge> : <span className="text-muted-foreground">-</span>}
                                 </TableCell>
