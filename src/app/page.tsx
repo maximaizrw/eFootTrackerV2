@@ -593,7 +593,7 @@ export default function Home() {
                       position={pos}
                       onOpenAddRating={handleOpenAddRating}
                       onOpenEditCard={handleOpenEditCard}
-                      onOpenEditPlayer={onOpenEditPlayer}
+                      onOpenEditPlayer={handleOpenEditPlayer}
                       onOpenPlayerDetail={handleOpenPlayerDetail}
                       onViewImage={handleViewImage}
                       onDeletePositionRatings={deletePositionRatings}
