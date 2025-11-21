@@ -69,12 +69,12 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
               />
             </CardContent>
           </Card>
-          <Card className="flex flex-col lg:col-span-2">
+          <Card className="flex flex-col lg:col-span-2 overflow-hidden">
             <CardHeader>
               <CardTitle>Análisis de Afinidad vs. Build Ideal de {position}</CardTitle>
             </CardHeader>
-            <CardContent className="flex-grow overflow-hidden flex flex-col">
-               <ScrollArea className="flex-grow pr-6">
+            <CardContent className="flex-grow overflow-hidden">
+               <ScrollArea className="h-full w-full pr-6">
                 {idealBuildForPosition ? (
                     <AffinityCalculationTable
                       playerBuild={currentBuild}
