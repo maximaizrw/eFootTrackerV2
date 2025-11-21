@@ -130,7 +130,7 @@ export function getAffinityScoreFromBuild(
   
   const idealBuild = idealBuilds[position]?.[style];
 
-  if (!playerBuild || !idealBuild) {
+  if (!playerBuild || !idealBuild || Object.keys(playerBuild).length === 0 || Object.keys(idealBuild).length === 0) {
     return 0;
   }
 
@@ -139,7 +139,8 @@ export function getAffinityScoreFromBuild(
     "speed", "acceleration", "kickingPower", "jump"
   ];
   
-  const attributesToIterate = position === 'PT' ? gkAttributes : playerAttributes;
+  const attributesToIterate = position === 'PT' ? gkAttributes : playerAttributes.filter(attr => !gkAttributes.includes(attr));
+
 
   let totalScore = 0;
 
