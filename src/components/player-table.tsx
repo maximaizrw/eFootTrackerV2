@@ -26,7 +26,6 @@ type PlayerTableProps = {
   onDeletePositionRatings: (playerId: string, cardId: string, position: Position) => void;
   onToggleSelectable: (playerId: string, cardId: string, position: Position, currentSelectable?: boolean) => void;
   onDeleteRating: (playerId: string, cardId: string, position: Position, ratingIndex: number) => void;
-  onSaveCustomScore: (playerId: string, cardId: string, position: Position, score: number) => void;
 };
 
 type FilterProps = {
@@ -39,43 +38,6 @@ type FilterProps = {
   uniqueStyles: string[];
   uniqueCardNames: string[];
   position: Position;
-};
-
-const AffinityEditor = ({
-    initialScore,
-    onSave,
-}: {
-    initialScore: number;
-    onSave: (newScore: number) => void;
-}) => {
-    const [score, setScore] = useState(initialScore);
-    const inputRef = useRef<HTMLInputElement>(null);
-
-    useEffect(() => {
-        inputRef.current?.focus();
-        inputRef.current?.select();
-    }, []);
-
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-            onSave(score);
-        }
-        if (e.key === 'Escape') {
-            onSave(initialScore); // Revert on escape
-        }
-    };
-
-    return (
-        <Input
-            ref={inputRef}
-            type="number"
-            value={score}
-            onChange={(e) => setScore(parseInt(e.target.value, 10) || 0)}
-            onBlur={() => onSave(score)}
-            onKeyDown={handleKeyDown}
-            className="w-20 h-8 text-center text-base"
-        />
-    );
 };
 
 const Filters = ({
@@ -168,11 +130,8 @@ export function PlayerTable({
   onDeletePositionRatings,
   onToggleSelectable,
   onDeleteRating,
-  onSaveCustomScore,
 }: PlayerTableProps) {
   
-  const [editingAffinityId, setEditingAffinityId] = useState<string | null>(null);
-
   if (flatPlayers.length === 0) {
     return (
       <div className="col-span-full flex flex-col items-center justify-center text-center p-10">
@@ -185,11 +144,6 @@ export function PlayerTable({
       </div>
     );
   }
-  
-  const handleSaveAffinity = (playerId: string, cardId: string, newScore: number) => {
-    onSaveCustomScore(playerId, cardId, position, newScore);
-    setEditingAffinityId(null);
-  };
 
   return (
     <div className="overflow-x-auto">
@@ -207,14 +161,12 @@ export function PlayerTable({
         </TableHeader>
         <TableBody>
           {flatPlayers.map((flatPlayer) => {
-            const { player, card, ratingsForPos, performance, generalScore } = flatPlayer;
+            const { player, card, ratingsForPos, performance, affinityScore, generalScore } = flatPlayer;
             const cardAverage = performance.stats.average;
-            const affinityScore = card.customScores?.[position] || 0;
-            const isEditing = editingAffinityId === `${card.id}-${position}`;
             
             const averageColorClass = getAverageColorClass(cardAverage);
             const affinityColorClass = getAverageColorClass(affinityScore / 10);
-             const generalColorClass = getAverageColorClass(generalScore / 10);
+            const generalColorClass = getAverageColorClass(generalScore / 10);
             
             const isPosSelectable = card.selectablePositions?.[position] ?? true;
 
@@ -243,6 +195,14 @@ export function PlayerTable({
                           >
                               {player.name}
                           </button>
+                           <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                  <button onClick={() => onOpenPlayerDetail(flatPlayer)}><NotebookPen className="h-4 w-4 text-muted-foreground/60 hover:text-muted-foreground" /></button>
+                              </TooltipTrigger>
+                              <TooltipContent><p>Ver / Editar Build</p></TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                           <PerformanceBadges performance={performance} />
                       </div>
                       <div className="text-xs text-muted-foreground">{card.name} ({performance.stats.matches} P.)</div>
@@ -259,18 +219,11 @@ export function PlayerTable({
                     {formatAverage(cardAverage)}
                   </div>
                 </TableCell>
-                <TableCell onDoubleClick={() => setEditingAffinityId(`${card.id}-${position}`)}>
-                    {isEditing ? (
-                        <AffinityEditor
-                            initialScore={affinityScore}
-                            onSave={(newScore) => handleSaveAffinity(player.id, card.id, newScore)}
-                        />
-                    ) : (
-                        <div className={cn("text-base md:text-lg font-bold flex items-center gap-1 cursor-pointer", affinityColorClass)}>
-                            <Star className="w-4 h-4" />
-                            {affinityScore}
-                        </div>
-                    )}
+                <TableCell>
+                  <div className={cn("text-base md:text-lg font-bold flex items-center gap-1", affinityColorClass)}>
+                    <Star className="w-4 h-4" />
+                    {affinityScore.toFixed(0)}
+                  </div>
                 </TableCell>
                  <TableCell>
                   <div className={cn("text-base md:text-lg font-bold", generalColorClass)}>

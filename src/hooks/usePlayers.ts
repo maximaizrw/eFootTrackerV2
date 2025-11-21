@@ -40,7 +40,7 @@ export function usePlayers() {
                     imageUrl: card.imageUrl || '',
                     ratingsByPosition: card.ratingsByPosition || {},
                     selectablePositions: card.selectablePositions || {},
-                    customScores: card.customScores || {},
+                    build: card.build || {},
                 })),
             } as Player;
         });
@@ -108,8 +108,6 @@ export function usePlayers() {
           if (!card.selectablePositions) card.selectablePositions = {};
           card.selectablePositions[position] = card.selectablePositions[position] ?? true;
           
-          if (!card.customScores) card.customScores = {};
-
         } else {
           card = { 
               id: uuidv4(), 
@@ -119,7 +117,7 @@ export function usePlayers() {
               imageUrl: '',
               ratingsByPosition: { [position]: [rating] },
               selectablePositions: { [position]: true },
-              customScores: {},
+              build: {},
           };
           newCards.push(card);
         }
@@ -136,7 +134,7 @@ export function usePlayers() {
               imageUrl: '',
               ratingsByPosition: { [position]: [rating] },
               selectablePositions: { [position]: true },
-              customScores: {},
+              build: {},
           }],
         };
         await addDoc(collection(db, 'players'), newPlayer);
@@ -281,7 +279,7 @@ export function usePlayers() {
     }
   };
   
-  const saveCustomScore = async (playerId: string, cardId: string, position: Position, score: number) => {
+  const savePlayerBuild = async (playerId: string, cardId: string, build: PlayerStatsBuild) => {
     if (!db) return;
     const playerRef = doc(db, 'players', playerId);
     try {
@@ -295,21 +293,18 @@ export function usePlayers() {
         const cardToUpdate = newCards.find(c => c.id === cardId);
 
         if (cardToUpdate) {
-            if (!cardToUpdate.customScores) {
-                cardToUpdate.customScores = {};
-            }
-            cardToUpdate.customScores[position] = score; // Allow negative values
-            
+            cardToUpdate.build = build;
             await updateDoc(playerRef, { cards: newCards });
-            toast({ title: "Afinidad Guardada", description: "La puntuación de afinidad se ha guardado." });
+            toast({ title: "Build Guardada", description: "La build del jugador se ha actualizado." });
         } else {
             throw new Error("Card not found in player data!");
         }
     } catch (error) {
-        console.error("Error saving custom score: ", error);
-        toast({ variant: "destructive", title: "Error al Guardar", description: "No se pudo guardar la afinidad." });
+        console.error("Error saving player build: ", error);
+        toast({ variant: "destructive", title: "Error al Guardar", description: "No se pudo guardar la build." });
     }
   };
+
 
   const downloadBackup = async () => {
     if (!db) return null;
@@ -326,5 +321,5 @@ export function usePlayers() {
     }
   };
 
-  return { players, loading, error, addRating, editCard, editPlayer, deleteRating, saveCustomScore, downloadBackup, deletePositionRatings, toggleSelectablePosition };
+  return { players, loading, error, addRating, editCard, editPlayer, deleteRating, savePlayerBuild, downloadBackup, deletePositionRatings, toggleSelectablePosition };
 }

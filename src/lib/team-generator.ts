@@ -1,11 +1,12 @@
 
-import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality } from './types';
-import { calculateStats } from './utils';
+import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, PlayerStatsBuild } from './types';
+import { calculateStats, getAffinityScoreFromBuild } from './utils';
 
 type CandidatePlayer = {
   player: Player;
   card: PlayerCard;
   average: number;
+  affinityScore: number;
   generalScore: number;
   position: Position;
   performance: PlayerPerformance;
@@ -17,6 +18,7 @@ type CandidatePlayer = {
  * 
  * @param players - The list of all available players.
  * @param formation - The selected formation with defined slots.
+ * @param idealBuilds - The ideal builds for each position.
  * @param discardedCardIds - A set of card IDs to exclude from the selection.
  * @param league - The league to filter by.
  * @param nationality - The nationality to filter by.
@@ -26,6 +28,7 @@ type CandidatePlayer = {
 export function generateIdealTeam(
   players: Player[],
   formation: FormationStats,
+  idealBuilds: Record<Position, PlayerStatsBuild>,
   discardedCardIds: Set<string> = new Set(),
   league: League | 'all' = 'all',
   nationality: Nationality | 'all' = 'all',
@@ -80,9 +83,10 @@ export function generateIdealTeam(
             isVersatile: isVersatile,
         };
         
-        const affinityScore = card.customScores?.[pos] || 0;
-        const matchAverageScore = stats.average > 0 ? (stats.average - 1) / 9 * 100 : 0;
-        
+        const idealBuild = idealBuilds[pos];
+        const affinityScore = getAffinityScoreFromBuild(card.build, idealBuild);
+
+        const matchAverageScore = stats.average > 0 ? (stats.average / 10 * 100) : 0;
         const generalScore = (affinityScore * 0.6) + (matchAverageScore * 0.4);
 
         return {
@@ -90,6 +94,7 @@ export function generateIdealTeam(
           card,
           position: pos,
           average: stats.average,
+          affinityScore,
           generalScore: generalScore,
           performance: performance,
         };

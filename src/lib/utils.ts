@@ -1,7 +1,8 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { Position, PositionGroup, PlayerStyle, PlayerRatingStats } from "./types";
+import type { Position, PositionGroup, PlayerStyle, PlayerRatingStats, PlayerStatsBuild, PlayerAttribute } from "./types";
+import { playerAttributes } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -114,4 +115,38 @@ export function normalizeText(text: string): string {
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/([A-Z])/g, ' $1');
+}
+
+
+export function getAffinityScoreFromBuild(playerBuild?: PlayerStatsBuild, idealBuild?: PlayerStatsBuild): number {
+  if (!playerBuild || !idealBuild) {
+    return 0;
+  }
+
+  let totalScore = 0;
+
+  for (const attr of playerAttributes) {
+    const playerStat = playerBuild[attr];
+    const idealStat = idealBuild[attr];
+
+    if (idealStat === undefined || idealStat === 0) {
+      continue; // Skip if ideal stat is not defined
+    }
+    
+    if (playerStat === undefined) {
+      totalScore += -idealStat; // Heavy penalty if player stat is missing
+      continue;
+    }
+
+    const diff = playerStat - idealStat;
+
+    if (diff >= 5) {
+      totalScore += Math.floor(diff / 5) * 0.25;
+    } else if (diff <= -5) {
+      totalScore += diff * (1 + 0.25 * Math.floor(Math.abs(diff) / 5));
+    }
+    // If diff is between -4 and 4, score is 0, so we do nothing.
+  }
+
+  return 100 + totalScore;
 }

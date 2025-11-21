@@ -29,19 +29,24 @@ import { IdealTeamSetup } from '@/components/ideal-team-setup';
 import { PlayerTable } from '@/components/player-table';
 import { PositionIcon } from '@/components/position-icon';
 import { NationalityDistribution } from '@/components/nationality-distribution';
+import { IdealBuildEditor } from '@/components/ideal-build-editor';
 
 import { usePlayers } from '@/hooks/usePlayers';
 import { useFormations } from '@/hooks/useFormations';
 import { useToast } from "@/hooks/use-toast";
 
-import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerAttribute } from '@/lib/types';
-import { positions, leagues, nationalities } from '@/lib/types';
-import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe } from 'lucide-react';
-import { calculateStats, normalizeText } from '@/lib/utils';
+import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerStatsBuild } from '@/lib/types';
+import { positions, leagues, nationalities, playerAttributes } from '@/lib/types';
+import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Wrench } from 'lucide-react';
+import { calculateStats, normalizeText, getAffinityScoreFromBuild } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 const ITEMS_PER_PAGE = 10;
+
+const initialIdealBuilds = Object.fromEntries(
+  positions.map(pos => [pos, Object.fromEntries(playerAttributes.map(attr => [attr, 0]))])
+) as Record<Position, PlayerStatsBuild>;
 
 export default function Home() {
   const { 
@@ -53,7 +58,7 @@ export default function Home() {
     editPlayer,
     deleteRating,
     downloadBackup: downloadPlayersBackup,
-    saveCustomScore,
+    savePlayerBuild,
     deletePositionRatings,
     toggleSelectablePosition,
   } = usePlayers();
@@ -82,6 +87,7 @@ export default function Home() {
   const [isEditPlayerDialogOpen, setEditPlayerDialogOpen] = useState(false);
   const [isPlayerDetailDialogOpen, setPlayerDetailDialogOpen] = useState(false);
   const [isImageViewerOpen, setImageViewerOpen] = useState(false);
+  const [isIdealBuildEditorOpen, setIdealBuildEditorOpen] = useState(false);
   const [viewingImageUrl, setViewingImageUrl] = useState<string | null>(null);
   const [viewingImageName, setViewingImageName] = useState<string | null>(null);
   const [addDialogInitialData, setAddDialogInitialData] = useState<Partial<AddRatingFormValues> | undefined>(undefined);
@@ -104,12 +110,40 @@ export default function Home() {
   
   const { toast } = useToast();
 
+  const [idealBuilds, setIdealBuilds] = useState<Record<Position, PlayerStatsBuild>>(initialIdealBuilds);
+  
+  useEffect(() => {
+    const savedBuilds = localStorage.getItem('idealBuilds');
+    if (savedBuilds) {
+      const parsedBuilds = JSON.parse(savedBuilds);
+      // Ensure all positions and attributes are present
+      const completeBuilds = { ...initialIdealBuilds };
+      for (const pos of positions) {
+        if (parsedBuilds[pos]) {
+          completeBuilds[pos] = {
+            ...initialIdealBuilds[pos],
+            ...parsedBuilds[pos],
+          };
+        }
+      }
+      setIdealBuilds(completeBuilds);
+    }
+  }, []);
+
+  const handleSaveIdealBuilds = (newBuilds: Record<Position, PlayerStatsBuild>) => {
+    setIdealBuilds(newBuilds);
+    localStorage.setItem('idealBuilds', JSON.stringify(newBuilds));
+    toast({
+      title: "Builds Ideales Guardadas",
+      description: "Tus configuraciones de builds ideales se han guardado localmente.",
+    });
+  };
+
   const selectedFormation = useMemo(() => {
     return formations.find(f => f.id === selectedFormationId);
   }, [formations, selectedFormationId]);
   
   useEffect(() => {
-    // Select first formation by default if available
     if (!selectedFormationId && formations && formations.length > 0) {
       setSelectedFormationId(formations[0].id);
     }
@@ -190,7 +224,7 @@ export default function Home() {
       return;
     }
     
-    const newTeam = generateIdealTeam(players, formation, discardedCardIds, selectedLeague, selectedNationality, sortBy);
+    const newTeam = generateIdealTeam(players, formation, idealBuilds, discardedCardIds, selectedLeague, selectedNationality, sortBy);
 
     setIdealTeam(newTeam);
     if (document.activeElement instanceof HTMLElement) {
@@ -247,6 +281,7 @@ export default function Home() {
     const backupData = {
       players: playersData,
       formations: formationsData,
+      idealBuilds: idealBuilds,
     };
 
     const jsonData = JSON.stringify(backupData, null, 2);
@@ -278,6 +313,10 @@ export default function Home() {
 
     return (
         <div className="flex items-center gap-2">
+             <Button onClick={() => setIdealBuildEditorOpen(true)} variant="outline" size="sm">
+                <Wrench className="mr-0 sm:mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">Editar Builds Ideales</span>
+            </Button>
             {isPositionTab ? (
                 <Button onClick={() => handleOpenAddRating({ position: activeTab as Position })} size="sm">
                     <PlusCircle className="mr-2 h-4 w-4" />
@@ -326,6 +365,12 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
+      <IdealBuildEditor
+        open={isIdealBuildEditorOpen}
+        onOpenChange={setIdealBuildEditorOpen}
+        initialBuilds={idealBuilds}
+        onSave={handleSaveIdealBuilds}
+      />
        <AddRatingDialog
         open={isAddRatingDialogOpen}
         onOpenChange={setAddRatingDialogOpen}
@@ -366,7 +411,8 @@ export default function Home() {
         open={isPlayerDetailDialogOpen}
         onOpenChange={setPlayerDetailDialogOpen}
         flatPlayer={selectedFlatPlayer}
-        onSaveCustomScore={saveCustomScore}
+        onSavePlayerBuild={savePlayerBuild}
+        idealBuilds={idealBuilds}
       />
       <AlertDialog open={isImageViewerOpen} onOpenChange={setImageViewerOpen}>
         <AlertDialogContent className="max-w-xl p-0">
@@ -469,12 +515,14 @@ export default function Home() {
                         isPromising: stats.matches > 0 && stats.matches < 10 && stats.average >= 7.0,
                         isVersatile: highPerfPositions.size >= 3,
                     };
+                    
+                    const idealBuild = idealBuilds[pos];
+                    const affinityScore = getAffinityScoreFromBuild(card.build, idealBuild);
 
-                    const affinityScore = card.customScores?.[pos] || 0;
-                    const matchAverageScore = stats.average > 0 ? (stats.average - 1) / 9 * 100 : 0;
+                    const matchAverageScore = stats.average > 0 ? (stats.average / 10 * 100) : 0;
                     const generalScore = (affinityScore * 0.6) + (matchAverageScore * 0.4);
 
-                    return { player, card, ratingsForPos, performance, generalScore };
+                    return { player, card, ratingsForPos, performance, affinityScore, generalScore };
                 })
             );
             
@@ -553,7 +601,6 @@ export default function Home() {
                       onDeletePositionRatings={deletePositionRatings}
                       onToggleSelectable={toggleSelectablePosition}
                       onDeleteRating={deleteRating}
-                      onSaveCustomScore={saveCustomScore}
                     />
                     <PlayerTable.Pagination
                       currentPage={currentPage}
@@ -573,7 +620,7 @@ export default function Home() {
                    Generador de 11 Ideal
                  </CardTitle>
                  <CardDescription>
-                   Selecciona una formación, define tus filtros y elige si ordenar por promedio o por una valoración "General" (promedio + afinidad) para crear tu equipo.
+                   Selecciona una formación, define tus filtros y elige si ordenar por promedio o por una valoración "General" (afinidad + promedio) para crear tu equipo.
                  </CardDescription>
                </CardHeader>
                <CardContent>

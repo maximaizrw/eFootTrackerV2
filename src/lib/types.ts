@@ -31,16 +31,19 @@ export const nationalities = [
 ] as const;
 export type Nationality = typeof nationalities[number];
 
-
 export const playerAttributes = [
     "offensiveAwareness", "ballControl", "dribbling", "tightPossession",
     "lowPass", "loftedPass", "finishing", "heading", "setPieceTaking", "curl",
     "speed", "acceleration", "kickingPower", "jump", "physicalContact",
-    "balance", "stamina", "defensiveAwareness", "tackling",
-    "defensiveEngagement", "gkAwareness", "gkCatching", "gkClearing",
+    "balance", "stamina", "defensiveAwareness", "tackling", "aggression",
+    "defensiveEngagement", "gkAwareness", "gkCatching", "gkParrying",
     "gkReflexes", "gkReach"
 ] as const;
 export type PlayerAttribute = typeof playerAttributes[number];
+
+export type PlayerStatsBuild = {
+  [key in PlayerAttribute]?: number;
+};
 
 export type PositionGroup = 'Goalkeeper' | 'Defender' | 'Midfielder' | 'Forward';
 
@@ -52,7 +55,7 @@ export type PlayerCard = {
   imageUrl?: string;
   ratingsByPosition: { [key in Position]?: number[] };
   selectablePositions?: { [key in Position]?: boolean };
-  customScores?: { [key in Position]?: number };
+  build?: PlayerStatsBuild;
 };
 
 export type Player = {
@@ -198,5 +201,6 @@ export type FlatPlayer = {
   card: PlayerCardType;
   ratingsForPos: number[];
   performance: PlayerPerformance;
+  affinityScore: number;
   generalScore: number;
 };
