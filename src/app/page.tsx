@@ -337,13 +337,15 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PositionIdealBuildEditor
-        open={isIdealBuildEditorOpen}
-        onOpenChange={setIdealBuildEditorOpen}
-        position={activeTab as Position}
-        initialBuilds={idealBuilds}
-        onSave={saveIdealBuildsForPosition}
-      />
+      {isIdealBuildEditorOpen && positions.includes(activeTab as Position) && (
+        <PositionIdealBuildEditor
+          open={isIdealBuildEditorOpen}
+          onOpenChange={setIdealBuildEditorOpen}
+          position={activeTab as Position}
+          initialBuilds={idealBuilds}
+          onSave={saveIdealBuildsForPosition}
+        />
+      )}
        <AddRatingDialog
         open={isAddRatingDialogOpen}
         onOpenChange={setAddRatingDialogOpen}
