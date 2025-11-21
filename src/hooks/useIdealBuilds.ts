@@ -3,10 +3,11 @@
 
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase-config';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import type { IdealBuilds, Position } from '@/lib/types';
 import { positions, getAvailableStylesForPosition, positionGroups } from '@/lib/types';
+import { getPositionGroup } from '@/lib/utils';
 
 
 const generateInitialIdealBuilds = (): IdealBuilds => {
@@ -95,14 +96,13 @@ export function useIdealBuilds() {
     try {
       const docRef = doc(db, 'idealBuilds', 'user_default');
       
-      const positionGroup = Object.keys(positionGroups).find(group => positionGroups[group as keyof typeof positionGroups].includes(position));
-      const positionsToUpdate = positionGroup ? positionGroups[positionGroup as keyof typeof positionGroups] : [position];
+      const positionGroup = getPositionGroup(position);
+      const representativePosition = positionGroups[positionGroup][0];
 
-      const dataToUpdate: Partial<IdealBuilds> = {};
-
-      for (const pos of positionsToUpdate) {
-        dataToUpdate[pos] = buildsForPosition;
-      }
+      // We only save under the representative position for the entire group.
+      const dataToUpdate = {
+        [representativePosition]: buildsForPosition
+      };
       
       await setDoc(docRef, dataToUpdate, { merge: true });
       
@@ -122,5 +122,3 @@ export function useIdealBuilds() {
 
   return { idealBuilds, loading, error, saveIdealBuildsForPosition };
 }
-
-    
