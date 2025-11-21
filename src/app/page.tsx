@@ -34,32 +34,17 @@ import { PlayerTester } from '@/components/player-tester';
 
 import { usePlayers } from '@/hooks/usePlayers';
 import { useFormations } from '@/hooks/useFormations';
+import { useIdealBuilds } from '@/hooks/useIdealBuilds';
 import { useToast } from "@/hooks/use-toast";
 
 import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerStatsBuild, PlayerStyle, IdealBuilds } from '@/lib/types';
-import { positions, leagues, nationalities, playerAttributes, playerStyles, getAvailableStylesForPosition } from '@/lib/types';
+import { positions, leagues, nationalities } from '@/lib/types';
 import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Wrench, Beaker } from 'lucide-react';
 import { calculateStats, normalizeText, getAffinityScoreFromBuild, calculateGeneralScore } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 const ITEMS_PER_PAGE = 10;
-
-const generateInitialIdealBuilds = (): IdealBuilds => {
-  const initialBuilds: Partial<IdealBuilds> = {};
-  for (const pos of positions) {
-    initialBuilds[pos] = {};
-    const availableStyles = getAvailableStylesForPosition(pos, true);
-    for (const style of availableStyles) {
-      const emptyBuild: PlayerStatsBuild = Object.fromEntries(
-        playerAttributes.map(attr => [attr, 0])
-      );
-      initialBuilds[pos]![style] = emptyBuild;
-    }
-  }
-  return initialBuilds as IdealBuilds;
-};
-
 
 export default function Home() {
   const { 
@@ -87,6 +72,13 @@ export default function Home() {
     deleteMatchResult,
     downloadBackup: downloadFormationsBackup,
   } = useFormations();
+
+  const {
+    idealBuilds,
+    loading: idealBuildsLoading,
+    error: idealBuildsError,
+    saveIdealBuilds,
+  } = useIdealBuilds();
   
   const allPlayers = players || [];
 
@@ -122,48 +114,6 @@ export default function Home() {
   const [pagination, setPagination] = useState<Record<string, number>>({});
   
   const { toast } = useToast();
-
-  const [idealBuilds, setIdealBuilds] = useState<IdealBuilds>(generateInitialIdealBuilds());
-  
-  useEffect(() => {
-    const savedBuilds = localStorage.getItem('idealBuilds');
-    const initialBuilds = generateInitialIdealBuilds();
-
-    if (savedBuilds) {
-      try {
-        const parsedBuilds = JSON.parse(savedBuilds);
-        // Deep merge to ensure all positions and styles are present
-        for (const pos of positions) {
-          if (parsedBuilds[pos]) {
-            for (const style of getAvailableStylesForPosition(pos, true)) {
-               if (parsedBuilds[pos][style]) {
-                initialBuilds[pos][style] = {
-                  ...initialBuilds[pos][style],
-                  ...parsedBuilds[pos][style],
-                };
-              }
-            }
-          }
-        }
-        setIdealBuilds(initialBuilds);
-      } catch (e) {
-        console.error("Failed to parse ideal builds from localStorage", e);
-        setIdealBuilds(initialBuilds);
-      }
-    } else {
-      setIdealBuilds(initialBuilds);
-    }
-  }, []);
-
-
-  const handleSaveIdealBuilds = (newBuilds: IdealBuilds) => {
-    setIdealBuilds(newBuilds);
-    localStorage.setItem('idealBuilds', JSON.stringify(newBuilds));
-    toast({
-      title: "Builds Ideales Guardadas",
-      description: "Tus configuraciones de builds ideales se han guardado localmente.",
-    });
-  };
 
   const selectedFormation = useMemo(() => {
     return formations.find(f => f.id === selectedFormationId);
@@ -231,11 +181,11 @@ export default function Home() {
   };
 
   const handleGenerateTeam = () => {
-    if (!players || !selectedFormationId) {
+    if (!players || !selectedFormationId || !idealBuilds) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Por favor, selecciona jugadores y una formación primero.',
+        description: 'Por favor, selecciona jugadores, una formación y define builds ideales primero.',
       });
       return;
     }
@@ -339,7 +289,7 @@ export default function Home() {
 
     return (
         <div className="flex items-center gap-2">
-             <Button onClick={() => setIdealBuildEditorOpen(true)} variant="outline" size="sm">
+             <Button onClick={() => setIdealBuildEditorOpen(true)} variant="outline" size="sm" disabled={idealBuildsLoading}>
                 <Wrench className="mr-0 sm:mr-2 h-4 w-4" />
                 <span className="hidden sm:inline">Editar Builds Ideales</span>
             </Button>
@@ -369,7 +319,7 @@ export default function Home() {
   };
 
 
-  const error = playersError || formationsError;
+  const error = playersError || formationsError || idealBuildsError;
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen text-center p-4">
@@ -381,7 +331,7 @@ export default function Home() {
     );
   }
 
-  if (playersLoading || formationsLoading) {
+  if (playersLoading || formationsLoading || idealBuildsLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-xl font-semibold">Conectando a la base de datos...</div>
@@ -395,7 +345,7 @@ export default function Home() {
         open={isIdealBuildEditorOpen}
         onOpenChange={setIdealBuildEditorOpen}
         initialBuilds={idealBuilds}
-        onSave={handleSaveIdealBuilds}
+        onSave={saveIdealBuilds}
       />
        <AddRatingDialog
         open={isAddRatingDialogOpen}
@@ -698,3 +648,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
