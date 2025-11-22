@@ -41,7 +41,7 @@ export function usePlayers() {
                     imageUrl: card.imageUrl || '',
                     ratingsByPosition: card.ratingsByPosition || {},
                     selectablePositions: card.selectablePositions || {},
-                    build: card.build || { stats: {}, progression: {}, updatedAt: '' },
+                    buildsByPosition: card.buildsByPosition || {},
                 })),
             } as Player;
         });
@@ -114,6 +114,11 @@ export function usePlayers() {
           
           if (!card.selectablePositions) card.selectablePositions = {};
           card.selectablePositions[position] = card.selectablePositions[position] ?? true;
+
+          if (!card.buildsByPosition) card.buildsByPosition = {};
+          if (!card.buildsByPosition[position]) {
+            card.buildsByPosition[position] = { stats: {}, progression: {} };
+          }
           
         } else {
           card = { 
@@ -124,7 +129,7 @@ export function usePlayers() {
               imageUrl: '',
               ratingsByPosition: { [position]: [rating] },
               selectablePositions: { [position]: true },
-              build: { stats: {}, progression: {}, updatedAt: '' },
+              buildsByPosition: { [position]: { stats: {}, progression: {} } },
           };
           newCards.push(card);
         }
@@ -141,7 +146,7 @@ export function usePlayers() {
               imageUrl: '',
               ratingsByPosition: { [position]: [rating] },
               selectablePositions: { [position]: true },
-              build: { stats: {}, progression: {}, updatedAt: '' },
+              buildsByPosition: { [position]: { stats: {}, progression: {} } },
           }],
         };
         await addDoc(collection(db, 'players'), newPlayer);
@@ -286,7 +291,7 @@ export function usePlayers() {
     }
   };
   
-  const savePlayerBuild = async (playerId: string, cardId: string, build: PlayerBuild) => {
+  const savePlayerBuild = async (playerId: string, cardId: string, position: Position, build: PlayerBuild) => {
     if (!db) return;
     const playerRef = doc(db, 'players', playerId);
     try {
@@ -300,13 +305,16 @@ export function usePlayers() {
         const cardToUpdate = newCards.find(c => c.id === cardId);
 
         if (cardToUpdate) {
-            cardToUpdate.build = {
+            if (!cardToUpdate.buildsByPosition) {
+              cardToUpdate.buildsByPosition = {};
+            }
+            cardToUpdate.buildsByPosition[position] = {
               progression: build.progression || {},
               stats: build.stats || {},
               updatedAt: new Date().toISOString(),
             };
             await updateDoc(playerRef, { cards: newCards });
-            toast({ title: "Build Guardada", description: "La build del jugador se ha actualizado." });
+            toast({ title: "Build Guardada", description: `La build del jugador para ${position} se ha actualizado.` });
         } else {
             throw new Error("Card not found in player data!");
         }

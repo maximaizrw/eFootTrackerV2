@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import type { Position, FlatPlayer, IdealBuilds, PlayerBuild, DbIdealBuilds } from "@/lib/types";
+import type { Position, FlatPlayer, DbIdealBuilds, PlayerBuild } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -21,28 +21,32 @@ type PlayerDetailDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   flatPlayer: FlatPlayer | null;
-  onSavePlayerBuild: (playerId: string, cardId: string, build: PlayerBuild) => void;
+  onSavePlayerBuild: (playerId: string, cardId: string, position: Position, build: PlayerBuild) => void;
   idealBuilds: DbIdealBuilds;
 };
 
-export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlayerBuild, idealBuilds }: PlayerDetailDialogProps) {
+export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlayerBuild }: PlayerDetailDialogProps) {
   const [currentBuild, setCurrentBuild] = React.useState<PlayerBuild>({ stats: {}, progression: {} });
+  
+  const position = flatPlayer?.position;
+  const card = flatPlayer?.card;
+  const player = flatPlayer?.player;
+  const buildForPosition = position && card?.buildsByPosition?.[position];
+  const updatedAt = buildForPosition?.updatedAt;
 
   React.useEffect(() => {
-    if (open && flatPlayer) {
-      setCurrentBuild(flatPlayer.card.build || { stats: {}, progression: {} });
+    if (open && flatPlayer && position) {
+      const build = card?.buildsByPosition?.[position] || { stats: {}, progression: {} };
+      setCurrentBuild(build);
     } else {
       setCurrentBuild({ stats: {}, progression: {} });
     }
-  }, [open, flatPlayer]);
+  }, [open, flatPlayer, card, position]);
 
-  const card = flatPlayer?.card;
-  const player = flatPlayer?.player;
-  const updatedAt = card?.build?.updatedAt;
 
   const handleSave = () => {
-    if (player && card && currentBuild) {
-      onSavePlayerBuild(player.id, card.id, currentBuild);
+    if (player && card && position && currentBuild) {
+      onSavePlayerBuild(player.id, card.id, position, currentBuild);
       onOpenChange(false);
     }
   };
@@ -55,9 +59,9 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Editor de Build para {player?.name} <span className="text-muted-foreground">({card?.name})</span></DialogTitle>
+          <DialogTitle>Editor de Build para {player?.name} ({card?.name}) en <span className="text-primary">{position}</span></DialogTitle>
           <DialogDescription>
-            Ajusta los puntos de progresión y las estadísticas base de tu jugador. Última actualización: <span className="font-semibold text-foreground">{formattedDate}</span>
+            Ajusta los puntos de progresión y las estadísticas base de tu jugador para esta posición. Última actualización: <span className="font-semibold text-foreground">{formattedDate}</span>
           </DialogDescription>
         </DialogHeader>
         <div className="flex-grow mt-4 overflow-hidden">
@@ -67,7 +71,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
           />
         </div>
         <DialogFooter className="pt-4 border-t mt-4">
-          <Button onClick={handleSave}>Guardar Build</Button>
+          <Button onClick={handleSave}>Guardar Build de {position}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

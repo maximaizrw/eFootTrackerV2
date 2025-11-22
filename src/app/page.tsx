@@ -499,7 +499,7 @@ export default function Home() {
                             isVersatile: highPerfPositions.size >= 3,
                         };
                         
-                        const affinityScore = getAffinityScoreFromBuild(card.build?.stats, ratedPos, card.style, idealBuilds);
+                        const affinityScore = getAffinityScoreFromBuild(card.buildsByPosition?.[ratedPos]?.stats, ratedPos, card.style, idealBuilds);
                         const generalScore = calculateGeneralScore(affinityScore, stats.average);
 
                         return { player, card, ratingsForPos, performance, affinityScore, generalScore, position: ratedPos };
@@ -648,7 +648,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
-
-    
