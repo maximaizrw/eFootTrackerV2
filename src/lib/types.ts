@@ -273,7 +273,7 @@ export function getAvailableStylesForPosition(position: Position, includeNone: b
         case 'EXD':
             return [...baseStyles, 'Extremo móvil', 'Extremo prolífico', 'Especialista en centros', 'Creador de jugadas'];
         case 'SD':
-            return [...baseStyles, 'Cazagoles', 'Jugador de huecos', 'Señuelo', 'Hombre objetivo', 'Diez Clasico', 'Extremo móvil'];
+            return [...baseStyles, 'Cazagoles', 'Jugador de huecos', 'Señuelo', 'Hombre objetivo', 'Diez Clasico', 'Extremo móvil', 'Creador de jugadas'];
         case 'DC':
             return [...baseStyles, 'Cazagoles', 'Hombre de área', 'Señuelo', 'Hombre objetivo', 'Jugador de huecos', 'Extremo móvil'];
         default:
