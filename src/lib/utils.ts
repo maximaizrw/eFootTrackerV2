@@ -2,7 +2,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { Position, PlayerStyle, PlayerRatingStats, PlayerStatsBuild, PlayerAttribute, DbIdealBuilds, PositionLabel } from "./types";
-import { playerAttributes, positionLabels } from "./types";
+import { playerAttributes, positionLabels, getAvailableStylesForPosition } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -51,41 +51,23 @@ export function normalizeText(text: string): string {
 }
 
 /**
- * Calculates the affinity score of a player's build compared to an ideal build.
- * It now directly uses the position's label to find the correct ideal build.
- *
+ * Calculates a single affinity score for a player's build against a specific ideal build.
  * @param playerBuild The stats of the player.
- * @param position The specific position of the player (e.g., 'LI').
- * @param style The player's style.
- * @param idealBuilds The database of all ideal builds, keyed by PositionLabel.
+ * @param idealBuild The specific ideal build to compare against.
+ * @param isGk If the position is a Goalkeeper.
  * @returns An affinity score between 0 and 100.
  */
-export function getAffinityScoreFromBuild(
-  playerBuild: PlayerStatsBuild | undefined,
-  position: Position,
-  style: PlayerStyle,
-  idealBuilds: DbIdealBuilds
+function calculateScoreAgainstIdeal(
+  playerBuild: PlayerStatsBuild,
+  idealBuild: PlayerStatsBuild,
+  isGk: boolean
 ): number {
-  if (style === 'Ninguno' || !playerBuild || Object.keys(playerBuild).length === 0) {
-    return 0;
-  }
-  
-  // Directly get the label for the position, e.g., 'LI' -> 'Lateral Izquierdo'
-  const positionLabel = positionLabels[position];
-  
-  // Find the ideal build for that specific position label and style.
-  const idealBuild = idealBuilds[positionLabel]?.[style];
-
-  if (!idealBuild || Object.keys(idealBuild).length === 0) {
-    return 0;
-  }
-
   const gkAttributes: PlayerAttribute[] = [
     "gkAwareness", "gkCatching", "gkParrying", "gkReflexes", "gkReach",
     "speed", "acceleration", "kickingPower", "jump"
   ];
   
-  const attributesToIterate = position === 'PT' 
+  const attributesToIterate = isGk
     ? gkAttributes 
     : playerAttributes.filter(attr => !gkAttributes.includes(attr));
 
@@ -103,13 +85,10 @@ export function getAffinityScoreFromBuild(
     attributeCount++;
     const diff = playerStat - idealStat;
     
-    // Weighted scoring: Penalize more for being under the ideal stat.
     if (diff >= 0) {
-      // Bonus for exceeding the ideal stat, but with diminishing returns.
-      totalScore += 1; // Base score for meeting the stat
-      totalScore += Math.min(diff / 5, 1) * 0.5; // Add up to 0.5 bonus
+      totalScore += 1;
+      totalScore += Math.min(diff / 5, 1) * 0.5; 
     } else {
-      // Penalty for being under the ideal stat.
       totalScore += 1 - Math.min(Math.abs(diff) / 10, 1);
     }
   }
@@ -119,6 +98,62 @@ export function getAffinityScoreFromBuild(
   const finalScore = (totalScore / attributeCount) * 100;
   return Math.max(0, Math.min(100, finalScore));
 }
+
+/**
+ * Calculates the affinity score of a player's build compared to an ideal build for a position.
+ * If the player's native style doesn't have a defined ideal build for the position,
+ * it finds the best possible affinity score by checking against all other valid styles for that position.
+ *
+ * @param playerBuild The stats of the player.
+ * @param position The specific position of the player (e.g., 'LI').
+ * @param style The player's native style.
+ * @param idealBuilds The database of all ideal builds, keyed by PositionLabel.
+ * @returns An affinity score between 0 and 100.
+ */
+export function getAffinityScoreFromBuild(
+  playerBuild: PlayerStatsBuild | undefined,
+  position: Position,
+  style: PlayerStyle,
+  idealBuilds: DbIdealBuilds
+): number {
+  if (!playerBuild || Object.keys(playerBuild).length === 0) {
+    return 0;
+  }
+  
+  const positionLabel = positionLabels[position];
+  const idealBuildsForPosition = idealBuilds[positionLabel];
+  const isGk = position === 'PT';
+
+  // If there are no ideal builds defined for this position group at all, no score.
+  if (!idealBuildsForPosition) {
+    return 0;
+  }
+
+  const idealBuildForNativeStyle = style !== 'Ninguno' ? idealBuildsForPosition[style] : undefined;
+
+  // Case 1: An ideal build exists for the player's native style. Calculate score directly.
+  if (idealBuildForNativeStyle && Object.keys(idealBuildForNativeStyle).length > 0) {
+    return calculateScoreAgainstIdeal(playerBuild, idealBuildForNativeStyle, isGk);
+  }
+  
+  // Case 2: No ideal build for the native style OR style is 'Ninguno'.
+  // Find the best possible affinity by checking against all defined ideal builds for that position.
+  const availableStyles = getAvailableStylesForPosition(position, false); // Get all valid styles (no "Ninguno")
+  let maxAffinity = 0;
+
+  for (const availableStyle of availableStyles) {
+    const idealBuildForStyle = idealBuildsForPosition[availableStyle];
+    if (idealBuildForStyle && Object.keys(idealBuildForStyle).length > 0) {
+      const currentAffinity = calculateScoreAgainstIdeal(playerBuild, idealBuildForStyle, isGk);
+      if (currentAffinity > maxAffinity) {
+        maxAffinity = currentAffinity;
+      }
+    }
+  }
+
+  return maxAffinity;
+}
+
 
 export function calculateGeneralScore(affinityScore: number, average: number): number {
   const matchAverageScore = average > 0 ? average * 10 : 0;
