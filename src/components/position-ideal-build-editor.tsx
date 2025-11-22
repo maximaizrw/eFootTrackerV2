@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Position, PlayerStyle, PlayerStatsBuild, DbIdealBuilds, PositionLabel } from "@/lib/types";
-import { getAvailableStylesForPosition, positionLabels } from "@/lib/types";
+import { positionLabels, getAvailableStylesForPosition } from "@/lib/types";
 import { PlayerStatsEditor } from "./player-stats-editor";
 import { ScrollArea } from "./ui/scroll-area";
 
@@ -49,15 +49,14 @@ export function PositionIdealBuildEditor({
 
   React.useEffect(() => {
     if (open) {
-        const currentLabel = positionLabels[position];
-        const buildsForPosition = initialBuilds[currentLabel] || {};
+        const buildsForPosition = initialBuilds[positionLabel] || {};
         setBuilds(buildsForPosition);
 
         if (availableStyles.length > 0 && !availableStyles.includes(selectedStyle)) {
             setSelectedStyle(availableStyles[0]);
         }
     }
-  }, [open, position, initialBuilds, availableStyles, selectedStyle]);
+  }, [open, position, initialBuilds, availableStyles, selectedStyle, positionLabel]);
   
   React.useEffect(() => {
     if (open && !availableStyles.includes(selectedStyle) && availableStyles.length > 0) {

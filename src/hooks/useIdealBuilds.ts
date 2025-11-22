@@ -72,10 +72,14 @@ export function useIdealBuilds() {
     try {
       const docRef = doc(db, 'idealBuilds', 'user_default');
       
+      // We create an object where the key is the position label itself.
+      // This ensures that we are setting or merging data for a specific position label.
       const dataToUpdate = {
         [positionLabel]: buildsForPosition
       };
       
+      // By using setDoc with merge:true, we either update the field for the position group
+      // or add it if it doesn't exist, without overwriting other position groups.
       await setDoc(docRef, dataToUpdate, { merge: true });
       
       toast({

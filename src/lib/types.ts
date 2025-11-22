@@ -61,22 +61,6 @@ export type PlayerBuild = {
   updatedAt?: string;
 };
 
-export const positionGroups = {
-  'Portero': 'PT',
-  'Defensa Central': 'DFC',
-  'Lateral Izquierdo': 'LI',
-  'Lateral Derecho': 'LD',
-  'Pivote Defensivo': 'MCD',
-  'Mediocentro': 'MC',
-  'Interior Izquierdo': 'MDI',
-  'Interior Derecho': 'MDD',
-  'Mediapunta': 'MO',
-  'Extremo Izquierdo': 'EXI',
-  'Extremo Derecho': 'EXD',
-  'Segundo Delantero': 'SD',
-  'Delantero Centro': 'DC',
-} as const;
-
 export const positionLabels: Record<Position, string> = {
     PT: 'Portero',
     DFC: 'Defensa Central',

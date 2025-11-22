@@ -50,6 +50,16 @@ export function normalizeText(text: string): string {
     .replace(/([A-Z])/g, ' $1');
 }
 
+/**
+ * Calculates the affinity score of a player's build compared to an ideal build.
+ * It now directly uses the position's label to find the correct ideal build.
+ *
+ * @param playerBuild The stats of the player.
+ * @param position The specific position of the player (e.g., 'LI').
+ * @param style The player's style.
+ * @param idealBuilds The database of all ideal builds, keyed by PositionLabel.
+ * @returns An affinity score between 0 and 100.
+ */
 export function getAffinityScoreFromBuild(
   playerBuild: PlayerStatsBuild | undefined,
   position: Position,
@@ -60,7 +70,10 @@ export function getAffinityScoreFromBuild(
     return 0;
   }
   
+  // Directly get the label for the position, e.g., 'LI' -> 'Lateral Izquierdo'
   const positionLabel = positionLabels[position];
+  
+  // Find the ideal build for that specific position label and style.
   const idealBuild = idealBuilds[positionLabel]?.[style];
 
   if (!idealBuild || Object.keys(idealBuild).length === 0) {
@@ -72,10 +85,12 @@ export function getAffinityScoreFromBuild(
     "speed", "acceleration", "kickingPower", "jump"
   ];
   
-  const attributesToIterate = position === 'PT' ? gkAttributes : playerAttributes.filter(attr => !gkAttributes.includes(attr));
-
+  const attributesToIterate = position === 'PT' 
+    ? gkAttributes 
+    : playerAttributes.filter(attr => !gkAttributes.includes(attr));
 
   let totalScore = 0;
+  let attributeCount = 0;
 
   for (const attr of attributesToIterate) {
     const playerStat = playerBuild[attr];
@@ -85,17 +100,23 @@ export function getAffinityScoreFromBuild(
       continue;
     }
     
+    attributeCount++;
     const diff = playerStat - idealStat;
     
-    if (diff >= 5) {
-      totalScore += Math.floor(diff / 5) * 0.25;
-    } else if (diff <= -5) {
-      const blocks = Math.floor(Math.abs(diff) / 5);
-      totalScore += diff * (1 + 0.25 * blocks);
+    // Weighted scoring: Penalize more for being under the ideal stat.
+    if (diff >= 0) {
+      // Bonus for exceeding the ideal stat, but with diminishing returns.
+      totalScore += 1; // Base score for meeting the stat
+      totalScore += Math.min(diff / 5, 1) * 0.5; // Add up to 0.5 bonus
+    } else {
+      // Penalty for being under the ideal stat.
+      totalScore += 1 - Math.min(Math.abs(diff) / 10, 1);
     }
   }
   
-  const finalScore = 100 + totalScore;
+  if (attributeCount === 0) return 0;
+
+  const finalScore = (totalScore / attributeCount) * 100;
   return Math.max(0, Math.min(100, finalScore));
 }
 

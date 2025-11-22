@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Check, ChevronsUpDown, Settings } from "lucide-react";
 import type { FormationSlot, Position, PlayerStyle } from "@/lib/types";
-import { positions, playerStyles } from "@/lib/types";
+import { positions, playerStyles, getAvailableStylesForPosition } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { FootballPitch } from "./football-pitch";
 
@@ -53,6 +53,7 @@ const PlayerToken = ({
   };
 
   const displayPosition = slot.position;
+  const availableStyles = getAvailableStylesForPosition(slot.position);
   
   return (
     <div
@@ -127,7 +128,7 @@ const PlayerToken = ({
                                   <CommandInput placeholder="Buscar estilo..." />
                                   <CommandList>
                                       <CommandEmpty>No se encontró el estilo.</CommandEmpty>
-                                      {playerStyles.map((style) => (
+                                      {availableStyles.map((style) => (
                                           <CommandItem
                                               key={style}
                                               value={style}
