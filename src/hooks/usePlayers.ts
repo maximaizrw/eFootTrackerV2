@@ -117,7 +117,7 @@ export function usePlayers() {
 
           if (!card.buildsByPosition) card.buildsByPosition = {};
           if (!card.buildsByPosition[position]) {
-            card.buildsByPosition[position] = { stats: {}, progression: {} };
+            card.buildsByPosition[position] = { manualAffinity: 0 };
           }
           
         } else {
@@ -129,7 +129,7 @@ export function usePlayers() {
               imageUrl: '',
               ratingsByPosition: { [position]: [rating] },
               selectablePositions: { [position]: true },
-              buildsByPosition: { [position]: { stats: {}, progression: {} } },
+              buildsByPosition: { [position]: { manualAffinity: 0 } },
           };
           newCards.push(card);
         }
@@ -146,7 +146,7 @@ export function usePlayers() {
               imageUrl: '',
               ratingsByPosition: { [position]: [rating] },
               selectablePositions: { [position]: true },
-              buildsByPosition: { [position]: { stats: {}, progression: {} } },
+              buildsByPosition: { [position]: { manualAffinity: 0 } },
           }],
         };
         await addDoc(collection(db, 'players'), newPlayer);
@@ -309,18 +309,17 @@ export function usePlayers() {
               cardToUpdate.buildsByPosition = {};
             }
             cardToUpdate.buildsByPosition[position] = {
-              progression: build.progression || {},
-              stats: build.stats || {},
+              manualAffinity: build.manualAffinity || 0,
               updatedAt: new Date().toISOString(),
             };
             await updateDoc(playerRef, { cards: newCards });
-            toast({ title: "Build Guardada", description: `La build del jugador para ${position} se ha actualizado.` });
+            toast({ title: "Afinidad Guardada", description: `La afinidad del jugador para ${position} se ha actualizado.` });
         } else {
             throw new Error("Card not found in player data!");
         }
     } catch (error) {
         console.error("Error saving player build: ", error);
-        toast({ variant: "destructive", title: "Error al Guardar", description: "No se pudo guardar la build." });
+        toast({ variant: "destructive", title: "Error al Guardar", description: "No se pudo guardar la afinidad." });
     }
   };
 

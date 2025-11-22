@@ -30,34 +30,8 @@ export const nationalities = [
 ] as const;
 export type Nationality = typeof nationalities[number];
 
-export const playerAttributes = [
-    "offensiveAwareness", "ballControl", "dribbling", "tightPossession",
-    "lowPass", "loftedPass", "finishing", "heading", "setPieceTaking", "curl",
-    "speed", "acceleration", "kickingPower", "jump", "physicalContact",
-    "balance", "stamina", "defensiveAwareness", "defensiveEngagement", "tackling", "aggression",
-    "gkAwareness", "gkCatching", "gkParrying",
-    "gkReflexes", "gkReach"
-] as const;
-export type PlayerAttribute = typeof playerAttributes[number];
-
-export type PlayerStatsBuild = {
-  [key in PlayerAttribute]?: number;
-};
-
-export const progressionCategories = [
-    "shooting", "passing", "dribbling", "dexterity",
-    "lowerBodyStrength", "aerialStrength", "defending",
-    "gk1", "gk2", "gk3"
-] as const;
-export type ProgressionCategory = typeof progressionCategories[number];
-
-export type ProgressionPoints = {
-  [key in ProgressionCategory]?: number;
-};
-
 export type PlayerBuild = {
-  progression?: ProgressionPoints;
-  stats: PlayerStatsBuild;
+  manualAffinity?: number;
   updatedAt?: string;
 };
 
@@ -79,15 +53,6 @@ export const positionLabels: Record<Position, string> = {
 
 
 export type PositionLabel = typeof positionLabels[Position];
-
-
-// Data model stored in Firestore for ideal builds.
-// The key is now the PositionLabel, e.g., "Lateral Izquierdo"
-export type DbIdealBuilds = {
-    [key in PositionLabel]?: {
-        [key in PlayerStyle]?: PlayerStatsBuild;
-    };
-};
 
 export type PlayerCard = {
   id: string;

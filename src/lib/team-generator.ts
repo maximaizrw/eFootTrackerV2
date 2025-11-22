@@ -1,6 +1,6 @@
 
-import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, PlayerStatsBuild, DbIdealBuilds, PlayerStyle } from './types';
-import { calculateStats, getAffinityScoreFromBuild, calculateGeneralScore } from './utils';
+import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality } from './types';
+import { calculateStats, calculateGeneralScore } from './utils';
 
 type CandidatePlayer = {
   player: Player;
@@ -18,7 +18,6 @@ type CandidatePlayer = {
  * 
  * @param players - The list of all available players.
  * @param formation - The selected formation with defined slots.
- * @param idealBuilds - The ideal builds for each position and style.
  * @param discardedCardIds - A set of card IDs to exclude from the selection.
  * @param league - The league to filter by.
  * @param nationality - The nationality to filter by.
@@ -28,7 +27,6 @@ type CandidatePlayer = {
 export function generateIdealTeam(
   players: Player[],
   formation: FormationStats,
-  idealBuilds: DbIdealBuilds,
   discardedCardIds: Set<string> = new Set(),
   league: League | 'all' = 'all',
   nationality: Nationality | 'all' = 'all',
@@ -83,7 +81,7 @@ export function generateIdealTeam(
             isVersatile: isVersatile,
         };
         
-        const affinityScore = getAffinityScoreFromBuild(card.buildsByPosition?.[pos]?.stats, pos, card.style, idealBuilds);
+        const affinityScore = card.buildsByPosition?.[pos]?.manualAffinity || 0;
         const generalScore = calculateGeneralScore(affinityScore, stats.average);
 
         return {

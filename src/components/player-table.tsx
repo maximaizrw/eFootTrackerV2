@@ -2,18 +2,24 @@
 "use client";
 
 import Image from 'next/image';
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, X, Wrench, Pencil, NotebookPen, Search, EyeOff, Eye, Star } from 'lucide-react';
-import { cn, formatAverage, getAverageColorClass } from '@/lib/utils';
+import { PlusCircle, Trash2, X, Wrench, Pencil, NotebookPen, Search, EyeOff, Eye, Star, ChevronDown, ChevronUp } from 'lucide-react';
+import { cn, formatAverage, getAverageColorClass, calculateStats } from '@/lib/utils';
 import type { Player, PlayerCard, Position, FlatPlayer } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import { PerformanceBadges } from './performance-badges';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 type PlayerTableProps = {
   players: FlatPlayer[];
@@ -37,8 +43,6 @@ type FilterProps = {
   onCardFilterChange: (value: string) => void;
   uniqueStyles: string[];
   uniqueCardNames: string[];
-  position: Position;
-  onOpenIdealBuildEditor: () => void;
 };
 
 const Filters = ({
@@ -50,47 +54,37 @@ const Filters = ({
   onCardFilterChange,
   uniqueStyles,
   uniqueCardNames,
-  position,
-  onOpenIdealBuildEditor,
 }: FilterProps) => (
-  <div className="flex flex-col gap-2">
-    <div className="flex flex-col md:flex-row gap-2">
-      <div className="relative flex-grow">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder={`Buscar en ${position}...`}
-          value={searchTerm}
-          onChange={(e) => onSearchTermChange(e.target.value)}
-          className="pl-10 w-full"
-        />
-      </div>
-      <Select value={styleFilter} onValueChange={onStyleFilterChange}>
-        <SelectTrigger className="w-full md:w-[180px]">
-          <SelectValue placeholder="Filtrar por estilo" />
-        </SelectTrigger>
-        <SelectContent>
-          {uniqueStyles.map(style => (
-            <SelectItem key={style} value={style}>{style === 'all' ? 'Todos los Estilos' : style}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <Select value={cardFilter} onValueChange={onCardFilterChange}>
-        <SelectTrigger className="w-full md:w-[180px]">
-          <SelectValue placeholder="Filtrar por carta" />
-        </SelectTrigger>
-        <SelectContent>
-          {uniqueCardNames.map(name => (
-            <SelectItem key={name} value={name}>{name === 'all' ? 'Todas las Cartas' : name}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+  <div className="flex flex-col md:flex-row gap-2">
+    <div className="relative flex-grow">
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <Input
+        placeholder={`Buscar...`}
+        value={searchTerm}
+        onChange={(e) => onSearchTermChange(e.target.value)}
+        className="pl-10 w-full"
+      />
     </div>
-    <div className="flex justify-start">
-        <Button onClick={onOpenIdealBuildEditor} variant="outline" size="sm">
-            <Wrench className="mr-2 h-4 w-4" />
-            Builds Ideales de {position}
-        </Button>
-    </div>
+    <Select value={styleFilter} onValueChange={onStyleFilterChange}>
+      <SelectTrigger className="w-full md:w-[180px]">
+        <SelectValue placeholder="Filtrar por estilo" />
+      </SelectTrigger>
+      <SelectContent>
+        {uniqueStyles.map(style => (
+          <SelectItem key={style} value={style}>{style === 'all' ? 'Todos los Estilos' : style}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+    <Select value={cardFilter} onValueChange={onCardFilterChange}>
+      <SelectTrigger className="w-full md:w-[180px]">
+        <SelectValue placeholder="Filtrar por carta" />
+      </SelectTrigger>
+      <SelectContent>
+        {uniqueCardNames.map(name => (
+          <SelectItem key={name} value={name}>{name === 'all' ? 'Todas las Cartas' : name}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   </div>
 );
 
@@ -128,6 +122,56 @@ const Pagination = ({ currentPage, totalPages, onPageChange }: PaginationProps) 
     );
 };
 
+const ExpandedContent = ({ flatPlayer, onDeleteRating }: { flatPlayer: FlatPlayer, onDeleteRating: PlayerTableProps['onDeleteRating'] }) => {
+    const { ratingsForPos, performance, player, card, position } = flatPlayer;
+    const stats = performance.stats;
+    
+    if (!ratingsForPos || ratingsForPos.length === 0) return null;
+
+    const maxRating = Math.max(...ratingsForPos);
+    const minRating = Math.min(...ratingsForPos);
+
+    return (
+        <div className="p-4 bg-muted/30">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-center">
+                 <div>
+                    <p className="text-sm text-muted-foreground">Partidos</p>
+                    <p className="text-lg font-bold">{stats.matches}</p>
+                </div>
+                <div>
+                    <p className="text-sm text-muted-foreground">Nota Máx.</p>
+                    <p className={cn("text-lg font-bold", getAverageColorClass(maxRating))}>{maxRating.toFixed(1)}</p>
+                </div>
+                 <div>
+                    <p className="text-sm text-muted-foreground">Nota Mín.</p>
+                    <p className={cn("text-lg font-bold", getAverageColorClass(minRating))}>{minRating.toFixed(1)}</p>
+                </div>
+                 <div>
+                    <p className="text-sm text-muted-foreground">Consistencia</p>
+                    <p className="text-lg font-bold">{stats.stdDev.toFixed(2)}</p>
+                </div>
+            </div>
+             <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm font-semibold mr-2">Valoraciones:</span>
+                {ratingsForPos.map((rating, index) => (
+                  <div key={index} className="group/rating relative">
+                    <Badge variant="default" className="text-sm">
+                      {rating.toFixed(1)}
+                    </Badge>
+                    <Button
+                      size="icon" variant="destructive"
+                      className="absolute -top-2 -right-2 h-4 w-4 rounded-full opacity-0 group-hover/rating:opacity-100 transition-opacity z-10"
+                      onClick={() => onDeleteRating(player.id, card.id, position, index)}
+                      aria-label={`Eliminar valoración ${rating}`}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+        </div>
+    )
+}
 
 export function PlayerTable({
   players: flatPlayers,
@@ -142,6 +186,12 @@ export function PlayerTable({
   onDeleteRating,
 }: PlayerTableProps) {
   
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
+
+  const handleRowClick = (id: string) => {
+    setExpandedRow(prev => (prev === id ? null : id));
+  }
+
   if (flatPlayers.length === 0) {
     return (
       <div className="col-span-full flex flex-col items-center justify-center text-center p-10">
@@ -165,7 +215,7 @@ export function PlayerTable({
             <TableHead>Prom.</TableHead>
             <TableHead>Afinidad</TableHead>
             <TableHead>General</TableHead>
-            <TableHead className="w-[35%] min-w-[200px] hidden md:table-cell">Valoraciones</TableHead>
+            <TableHead className="w-[20%] min-w-[120px] hidden md:table-cell">Últimas Valoraciones</TableHead>
             <TableHead className="text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
@@ -179,167 +229,188 @@ export function PlayerTable({
             const generalColorClass = getAverageColorClass(generalScore / 10);
             
             const isPosSelectable = card.selectablePositions?.[position] ?? true;
+            const rowId = `${player.id}-${card.id}-${position}`;
 
             return (
-              <TableRow key={`${player.id}-${card.id}-${position}`} className={!isPosSelectable ? 'bg-muted/30 hover:bg-muted/50' : ''}>
-                <TableCell className="p-2 md:p-4">
-                  <div className="flex items-center gap-2">
-                    {card.imageUrl ? (
-                      <button onClick={() => onViewImage(card.imageUrl!, `${player.name} - ${card.name}`)} className="focus:outline-none focus:ring-2 focus:ring-ring rounded-full">
-                        <Image
-                          src={card.imageUrl}
-                          alt={card.name}
-                          width={40}
-                          height={40}
-                          className="bg-transparent object-contain w-8 h-8 md:w-10 md:h-10"
-                        />
-                      </button>
-                    ) : (
-                      <div className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0" />
-                    )}
-                    <div>
-                      <div className="flex items-center gap-1 md:gap-2">
-                          <button 
-                              onClick={() => onOpenPlayerDetail(flatPlayer)}
-                              className="font-medium text-sm md:text-base hover:underline text-left"
-                          >
-                              {player.name}
-                          </button>
-                           <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                  <button onClick={() => onOpenPlayerDetail(flatPlayer)}><NotebookPen className="h-4 w-4 text-muted-foreground/60 hover:text-muted-foreground" /></button>
-                              </TooltipTrigger>
-                              <TooltipContent><p>Ver / Editar Build</p></TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                          <PerformanceBadges performance={performance} />
-                      </div>
-                      <div className="text-xs text-muted-foreground">{card.name} ({performance.stats.matches} P.)</div>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className="hidden md:table-cell">
-                  {card.style && card.style !== "Ninguno" ? (
-                    <Badge variant="secondary">{card.style}</Badge>
-                  ) : <span className="text-muted-foreground">-</span>}
-                </TableCell>
-                <TableCell>
-                  <div className={cn("text-base md:text-lg font-bold", averageColorClass)}>
-                    {formatAverage(cardAverage)}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className={cn("text-base md:text-lg font-bold flex items-center gap-1", affinityColorClass)}>
-                    <Star className="w-4 h-4" />
-                    {affinityScore.toFixed(0)}
-                  </div>
-                </TableCell>
-                 <TableCell>
-                  <div className={cn("text-base md:text-lg font-bold", generalColorClass)}>
-                    {generalScore.toFixed(0)}
-                  </div>
-                </TableCell>
-                <TableCell className="hidden md:table-cell p-2">
-                  <div className="flex flex-wrap items-center gap-1">
-                    {ratingsForPos.slice(-5).map((rating, index) => {
-                        const originalIndex = Math.max(0, ratingsForPos.length - 5) + index;
-                        return (
-                          <div key={originalIndex} className="group/rating relative">
-                            <Badge variant="default" className="text-sm">
-                              {rating.toFixed(1)}
-                            </Badge>
-                            <Button
-                              size="icon" variant="destructive"
-                              className="absolute -top-2 -right-2 h-4 w-4 rounded-full opacity-0 group-hover/rating:opacity-100 transition-opacity z-10"
-                              onClick={() => onDeleteRating(player.id, card.id, position, originalIndex)}
-                              aria-label={`Eliminar valoración ${rating}`}
+              <>
+                <TableRow 
+                  key={rowId} 
+                  className={cn(
+                    "cursor-pointer",
+                    !isPosSelectable ? 'bg-muted/30 hover:bg-muted/40' : 'hover:bg-muted/50'
+                  )}
+                  onClick={() => handleRowClick(rowId)}
+                >
+                  <TableCell className="p-2 md:p-4">
+                    <div className="flex items-center gap-2">
+                      {card.imageUrl ? (
+                        <button onClick={(e) => { e.stopPropagation(); onViewImage(card.imageUrl!, `${player.name} - ${card.name}`); }} className="focus:outline-none focus:ring-2 focus:ring-ring rounded-full">
+                          <Image
+                            src={card.imageUrl}
+                            alt={card.name}
+                            width={40}
+                            height={40}
+                            className="bg-transparent object-contain w-8 h-8 md:w-10 md:h-10"
+                          />
+                        </button>
+                      ) : (
+                        <div className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0" />
+                      )}
+                      <div>
+                        <div className="flex items-center gap-1 md:gap-2">
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); onOpenPlayerDetail(flatPlayer); }}
+                                className="font-medium text-sm md:text-base hover:underline text-left"
                             >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        );
-                      })}
-                  </div>
-                </TableCell>
-                <TableCell className="text-right p-1 md:p-2">
-                  <div className="flex items-center justify-end">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                           <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 rounded-full"
-                              aria-label={`Añadir valoración a ${player.name} (${card.name})`}
-                              onClick={() => onOpenAddRating({
-                                  playerId: player.id,
-                                  playerName: player.name,
-                                  cardName: card.name,
-                                  position: position,
-                                  style: card.style
-                              })}
-                          >
-                              <PlusCircle className="h-5 w-5 md:h-4 md:w-4 text-primary/80 hover:text-primary" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent><p>Añadir valoración</p></TooltipContent>
-                      </Tooltip>
-                      <div className="hidden md:flex">
-                         <Tooltip>
-                            <TooltipTrigger asChild>
-                            <Button
-                                variant="ghost" size="icon" className="h-8 w-8 rounded-full"
-                                aria-label={`Activar/Desactivar para ${position}`}
-                                onClick={() => onToggleSelectable(player.id, card.id, position, isPosSelectable)}
-                                >
-                                {isPosSelectable ? <Eye className="h-4 w-4 text-muted-foreground/80 hover:text-muted-foreground" /> : <EyeOff className="h-4 w-4 text-destructive/80 hover:text-destructive" />}
-                            </Button>
-                            </TooltipTrigger>
-                            <TooltipContent><p>{isPosSelectable ? `No seleccionar para ${position}` : `Sí seleccionar para ${position}`}</p></TooltipContent>
-                        </Tooltip>
+                                {player.name}
+                            </button>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <button onClick={(e) => { e.stopPropagation(); onOpenPlayerDetail(flatPlayer); }}><NotebookPen className="h-4 w-4 text-muted-foreground/60 hover:text-muted-foreground" /></button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Editar Afinidad</p></TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            <PerformanceBadges performance={performance} />
+                        </div>
+                        <div className="text-xs text-muted-foreground">{card.name} ({performance.stats.matches} P.)</div>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    {card.style && card.style !== "Ninguno" ? (
+                      <Badge variant="secondary">{card.style}</Badge>
+                    ) : <span className="text-muted-foreground">-</span>}
+                  </TableCell>
+                  <TableCell>
+                    <div className={cn("text-base md:text-lg font-bold", averageColorClass)}>
+                      {formatAverage(cardAverage)}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className={cn("text-base md:text-lg font-bold flex items-center gap-1", affinityColorClass)}>
+                      <Star className="w-4 h-4" />
+                      {affinityScore.toFixed(0)}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className={cn("text-base md:text-lg font-bold", generalColorClass)}>
+                      {generalScore.toFixed(0)}
+                    </div>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell p-2">
+                    <div className="flex flex-wrap items-center gap-1">
+                      {ratingsForPos.slice(-5).map((rating, index) => {
+                          const originalIndex = Math.max(0, ratingsForPos.length - 5) + index;
+                          return (
+                            <div key={originalIndex} className="group/rating relative">
+                              <Badge variant="default" className="text-sm">
+                                {rating.toFixed(1)}
+                              </Badge>
+                              <Button
+                                size="icon" variant="destructive"
+                                className="absolute -top-2 -right-2 h-4 w-4 rounded-full opacity-0 group-hover/rating:opacity-100 transition-opacity z-10"
+                                onClick={(e) => { e.stopPropagation(); onDeleteRating(player.id, card.id, position, originalIndex); }}
+                                aria-label={`Eliminar valoración ${rating}`}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right p-1 md:p-2">
+                    <div className="flex items-center justify-end">
+                      {expandedRow === rowId ? <ChevronUp className="h-4 w-4 mr-2" /> : <ChevronDown className="h-4 w-4 mr-2" />}
+                      <TooltipProvider>
                         <Tooltip>
-                            <TooltipTrigger asChild>
+                          <TooltipTrigger asChild>
                             <Button
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 rounded-full"
-                                aria-label={`Editar jugador ${player.name}`}
-                                onClick={() => onOpenEditPlayer(player)}
-                                >
-                                <Pencil className="h-4 w-4 text-muted-foreground/60 hover:text-muted-foreground" />
+                                aria-label={`Añadir valoración a ${player.name} (${card.name})`}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onOpenAddRating({
+                                        playerId: player.id,
+                                        playerName: player.name,
+                                        cardName: card.name,
+                                        position: position,
+                                        style: card.style
+                                    })
+                                }}
+                            >
+                                <PlusCircle className="h-5 w-5 md:h-4 md:w-4 text-primary/80 hover:text-primary" />
                             </Button>
-                            </TooltipTrigger>
-                            <TooltipContent><p>Editar nombre del jugador</p></TooltipContent>
+                          </TooltipTrigger>
+                          <TooltipContent><p>Añadir valoración</p></TooltipContent>
                         </Tooltip>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                            <Button
-                                variant="ghost" size="icon" className="h-8 w-8 rounded-full"
-                                aria-label={`Editar carta ${card.name}`}
-                                onClick={() => onOpenEditCard(player, card)}
-                                >
-                                <Wrench className="h-4 w-4 text-muted-foreground/80 hover:text-muted-foreground" />
-                            </Button>
-                            </TooltipTrigger>
-                            <TooltipContent><p>Editar carta (nombre, estilo e imagen)</p></TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                            <Button
-                                variant="ghost" size="icon" className="h-8 w-8 rounded-full"
-                                aria-label={`Eliminar valoraciones de ${card.name} (${player.name}) para la posición ${position}`}
-                                onClick={() => onDeletePositionRatings(player.id, card.id, position)}>
-                                <Trash2 className="h-4 w-4 text-destructive/80 hover:text-destructive" />
-                            </Button>
-                            </TooltipTrigger>
-                            <TooltipContent><p>Eliminar todas las valoraciones para esta posición</p></TooltipContent>
-                        </Tooltip>
-                      </div>
-                    </TooltipProvider>
-                  </div>
-                </TableCell>
-              </TableRow>
+                        <div className="hidden md:flex">
+                          <Tooltip>
+                              <TooltipTrigger asChild>
+                              <Button
+                                  variant="ghost" size="icon" className="h-8 w-8 rounded-full"
+                                  aria-label={`Activar/Desactivar para ${position}`}
+                                  onClick={(e) => { e.stopPropagation(); onToggleSelectable(player.id, card.id, position, isPosSelectable); }}
+                                  >
+                                  {isPosSelectable ? <Eye className="h-4 w-4 text-muted-foreground/80 hover:text-muted-foreground" /> : <EyeOff className="h-4 w-4 text-destructive/80 hover:text-destructive" />}
+                              </Button>
+                              </TooltipTrigger>
+                              <TooltipContent><p>{isPosSelectable ? `No seleccionar para ${position}` : `Sí seleccionar para ${position}`}</p></TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                              <TooltipTrigger asChild>
+                              <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 rounded-full"
+                                  aria-label={`Editar jugador ${player.name}`}
+                                  onClick={(e) => { e.stopPropagation(); onOpenEditPlayer(player); }}
+                                  >
+                                  <Pencil className="h-4 w-4 text-muted-foreground/60 hover:text-muted-foreground" />
+                              </Button>
+                              </TooltipTrigger>
+                              <TooltipContent><p>Editar nombre del jugador</p></TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                              <TooltipTrigger asChild>
+                              <Button
+                                  variant="ghost" size="icon" className="h-8 w-8 rounded-full"
+                                  aria-label={`Editar carta ${card.name}`}
+                                  onClick={(e) => { e.stopPropagation(); onOpenEditCard(player, card); }}
+                                  >
+                                  <Wrench className="h-4 w-4 text-muted-foreground/80 hover:text-muted-foreground" />
+                              </Button>
+                              </TooltipTrigger>
+                              <TooltipContent><p>Editar carta (nombre, estilo e imagen)</p></TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                              <TooltipTrigger asChild>
+                              <Button
+                                  variant="ghost" size="icon" className="h-8 w-8 rounded-full"
+                                  aria-label={`Eliminar valoraciones de ${card.name} (${player.name}) para la posición ${position}`}
+                                  onClick={(e) => { e.stopPropagation(); onDeletePositionRatings(player.id, card.id, position); }}>
+                                  <Trash2 className="h-4 w-4 text-destructive/80 hover:text-destructive" />
+                              </Button>
+                              </TooltipTrigger>
+                              <TooltipContent><p>Eliminar todas las valoraciones para esta posición</p></TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </TooltipProvider>
+                    </div>
+                  </TableCell>
+                </TableRow>
+                {expandedRow === rowId && (
+                    <TableRow>
+                        <TableCell colSpan={7} className="p-0">
+                           <ExpandedContent flatPlayer={flatPlayer} onDeleteRating={onDeleteRating} />
+                        </TableCell>
+                    </TableRow>
+                )}
+              </>
             );
           })}
         </TableBody>
@@ -350,5 +421,3 @@ export function PlayerTable({
 
 PlayerTable.Filters = Filters;
 PlayerTable.Pagination = Pagination;
-
-    

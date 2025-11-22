@@ -22,7 +22,6 @@ import { AddFormationDialog, type AddFormationFormValues } from '@/components/ad
 import { EditFormationDialog, type EditFormationFormValues } from '@/components/edit-formation-dialog';
 import { AddMatchDialog, type AddMatchFormValues } from '@/components/add-match-dialog';
 import { PlayerDetailDialog } from '@/components/player-detail-dialog';
-import { PositionIdealBuildEditor } from '@/components/position-ideal-build-editor';
 
 import { FormationsDisplay } from '@/components/formations-display';
 import { IdealTeamDisplay } from '@/components/ideal-team-display';
@@ -30,17 +29,15 @@ import { IdealTeamSetup } from '@/components/ideal-team-setup';
 import { PlayerTable } from '@/components/player-table';
 import { PositionIcon } from '@/components/position-icon';
 import { NationalityDistribution } from '@/components/nationality-distribution';
-import { PlayerTester } from '@/components/player-tester';
 
 import { usePlayers } from '@/hooks/usePlayers';
 import { useFormations } from '@/hooks/useFormations';
-import { useIdealBuilds } from '@/hooks/useIdealBuilds';
 import { useToast } from "@/hooks/use-toast";
 
-import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerStatsBuild, PlayerStyle, IdealBuilds } from '@/lib/types';
+import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerBuild } from '@/lib/types';
 import { positions, leagues, nationalities } from '@/lib/types';
-import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Wrench, Beaker } from 'lucide-react';
-import { calculateStats, normalizeText, getAffinityScoreFromBuild, calculateGeneralScore } from '@/lib/utils';
+import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Wrench } from 'lucide-react';
+import { calculateStats, normalizeText, calculateGeneralScore } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
@@ -72,13 +69,6 @@ export default function Home() {
     deleteMatchResult,
     downloadBackup: downloadFormationsBackup,
   } = useFormations();
-
-  const {
-    idealBuilds,
-    loading: idealBuildsLoading,
-    error: idealBuildsError,
-    saveIdealBuildsForPosition,
-  } = useIdealBuilds();
   
   const allPlayers = players || [];
 
@@ -92,7 +82,6 @@ export default function Home() {
   const [isEditPlayerDialogOpen, setEditPlayerDialogOpen] = useState(false);
   const [isPlayerDetailDialogOpen, setPlayerDetailDialogOpen] = useState(false);
   const [isImageViewerOpen, setImageViewerOpen] = useState(false);
-  const [isIdealBuildEditorOpen, setIdealBuildEditorOpen] = useState(false);
   const [viewingImageUrl, setViewingImageUrl] = useState<string | null>(null);
   const [viewingImageName, setViewingImageName] = useState<string | null>(null);
   const [addDialogInitialData, setAddDialogInitialData] = useState<Partial<AddRatingFormValues> | undefined>(undefined);
@@ -181,11 +170,11 @@ export default function Home() {
   };
 
   const handleGenerateTeam = () => {
-    if (!players || !selectedFormationId || !idealBuilds) {
+    if (!players || !selectedFormationId) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Por favor, selecciona jugadores, una formación y define builds ideales primero.',
+        description: 'Por favor, selecciona jugadores y una formación primero.',
       });
       return;
     }
@@ -200,7 +189,7 @@ export default function Home() {
       return;
     }
     
-    const newTeam = generateIdealTeam(players, formation, idealBuilds, discardedCardIds, selectedLeague, selectedNationality, sortBy);
+    const newTeam = generateIdealTeam(players, formation, discardedCardIds, selectedLeague, selectedNationality, sortBy);
 
     setIdealTeam(newTeam);
     if (document.activeElement instanceof HTMLElement) {
@@ -257,7 +246,6 @@ export default function Home() {
     const backupData = {
       players: playersData,
       formations: formationsData,
-      idealBuilds: idealBuilds,
     };
 
     const jsonData = JSON.stringify(backupData, null, 2);
@@ -315,7 +303,7 @@ export default function Home() {
   };
 
 
-  const error = playersError || formationsError || idealBuildsError;
+  const error = playersError || formationsError;
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen text-center p-4">
@@ -327,7 +315,7 @@ export default function Home() {
     );
   }
 
-  if (playersLoading || formationsLoading || idealBuildsLoading) {
+  if (playersLoading || formationsLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-xl font-semibold">Conectando a la base de datos...</div>
@@ -337,15 +325,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
-      {isIdealBuildEditorOpen && positions.includes(activeTab as Position) && (
-        <PositionIdealBuildEditor
-          open={isIdealBuildEditorOpen}
-          onOpenChange={setIdealBuildEditorOpen}
-          position={activeTab as Position}
-          initialBuilds={idealBuilds}
-          onSave={saveIdealBuildsForPosition}
-        />
-      )}
        <AddRatingDialog
         open={isAddRatingDialogOpen}
         onOpenChange={setAddRatingDialogOpen}
@@ -387,7 +366,6 @@ export default function Home() {
         onOpenChange={setPlayerDetailDialogOpen}
         flatPlayer={selectedFlatPlayer}
         onSavePlayerBuild={savePlayerBuild}
-        idealBuilds={idealBuilds}
       />
       <AlertDialog open={isImageViewerOpen} onOpenChange={setImageViewerOpen}>
         <AlertDialogContent className="max-w-xl p-0">
@@ -449,10 +427,6 @@ export default function Home() {
                   <Globe className="mr-2 h-5 w-5"/>
                   Nacionalidades
               </TabsTrigger>
-              <TabsTrigger value="probar-jugador" className="py-2 px-3 text-sm data-[state=active]:text-accent-foreground data-[state=active]:bg-accent">
-                  <Beaker className="mr-2 h-5 w-5"/>
-                  Probar Jugador
-              </TabsTrigger>
             </TabsList>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
@@ -499,7 +473,7 @@ export default function Home() {
                             isVersatile: highPerfPositions.size >= 3,
                         };
                         
-                        const affinityScore = getAffinityScoreFromBuild(card.buildsByPosition?.[ratedPos]?.stats, ratedPos, card.style, idealBuilds);
+                        const affinityScore = card.buildsByPosition?.[ratedPos]?.manualAffinity || 0;
                         const generalScore = calculateGeneralScore(affinityScore, stats.average);
 
                         return { player, card, ratingsForPos, performance, affinityScore, generalScore, position: ratedPos };
@@ -561,8 +535,6 @@ export default function Home() {
                           onCardFilterChange={setCardFilter}
                           uniqueStyles={uniqueStyles}
                           uniqueCardNames={uniqueCardNames}
-                          position={pos}
-                          onOpenIdealBuildEditor={() => setIdealBuildEditorOpen(true)}
                         />
                     </CardHeader>
                     <PlayerTable
@@ -637,10 +609,6 @@ export default function Home() {
           
           <TabsContent value="nationalities" className="mt-6">
             <NationalityDistribution players={allPlayers} />
-          </TabsContent>
-
-          <TabsContent value="probar-jugador" className="mt-6">
-            <PlayerTester idealBuilds={idealBuilds} />
           </TabsContent>
 
         </Tabs>
