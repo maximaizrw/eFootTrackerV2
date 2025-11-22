@@ -39,6 +39,10 @@ export function generateIdealTeam(
     if (nationality !== 'all' && player.nationality !== nationality) {
       return [];
     }
+    
+    const allPlayerPositions = new Set(player.cards.flatMap(c => Object.keys(c.ratingsByPosition || {})));
+    const isOnlyGoalkeeper = allPlayerPositions.size === 1 && allPlayerPositions.has('PT');
+
 
     return (player.cards || []).flatMap(card => {
       if (league !== 'all' && card.league !== league) {
@@ -61,6 +65,11 @@ export function generateIdealTeam(
       return positionsWithRatings.map(pos => {
         if (!card.ratingsByPosition?.[pos] || card.ratingsByPosition[pos]!.length === 0) {
             return null;
+        }
+
+        // GK Restriction
+        if (isOnlyGoalkeeper && pos !== 'PT') {
+          return null;
         }
 
         const isSelectable = card.selectablePositions?.[pos] ?? true;

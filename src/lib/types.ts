@@ -30,10 +30,28 @@ export const nationalities = [
 ] as const;
 export type Nationality = typeof nationalities[number];
 
-export type PlayerBuild = {
-  manualAffinity?: number;
+
+export type OutfieldBuild = {
+  shooting?: number; // 0-20
+  passing?: number;
+  dribbling?: number;
+  dexterity?: number;
+  lowerBodyStrength?: number;
+  aerialStrength?: number;
+  defending?: number;
+};
+
+export type GoalkeeperBuild = {
+  gk1?: number; // 0-20
+  gk2?: number;
+  gk3?: number;
+};
+
+export type PlayerBuild = (OutfieldBuild | GoalkeeperBuild) & {
+  manualAffinity?: number; // 0-100
   updatedAt?: string;
 };
+
 
 export const positionLabels: Record<Position, string> = {
     PT: 'Portero',
@@ -201,7 +219,7 @@ export type PlayerPerformance = {
     isHotStreak: boolean;
     isConsistent: boolean;
     isPromising: boolean;
-    isVersatile: boolean;
+isVersatile: boolean;
 };
 
 export type FlatPlayer = {
