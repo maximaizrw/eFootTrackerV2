@@ -1,8 +1,8 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { Position, PlayerStyle, PlayerRatingStats, PlayerStatsBuild, PlayerAttribute, IdealBuilds, PositionGroupName, DbIdealBuilds } from "./types";
-import { playerAttributes, positionGroups } from "./types";
+import type { Position, PlayerStyle, PlayerRatingStats, PlayerStatsBuild, PlayerAttribute, DbIdealBuilds, PositionLabel } from "./types";
+import { playerAttributes, positionLabels } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -50,32 +50,18 @@ export function normalizeText(text: string): string {
     .replace(/([A-Z])/g, ' $1');
 }
 
-export function getPositionGroup(position: Position): PositionGroupName | null {
-  for (const groupName in positionGroups) {
-    const typedGroupName = groupName as PositionGroupName;
-    if ((positionGroups[typedGroupName] as readonly Position[]).includes(position)) {
-      return typedGroupName;
-    }
-  }
-  return null;
-}
-
 export function getAffinityScoreFromBuild(
   playerBuild: PlayerStatsBuild | undefined,
   position: Position,
   style: PlayerStyle,
-  idealBuildsByGroup: DbIdealBuilds
+  idealBuilds: DbIdealBuilds
 ): number {
   if (style === 'Ninguno' || !playerBuild || Object.keys(playerBuild).length === 0) {
     return 0;
   }
   
-  const groupName = getPositionGroup(position);
-  if (!groupName) {
-    return 0; // Should not happen
-  }
-
-  const idealBuild = idealBuildsByGroup[groupName]?.[style];
+  const positionLabel = positionLabels[position];
+  const idealBuild = idealBuilds[positionLabel]?.[style];
 
   if (!idealBuild || Object.keys(idealBuild).length === 0) {
     return 0;

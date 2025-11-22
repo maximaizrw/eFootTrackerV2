@@ -62,39 +62,48 @@ export type PlayerBuild = {
 };
 
 export const positionGroups = {
-  'Portero': ['PT'] as const,
-  'Defensa Central': ['DFC'] as const,
-  'Lateral Izquierdo': ['LI'] as const,
-  'Lateral Derecho': ['LD'] as const,
-  'Pivote Defensivo': ['MCD'] as const,
-  'Mediocentro': ['MC'] as const,
-  'Interior Izquierdo': ['MDI'] as const,
-  'Interior Derecho': ['MDD'] as const,
-  'Mediapunta': ['MO'] as const,
-  'Extremo Izquierdo': ['EXI'] as const,
-  'Extremo Derecho': ['EXD'] as const,
-  'Segundo Delantero': ['SD'] as const,
-  'Delantero Centro': ['DC'] as const,
+  'Portero': 'PT',
+  'Defensa Central': 'DFC',
+  'Lateral Izquierdo': 'LI',
+  'Lateral Derecho': 'LD',
+  'Pivote Defensivo': 'MCD',
+  'Mediocentro': 'MC',
+  'Interior Izquierdo': 'MDI',
+  'Interior Derecho': 'MDD',
+  'Mediapunta': 'MO',
+  'Extremo Izquierdo': 'EXI',
+  'Extremo Derecho': 'EXD',
+  'Segundo Delantero': 'SD',
+  'Delantero Centro': 'DC',
 } as const;
 
+export const positionLabels: Record<Position, string> = {
+    PT: 'Portero',
+    DFC: 'Defensa Central',
+    LI: 'Lateral Izquierdo',
+    LD: 'Lateral Derecho',
+    MCD: 'Pivote Defensivo',
+    MC: 'Mediocentro',
+    MDI: 'Interior Izquierdo',
+    MDD: 'Interior Derecho',
+    MO: 'Mediapunta',
+    EXI: 'Extremo Izquierdo',
+    EXD: 'Extremo Derecho',
+    SD: 'Segundo Delantero',
+    DC: 'Delantero Centro',
+};
 
-export type PositionGroupName = keyof typeof positionGroups;
+
+export type PositionLabel = typeof positionLabels[Position];
+
 
 // Data model stored in Firestore for ideal builds.
+// The key is now the PositionLabel, e.g., "Lateral Izquierdo"
 export type DbIdealBuilds = {
-    [key in PositionGroupName]?: {
+    [key in PositionLabel]?: {
         [key in PlayerStyle]?: PlayerStatsBuild;
     };
 };
-
-// This type is no longer used for storage, but represents the fully "hydrated"
-// object that the application will use after loading data from `DbIdealBuilds`.
-export type IdealBuilds = {
-    [key in Position]: {
-        [key in PlayerStyle]?: PlayerStatsBuild;
-    };
-};
-
 
 export type PlayerCard = {
   id: string;
@@ -255,16 +264,6 @@ export type FlatPlayer = {
   generalScore: number;
   position: Position;
 };
-
-export function getPositionGroup(position: Position): PositionGroupName | null {
-  for (const groupName in positionGroups) {
-    const typedGroupName = groupName as PositionGroupName;
-    if ((positionGroups[typedGroupName] as readonly Position[]).includes(position)) {
-      return typedGroupName;
-    }
-  }
-  return null;
-}
 
 export function getAvailableStylesForPosition(position: Position, includeNone: boolean = false): PlayerStyle[] {
     const baseStyles: PlayerStyle[] = includeNone ? ['Ninguno'] : [];

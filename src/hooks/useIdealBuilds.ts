@@ -5,12 +5,9 @@ import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase-config';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { useToast } from './use-toast';
-import type { IdealBuilds, Position, PlayerStyle, PositionGroupName, DbIdealBuilds } from '@/lib/types';
-import { positions, getAvailableStylesForPosition } from '@/lib/types';
-import { getPositionGroup } from '@/lib/utils';
+import type { PlayerStyle, PlayerStatsBuild, DbIdealBuilds, PositionLabel } from '@/lib/types';
 
 
-// This function now simply initializes the structure, but doesn't hydrate.
 const generateInitialIdealBuilds = (): DbIdealBuilds => {
   return {};
 };
@@ -67,7 +64,7 @@ export function useIdealBuilds() {
     return () => unsub();
   }, [toast]);
 
-  const saveIdealBuildsForPosition = async (groupName: PositionGroupName, buildsForGroup: IdealBuilds[Position]) => {
+  const saveIdealBuildsForPosition = async (positionLabel: PositionLabel, buildsForPosition: { [key in PlayerStyle]?: PlayerStatsBuild }) => {
     if (!db) {
         toast({ variant: "destructive", title: "Error de Conexión", description: "No se puede conectar a la base de datos." });
         return;
@@ -76,14 +73,14 @@ export function useIdealBuilds() {
       const docRef = doc(db, 'idealBuilds', 'user_default');
       
       const dataToUpdate = {
-        [groupName]: buildsForGroup
+        [positionLabel]: buildsForPosition
       };
       
       await setDoc(docRef, dataToUpdate, { merge: true });
       
       toast({
         title: "Builds Ideales Guardadas",
-        description: `Las configuraciones para ${groupName} se han guardado.`,
+        description: `Las configuraciones para ${positionLabel} se han guardado.`,
       });
     } catch (error) {
       console.error("Error saving ideal builds: ", error);

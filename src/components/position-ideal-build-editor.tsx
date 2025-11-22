@@ -18,8 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Position, PlayerStyle, IdealBuilds, PlayerBuild, PlayerStatsBuild, PositionGroupName, DbIdealBuilds } from "@/lib/types";
-import { getPositionGroup, getAvailableStylesForPosition } from "@/lib/types";
+import type { Position, PlayerStyle, PlayerStatsBuild, DbIdealBuilds, PositionLabel } from "@/lib/types";
+import { getAvailableStylesForPosition, positionLabels } from "@/lib/types";
 import { PlayerStatsEditor } from "./player-stats-editor";
 import { ScrollArea } from "./ui/scroll-area";
 
@@ -29,7 +29,7 @@ type PositionIdealBuildEditorProps = {
   onOpenChange: (open: boolean) => void;
   position: Position;
   initialBuilds: DbIdealBuilds;
-  onSave: (groupName: PositionGroupName, buildsForGroup: IdealBuilds[Position]) => void;
+  onSave: (positionLabel: PositionLabel, buildsForPosition: { [key in PlayerStyle]?: PlayerStatsBuild }) => void;
 };
 
 export function PositionIdealBuildEditor({ 
@@ -41,19 +41,17 @@ export function PositionIdealBuildEditor({
 }: PositionIdealBuildEditorProps) {
   const [selectedStyle, setSelectedStyle] = React.useState<PlayerStyle>("Ninguno");
   
-  const positionGroup = React.useMemo(() => getPositionGroup(position), [position]);
+  const positionLabel = React.useMemo(() => positionLabels[position], [position]);
   
   const availableStyles = React.useMemo(() => getAvailableStylesForPosition(position, true), [position]);
   
-  const [builds, setBuilds] = React.useState<IdealBuilds[Position]>({});
+  const [builds, setBuilds] = React.useState<{ [key in PlayerStyle]?: PlayerStatsBuild }>({});
 
   React.useEffect(() => {
     if (open) {
-        const currentGroup = getPositionGroup(position);
-        if (currentGroup) {
-            const buildsForGroup = initialBuilds[currentGroup] || {};
-            setBuilds(buildsForGroup);
-        }
+        const currentLabel = positionLabels[position];
+        const buildsForPosition = initialBuilds[currentLabel] || {};
+        setBuilds(buildsForPosition);
 
         if (availableStyles.length > 0 && !availableStyles.includes(selectedStyle)) {
             setSelectedStyle(availableStyles[0]);
@@ -69,14 +67,13 @@ export function PositionIdealBuildEditor({
   
 
   const onSubmit = () => {
-    const groupName = getPositionGroup(position);
-    if (groupName) {
-        onSave(groupName, builds);
+    if (positionLabel) {
+        onSave(positionLabel, builds);
     }
     onOpenChange(false);
   };
   
-  const handleBuildChange = (changedBuild: PlayerBuild) => {
+  const handleBuildChange = (changedBuild: { stats: PlayerStatsBuild }) => {
     setBuilds(prevBuilds => ({
       ...prevBuilds,
       [selectedStyle]: changedBuild.stats,
@@ -89,9 +86,9 @@ export function PositionIdealBuildEditor({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Editor de Builds Ideales para {positionGroup}</DialogTitle>
+          <DialogTitle>Editor de Builds Ideales para {positionLabel}</DialogTitle>
           <DialogDescription>
-            Configura la "build" ideal para cada estilo de juego de la posición {position}.
+            Configura la "build" ideal para cada estilo de juego en la posición de {positionLabel}.
           </DialogDescription>
         </DialogHeader>
         <div className="flex-grow flex flex-col overflow-hidden">
@@ -117,7 +114,7 @@ export function PositionIdealBuildEditor({
             </div>
 
             <DialogFooter className="flex-shrink-0 bg-background/95 py-4 border-t -mx-6 px-6 mt-4">
-              <Button type="button" onClick={onSubmit}>Guardar Builds de {positionGroup}</Button>
+              <Button type="button" onClick={onSubmit}>Guardar Builds de {positionLabel}</Button>
             </DialogFooter>
           </div>
       </DialogContent>

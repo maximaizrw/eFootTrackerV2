@@ -18,8 +18,8 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { PlayerStatsEditor } from "./player-stats-editor";
-import type { IdealBuilds, PlayerBuild, PlayerStyle } from "@/lib/types";
-import { getAvailableStylesForPosition } from "@/lib/types";
+import type { DbIdealBuilds, PlayerBuild, PlayerStyle, Position } from "@/lib/types";
+import { getAvailableStylesForPosition, positions } from "@/lib/types";
 import { getAffinityScoreFromBuild } from "@/lib/utils";
 import { Beaker, Check, ChevronsUpDown } from "lucide-react";
 import { Badge } from "./ui/badge";
@@ -31,44 +31,31 @@ import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from ".
 import { Label } from "./ui/label";
 
 type PlayerTesterProps = {
-  idealBuilds: IdealBuilds;
+  idealBuilds: DbIdealBuilds;
 };
 
 type AffinityResult = {
-    positionLabel: string;
+    position: Position;
     style: PlayerStyle;
     affinity: number;
 };
 
-const buildPositions = [
-  { label: 'PT', value: ['PT'] },
-  { label: 'DFC', value: ['DFC'] },
-  { label: 'Laterales', value: ['LI', 'LD'] },
-  { label: 'MCD', value: ['MCD'] },
-  { label: 'MC', value: ['MC'] },
-  { label: 'Interiores', value: ['MDI', 'MDD'] },
-  { label: 'MO', value: ['MO'] },
-  { label: 'Extremos', value: ['EXI', 'EXD'] },
-  { label: 'SD', value: ['SD'] },
-  { label: 'DC', value: ['DC'] },
-];
-
 export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
   const [playerBuild, setPlayerBuild] = React.useState<PlayerBuild>({ stats: {}, progression: {} });
   const [affinityResults, setAffinityResults] = React.useState<AffinityResult[]>([]);
-  const [selectedPositions, setSelectedPositions] = React.useState<Set<string>>(new Set(buildPositions.map(p => p.label)));
+  const [selectedPositions, setSelectedPositions] = React.useState<Set<string>>(new Set(positions));
 
   const handleBuildChange = (newBuild: PlayerBuild) => {
     setPlayerBuild(newBuild);
   };
   
-  const handlePositionToggle = (positionLabel: string) => {
+  const handlePositionToggle = (position: string) => {
     setSelectedPositions(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(positionLabel)) {
-        newSet.delete(positionLabel);
+      if (newSet.has(position)) {
+        newSet.delete(position);
       } else {
-        newSet.add(positionLabel);
+        newSet.add(position);
       }
       return newSet;
     });
@@ -82,16 +69,15 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
 
     const results: AffinityResult[] = [];
     
-    const positionsToTest = buildPositions.filter(p => selectedPositions.has(p.label));
+    const positionsToTest = positions.filter(p => selectedPositions.has(p));
 
-    positionsToTest.forEach(({ label, value: positions }) => {
-      const representativePosition = positions[0];
-      const stylesForPos = getAvailableStylesForPosition(representativePosition, false); // No "Ninguno"
+    positionsToTest.forEach((position) => {
+      const stylesForPos = getAvailableStylesForPosition(position, false); // No "Ninguno"
       
       stylesForPos.forEach(style => {
-        const affinity = getAffinityScoreFromBuild(playerBuild.stats, representativePosition, style, idealBuilds);
+        const affinity = getAffinityScoreFromBuild(playerBuild.stats, position, style, idealBuilds);
         if (affinity > 0) {
-            results.push({ positionLabel: label, style, affinity });
+            results.push({ position, style, affinity });
         }
       });
     });
@@ -128,7 +114,7 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
                     className="w-full justify-between mt-1"
                   >
                     <span className="truncate">
-                      {selectedPositions.size === buildPositions.length
+                      {selectedPositions.size === positions.length
                         ? "Todas las posiciones"
                         : `${selectedPositions.size} seleccionadas`}
                     </span>
@@ -140,19 +126,19 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
                     <CommandInput placeholder="Buscar posición..." />
                     <CommandList>
                       <CommandEmpty>No se encontró la posición.</CommandEmpty>
-                      {buildPositions.map((pos) => (
+                      {positions.map((pos) => (
                         <CommandItem
-                          key={pos.label}
-                          value={pos.label}
-                          onSelect={() => handlePositionToggle(pos.label)}
+                          key={pos}
+                          value={pos}
+                          onSelect={() => handlePositionToggle(pos)}
                         >
                           <Check
                             className={cn(
                               "mr-2 h-4 w-4",
-                              selectedPositions.has(pos.label) ? "opacity-100" : "opacity-0"
+                              selectedPositions.has(pos) ? "opacity-100" : "opacity-0"
                             )}
                           />
-                          {pos.label}
+                          {pos}
                         </CommandItem>
                       ))}
                     </CommandList>
@@ -176,7 +162,7 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
                         {affinityResults.length > 0 ? (
                             affinityResults.map((result, index) => (
                                 <TableRow key={index}>
-                                    <TableCell className="font-medium">{result.positionLabel}</TableCell>
+                                    <TableCell className="font-medium">{result.position}</TableCell>
                                     <TableCell>
                                         <Badge variant="secondary">{result.style}</Badge>
                                     </TableCell>
