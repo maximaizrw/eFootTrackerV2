@@ -1,7 +1,7 @@
 
 import * as z from "zod";
 
-export const playerStyles = ['Ninguno', 'Cazagoles', 'Hombre de área', 'Señuelo', 'Hombre objetivo', 'Creador de juego', 'El destructor', 'Portero defensivo', 'Portero ofensivo', 'Atacante extra', 'Lateral defensivo', 'Lateral ofensivo', 'Lateral finalizador', 'Omnipresente', 'Medio escudo', 'Organizador', 'Jugador de huecos', 'Especialista en centros', 'Extremo móvil', 'Extremo prolífico', 'Diez Clasico', 'Segundo delantero'] as const;
+export const playerStyles = ['Ninguno', 'Cazagoles', 'Hombre de área', 'Señuelo', 'Hombre objetivo', 'Creador de juego', 'Creador de jugadas', 'El destructor', 'Portero defensivo', 'Portero ofensivo', 'Atacante extra', 'Lateral defensivo', 'Lateral ofensivo', 'Lateral finalizador', 'Omnipresente', 'Medio escudo', 'Organizador', 'Jugador de huecos', 'Especialista en centros', 'Extremo móvil', 'Extremo prolífico', 'Diez Clasico', 'Segundo delantero'] as const;
 export type PlayerStyle = typeof playerStyles[number];
 
 export const positions = ['PT', 'DFC', 'LI', 'LD', 'MCD', 'MC', 'MDI', 'MDD', 'MO', 'EXI', 'EXD', 'SD', 'DC'] as const;
@@ -239,12 +239,12 @@ export function getAvailableStylesForPosition(position: Position, includeNone: b
         case 'PT':
             return [...baseStyles, 'Portero defensivo', 'Portero ofensivo'];
         case 'DFC':
-            return [...baseStyles, 'El destructor', 'Atacante extra', 'Creación'];
+            return [...baseStyles, 'El destructor', 'Atacante extra', 'Creador de juego'];
         case 'LI':
         case 'LD':
             return [...baseStyles, 'Lateral defensivo', 'Lateral ofensivo', 'Lateral finalizador', 'Especialista en centros'];
         case 'MCD':
-            return [...baseStyles, 'El destructor', 'Medio escudo', 'Omnipresente', 'Atacante extra', 'Organizador'];
+            return [...baseStyles, 'El destructor', 'Medio escudo', 'Omnipresente', 'Atacante extra', 'Organizador', 'Creador de jugadas'];
         case 'MC':
             return [...baseStyles, 'Jugador de huecos', 'Omnipresente', 'Creador de jugadas', 'Organizador', 'El destructor', 'Medio escudo'];
         case 'MDI':
