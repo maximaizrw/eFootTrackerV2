@@ -309,17 +309,17 @@ export function usePlayers() {
               cardToUpdate.buildsByPosition = {};
             }
             cardToUpdate.buildsByPosition[position] = {
-              manualAffinity: build.manualAffinity || 0,
+              ...build,
               updatedAt: new Date().toISOString(),
             };
             await updateDoc(playerRef, { cards: newCards });
-            toast({ title: "Afinidad Guardada", description: `La afinidad del jugador para ${position} se ha actualizado.` });
+            toast({ title: "Build Guardada", description: `La build del jugador para ${position} se ha actualizado.` });
         } else {
             throw new Error("Card not found in player data!");
         }
     } catch (error) {
         console.error("Error saving player build: ", error);
-        toast({ variant: "destructive", title: "Error al Guardar", description: "No se pudo guardar la afinidad." });
+        toast({ variant: "destructive", title: "Error al Guardar", description: "No se pudo guardar la build." });
     }
   };
 
