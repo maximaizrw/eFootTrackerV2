@@ -232,9 +232,8 @@ export function PlayerTable({
             const rowId = `${player.id}-${card.id}-${position}`;
 
             return (
-              <>
+              <React.Fragment key={rowId}>
                 <TableRow 
-                  key={rowId} 
                   className={cn(
                     "cursor-pointer",
                     !isPosSelectable ? 'bg-muted/30 hover:bg-muted/40' : 'hover:bg-muted/50'
@@ -301,8 +300,8 @@ export function PlayerTable({
                   </TableCell>
                   <TableCell className="hidden md:table-cell p-2">
                     <div className="flex flex-wrap items-center gap-1">
-                      {ratingsForPos.slice(-5).map((rating, index) => {
-                          const originalIndex = Math.max(0, ratingsForPos.length - 5) + index;
+                      {ratingsForPos.slice(-3).map((rating, index) => {
+                          const originalIndex = Math.max(0, ratingsForPos.length - 3) + index;
                           return (
                             <div key={originalIndex} className="group/rating relative">
                               <Badge variant="default" className="text-sm">
@@ -410,7 +409,7 @@ export function PlayerTable({
                         </TableCell>
                     </TableRow>
                 )}
-              </>
+              </React.Fragment>
             );
           })}
         </TableBody>
