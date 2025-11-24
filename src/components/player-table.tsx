@@ -20,6 +20,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { format, differenceInDays } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 type PlayerTableProps = {
   players: FlatPlayer[];
@@ -173,6 +175,53 @@ const ExpandedContent = ({ flatPlayer, onDeleteRating }: { flatPlayer: FlatPlaye
     )
 }
 
+const AffinityStatusIndicator = ({ flatPlayer }: { flatPlayer: FlatPlayer }) => {
+  const updatedAt = flatPlayer.card.buildsByPosition?.[flatPlayer.position]?.updatedAt;
+  if (!updatedAt) {
+    return (
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger>
+                    <div className="w-2.5 h-2.5 bg-red-500 rounded-full" />
+                </TooltipTrigger>
+                <TooltipContent><p>Afinidad nunca actualizada</p></TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+    );
+  }
+
+  const daysSinceUpdate = differenceInDays(new Date(), new Date(updatedAt));
+  const formattedDate = format(new Date(updatedAt), "d MMM yyyy", { locale: es });
+
+  if (daysSinceUpdate > 7) {
+     return (
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger>
+                    <div className="w-2.5 h-2.5 bg-red-500 rounded-full" />
+                </TooltipTrigger>
+                <TooltipContent><p>Actualizado hace +7 días ({formattedDate})</p></TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+     );
+  }
+
+  if (daysSinceUpdate > 3) {
+      return (
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger>
+                    <div className="w-2.5 h-2.5 bg-yellow-400 rounded-full" />
+                </TooltipTrigger>
+                <TooltipContent><p>Actualizado hace +3 días ({formattedDate})</p></TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+      );
+  }
+
+  return null;
+}
+
 export function PlayerTable({
   players: flatPlayers,
   position,
@@ -256,13 +305,14 @@ export function PlayerTable({
                         <div className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0" />
                       )}
                       <div>
-                        <div className="flex items-center gap-1 md:gap-2">
+                        <div className="flex items-center gap-2">
                             <button 
                                 onClick={(e) => { e.stopPropagation(); onOpenPlayerDetail(flatPlayer); }}
                                 className="font-medium text-sm md:text-base hover:underline text-left"
                             >
                                 {player.name}
                             </button>
+                            <AffinityStatusIndicator flatPlayer={flatPlayer} />
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -271,9 +321,11 @@ export function PlayerTable({
                                 <TooltipContent><p>Editar Afinidad</p></TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
-                            <PerformanceBadges performance={performance} />
                         </div>
-                        <div className="text-xs text-muted-foreground">{card.name} ({performance.stats.matches} P.)</div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">{card.name} ({performance.stats.matches} P.)</span>
+                             <PerformanceBadges performance={performance} />
+                        </div>
                       </div>
                     </div>
                   </TableCell>
@@ -420,5 +472,3 @@ export function PlayerTable({
 
 PlayerTable.Filters = Filters;
 PlayerTable.Pagination = Pagination;
-
-    

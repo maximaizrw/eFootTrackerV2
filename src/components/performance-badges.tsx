@@ -14,48 +14,43 @@ type PerformanceBadgesProps = {
 export function PerformanceBadges({ performance, className }: PerformanceBadgesProps) {
     if (!performance) return null;
 
+    const badges = [
+        {
+            condition: performance.isHotStreak,
+            tooltip: "En Racha (Mejor rendimiento reciente)",
+            icon: <TrendingUp className="h-4 w-4 text-orange-400" />
+        },
+        {
+            condition: performance.isConsistent,
+            tooltip: "Consistente (Valoraciones muy estables)",
+            icon: <Repeat className="h-4 w-4 text-cyan-400" />
+        },
+        {
+            condition: performance.isVersatile,
+            tooltip: "Versátil (Rinde bien en múltiples posiciones)",
+            icon: <Gem className="h-4 w-4 text-purple-400" />
+        },
+        {
+            condition: performance.isPromising,
+            tooltip: "Promesa (Pocos partidos, gran promedio)",
+            icon: <Zap className="h-4 w-4 text-yellow-400" />
+        }
+    ];
+
+    const visibleBadges = badges.filter(b => b.condition);
+
+    if (visibleBadges.length === 0) return null;
+
     return (
         <div className={cn("flex items-center gap-1.5", className)}>
-            {performance.isHotStreak && (
-                 <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger>
-                            <TrendingUp className="h-4 w-4 text-orange-400" />
-                        </TooltipTrigger>
-                        <TooltipContent><p>En Racha (Mejor rendimiento reciente)</p></TooltipContent>
+            <TooltipProvider>
+                {visibleBadges.map((badge, index) => (
+                    <Tooltip key={index}>
+                        <TooltipTrigger>{badge.icon}</TooltipTrigger>
+                        <TooltipContent><p>{badge.tooltip}</p></TooltipContent>
                     </Tooltip>
-                 </TooltipProvider>
-            )}
-            {performance.isConsistent && (
-                 <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger>
-                            <Repeat className="h-4 w-4 text-cyan-400" />
-                        </TooltipTrigger>
-                        <TooltipContent><p>Consistente (Valoraciones muy estables)</p></TooltipContent>
-                    </Tooltip>
-                 </TooltipProvider>
-            )}
-            {performance.isVersatile && (
-                 <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger>
-                           <Gem className="h-4 w-4 text-purple-400" />
-                        </TooltipTrigger>
-                        <TooltipContent><p>Versátil (Rinde bien en múltiples posiciones)</p></TooltipContent>
-                    </Tooltip>
-                 </TooltipProvider>
-            )}
-             {performance.isPromising && (
-                 <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger>
-                            <Zap className="h-4 w-4 text-yellow-400" />
-                        </TooltipTrigger>
-                        <TooltipContent><p>Promesa (Pocos partidos, gran promedio)</p></TooltipContent>
-                    </Tooltip>
-                 </TooltipProvider>
-            )}
+                ))}
+            </TooltipProvider>
         </div>
     );
 }
