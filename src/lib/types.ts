@@ -4,7 +4,7 @@ import * as z from "zod";
 export const playerStyles = ['Ninguno', 'Cazagoles', 'Hombre de área', 'Señuelo', 'Hombre objetivo', 'Creador de juego', 'Creador de jugadas', 'El destructor', 'Portero defensivo', 'Portero ofensivo', 'Atacante extra', 'Lateral defensivo', 'Lateral ofensivo', 'Lateral finalizador', 'Omnipresente', 'Medio escudo', 'Organizador', 'Jugador de huecos', 'Especialista en centros', 'Extremo móvil', 'Extremo prolífico', 'Diez Clasico', 'Segundo delantero'] as const;
 export type PlayerStyle = typeof playerStyles[number];
 
-export const positions = ['PT', 'DFC', 'LI', 'LD', 'MCD', 'MC', 'MDI', 'MDD', 'MO', 'EXI', 'EXD', 'SD', 'DC'] as const;
+export const positions = ['PT', 'DFC', 'LI', 'LD', 'MCD', 'MC', 'MDI', 'MDD', 'MO', 'EXI', 'EXD', 'SD', 'DC', 'LAT', 'INT', 'EXT'] as const;
 export type Position = typeof positions[number];
 
 export const leagues = [
@@ -48,7 +48,7 @@ export type GoalkeeperBuild = {
 };
 
 export type PlayerBuild = (OutfieldBuild | GoalkeeperBuild) & {
-  manualAffinity?: number; // 0-100
+  manualAffinity?: number; // -100 to 100
   updatedAt?: string;
 };
 
@@ -67,6 +67,9 @@ export const positionLabels: Record<Position, string> = {
     EXD: 'Extremo Derecho',
     SD: 'Segundo Delantero',
     DC: 'Delantero Centro',
+    LAT: 'Lateral Flexible',
+    INT: 'Interior Flexible',
+    EXT: 'Extremo Flexible',
 };
 
 
@@ -242,6 +245,7 @@ export function getAvailableStylesForPosition(position: Position, includeNone: b
             return [...baseStyles, 'El destructor', 'Atacante extra', 'Creador de juego'];
         case 'LI':
         case 'LD':
+        case 'LAT':
             return [...baseStyles, 'Lateral defensivo', 'Lateral ofensivo', 'Lateral finalizador', 'Especialista en centros'];
         case 'MCD':
             return [...baseStyles, 'El destructor', 'Medio escudo', 'Omnipresente', 'Atacante extra', 'Organizador', 'Creador de jugadas'];
@@ -249,11 +253,13 @@ export function getAvailableStylesForPosition(position: Position, includeNone: b
             return [...baseStyles, 'Jugador de huecos', 'Omnipresente', 'Creador de jugadas', 'Organizador', 'El destructor', 'Medio escudo'];
         case 'MDI':
         case 'MDD':
+        case 'INT':
             return [...baseStyles, 'Omnipresente', 'Especialista en centros', 'Creador de jugadas', 'Jugador de huecos'];
         case 'MO':
             return [...baseStyles, 'Jugador de huecos', 'Creador de jugadas', 'Diez Clasico', 'Extremo móvil'];
         case 'EXI':
         case 'EXD':
+        case 'EXT':
             return [...baseStyles, 'Extremo móvil', 'Extremo prolífico', 'Especialista en centros', 'Creador de jugadas'];
         case 'SD':
             return [...baseStyles, 'Cazagoles', 'Jugador de huecos', 'Señuelo', 'Hombre objetivo', 'Diez Clasico', 'Extremo móvil', 'Creador de jugadas'];

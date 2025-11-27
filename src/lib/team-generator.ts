@@ -135,25 +135,33 @@ export function generateIdealTeam(
       return candidates.find(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id) && !discardedCardIds.has(p.card.id));
   };
   
-  // --- STARTER SELECTION ---
-  for (const formationSlot of formation.slots) {
+  const getCandidatesForSlot = (formationSlot: FormationStats['slots'][0]): CandidatePlayer[] => {
     const hasStylePreference = formationSlot.styles && formationSlot.styles.length > 0;
     const targetPosition = formationSlot.position;
-    
-    const positionCandidates = allPlayerCandidates
-      .filter(p => p.position === targetPosition)
-      .sort(sortFunction);
 
-    let starterCandidate: CandidatePlayer | undefined;
+    let applicablePositions: Position[] = [targetPosition];
+    if (targetPosition === 'LAT') applicablePositions = ['LI', 'LD'];
+    if (targetPosition === 'INT') applicablePositions = ['MDI', 'MDD'];
+    if (targetPosition === 'EXT') applicablePositions = ['EXI', 'EXD'];
     
+    let positionCandidates = allPlayerCandidates
+        .filter(p => applicablePositions.includes(p.position))
+        .sort(sortFunction);
+        
     if (hasStylePreference) {
         const styleCandidates = positionCandidates.filter(p => formationSlot.styles!.includes(p.card.style));
-        starterCandidate = findBestPlayer(styleCandidates);
+        // If there are players matching the style, we prioritize them
+        if (styleCandidates.length > 0) {
+            positionCandidates = styleCandidates;
+        }
     }
-    
-    if (!starterCandidate) {
-        starterCandidate = findBestPlayer(positionCandidates);
-    }
+    return positionCandidates;
+  }
+
+  // --- STARTER SELECTION ---
+  for (const formationSlot of formation.slots) {
+    const candidates = getCandidatesForSlot(formationSlot);
+    const starterCandidate = findBestPlayer(candidates);
     
     if (starterCandidate) {
       usedPlayerIds.add(starterCandidate.player.id);
@@ -169,15 +177,8 @@ export function generateIdealTeam(
   // --- SUBSTITUTE SELECTION ---
   finalTeamSlots.forEach((slot, index) => {
     const formationSlot = formation.slots[index];
-    const hasStylePreference = formationSlot.styles && formationSlot.styles.length > 0;
-    const targetPosition = formationSlot.position;
+    const candidates = getCandidatesForSlot(formationSlot);
 
-    const positionCandidates = allPlayerCandidates
-      .filter(p => p.position === targetPosition)
-      .sort(sortFunction);
-
-    let substituteCandidate: CandidatePlayer | undefined;
-    
     const findSubstitute = (candidates: CandidatePlayer[]) => {
         const promising = candidates.filter(p => p.performance.isPromising);
         const hotStreaks = candidates.filter(p => p.performance.isHotStreak && !p.performance.isPromising);
@@ -188,14 +189,7 @@ export function generateIdealTeam(
                findBestPlayer(others);
     }
 
-    if (hasStylePreference) {
-        const styleCandidates = positionCandidates.filter(p => formationSlot.styles!.includes(p.card.style));
-        substituteCandidate = findSubstitute(styleCandidates);
-    }
-    
-    if (!substituteCandidate) {
-        substituteCandidate = findSubstitute(positionCandidates);
-    }
+    const substituteCandidate = findSubstitute(candidates);
 
     if (substituteCandidate) {
       usedPlayerIds.add(substituteCandidate.player.id);
