@@ -4,8 +4,11 @@ import * as z from "zod";
 export const playerStyles = ['Ninguno', 'Cazagoles', 'Hombre de área', 'Señuelo', 'Hombre objetivo', 'Creador de juego', 'Creador de jugadas', 'El destructor', 'Portero defensivo', 'Portero ofensivo', 'Atacante extra', 'Lateral defensivo', 'Lateral ofensivo', 'Lateral finalizador', 'Omnipresente', 'Medio escudo', 'Organizador', 'Jugador de huecos', 'Especialista en centros', 'Extremo móvil', 'Extremo prolífico', 'Diez Clasico', 'Segundo delantero'] as const;
 export type PlayerStyle = typeof playerStyles[number];
 
-export const positions = ['PT', 'DFC', 'LI', 'LD', 'MCD', 'MC', 'MDI', 'MDD', 'MO', 'EXI', 'EXD', 'SD', 'DC', 'LAT', 'INT', 'EXT'] as const;
-export type Position = typeof positions[number];
+export const positions = ['PT', 'DFC', 'LI', 'LD', 'MCD', 'MC', 'MDI', 'MDD', 'MO', 'EXI', 'EXD', 'SD', 'DC'] as const;
+export const flexiblePositions = ['LAT', 'INT', 'EXT'] as const;
+export const formationEditorPositions = [...positions, ...flexiblePositions] as const;
+export type Position = typeof positions[number] | typeof flexiblePositions[number];
+
 
 export const leagues = [
     "Sin Liga", "Premier League", "Ligue 1 Uber Eats", "Serie A TIM", "LaLiga EA SPORTS",
@@ -160,7 +163,7 @@ export type MatchResult = {
 };
 
 export const FormationSlotSchema = z.object({
-  position: z.enum(positions),
+  position: z.enum(formationEditorPositions),
   styles: z.array(z.enum(playerStyles)).optional().default([]),
   top: z.number().optional(),
   left: z.number().optional(),
@@ -248,7 +251,7 @@ export function getAvailableStylesForPosition(position: Position, includeNone: b
         case 'LAT':
             return [...baseStyles, 'Lateral defensivo', 'Lateral ofensivo', 'Lateral finalizador', 'Especialista en centros'];
         case 'MCD':
-            return [...baseStyles, 'El destructor', 'Medio escudo', 'Omnipresente', 'Atacante extra', 'Organizador', 'Creador de jugadas'];
+            return [...baseStyles, 'El destructor', 'Medio escudo', 'Omnipresente', 'Organizador', 'Creador de jugadas', 'Atacante extra'];
         case 'MC':
             return [...baseStyles, 'Jugador de huecos', 'Omnipresente', 'Creador de jugadas', 'Organizador', 'El destructor', 'Medio escudo'];
         case 'MDI':
