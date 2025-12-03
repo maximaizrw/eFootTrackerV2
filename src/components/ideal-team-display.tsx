@@ -3,7 +3,6 @@
 
 import type { IdealTeamPlayer, IdealTeamSlot, FormationStats, Position } from '@/lib/types';
 import Image from 'next/image';
-import { Badge } from '@/components/ui/badge';
 import { Users, Shirt, X, Crown } from 'lucide-react';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
@@ -11,6 +10,7 @@ import { PerformanceBadges } from './performance-badges';
 import { FootballPitch } from './football-pitch';
 import { cn } from '@/lib/utils';
 import { Card } from './ui/card';
+import { AffinityStatusIndicator } from './affinity-status-indicator';
 
 type IdealTeamDisplayProps = {
   teamSlots: IdealTeamSlot[];
@@ -77,9 +77,12 @@ const PlayerToken = ({ player, style, onDiscard }: { player: IdealTeamPlayer | n
             <p className="font-bold text-sm leading-tight text-primary">
             {displayPosition}
             </p>
-            <p className="font-semibold text-xs truncate w-full" title={player.player.name}>
-            {player.player.name}
-            </p>
+            <div className="flex items-center justify-center gap-1">
+                <AffinityStatusIndicator player={player} />
+                <p className="font-semibold text-xs truncate" title={player.player.name}>
+                    {player.player.name}
+                </p>
+            </div>
         </div>
       </div>
     </div>
@@ -117,9 +120,12 @@ const SubstitutePlayerRow = ({ player, onDiscard }: { player: IdealTeamPlayer | 
         )}
       </div>
       <div className="flex-grow overflow-hidden">
-        <p className="font-semibold text-base text-foreground truncate" title={player.player.name}>
-            {player.player.name}
-        </p>
+        <div className="flex items-center gap-2">
+            <AffinityStatusIndicator player={player} />
+            <p className="font-semibold text-base text-foreground truncate" title={player.player.name}>
+                {player.player.name}
+            </p>
+        </div>
         <PerformanceBadges performance={player.performance} className="mt-1" />
       </div>
       <TooltipProvider>
@@ -144,7 +150,7 @@ const SubstitutePlayerRow = ({ player, onDiscard }: { player: IdealTeamPlayer | 
 };
 
 const substituteOrder: Position[] = [
-    'PT', 'DFC', 'LI', 'LD', 'MCD', 'MC', 'MDI', 'MDD', 'MO', 'EXI', 'EXD', 'SD', 'DC'
+    'PT', 'DFC', 'LI', 'LD', 'LAT', 'MCD', 'MC', 'MDI', 'MDD', 'INT', 'MO', 'EXI', 'EXD', 'EXT', 'SD', 'DC'
 ];
 
 export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer }: IdealTeamDisplayProps) {
