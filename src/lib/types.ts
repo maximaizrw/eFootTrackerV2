@@ -136,12 +136,14 @@ export type IdealTeamPlayer = {
   position: Position; // The actual position of the player's rating
   assignedPosition: Position; // The slot they were assigned to in the formation
   average: number;
+  affinityScore: number;
+  generalScore: number;
   performance: PlayerPerformance;
 };
 
 export type IdealTeamSlot = {
-  starter: IdealTeamPlayer | null;
-  substitute: IdealTeamPlayer | null;
+  starter: IdealTeamPlayer;
+  substitute: IdealTeamPlayer;
 }
 
 // --- Tipos para Formaciones ---

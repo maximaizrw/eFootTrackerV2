@@ -126,6 +126,8 @@ export function generateIdealTeam(
           card: candidate.card,
           position: candidate.position,
           assignedPosition: assignedPosition,
+          affinityScore: candidate.affinityScore,
+          generalScore: candidate.generalScore,
           average: candidate.average,
           performance: candidate.performance,
       }
@@ -180,11 +182,19 @@ export function generateIdealTeam(
     const candidates = getCandidatesForSlot(formationSlot);
 
     const findSubstitute = (candidates: CandidatePlayer[]) => {
+        // New logic: Prioritize players with few matches (1-3) but high affinity (>=75)
+        const toTryOut = candidates.filter(p => 
+            p.performance.stats.matches >= 1 &&
+            p.performance.stats.matches <= 3 &&
+            p.affinityScore >= 75
+        );
+        
         const promising = candidates.filter(p => p.performance.isPromising);
         const hotStreaks = candidates.filter(p => p.performance.isHotStreak && !p.performance.isPromising);
         const others = candidates.filter(p => !p.performance.isPromising && !p.performance.isHotStreak);
 
-        return findBestPlayer(promising) ||
+        return findBestPlayer(toTryOut) ||
+               findBestPlayer(promising) ||
                findBestPlayer(hotStreaks) || 
                findBestPlayer(others);
     }
@@ -223,23 +233,20 @@ export function generateIdealTeam(
     const formationSlot = formation.slots[index];
     const assignedPosition = formationSlot.position;
 
+    const placeholderPlayer = {
+        player: { id: `placeholder-S-${index}`, name: `Vacante`, cards: [], nationality: 'Sin Nacionalidad' as Nationality },
+        card: { id: `placeholder-card-S-${index}`, name: 'N/A', style: 'Ninguno' as PlayerStyle, ratingsByPosition: {} },
+        position: assignedPosition,
+        assignedPosition: assignedPosition,
+        average: 0,
+        affinityScore: 0,
+        generalScore: 0,
+        performance: placeholderPerformance
+    };
+
     return {
-      starter: slot.starter || {
-          player: { id: `placeholder-S-${index}`, name: `Vacante`, cards: [], nationality: 'Sin Nacionalidad' },
-          card: { id: `placeholder-card-S-${index}`, name: 'N/A', style: 'Ninguno', ratingsByPosition: {} },
-          position: assignedPosition,
-          assignedPosition: assignedPosition,
-          average: 0,
-          performance: placeholderPerformance
-      },
-      substitute: slot.substitute || {
-           player: { id: `placeholder-SUB-${index}`, name: `Vacante`, cards: [], nationality: 'Sin Nacionalidad' },
-          card: { id: `placeholder-card-SUB-${index}`, name: 'N/A', style: 'Ninguno', ratingsByPosition: {} },
-          position: assignedPosition,
-          assignedPosition: assignedPosition,
-          average: 0,
-          performance: placeholderPerformance
-      }
+      starter: slot.starter || { ...placeholderPlayer, player: {...placeholderPlayer.player, id: `placeholder-S-${index}`}, card: {...placeholderPlayer.card, id: `placeholder-card-S-${index}`} },
+      substitute: slot.substitute || { ...placeholderPlayer, player: {...placeholderPlayer.player, id: `placeholder-SUB-${index}`}, card: {...placeholderPlayer.card, id: `placeholder-card-SUB-${index}`} }
     };
   });
 }
