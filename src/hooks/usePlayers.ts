@@ -27,24 +27,43 @@ export function usePlayers() {
 
     const unsub = onSnapshot(collection(db, "players"), (snapshot) => {
       try {
-        const playersData = snapshot.docs.map(doc => {
+        const playerMap = new Map<string, Player>();
+
+        snapshot.docs.forEach(doc => {
             const data = doc.data();
-            return {
-                id: doc.id,
-                name: data.name,
-                nationality: data.nationality || 'Sin Nacionalidad',
-                cards: (data.cards || []).map((card: any) => ({
-                    ...card,
-                    id: card.id || uuidv4(), // Ensure card has an ID
-                    style: card.style || 'Ninguno',
-                    league: card.league || 'Sin Liga',
-                    imageUrl: card.imageUrl || '',
-                    ratingsByPosition: card.ratingsByPosition || {},
-                    selectablePositions: card.selectablePositions || {},
-                    buildsByPosition: card.buildsByPosition || {},
-                })),
-            } as Player;
+            const playerName = data.name;
+            const normalizedName = normalizeText(playerName);
+
+            const newCards: PlayerCard[] = (data.cards || []).map((card: any) => ({
+                ...card,
+                id: card.id || uuidv4(),
+                style: card.style || 'Ninguno',
+                league: card.league || 'Sin Liga',
+                imageUrl: card.imageUrl || '',
+                ratingsByPosition: card.ratingsByPosition || {},
+                selectablePositions: card.selectablePositions || {},
+                buildsByPosition: card.buildsByPosition || {},
+            }));
+
+            if (playerMap.has(normalizedName)) {
+                // Merge cards from duplicate player entries
+                const existingPlayer = playerMap.get(normalizedName)!;
+                const existingCards = existingPlayer.cards;
+                const cardsToMerge = newCards.filter(newCard => 
+                    !existingCards.some(existingCard => existingCard.id === newCard.id || normalizeText(existingCard.name) === normalizeText(newCard.name))
+                );
+                existingPlayer.cards.push(...cardsToMerge);
+            } else {
+                playerMap.set(normalizedName, {
+                    id: doc.id,
+                    name: playerName,
+                    nationality: data.nationality || 'Sin Nacionalidad',
+                    cards: newCards,
+                } as Player);
+            }
         });
+
+        const playersData = Array.from(playerMap.values());
         setPlayers(playersData);
         setError(null);
       } catch (err) {
