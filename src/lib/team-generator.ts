@@ -182,12 +182,13 @@ export function generateIdealTeam(
     const candidates = getCandidatesForSlot(formationSlot);
 
     const findSubstitute = (candidates: CandidatePlayer[]) => {
-        // New logic: Prioritize players with few matches (1-3) but high affinity (>=75)
-        const toTryOut = candidates.filter(p => 
-            p.performance.stats.matches >= 1 &&
-            p.performance.stats.matches <= 3 &&
-            p.affinityScore >= 75
-        );
+        // New logic: Prioritize players with few matches (1-3) and sort them by highest affinity.
+        const toTryOut = candidates
+            .filter(p => 
+                p.performance.stats.matches >= 1 &&
+                p.performance.stats.matches <= 3
+            )
+            .sort((a, b) => b.affinityScore - a.affinityScore);
         
         const promising = candidates.filter(p => p.performance.isPromising);
         const hotStreaks = candidates.filter(p => p.performance.isHotStreak && !p.performance.isPromising);
@@ -233,9 +234,9 @@ export function generateIdealTeam(
     const formationSlot = formation.slots[index];
     const assignedPosition = formationSlot.position;
 
-    const placeholderPlayer = {
+    const placeholderPlayer: IdealTeamPlayer = {
         player: { id: `placeholder-S-${index}`, name: `Vacante`, cards: [], nationality: 'Sin Nacionalidad' as Nationality },
-        card: { id: `placeholder-card-S-${index}`, name: 'N/A', style: 'Ninguno' as PlayerStyle, ratingsByPosition: {} },
+        card: { id: `placeholder-card-S-${index}`, name: 'N/A', style: 'Ninguno', ratingsByPosition: {} },
         position: assignedPosition,
         assignedPosition: assignedPosition,
         average: 0,
@@ -243,10 +244,17 @@ export function generateIdealTeam(
         generalScore: 0,
         performance: placeholderPerformance
     };
+    
+    const starter = slot.starter || placeholderPlayer;
 
-    return {
-      starter: slot.starter || { ...placeholderPlayer, player: {...placeholderPlayer.player, id: `placeholder-S-${index}`}, card: {...placeholderPlayer.card, id: `placeholder-card-S-${index}`} },
-      substitute: slot.substitute || { ...placeholderPlayer, player: {...placeholderPlayer.player, id: `placeholder-SUB-${index}`}, card: {...placeholderPlayer.card, id: `placeholder-card-SUB-${index}`} }
+    const subPlaceholderPlayer: IdealTeamPlayer = {
+      ...placeholderPlayer,
+      player: { ...placeholderPlayer.player, id: `placeholder-SUB-${index}`},
+      card: { ...placeholderPlayer.card, id: `placeholder-card-SUB-${index}`}
     };
+    
+    const substitute = slot.substitute || subPlaceholderPlayer;
+
+    return { starter, substitute };
   });
 }
