@@ -16,9 +16,10 @@ type IdealTeamDisplayProps = {
   teamSlots: IdealTeamSlot[];
   formation?: FormationStats;
   onDiscardPlayer: (cardId: string) => void;
+  onViewBuild: (player: IdealTeamPlayer) => void;
 };
 
-const PlayerToken = ({ player, style, onDiscard }: { player: IdealTeamPlayer | null, style: React.CSSProperties, onDiscard: (cardId: string) => void }) => {
+const PlayerToken = ({ player, style, onDiscard, onViewBuild }: { player: IdealTeamPlayer | null, style: React.CSSProperties, onDiscard: (cardId: string) => void, onViewBuild: (player: IdealTeamPlayer) => void }) => {
   if (!player || player.player.id.startsWith('placeholder')) {
     return (
       <div 
@@ -77,19 +78,19 @@ const PlayerToken = ({ player, style, onDiscard }: { player: IdealTeamPlayer | n
             <p className="font-bold text-sm leading-tight text-primary">
             {displayPosition}
             </p>
-            <div className="flex items-center justify-center gap-1">
+            <button className="flex items-center justify-center gap-1 group/name" onClick={() => onViewBuild(player)}>
                 <AffinityStatusIndicator player={player} />
-                <p className="font-semibold text-xs truncate" title={player.player.name}>
+                <p className="font-semibold text-xs truncate group-hover/name:underline" title={player.player.name}>
                     {player.player.name}
                 </p>
-            </div>
+            </button>
         </div>
       </div>
     </div>
   );
 };
 
-const SubstitutePlayerRow = ({ player, onDiscard }: { player: IdealTeamPlayer | null, onDiscard: (cardId: string) => void }) => {
+const SubstitutePlayerRow = ({ player, onDiscard, onViewBuild }: { player: IdealTeamPlayer | null, onDiscard: (cardId: string) => void, onViewBuild: (player: IdealTeamPlayer) => void }) => {
   if (!player || player.player.id.startsWith('placeholder')) {
     return (
       <Card className="flex items-center gap-3 p-2 rounded-lg bg-background/50 border-2 border-dashed border-foreground/30 h-20">
@@ -120,12 +121,12 @@ const SubstitutePlayerRow = ({ player, onDiscard }: { player: IdealTeamPlayer | 
         )}
       </div>
       <div className="flex-grow overflow-hidden">
-        <div className="flex items-center gap-2">
+        <button className="flex items-center gap-2 group/name" onClick={() => onViewBuild(player)}>
             <AffinityStatusIndicator player={player} />
-            <p className="font-semibold text-base text-foreground truncate" title={player.player.name}>
+            <p className="font-semibold text-base text-foreground truncate group-hover/name:underline" title={player.player.name}>
                 {player.player.name}
             </p>
-        </div>
+        </button>
         <PerformanceBadges performance={player.performance} className="mt-1" />
       </div>
       <TooltipProvider>
@@ -153,7 +154,7 @@ const substituteOrder: Position[] = [
     'PT', 'DFC', 'LI', 'LD', 'LAT', 'MCD', 'MC', 'MDI', 'MDD', 'INT', 'MO', 'EXI', 'EXD', 'EXT', 'SD', 'DC'
 ];
 
-export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer }: IdealTeamDisplayProps) {
+export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onViewBuild }: IdealTeamDisplayProps) {
   if (teamSlots.length === 0 || !formation) {
     return (
       <div className="mt-8 text-center text-muted-foreground p-8 bg-card rounded-lg border border-dashed">
@@ -187,7 +188,7 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer }: Idea
                 top: `${formationSlot?.top || 50}%`,
                 left: `${formationSlot?.left || 50}%`,
              };
-             return <PlayerToken key={slot.starter?.card.id || `starter-${index}`} player={slot.starter} style={style} onDiscard={onDiscardPlayer} />;
+             return <PlayerToken key={slot.starter?.card.id || `starter-${index}`} player={slot.starter} style={style} onDiscard={onDiscardPlayer} onViewBuild={onViewBuild} />;
           })}
         </FootballPitch>
       </div>
@@ -196,7 +197,7 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer }: Idea
         <h3 className="text-xl font-semibold mb-4 text-center flex items-center justify-center gap-2"><Users /> Banquillo</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-2">
           {substitutes.map((sub, index) => (
-             <SubstitutePlayerRow key={sub?.card.id || `sub-${index}`} player={sub} onDiscard={onDiscardPlayer}/>
+             <SubstitutePlayerRow key={sub?.card.id || `sub-${index}`} player={sub} onDiscard={onDiscardPlayer} onViewBuild={onViewBuild}/>
           ))}
         </div>
       </div>

@@ -1,0 +1,95 @@
+
+"use client";
+
+import * as React from "react";
+import type { IdealTeamPlayer, OutfieldBuild, GoalkeeperBuild } from "@/lib/types";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { ScrollArea } from "./ui/scroll-area";
+import { Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, Star } from "lucide-react";
+
+type PlayerBuildViewerProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  player: IdealTeamPlayer | null;
+};
+
+const outfieldCategories: { key: keyof OutfieldBuild; label: string, icon: React.ElementType }[] = [
+    { key: 'shooting', label: 'Tiro', icon: Target },
+    { key: 'passing', label: 'Pase', icon: Footprints },
+    { key: 'dribbling', label: 'Regate', icon: Dribbble },
+    { key: 'dexterity', label: 'Destreza', icon: Zap },
+    { key: 'lowerBodyStrength', label: 'Fuerza del tren inferior', icon: Beef },
+    { key: 'aerialStrength', label: 'Juego aéreo', icon: ChevronsUp },
+    { key: 'defending', label: 'Defensa', icon: Shield },
+];
+
+const goalkeeperCategories: { key: keyof GoalkeeperBuild; label: string, icon: React.ElementType }[] = [
+    { key: 'gk1', label: 'Portero 1', icon: Hand },
+    { key: 'gk2', label: 'Portero 2', icon: Hand },
+    { key: 'gk3', label: 'Portero 3', icon: Hand },
+];
+
+
+export function PlayerBuildViewer({ open, onOpenChange, player }: PlayerBuildViewerProps) {
+  if (!player) return null;
+
+  const { player: playerData, card, assignedPosition } = player;
+  
+  const build = card?.buildsByPosition?.[assignedPosition];
+  const isGoalkeeper = assignedPosition === 'PT';
+
+  const updatedAt = build?.updatedAt;
+  const formattedDate = updatedAt 
+    ? format(new Date(updatedAt), "d 'de' MMMM 'de' yyyy", { locale: es }) 
+    : 'Nunca';
+
+  const affinity = build?.manualAffinity || 0;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Build de {playerData.name} (<span className="text-primary">{assignedPosition}</span>)</DialogTitle>
+          <DialogDescription>
+             <span className="font-semibold text-foreground">{card.name}</span>. Últ. act: {formattedDate}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+             <div className="p-4 bg-muted/50 rounded-lg flex items-center justify-center gap-4">
+                <div className="flex items-center gap-2 text-lg font-bold">
+                    <Star className="w-5 h-5 text-yellow-400" />
+                    <span>Afinidad Manual:</span>
+                </div>
+                <span className="text-2xl font-bold text-primary">{affinity}</span>
+             </div>
+            
+            <p className="font-medium text-sm text-muted-foreground pt-2 text-center">Puntos de Progresión</p>
+            
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                {(isGoalkeeper ? goalkeeperCategories : outfieldCategories).map(({key, label, icon: Icon}) => {
+                    const value = (build as any)?.[key] || 0;
+                    if (value === 0) return null;
+                    return (
+                        <div key={key} className="flex items-center justify-between text-sm">
+                            <span className="flex items-center gap-2 text-muted-foreground">
+                                <Icon className="w-4 h-4"/>
+                                {label}
+                            </span>
+                            <span className="font-bold text-lg">{value}</span>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

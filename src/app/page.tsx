@@ -22,6 +22,7 @@ import { AddFormationDialog, type AddFormationFormValues } from '@/components/ad
 import { EditFormationDialog, type EditFormationFormValues } from '@/components/edit-formation-dialog';
 import { AddMatchDialog, type AddMatchFormValues } from '@/components/add-match-dialog';
 import { PlayerDetailDialog } from '@/components/player-detail-dialog';
+import { PlayerBuildViewer } from '@/components/player-build-viewer';
 
 import { FormationsDisplay } from '@/components/formations-display';
 import { IdealTeamDisplay } from '@/components/ideal-team-display';
@@ -34,7 +35,7 @@ import { usePlayers } from '@/hooks/usePlayers';
 import { useFormations } from '@/hooks/useFormations';
 import { useToast } from "@/hooks/use-toast";
 
-import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerBuild } from '@/lib/types';
+import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerBuild, IdealTeamPlayer } from '@/lib/types';
 import { positions, leagues, nationalities } from '@/lib/types';
 import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Wrench } from 'lucide-react';
 import { calculateStats, normalizeText, calculateGeneralScore } from '@/lib/utils';
@@ -90,6 +91,8 @@ export default function Home() {
   const [editPlayerDialogInitialData, setEditPlayerDialogInitialData] = useState<Partial<EditPlayerFormValues> | undefined>(undefined);
   const [editFormationDialogInitialData, setEditFormationDialogInitialData] = useState<FormationStats | undefined>(undefined);
   const [selectedFlatPlayer, setSelectedFlatPlayer] = useState<FlatPlayer | null>(null);
+  const [isBuildViewerOpen, setIsBuildViewerOpen] = useState(false);
+  const [viewingPlayerBuild, setViewingPlayerBuild] = useState<IdealTeamPlayer | null>(null);
   
   const [selectedFormationId, setSelectedFormationId] = useState<string | undefined>(undefined);
   const [selectedLeague, setSelectedLeague] = useState<League | 'all'>('all');
@@ -272,6 +275,11 @@ export default function Home() {
     setCardFilter('all');
   };
 
+  const handleViewPlayerBuild = (player: IdealTeamPlayer) => {
+    setViewingPlayerBuild(player);
+    setIsBuildViewerOpen(true);
+  };
+
   const getHeaderButtons = () => {
     const isPositionTab = positions.includes(activeTab as Position);
 
@@ -366,6 +374,11 @@ export default function Home() {
         onOpenChange={setPlayerDetailDialogOpen}
         flatPlayer={selectedFlatPlayer}
         onSavePlayerBuild={savePlayerBuild}
+      />
+      <PlayerBuildViewer
+        open={isBuildViewerOpen}
+        onOpenChange={setIsBuildViewerOpen}
+        player={viewingPlayerBuild}
       />
       <AlertDialog open={isImageViewerOpen} onOpenChange={setImageViewerOpen}>
         <AlertDialogContent className="max-w-xl p-0">
@@ -604,6 +617,7 @@ export default function Home() {
                 teamSlots={idealTeam} 
                 formation={selectedFormation} 
                 onDiscardPlayer={handleDiscardPlayer}
+                onViewBuild={handleViewPlayerBuild}
             />
           </TabsContent>
           
