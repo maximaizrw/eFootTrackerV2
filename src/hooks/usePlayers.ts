@@ -90,7 +90,7 @@ export function usePlayers() {
     });
 
     return () => unsub();
-  }, [toast]);
+  }, []);
 
   const addRating = async (values: AddRatingFormValues) => {
     let { playerName, cardName, position, rating, style, league, nationality, playerId } = values;

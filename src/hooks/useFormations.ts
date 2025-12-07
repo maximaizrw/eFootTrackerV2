@@ -65,7 +65,7 @@ export function useFormations() {
     });
 
     return () => unsub();
-  }, [toast]);
+  }, []);
   
   const addFormation = async (values: AddFormationFormValues) => {
     if (!db) return;
