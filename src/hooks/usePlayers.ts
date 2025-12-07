@@ -327,12 +327,29 @@ export function usePlayers() {
             if (!cardToUpdate.buildsByPosition) {
               cardToUpdate.buildsByPosition = {};
             }
-            cardToUpdate.buildsByPosition[position] = {
+            
+            const updatedBuild = {
               ...build,
               updatedAt: new Date().toISOString(),
             };
+
+            // Apply the build to the current position
+            cardToUpdate.buildsByPosition[position] = updatedBuild;
+            
+            // Sync symmetrical positions
+            const symmetricalPositions: Record<string, Position> = {
+                'LI': 'LD', 'LD': 'LI',
+                'MDI': 'MDD', 'MDD': 'MDI',
+                'EXI': 'EXD', 'EXD': 'EXI',
+            };
+
+            const counterpart = symmetricalPositions[position];
+            if (counterpart) {
+                cardToUpdate.buildsByPosition[counterpart] = updatedBuild;
+            }
+
             await updateDoc(playerRef, { cards: newCards });
-            toast({ title: "Build Guardada", description: `La build del jugador para ${position} se ha actualizado.` });
+            toast({ title: "Build Guardada", description: `La build del jugador para ${position} ${counterpart ? `y ${counterpart} ` : ''}se ha actualizado.` });
         } else {
             throw new Error("Card not found in player data!");
         }
