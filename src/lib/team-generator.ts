@@ -192,24 +192,24 @@ export function generateIdealTeam(
     const formationSlot = formation.slots[index];
     const candidates = getCandidatesForSlot(formationSlot);
 
-    const findSubstitute = (candidates: CandidatePlayer[]) => {
+    const findSubstitute = (candidatesForSlot: CandidatePlayer[]) => {
         // New logic: Prioritize players with few matches and sort them by highest affinity.
-        const toTryOut = candidates
+        const toTryOut = candidatesForSlot
             .filter(p => 
                 p.performance.stats.matches >= 1 &&
                 p.performance.stats.matches <= 3
             )
             .sort((a, b) => b.affinityScore - a.affinityScore);
         
-        const promising = candidates.filter(p => p.performance.isPromising);
-        const hotStreaks = candidates.filter(p => p.performance.isHotStreak && !p.performance.isPromising);
-        const others = candidates.filter(p => !p.performance.isPromising && !p.performance.isHotStreak);
+        const promising = candidatesForSlot.filter(p => p.performance.isPromising);
+        const hotStreaks = candidatesForSlot.filter(p => p.performance.isHotStreak && !p.performance.isPromising);
+        const others = candidatesForSlot.filter(p => !p.performance.isPromising && !p.performance.isHotStreak);
 
         return findBestPlayer(toTryOut) ||
                findBestPlayer(promising) ||
                findBestPlayer(hotStreaks) || 
                findBestPlayer(others) ||
-               findBestPlayer(candidates); // Fallback to any available player for the slot
+               findBestPlayer(candidatesForSlot); // Fallback to any available player for the slot
     }
 
     const substituteCandidate = findSubstitute(candidates);
@@ -225,7 +225,8 @@ export function generateIdealTeam(
   // --- FALLBACK FOR EMPTY SUBSTITUTE SLOTS ---
   finalTeamSlots.forEach((slot, index) => {
     if (!slot.substitute) {
-        const fallbackCandidates = allPlayerCandidates.sort(sortFunction);
+        const formationSlot = formation.slots[index];
+        const fallbackCandidates = getCandidatesForSlot(formationSlot);
         const fallbackPlayer = findBestPlayer(fallbackCandidates);
         
         if (fallbackPlayer) {
