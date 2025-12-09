@@ -141,22 +141,7 @@ export function generateIdealTeam(
     const hasStylePreference = formationSlot.styles && formationSlot.styles.length > 0;
     const targetPosition = formationSlot.position;
 
-    let applicablePositions: Position[];
-
-    switch (targetPosition) {
-        case 'LAT':
-            applicablePositions = ['LI', 'LD'];
-            break;
-        case 'INT':
-            applicablePositions = ['MDI', 'MDD'];
-            break;
-        case 'EXT':
-            applicablePositions = ['EXI', 'EXD'];
-            break;
-        default:
-            applicablePositions = [targetPosition];
-            break;
-    }
+    let applicablePositions: Position[] = [targetPosition];
     
     let positionCandidates = allPlayerCandidates
         .filter(p => applicablePositions.includes(p.position))

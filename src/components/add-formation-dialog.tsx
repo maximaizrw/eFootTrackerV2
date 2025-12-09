@@ -56,7 +56,7 @@ type AddFormationDialogProps = {
 const defaultSlots = formationPresets.find(p => p.name === '4-3-3')?.slots || Array(11).fill({ position: 'DC', styles: [] });
 
 export function AddFormationDialog({ open, onOpenChange, onAddFormation }: AddFormationDialogProps) {
-  const [preset, setPreset] = useState('4-3-3');
+  const [preset, setPreset] = useState('4-3-3 (Clásico)');
   
   const form = useForm<AddFormationFormValues>({
     resolver: zodResolver(formSchema),
@@ -94,7 +94,7 @@ export function AddFormationDialog({ open, onOpenChange, onAddFormation }: AddFo
         secondaryImageUrl: "",
         sourceUrl: "",
       });
-      setPreset('4-3-3');
+      setPreset('4-3-3 (Clásico)');
     }
   }, [open, reset]);
 

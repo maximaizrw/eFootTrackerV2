@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Check, ChevronsUpDown, Settings } from "lucide-react";
 import type { FormationSlot, Position, PlayerStyle } from "@/lib/types";
-import { formationEditorPositions, getAvailableStylesForPosition } from "@/lib/types";
+import { positions, getAvailableStylesForPosition } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { FootballPitch } from "./football-pitch";
 
@@ -91,7 +91,7 @@ const PlayerToken = ({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {formationEditorPositions.map((pos) => (
+                        {positions.map((pos) => (
                           <SelectItem key={pos} value={pos}>
                             {pos}
                           </SelectItem>

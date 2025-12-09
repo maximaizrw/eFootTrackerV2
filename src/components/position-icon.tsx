@@ -1,5 +1,5 @@
 import type { LucideProps } from 'lucide-react';
-import { Target, Users, Shield, HandMetal, ArrowLeftRight } from 'lucide-react';
+import { Target, Users, Shield, HandMetal } from 'lucide-react';
 import type { Position } from '@/lib/types';
 
 export const PositionIcon = ({ position, ...props }: { position: Position } & LucideProps) => {
@@ -21,10 +21,6 @@ export const PositionIcon = ({ position, ...props }: { position: Position } & Lu
     case 'SD':
     case 'DC':
       return <Target {...props} />;
-    case 'LAT':
-    case 'INT':
-    case 'EXT':
-      return <ArrowLeftRight {...props} />;
     default:
       return null;
   }
