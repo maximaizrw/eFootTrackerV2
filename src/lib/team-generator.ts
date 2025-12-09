@@ -141,11 +141,8 @@ export function generateIdealTeam(
     const hasStylePreference = formationSlot.styles && formationSlot.styles.length > 0;
     const targetPosition = formationSlot.position;
 
-    let applicablePositions: Position[] = [targetPosition];
-    
     let positionCandidates = allPlayerCandidates
-        .filter(p => applicablePositions.includes(p.position))
-        .sort(sortFunction);
+        .filter(p => p.position === targetPosition);
         
     if (hasStylePreference) {
         const styleCandidates = positionCandidates.filter(p => formationSlot.styles!.includes(p.card.style));
@@ -153,7 +150,7 @@ export function generateIdealTeam(
             positionCandidates = styleCandidates;
         }
     }
-    return positionCandidates;
+    return positionCandidates.sort(sortFunction);
   }
 
   // --- STARTER SELECTION ---
@@ -175,19 +172,27 @@ export function generateIdealTeam(
   // --- SUBSTITUTE SELECTION ---
   finalTeamSlots.forEach((slot, index) => {
     const formationSlot = formation.slots[index];
-    const candidates = getCandidatesForSlot(formationSlot);
+    const allCandidatesForSlot = getCandidatesForSlot(formationSlot);
 
-    const findSubstitute = (candidatesForSlot: CandidatePlayer[]) => {
-        const promising = candidatesForSlot.filter(p => p.performance.isPromising);
-        const hotStreaks = candidatesForSlot.filter(p => p.performance.isHotStreak && !p.performance.isPromising);
-        const others = candidatesForSlot.filter(p => !p.performance.isPromising && !p.performance.isHotStreak);
+    // 1. Separate candidates into "test" and "consolidated" pools
+    const testPlayers = allCandidatesForSlot.filter(p => p.performance.stats.matches < 10);
+    const consolidatedPlayers = allCandidatesForSlot.filter(p => p.performance.stats.matches >= 10);
+    
+    // 2. Sort "test" players by affinity first, then average
+    testPlayers.sort((a, b) => {
+        if (b.affinityScore !== a.affinityScore) return b.affinityScore - a.affinityScore;
+        if (b.average !== a.average) return b.average - a.average;
+        return b.performance.stats.matches - a.performance.stats.matches;
+    });
 
-        return findBestPlayer(promising) ||
-               findBestPlayer(hotStreaks) || 
-               findBestPlayer(others);
+    // 3. Find the best substitute
+    // Priority 1: Best "test" player available
+    let substituteCandidate = findBestPlayer(testPlayers);
+    
+    // Priority 2: If no "test" player is available, find the best "consolidated" player
+    if (!substituteCandidate) {
+        substituteCandidate = findBestPlayer(consolidatedPlayers);
     }
-
-    const substituteCandidate = findSubstitute(candidates);
 
     if (substituteCandidate) {
       usedPlayerIds.add(substituteCandidate.player.id);
@@ -196,23 +201,7 @@ export function generateIdealTeam(
     
     slot.substitute = createTeamPlayer(substituteCandidate, formationSlot.position);
   });
-
-  // --- FALLBACK FOR EMPTY SUBSTITUTE SLOTS ---
-  finalTeamSlots.forEach((slot, index) => {
-    if (!slot.substitute) {
-        const formationSlot = formation.slots[index];
-        const fallbackCandidates = getCandidatesForSlot(formationSlot);
-        const fallbackPlayer = findBestPlayer(fallbackCandidates);
-        
-        if (fallbackPlayer) {
-            usedPlayerIds.add(fallbackPlayer.player.id);
-            usedCardIds.add(fallbackPlayer.card.id);
-            slot.substitute = createTeamPlayer(fallbackPlayer, formation.slots[index].position);
-        }
-    }
-  });
-
-
+  
   const placeholderPerformance: PlayerPerformance = {
         stats: { average: 0, matches: 0, stdDev: 0 },
         isHotStreak: false, isConsistent: false, isPromising: false, isVersatile: false
