@@ -178,23 +178,13 @@ export function generateIdealTeam(
     const candidates = getCandidatesForSlot(formationSlot);
 
     const findSubstitute = (candidatesForSlot: CandidatePlayer[]) => {
-        // New logic: Prioritize players with few matches and sort them by highest affinity.
-        const toTryOut = candidatesForSlot
-            .filter(p => 
-                p.performance.stats.matches >= 1 &&
-                p.performance.stats.matches <= 3
-            )
-            .sort((a, b) => b.affinityScore - a.affinityScore);
-        
         const promising = candidatesForSlot.filter(p => p.performance.isPromising);
         const hotStreaks = candidatesForSlot.filter(p => p.performance.isHotStreak && !p.performance.isPromising);
         const others = candidatesForSlot.filter(p => !p.performance.isPromising && !p.performance.isHotStreak);
 
-        return findBestPlayer(toTryOut) ||
-               findBestPlayer(promising) ||
+        return findBestPlayer(promising) ||
                findBestPlayer(hotStreaks) || 
-               findBestPlayer(others) ||
-               findBestPlayer(candidatesForSlot); // Fallback to any available player for the slot
+               findBestPlayer(others);
     }
 
     const substituteCandidate = findSubstitute(candidates);

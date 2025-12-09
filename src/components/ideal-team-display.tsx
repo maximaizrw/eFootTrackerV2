@@ -3,7 +3,7 @@
 
 import type { IdealTeamPlayer, IdealTeamSlot, FormationStats, Position } from '@/lib/types';
 import Image from 'next/image';
-import { Users, Shirt, X, Crown } from 'lucide-react';
+import { Users, Shirt, X, Crown, NotebookPen } from 'lucide-react';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { PerformanceBadges } from './performance-badges';
@@ -151,7 +151,7 @@ const SubstitutePlayerRow = ({ player, onDiscard, onViewBuild }: { player: Ideal
 };
 
 const substituteOrder: Position[] = [
-    'PT', 'DFC', 'LI', 'LD', 'LAT', 'MCD', 'MC', 'MDI', 'MDD', 'INT', 'MO', 'EXI', 'EXD', 'EXT', 'SD', 'DC'
+    'PT', 'DFC', 'LI', 'LD', 'MCD', 'MC', 'MDI', 'MDD', 'MO', 'EXI', 'EXD', 'SD', 'DC'
 ];
 
 export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onViewBuild }: IdealTeamDisplayProps) {
