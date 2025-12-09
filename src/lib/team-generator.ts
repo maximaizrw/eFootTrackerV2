@@ -1,5 +1,5 @@
 
-import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality } from './types';
+import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, FormationSlot as FormationSlotType } from './types';
 import { calculateStats, calculateGeneralScore } from './utils';
 
 type CandidatePlayer = {
@@ -137,14 +137,26 @@ export function generateIdealTeam(
       return candidates.find(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id) && !discardedCardIds.has(p.card.id));
   };
   
-  const getCandidatesForSlot = (formationSlot: FormationStats['slots'][0]): CandidatePlayer[] => {
+  const getCandidatesForSlot = (formationSlot: FormationSlotType): CandidatePlayer[] => {
     const hasStylePreference = formationSlot.styles && formationSlot.styles.length > 0;
     const targetPosition = formationSlot.position;
 
-    let applicablePositions: Position[] = [targetPosition];
-    if (targetPosition === 'LAT') applicablePositions = ['LI', 'LD'];
-    if (targetPosition === 'INT') applicablePositions = ['MDI', 'MDD'];
-    if (targetPosition === 'EXT') applicablePositions = ['EXI', 'EXD'];
+    let applicablePositions: Position[];
+
+    switch (targetPosition) {
+        case 'LAT':
+            applicablePositions = ['LI', 'LD'];
+            break;
+        case 'INT':
+            applicablePositions = ['MDI', 'MDD'];
+            break;
+        case 'EXT':
+            applicablePositions = ['EXI', 'EXD'];
+            break;
+        default:
+            applicablePositions = [targetPosition];
+            break;
+    }
     
     let positionCandidates = allPlayerCandidates
         .filter(p => applicablePositions.includes(p.position))
@@ -152,7 +164,6 @@ export function generateIdealTeam(
         
     if (hasStylePreference) {
         const styleCandidates = positionCandidates.filter(p => formationSlot.styles!.includes(p.card.style));
-        // If there are players matching the style, we prioritize them
         if (styleCandidates.length > 0) {
             positionCandidates = styleCandidates;
         }
@@ -182,7 +193,7 @@ export function generateIdealTeam(
     const candidates = getCandidatesForSlot(formationSlot);
 
     const findSubstitute = (candidates: CandidatePlayer[]) => {
-        // New logic: Prioritize players with few matches (1-3) and sort them by highest affinity.
+        // New logic: Prioritize players with few matches and sort them by highest affinity.
         const toTryOut = candidates
             .filter(p => 
                 p.performance.stats.matches >= 1 &&
@@ -197,7 +208,8 @@ export function generateIdealTeam(
         return findBestPlayer(toTryOut) ||
                findBestPlayer(promising) ||
                findBestPlayer(hotStreaks) || 
-               findBestPlayer(others);
+               findBestPlayer(others) ||
+               findBestPlayer(candidates); // Fallback to any available player for the slot
     }
 
     const substituteCandidate = findSubstitute(candidates);
