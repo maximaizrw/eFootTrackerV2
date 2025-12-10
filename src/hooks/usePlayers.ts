@@ -3,15 +3,15 @@
 
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase-config';
-import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, query, where, setDoc } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import { v4 as uuidv4 } from 'uuid';
-import type { Player, PlayerCard, Position, AddRatingFormValues, EditCardFormValues, EditPlayerFormValues, PlayerBuild, League, Nationality, PlayerAttributeStats } from '@/lib/types';
+import type { Player, PlayerCard, Position, AddRatingFormValues, EditCardFormValues, EditPlayerFormValues, PlayerBuild, League, Nationality, PlayerAttributeStats, IdealBuild } from '@/lib/types';
 import { getAvailableStylesForPosition } from '@/lib/types';
-import { normalizeText } from '@/lib/utils';
+import { normalizeText, calculateProgressionStats, calculateAutomaticAffinity, getIdealBuildForPlayer } from '@/lib/utils';
 
 
-export function usePlayers() {
+export function usePlayers(idealBuilds: IdealBuild[] = []) {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +25,7 @@ export function usePlayers() {
       return;
     }
 
-    const unsub = onSnapshot(collection(db, "players"), (snapshot) => {
+    const unsubPlayers = onSnapshot(collection(db, "players"), (snapshot) => {
       try {
         const playerMap = new Map<string, Player>();
 
@@ -47,7 +47,6 @@ export function usePlayers() {
             }));
 
             if (playerMap.has(normalizedName)) {
-                // Merge cards from duplicate player entries
                 const existingPlayer = playerMap.get(normalizedName)!;
                 const existingCards = existingPlayer.cards;
                 const cardsToMerge = newCards.filter(newCard => 
@@ -90,8 +89,10 @@ export function usePlayers() {
         });
     });
 
-    return () => unsub();
-  }, []);
+    return () => {
+      unsubPlayers();
+    };
+  }, [toast]);
 
   const addRating = async (values: AddRatingFormValues) => {
     let { playerName, cardName, position, rating, style, league, nationality, playerId } = values;
@@ -101,7 +102,6 @@ export function usePlayers() {
         return;
     }
     
-    // Validate that the chosen style is valid for the position
     const validStylesForPosition = getAvailableStylesForPosition(position);
     if (!validStylesForPosition.includes(style)) {
         style = 'Ninguno';
@@ -329,15 +329,18 @@ export function usePlayers() {
               cardToUpdate.buildsByPosition = {};
             }
             
-            const updatedBuild = {
+            const playerFinalStats = calculateProgressionStats(cardToUpdate.attributeStats || {}, build);
+            const idealBuild = getIdealBuildForPlayer(cardToUpdate.style, position, idealBuilds);
+            const affinity = calculateAutomaticAffinity(playerFinalStats, idealBuild);
+            
+            const updatedBuild: PlayerBuild = {
               ...build,
+              manualAffinity: affinity,
               updatedAt: new Date().toISOString(),
             };
 
-            // Apply the build to the current position
             cardToUpdate.buildsByPosition[position] = updatedBuild;
             
-            // Sync symmetrical positions
             const symmetricalPositions: Record<string, Position> = {
                 'LI': 'LD', 'LD': 'LI',
                 'MDI': 'MDD', 'MDD': 'MDI',
@@ -350,7 +353,7 @@ export function usePlayers() {
             }
 
             await updateDoc(playerRef, { cards: newCards });
-            toast({ title: "Build Guardada", description: `La build del jugador para ${position} ${counterpart ? `y ${counterpart} ` : ''}se ha actualizado.` });
+            toast({ title: "Build Guardada", description: `La build del jugador para ${position} ${counterpart ? `y ${counterpart} ` : ''}se ha actualizado con afinidad ${affinity.toFixed(2)}.` });
         } else {
             throw new Error("Card not found in player data!");
         }
@@ -376,40 +379,39 @@ export function usePlayers() {
         if (cardToUpdate) {
           if (!cardToUpdate.attributeStats) cardToUpdate.attributeStats = {};
           
-          // Separate base stats from calculated stats
           const baseStats: PlayerAttributeStats = {
             ...stats,
-            baseOffensiveAwareness: stats.offensiveAwareness,
-            baseBallControl: stats.ballControl,
-            baseDribbling: stats.dribbling,
-            baseTightPossession: stats.tightPossession,
-            baseLowPass: stats.lowPass,
-            baseLoftedPass: stats.loftedPass,
-            baseFinishing: stats.finishing,
-            baseHeading: stats.heading,
-            basePlaceKicking: stats.placeKicking,
-            baseCurl: stats.curl,
-            baseDefensiveAwareness: stats.defensiveAwareness,
-            baseDefensiveEngagement: stats.defensiveEngagement,
-            baseTackling: stats.tackling,
-            baseAggression: stats.aggression,
-            baseGoalkeeping: stats.goalkeeping,
-            baseGkCatching: stats.gkCatching,
-            baseGkParrying: stats.gkParrying,
-            baseGkReflexes: stats.gkReflexes,
-            baseGkReach: stats.gkReach,
-            baseSpeed: stats.speed,
-            baseAcceleration: stats.acceleration,
-            baseKickingPower: stats.kickingPower,
-            baseJump: stats.jump,
-            basePhysicalContact: stats.physicalContact,
-            baseBalance: stats.balance,
-            baseStamina: stats.stamina,
+            baseOffensiveAwareness: stats.offensiveAwareness, baseBallControl: stats.ballControl, baseDribbling: stats.dribbling,
+            baseTightPossession: stats.tightPossession, baseLowPass: stats.lowPass, baseLoftedPass: stats.loftedPass,
+            baseFinishing: stats.finishing, baseHeading: stats.heading, basePlaceKicking: stats.placeKicking, baseCurl: stats.curl,
+            baseDefensiveAwareness: stats.defensiveAwareness, baseDefensiveEngagement: stats.defensiveEngagement, baseTackling: stats.tackling,
+            baseAggression: stats.aggression, baseGoalkeeping: stats.goalkeeping, baseGkCatching: stats.gkCatching,
+            baseGkParrying: stats.gkParrying, baseGkReflexes: stats.gkReflexes, baseGkReach: stats.gkReach,
+            baseSpeed: stats.speed, baseAcceleration: stats.acceleration, baseKickingPower: stats.kickingPower,
+            baseJump: stats.jump, basePhysicalContact: stats.physicalContact, baseBalance: stats.balance, baseStamina: stats.stamina,
           };
           
           cardToUpdate.attributeStats = baseStats;
-          await updateDoc(playerRef, { cards: newCards });
-          toast({ title: "Atributos Guardados", description: `Los atributos de la carta se han actualizado.` });
+          
+          // Recalculate affinity for all positions on this card
+           if(cardToUpdate.buildsByPosition) {
+              for (const posKey in cardToUpdate.buildsByPosition) {
+                  const position = posKey as Position;
+                  const build = cardToUpdate.buildsByPosition[position];
+                  if(build) {
+                      const isPotw = cardToUpdate.name.toLowerCase().includes('potw');
+                      const finalStats = isPotw ? baseStats : calculateProgressionStats(baseStats, build);
+                      const idealBuild = getIdealBuildForPlayer(cardToUpdate.style, position, idealBuilds);
+                      const newAffinity = calculateAutomaticAffinity(finalStats, idealBuild);
+
+                      build.manualAffinity = newAffinity;
+                      build.updatedAt = new Date().toISOString();
+                  }
+              }
+           }
+
+          await setDoc(playerRef, { ...playerData, cards: newCards });
+          toast({ title: "Atributos Guardados", description: `Los atributos de la carta y las afinidades se han recalculado.` });
         } else {
            throw new Error("Card not found!");
         }

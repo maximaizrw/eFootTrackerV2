@@ -53,6 +53,13 @@ export type PlayerBuild = (OutfieldBuild | GoalkeeperBuild) & {
   updatedAt?: string;
 };
 
+export type IdealBuild = {
+  id?: string; // composite key of position-style
+  position: Position;
+  style: PlayerStyle;
+  build: PlayerAttributeStats;
+};
+
 export type PlayerAttributeStats = {
   // Attacking
   offensiveAwareness?: number;
@@ -327,3 +334,5 @@ export function getAvailableStylesForPosition(position: Position, includeNone: b
             return playerStyles;
     }
 }
+
+    

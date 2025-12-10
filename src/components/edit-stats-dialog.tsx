@@ -108,33 +108,16 @@ const statFields: { category: string, fields: { name: keyof PlayerAttributeStats
 ];
 
 const nameToSchemaKeyMap: Record<string, keyof PlayerAttributeStats> = {
-    "offensive awareness": "offensiveAwareness",
-    "ball control": "ballControl",
-    "dribbling": "dribbling",
-    "tight possession": "tightPossession",
-    "low pass": "lowPass",
-    "lofted pass": "loftedPass",
-    "finishing": "finishing",
-    "heading": "heading",
-    "place kicking": "placeKicking",
-    "curl": "curl",
-    "defensive awareness": "defensiveAwareness",
-    "defensive engagement": "defensiveEngagement",
-    "tackling": "tackling",
-    "aggression": "aggression",
-    "goalkeeping": "goalkeeping",
-    "gk catching": "gkCatching",
-    "gk parrying": "gkParrying",
-    "gk reflexes": "gkReflexes",
-    "gk reach": "gkReach",
-    "speed": "speed",
-    "acceleration": "acceleration",
-    "kicking power": "kickingPower",
-    "jump": "jump",
-    "physical contact": "physicalContact",
-    "balance": "balance",
-    "stamina": "stamina",
+    "offensive awareness": "offensiveAwareness", "ball control": "ballControl", "dribbling": "dribbling",
+    "tight possession": "tightPossession", "low pass": "lowPass", "lofted pass": "loftedPass",
+    "finishing": "finishing", "heading": "heading", "place kicking": "placeKicking", "curl": "curl",
+    "defensive awareness": "defensiveAwareness", "defensive engagement": "defensiveEngagement", "tackling": "tackling",
+    "aggression": "aggression", "goalkeeping": "goalkeeping", "gk catching": "gkCatching", "gk parrying": "gkParrying",
+    "gk reflexes": "gkReflexes", "gk reach": "gkReach", "speed": "speed", "acceleration": "acceleration",
+    "kicking power": "kickingPower", "jump": "jump", "physical contact": "physicalContact", "balance": "balance", "stamina": "stamina",
 };
+
+const orderedStatFields: (keyof PlayerAttributeStats)[] = statFields.flatMap(category => category.fields.map(field => field.name));
 
 
 type EditStatsDialogProps = {
@@ -181,24 +164,46 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
   };
 
   const handleParseText = () => {
-    const lines = pastedText.split('\n');
+    const lines = pastedText.split('\n').filter(line => line.trim() !== '');
     let parsedCount = 0;
     
-    lines.forEach(line => {
-      const parts = line.split(/\s+/).filter(Boolean); // Split by any whitespace and remove empty strings
-      if (parts.length < 2) return;
+    // Check if the format is just numbers
+    const isNumericOnly = lines.every(line => /^\d+\s*$/.test(line.trim()));
 
-      const value = parseInt(parts[parts.length - 1], 10);
-      if (isNaN(value)) return;
-      
-      const namePart = parts.slice(0, -1).join(' ').replace('●', '').trim().toLowerCase();
-      
-      const schemaKey = nameToSchemaKeyMap[namePart];
-      if (schemaKey) {
-        form.setValue(schemaKey, value, { shouldValidate: true });
-        parsedCount++;
-      }
-    });
+    if (isNumericOnly) {
+        if (lines.length !== orderedStatFields.length) {
+            toast({
+                variant: "destructive",
+                title: "Error de Formato",
+                description: `Se esperaban ${orderedStatFields.length} atributos, pero se encontraron ${lines.length}.`,
+            });
+            return;
+        }
+        lines.forEach((line, index) => {
+            const value = parseInt(line.trim(), 10);
+            const schemaKey = orderedStatFields[index];
+            if (schemaKey) {
+                form.setValue(schemaKey, value, { shouldValidate: true });
+                parsedCount++;
+            }
+        });
+    } else {
+        lines.forEach(line => {
+            const parts = line.split(/\s+/).filter(Boolean);
+            if (parts.length < 2) return;
+
+            const value = parseInt(parts[parts.length - 1], 10);
+            if (isNaN(value)) return;
+            
+            const namePart = parts.slice(0, -1).join(' ').replace('●', '').trim().toLowerCase();
+            
+            const schemaKey = nameToSchemaKeyMap[namePart];
+            if (schemaKey) {
+                form.setValue(schemaKey, value, { shouldValidate: true });
+                parsedCount++;
+            }
+        });
+    }
 
     if (parsedCount > 0) {
       toast({
@@ -255,7 +260,7 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
                             <FormItem>
                               <FormLabel className="text-xs">{field.label}</FormLabel>
                               <FormControl>
-                                <Input type="number" min="0" max="99" {...formField} onChange={e => formField.onChange(e.target.value)} />
+                                <Input type="number" min="0" max="99" {...formField} value={formField.value ?? ''} onChange={e => formField.onChange(e.target.value === '' ? undefined : e.target.value)} />
                               </FormControl>
                             </FormItem>
                           )}

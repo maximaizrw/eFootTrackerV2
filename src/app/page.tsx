@@ -24,6 +24,7 @@ import { EditFormationDialog, type EditFormationFormValues } from '@/components/
 import { AddMatchDialog, type AddMatchFormValues } from '@/components/add-match-dialog';
 import { PlayerDetailDialog } from '@/components/player-detail-dialog';
 import { PlayerBuildViewer } from '@/components/player-build-viewer';
+import { IdealBuildEditor } from '@/components/ideal-build-editor';
 
 import { FormationsDisplay } from '@/components/formations-display';
 import { IdealTeamDisplay } from '@/components/ideal-team-display';
@@ -34,11 +35,12 @@ import { NationalityDistribution } from '@/components/nationality-distribution';
 
 import { usePlayers } from '@/hooks/usePlayers';
 import { useFormations } from '@/hooks/useFormations';
+import { useIdealBuilds } from '@/hooks/useIdealBuilds';
 import { useToast } from "@/hooks/use-toast";
 
-import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerBuild, IdealTeamPlayer, PlayerAttributeStats } from '@/lib/types';
+import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerBuild, IdealTeamPlayer, PlayerAttributeStats, IdealBuild } from '@/lib/types';
 import { positions, leagues, nationalities } from '@/lib/types';
-import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Wrench } from 'lucide-react';
+import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Wrench, Dna } from 'lucide-react';
 import { calculateStats, normalizeText, calculateGeneralScore } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -46,6 +48,14 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 const ITEMS_PER_PAGE = 10;
 
 export default function Home() {
+  const {
+    idealBuilds,
+    loading: idealBuildsLoading,
+    error: idealBuildsError,
+    saveIdealBuild,
+    deleteIdealBuild,
+  } = useIdealBuilds();
+
   const { 
     players, 
     loading: playersLoading, 
@@ -59,7 +69,7 @@ export default function Home() {
     saveAttributeStats,
     deletePositionRatings,
     toggleSelectablePosition,
-  } = usePlayers();
+  } = usePlayers(idealBuilds);
 
   const {
     formations,
@@ -73,6 +83,7 @@ export default function Home() {
     downloadBackup: downloadFormationsBackup,
   } = useFormations();
   
+
   const allPlayers = players || [];
 
   const [activeTab, setActiveTab] = useState<string>('DC');
@@ -86,6 +97,9 @@ export default function Home() {
   const [isEditStatsDialogOpen, setEditStatsDialogOpen] = useState(false);
   const [isPlayerDetailDialogOpen, setPlayerDetailDialogOpen] = useState(false);
   const [isImageViewerOpen, setImageViewerOpen] = useState(false);
+  const [isIdealBuildEditorOpen, setIsIdealBuildEditorOpen] = useState(false);
+  const [editingIdealBuild, setEditingIdealBuild] = useState<IdealBuild | undefined>(undefined);
+
   const [viewingImageUrl, setViewingImageUrl] = useState<string | null>(null);
   const [viewingImageName, setViewingImageName] = useState<string | null>(null);
   const [addDialogInitialData, setAddDialogInitialData] = useState<Partial<AddRatingFormValues> | undefined>(undefined);
@@ -289,6 +303,12 @@ export default function Home() {
     setIsBuildViewerOpen(true);
   };
 
+  const handleOpenIdealBuildEditor = (build?: IdealBuild) => {
+    setEditingIdealBuild(build);
+    setIsIdealBuildEditorOpen(true);
+  };
+
+
   const getHeaderButtons = () => {
     const isPositionTab = positions.includes(activeTab as Position);
 
@@ -306,6 +326,12 @@ export default function Home() {
                     <span className="hidden sm:inline">Añadir Formación</span>
                     <span className="inline sm:hidden">Formación</span>
                 </Button>
+            ) : activeTab === 'ideal-builds' ? (
+                <Button onClick={() => handleOpenIdealBuildEditor()} size="sm">
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    <span className="hidden sm:inline">Añadir Build Ideal</span>
+                    <span className="inline sm:hidden">Build</span>
+                </Button>
             ) : null}
         </div>
     );
@@ -320,7 +346,7 @@ export default function Home() {
   };
 
 
-  const error = playersError || formationsError;
+  const error = playersError || formationsError || idealBuildsError;
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen text-center p-4">
@@ -332,7 +358,7 @@ export default function Home() {
     );
   }
 
-  if (playersLoading || formationsLoading) {
+  if (playersLoading || formationsLoading || idealBuildsLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-xl font-semibold">Conectando a la base de datos...</div>
@@ -389,11 +415,19 @@ export default function Home() {
         onOpenChange={setPlayerDetailDialogOpen}
         flatPlayer={selectedFlatPlayer}
         onSavePlayerBuild={savePlayerBuild}
+        idealBuilds={idealBuilds}
       />
       <PlayerBuildViewer
         open={isBuildViewerOpen}
         onOpenChange={setIsBuildViewerOpen}
         player={viewingPlayerBuild}
+      />
+      <IdealBuildEditor
+        open={isIdealBuildEditorOpen}
+        onOpenChange={setIsIdealBuildEditorOpen}
+        onSave={saveIdealBuild}
+        initialBuild={editingIdealBuild}
+        existingBuilds={idealBuilds}
       />
       <AlertDialog open={isImageViewerOpen} onOpenChange={setImageViewerOpen}>
         <AlertDialogContent className="max-w-xl p-0">
@@ -454,6 +488,10 @@ export default function Home() {
                <TabsTrigger value="nationalities" className="py-2 px-3 text-sm data-[state=active]:text-accent-foreground data-[state=active]:bg-accent">
                   <Globe className="mr-2 h-5 w-5"/>
                   Nacionalidades
+              </TabsTrigger>
+               <TabsTrigger value="ideal-builds" className="py-2 px-3 text-sm data-[state=active]:text-accent-foreground data-[state=active]:bg-accent">
+                  <Dna className="mr-2 h-5 w-5"/>
+                  Builds Ideales
               </TabsTrigger>
             </TabsList>
             <ScrollBar orientation="horizontal" />
@@ -641,8 +679,42 @@ export default function Home() {
             <NationalityDistribution players={allPlayers} />
           </TabsContent>
 
+          <TabsContent value="ideal-builds" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-accent">
+                  <Dna />
+                  Builds Ideales
+                </CardTitle>
+                <CardDescription>
+                  Define la distribución de puntos de progresión ideal para cada arquetipo de jugador (combinación de posición y estilo de juego).
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {idealBuilds.map((build) => (
+                    <div key={build.id} className="flex items-center justify-between p-3 bg-muted rounded-md">
+                      <div>
+                        <p className="font-semibold">{build.position} - <span className="text-primary">{build.style}</span></p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" onClick={() => handleOpenIdealBuildEditor(build)}>Editar</Button>
+                        <Button variant="destructive" size="sm" onClick={() => deleteIdealBuild(build.id!)}>Eliminar</Button>
+                      </div>
+                    </div>
+                  ))}
+                  {idealBuilds.length === 0 && (
+                    <p className="text-muted-foreground text-center p-4">No has definido ninguna build ideal todavía.</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
         </Tabs>
       </main>
     </div>
   );
 }
+
+    
