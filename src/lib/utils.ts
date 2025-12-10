@@ -157,6 +157,8 @@ export function calculateAutomaticAffinity(
     let totalAffinityScore = 0;
 
     for (const key of allStatsKeys) {
+        if (key === 'placeKicking') continue;
+
         const playerStat = playerStats[key];
         const idealStat = idealBuildStats[key];
 
@@ -209,7 +211,7 @@ export function calculateAffinityWithBreakdown(
         const idealValue = idealBuildStats[key];
         let score = 0;
 
-        if (playerValue !== undefined && idealValue !== undefined && idealValue >= 70) {
+        if (key !== 'placeKicking' && playerValue !== undefined && idealValue !== undefined && idealValue >= 70) {
             const diff = playerValue - idealValue;
             const statScore = diff >= 0 ? diff * 0.15 : diff * 0.2;
             score = Math.max(-3, statScore);
