@@ -55,7 +55,8 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
   const player = flatPlayer?.player;
   const isGoalkeeper = position === 'PT';
 
-  const baseStats = card?.attributeStats || {};
+  const baseStats = React.useMemo(() => card?.attributeStats || {}, [card?.attributeStats]);
+  
   const buildForPosition = position && card?.buildsByPosition?.[position];
   const updatedAt = buildForPosition?.updatedAt;
 
