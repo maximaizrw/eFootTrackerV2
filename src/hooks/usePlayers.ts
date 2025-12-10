@@ -330,8 +330,8 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
             }
             
             const playerFinalStats = calculateProgressionStats(cardToUpdate.attributeStats || {}, build);
-            const idealBuild = getIdealBuildForPlayer(cardToUpdate.style, position, idealBuilds);
-            const affinity = calculateAutomaticAffinity(playerFinalStats, idealBuild);
+            const { bestBuild } = getIdealBuildForPlayer(cardToUpdate.style, position, idealBuilds, playerFinalStats);
+            const affinity = calculateAutomaticAffinity(playerFinalStats, bestBuild);
             
             const updatedBuild: PlayerBuild = {
               ...build,
@@ -401,8 +401,8 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
                   if(build) {
                       const isPotw = cardToUpdate.name.toLowerCase().includes('potw');
                       const finalStats = isPotw ? baseStats : calculateProgressionStats(baseStats, build);
-                      const idealBuild = getIdealBuildForPlayer(cardToUpdate.style, position, idealBuilds);
-                      const newAffinity = calculateAutomaticAffinity(finalStats, idealBuild);
+                      const { bestBuild } = getIdealBuildForPlayer(cardToUpdate.style, position, idealBuilds, finalStats);
+                      const newAffinity = calculateAutomaticAffinity(finalStats, bestBuild);
 
                       build.manualAffinity = newAffinity;
                       build.updatedAt = new Date().toISOString();

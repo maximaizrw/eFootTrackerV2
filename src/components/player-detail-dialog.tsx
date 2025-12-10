@@ -68,7 +68,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
   const updatedAt = buildForPosition?.updatedAt;
 
   React.useEffect(() => {
-    if (open && flatPlayer && position) {
+    if (open && flatPlayer && position && card) {
       const initialBuild = card?.buildsByPosition?.[position] || { manualAffinity: 0 };
       setBuild(initialBuild);
       
@@ -76,8 +76,8 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
       const calculatedFinalStats = isPotwCard ? (card.attributeStats || {}) : calculateProgressionStats(card.attributeStats || {}, initialBuild);
       setFinalStats(calculatedFinalStats);
       
-      const idealBuild = getIdealBuildForPlayer(card.style, position, idealBuilds);
-      const breakdown = calculateAffinityWithBreakdown(calculatedFinalStats, idealBuild);
+      const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, calculatedFinalStats);
+      const breakdown = calculateAffinityWithBreakdown(calculatedFinalStats, bestBuild);
       setAffinityBreakdown(breakdown);
 
     } else {
@@ -89,13 +89,13 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
 
 
   React.useEffect(() => {
-    if(open && card){
+    if(open && card && position){
         const isPotwCard = card.name.toLowerCase().includes('potw');
         const newFinalStats = isPotwCard ? baseStats : calculateProgressionStats(baseStats, build);
         setFinalStats(newFinalStats);
         
-        const idealBuild = getIdealBuildForPlayer(card.style, position!, idealBuilds);
-        const breakdown = calculateAffinityWithBreakdown(newFinalStats, idealBuild);
+        const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, newFinalStats);
+        const breakdown = calculateAffinityWithBreakdown(newFinalStats, bestBuild);
         setAffinityBreakdown(breakdown);
     }
   }, [build, baseStats, open, card, position, idealBuilds]);

@@ -2,6 +2,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position } from "./types";
+import { getAvailableStylesForPosition } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -143,9 +144,39 @@ export function calculateProgressionStats(
   return newStats;
 }
 
-export function getIdealBuildForPlayer(playerStyle: PlayerStyle, position: Position, idealBuilds: IdealBuild[]): PlayerAttributeStats | null {
+export function getIdealBuildForPlayer(
+  playerStyle: PlayerStyle,
+  position: Position,
+  idealBuilds: IdealBuild[],
+  playerStats: PlayerAttributeStats,
+): { bestBuild: PlayerAttributeStats | null; bestStyle: PlayerStyle | null } {
+  const isStyleValid = getAvailableStylesForPosition(position).includes(playerStyle);
+
+  // If the player's style is valid for the position, find that specific build.
+  if (isStyleValid) {
     const idealBuild = idealBuilds.find(b => b.position === position && b.style === playerStyle);
-    return idealBuild ? idealBuild.build : null;
+    return { bestBuild: idealBuild ? idealBuild.build : null, bestStyle: playerStyle };
+  }
+  
+  // If the style is not valid, find the best possible affinity among all valid styles for that position.
+  const validStyles = getAvailableStylesForPosition(position, false);
+  let bestBuild: PlayerAttributeStats | null = null;
+  let bestStyle: PlayerStyle | null = null;
+  let maxAffinity = -Infinity;
+
+  for (const style of validStyles) {
+    const idealBuildForStyle = idealBuilds.find(b => b.position === position && b.style === style);
+    if (idealBuildForStyle) {
+      const currentAffinity = calculateAutomaticAffinity(playerStats, idealBuildForStyle.build);
+      if (currentAffinity > maxAffinity) {
+        maxAffinity = currentAffinity;
+        bestBuild = idealBuildForStyle.build;
+        bestStyle = style;
+      }
+    }
+  }
+
+  return { bestBuild, bestStyle };
 }
 
 export function calculateAutomaticAffinity(
