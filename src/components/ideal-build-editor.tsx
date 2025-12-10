@@ -2,10 +2,11 @@
 "use client";
 
 import * as React from "react";
-import type { Position, PlayerStyle, IdealBuild, OutfieldBuild, GoalkeeperBuild } from "@/lib/types";
-import { useForm, Controller } from "react-hook-form";
+import type { Position, PlayerStyle, IdealBuild, PlayerAttributeStats } from "@/lib/types";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useToast } from "@/hooks/use-toast";
 
 import {
   Dialog,
@@ -18,27 +19,48 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from '@/components/ui/button';
-import { Label } from "@/components/ui/label";
-import { Slider } from "./ui/slider";
 import { ScrollArea } from "./ui/scroll-area";
+import { Input } from "./ui/input";
+import { Textarea } from "./ui/textarea";
+import { UploadCloud } from "lucide-react";
 import { positions, playerStyles, getAvailableStylesForPosition } from "@/lib/types";
-import { Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+
+const statSchema = z.coerce.number().min(0).max(99).optional();
 
 const buildSchema = z.object({
   position: z.enum(positions),
   style: z.enum(playerStyles),
   build: z.object({
-    shooting: z.number().min(0).max(20).optional(),
-    passing: z.number().min(0).max(20).optional(),
-    dribbling: z.number().min(0).max(20).optional(),
-    dexterity: z.number().min(0).max(20).optional(),
-    lowerBodyStrength: z.number().min(0).max(20).optional(),
-    aerialStrength: z.number().min(0).max(20).optional(),
-    defending: z.number().min(0).max(20).optional(),
-    gk1: z.number().min(0).max(20).optional(),
-    gk2: z.number().min(0).max(20).optional(),
-    gk3: z.number().min(0).max(20).optional(),
+    // Attacking
+    offensiveAwareness: statSchema,
+    ballControl: statSchema,
+    dribbling: statSchema,
+    tightPossession: statSchema,
+    lowPass: statSchema,
+    loftedPass: statSchema,
+    finishing: statSchema,
+    heading: statSchema,
+    placeKicking: statSchema,
+    curl: statSchema,
+    // Defending
+    defensiveAwareness: statSchema,
+    defensiveEngagement: statSchema,
+    tackling: statSchema,
+    aggression: statSchema,
+    // Goalkeeping
+    goalkeeping: statSchema,
+    gkCatching: statSchema,
+    gkParrying: statSchema,
+    gkReflexes: statSchema,
+    gkReach: statSchema,
+    // Athleticism
+    speed: statSchema,
+    acceleration: statSchema,
+    kickingPower: statSchema,
+    jump: statSchema,
+    physicalContact: statSchema,
+    balance: statSchema,
+    stamina: statSchema,
   }),
 });
 
@@ -52,24 +74,69 @@ type IdealBuildEditorProps = {
   existingBuilds: IdealBuild[];
 };
 
-const outfieldCategories: { key: keyof OutfieldBuild; label: string, icon: React.ElementType }[] = [
-    { key: 'shooting', label: 'Tiro', icon: Target },
-    { key: 'passing', label: 'Pase', icon: Footprints },
-    { key: 'dribbling', label: 'Regate', icon: Dribbble },
-    { key: 'dexterity', label: 'Destreza', icon: Zap },
-    { key: 'lowerBodyStrength', label: 'Fuerza del tren inferior', icon: Beef },
-    { key: 'aerialStrength', label: 'Juego aéreo', icon: ChevronsUp },
-    { key: 'defending', label: 'Defensa', icon: Shield },
+const statFields: { category: string, fields: { name: keyof PlayerAttributeStats, label: string }[] }[] = [
+    { 
+        category: 'Ataque',
+        fields: [
+            { name: 'offensiveAwareness', label: 'Act. Ofensiva' },
+            { name: 'ballControl', label: 'Control del Balón' },
+            { name: 'dribbling', label: 'Regate' },
+            { name: 'tightPossession', label: 'Posesión Estrecha' },
+            { name: 'lowPass', label: 'Pase Raso' },
+            { name: 'loftedPass', label: 'Pase Bombeado' },
+            { name: 'finishing', label: 'Finalización' },
+            { name: 'heading', label: 'Cabeceo' },
+            { name: 'placeKicking', label: 'Balón Parado' },
+            { name: 'curl', label: 'Efecto' },
+        ]
+    },
+    {
+        category: 'Defensa',
+        fields: [
+            { name: 'defensiveAwareness', label: 'Act. Defensiva' },
+            { name: 'defensiveEngagement', label: 'Entrada' },
+            { name: 'tackling', label: 'Segada' },
+            { name: 'aggression', label: 'Agresividad' },
+        ]
+    },
+    {
+        category: 'Portería',
+        fields: [
+            { name: 'goalkeeping', label: 'Act. de Portero' },
+            { name: 'gkCatching', label: 'Atajar' },
+            { name: 'gkParrying', label: 'Despejar' },
+            { name: 'gkReflexes', label: 'Reflejos' },
+            { name: 'gkReach', label: 'Alcance' },
+        ]
+    },
+    {
+        category: 'Atletismo',
+        fields: [
+            { name: 'speed', label: 'Velocidad' },
+            { name: 'acceleration', label: 'Aceleración' },
+            { name: 'kickingPower', label: 'Potencia de Tiro' },
+            { name: 'jump', label: 'Salto' },
+            { name: 'physicalContact', label: 'Contacto Físico' },
+            { name: 'balance', label: 'Equilibrio' },
+            { name: 'stamina', label: 'Resistencia' },
+        ]
+    }
 ];
 
-const goalkeeperCategories: { key: keyof GoalkeeperBuild; label: string, icon: React.ElementType }[] = [
-    { key: 'gk1', label: 'Portero 1', icon: Hand },
-    { key: 'gk2', label: 'Portero 2', icon: Hand },
-    { key: 'gk3', label: 'Portero 3', icon: Hand },
-];
+const nameToSchemaKeyMap: Record<string, keyof PlayerAttributeStats> = {
+    "offensive awareness": "offensiveAwareness", "ball control": "ballControl", "dribbling": "dribbling",
+    "tight possession": "tightPossession", "low pass": "lowPass", "lofted pass": "loftedPass",
+    "finishing": "finishing", "heading": "heading", "place kicking": "placeKicking", "curl": "curl",
+    "defensive awareness": "defensiveAwareness", "defensive engagement": "defensiveEngagement", "tackling": "tackling",
+    "aggression": "aggression", "goalkeeping": "goalkeeping", "gk catching": "gkCatching", "gk parrying": "gkParrying",
+    "gk reflexes": "gkReflexes", "gk reach": "gkReach", "speed": "speed", "acceleration": "acceleration",
+    "kicking power": "kickingPower", "jump": "jump", "physical contact": "physicalContact", "balance": "balance", "stamina": "stamina",
+};
 
 export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, existingBuilds }: IdealBuildEditorProps) {
   const { toast } = useToast();
+  const [pastedText, setPastedText] = React.useState('');
+
   const form = useForm<IdealBuildFormValues>({
     resolver: zodResolver(buildSchema),
     defaultValues: {
@@ -81,16 +148,19 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
 
   const { watch, reset, setValue } = form;
   const watchedPosition = watch("position");
-  const isGoalkeeper = watchedPosition === 'PT';
   const isEditing = !!initialBuild?.id;
 
   React.useEffect(() => {
     if (open) {
+      setPastedText('');
+      const defaultValues: Record<string, any> = {};
+      statFields.forEach(cat => cat.fields.forEach(f => defaultValues[f.name] = initialBuild?.build?.[f.name] ?? ''));
+
       if (initialBuild) {
         reset({
           position: initialBuild.position,
           style: initialBuild.style,
-          build: initialBuild.build,
+          build: defaultValues,
         });
       } else {
         reset({
@@ -114,39 +184,101 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
 
   const handleSubmit = (values: IdealBuildFormValues) => {
     const buildId = `${values.position}-${values.style}`;
-    const isDuplicate = existingBuilds.some(b => b.id === buildId && buildId !== initialBuild?.id);
+    const existingBuild = existingBuilds.find(b => b.id === buildId);
 
-    if (isDuplicate) {
-        toast({
-            variant: "destructive",
-            title: "Build Duplicada",
-            description: `Ya existe una build ideal para ${values.position} - ${values.style}.`,
+    const finalBuild: IdealBuild = {
+      id: buildId,
+      position: values.position,
+      style: values.style,
+      build: {},
+    };
+
+    if (existingBuild) {
+        // Average with existing build
+        statFields.forEach(category => {
+            category.fields.forEach(field => {
+                const key = field.name as keyof PlayerAttributeStats;
+                const existingValue = existingBuild.build[key] || 0;
+                const newValue = values.build[key] ? Number(values.build[key]) : 0;
+                if(newValue > 0) {
+                  finalBuild.build[key] = Math.round((existingValue + newValue) / 2);
+                } else {
+                  finalBuild.build[key] = existingValue;
+                }
+            });
         });
-        return;
+         toast({
+            title: "Build Ideal Actualizada",
+            description: `Se promediaron las stats para ${values.position} - ${values.style}.`,
+        });
+
+    } else {
+        // Create new build
+        statFields.forEach(category => {
+            category.fields.forEach(field => {
+                const key = field.name as keyof PlayerAttributeStats;
+                const value = values.build[key];
+                if (value !== '' && value !== null && value !== undefined && !isNaN(Number(value))) {
+                    finalBuild.build[key] = Number(value);
+                }
+            });
+        });
     }
     
-    onSave({
-      id: isEditing ? initialBuild!.id : buildId,
-      ...values,
-    });
+    onSave(finalBuild);
     onOpenChange(false);
   };
-  
-  const categories = isGoalkeeper ? goalkeeperCategories : outfieldCategories;
+
+  const handleParseText = () => {
+    const lines = pastedText.split('\n');
+    let parsedCount = 0;
+    
+    lines.forEach(line => {
+      const parts = line.split(/\s+/).filter(Boolean);
+      if (parts.length < 2) return;
+
+      const value = parseInt(parts[parts.length - 1], 10);
+      if (isNaN(value)) return;
+      
+      const namePart = parts.slice(0, -1).join(' ').replace('●', '').trim().toLowerCase();
+      
+      const schemaKey = nameToSchemaKeyMap[namePart];
+      if (schemaKey) {
+        form.setValue(`build.${schemaKey as any}`, value, { shouldValidate: true });
+        parsedCount++;
+      }
+    });
+
+    if (parsedCount > 0) {
+      toast({
+        title: "Estadísticas Cargadas",
+        description: `Se han cargado ${parsedCount} atributos en el formulario.`,
+      });
+      setPastedText('');
+    } else {
+       toast({
+        variant: "destructive",
+        title: "Error al Cargar",
+        description: "No se pudieron encontrar atributos válidos. Revisa el formato del texto.",
+      });
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl h-[85vh] flex flex-col">
+      <DialogContent className="max-w-4xl h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Editar' : 'Añadir'} Build Ideal</DialogTitle>
           <DialogDescription>
-            Define los puntos de progresión óptimos para un arquetipo de jugador.
+            {isEditing 
+                ? 'Edita las estadísticas finales para este arquetipo.' 
+                : 'Define las estadísticas finales para un arquetipo. Si ya existe, se promediará.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="flex-grow overflow-hidden flex flex-col">
             <ScrollArea className="flex-grow pr-4 -mr-4">
-              <div className="space-y-6">
+              <div className="space-y-6 pb-4">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -190,34 +322,45 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
                   />
                 </div>
 
-                <p className="font-medium text-sm text-muted-foreground pt-4">Puntos de Progresión Ideales (0-20)</p>
+                <div className="space-y-2">
+                    <Textarea
+                        placeholder="Pega aquí las estadísticas del jugador para cargarlas automáticamente..."
+                        value={pastedText}
+                        onChange={(e) => setPastedText(e.target.value)}
+                        className="min-h-[60px]"
+                    />
+                    <Button type="button" onClick={handleParseText} disabled={!pastedText} size="sm">
+                        <UploadCloud className="mr-2 h-4 w-4" />
+                        Cargar desde Texto
+                    </Button>
+                </div>
                 
-                {categories.map(({ key, label, icon: Icon }) => (
-                  <Controller
-                    key={key}
-                    name={`build.${key as any}`}
-                    control={form.control}
-                    render={({ field }) => (
-                      <div className="space-y-2">
-                        <Label className="flex items-center gap-2">
-                          <Icon className="w-4 h-4" />
-                          {label}: <span className="font-bold text-primary">{field.value || 0}</span>
-                        </Label>
-                        <Slider
-                          value={[field.value || 0]}
-                          onValueChange={(v) => field.onChange(v[0])}
-                          max={20}
-                          step={1}
+                {statFields.map((category) => (
+                  <div key={category.category}>
+                    <h3 className="text-lg font-semibold mb-3 text-primary">{category.category}</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-3">
+                      {category.fields.map((field) => (
+                        <FormField
+                          key={field.name}
+                          control={form.control}
+                          name={`build.${field.name as any}`}
+                          render={({ field: formField }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">{field.label}</FormLabel>
+                              <FormControl>
+                                <Input type="number" min="40" max="99" {...formField} onChange={e => formField.onChange(e.target.value)} />
+                              </FormControl>
+                            </FormItem>
+                          )}
                         />
-                      </div>
-                    )}
-                  />
+                      ))}
+                    </div>
+                  </div>
                 ))}
-
               </div>
             </ScrollArea>
             <DialogFooter className="flex-shrink-0 pt-4 mt-4 border-t">
-              <Button type="submit">Guardar Build Ideal</Button>
+              <Button type="submit">{isEditing ? 'Guardar Cambios' : 'Guardar Build Ideal'}</Button>
             </DialogFooter>
           </form>
         </Form>
@@ -225,3 +368,5 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
     </Dialog>
   );
 }
+
+    

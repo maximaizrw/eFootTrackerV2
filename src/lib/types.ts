@@ -57,7 +57,7 @@ export type IdealBuild = {
   id?: string; // composite key of position-style
   position: Position;
   style: PlayerStyle;
-  build: OutfieldBuild & GoalkeeperBuild;
+  build: PlayerAttributeStats;
 };
 
 export type PlayerAttributeStats = {
@@ -334,3 +334,5 @@ export function getAvailableStylesForPosition(position: Position, includeNone: b
             return playerStyles;
     }
 }
+
+    

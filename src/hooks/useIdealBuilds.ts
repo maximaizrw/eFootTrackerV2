@@ -3,9 +3,9 @@
 
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase-config';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, query, orderBy, getDoc } from 'firebase/firestore';
 import { useToast } from './use-toast';
-import type { IdealBuild } from '@/lib/types';
+import type { IdealBuild, PlayerAttributeStats } from '@/lib/types';
 
 export function useIdealBuilds() {
   const [idealBuilds, setIdealBuilds] = useState<IdealBuild[]>([]);
@@ -30,7 +30,6 @@ export function useIdealBuilds() {
             ...doc.data(),
         } as IdealBuild));
         
-        // Sort client-side to avoid needing a composite index
         buildsData.sort((a, b) => {
           if (a.position < b.position) return -1;
           if (a.position > b.position) return 1;
@@ -61,8 +60,38 @@ export function useIdealBuilds() {
     if (!db || !build.id) return;
     try {
         const buildRef = doc(db, 'idealBuilds', build.id);
-        await setDoc(buildRef, build, { merge: true });
-        toast({ title: "Build Ideal Guardada", description: `La build para ${build.position} - ${build.style} se ha guardado.` });
+        const docSnap = await getDoc(buildRef);
+
+        if (docSnap.exists()) {
+            const existingBuild = docSnap.data() as IdealBuild;
+            const newBuildData = { ...existingBuild.build };
+            let updatedFields = 0;
+
+            for (const key in build.build) {
+                const statKey = key as keyof PlayerAttributeStats;
+                const newValue = Number(build.build[statKey] || 0);
+                
+                if(newValue > 0) {
+                  const existingValue = Number(existingBuild.build[statKey] || 0);
+                  // If existing value is 0, just take the new value, otherwise average them
+                  newBuildData[statKey] = existingValue > 0 ? Math.round((existingValue + newValue) / 2) : newValue;
+                  updatedFields++;
+                }
+            }
+            
+            await setDoc(buildRef, { ...build, build: newBuildData }, { merge: true });
+
+            if (updatedFields > 0) {
+              toast({ title: "Build Ideal Actualizada", description: `La build para ${build.position} - ${build.style} ha sido promediada y actualizada.` });
+            } else {
+              toast({ title: "Build Ideal Guardada", description: `La build para ${build.position} - ${build.style} se ha guardado sin cambios en las stats.` });
+            }
+
+        } else {
+            // Document doesn't exist, create it.
+            await setDoc(buildRef, build);
+            toast({ title: "Build Ideal Creada", description: `La build para ${build.position} - ${build.style} se ha creado.` });
+        }
     } catch (error) {
         console.error("Error saving ideal build: ", error);
         toast({
@@ -90,3 +119,5 @@ export function useIdealBuilds() {
 
   return { idealBuilds, loading, error, saveIdealBuild, deleteIdealBuild };
 }
+
+    
