@@ -66,7 +66,7 @@ export function calculateGeneralScore(affinityScore: number, average: number): n
 // --- New Progression System ---
 
 const MAX_STAT_VALUE = 99;
-const allStatsKeys: (keyof PlayerAttributeStats)[] = [
+export const allStatsKeys: (keyof PlayerAttributeStats)[] = [
     'offensiveAwareness', 'ballControl', 'dribbling', 'tightPossession', 'lowPass', 'loftedPass', 'finishing', 'heading', 'placeKicking', 'curl',
     'defensiveAwareness', 'defensiveEngagement', 'tackling', 'aggression',
     'goalkeeping', 'gkCatching', 'gkParrying', 'gkReflexes', 'gkReach',
@@ -172,4 +172,58 @@ export function calculateAutomaticAffinity(
     }
     
     return totalAffinityScore;
+}
+
+
+export type AffinityBreakdownResult = {
+    totalAffinityScore: number;
+    breakdown: {
+        stat: keyof PlayerAttributeStats;
+        label: string;
+        playerValue?: number;
+        idealValue?: number;
+        score: number;
+    }[];
+};
+
+export const statLabels: Record<keyof PlayerAttributeStats, string> = {
+    offensiveAwareness: 'Act. Ofensiva', ballControl: 'Control de Balón', dribbling: 'Regate', tightPossession: 'Posesión Estrecha',
+    lowPass: 'Pase Raso', loftedPass: 'Pase Bombeado', finishing: 'Finalización', heading: 'Cabeceo', placeKicking: 'Balón Parado', curl: 'Efecto',
+    defensiveAwareness: 'Act. Defensiva', defensiveEngagement: 'Entrada', tackling: 'Segada', aggression: 'Agresividad',
+    goalkeeping: 'Act. Portero', gkCatching: 'Atajar', gkParrying: 'Despejar', gkReflexes: 'Reflejos', gkReach: 'Alcance',
+    speed: 'Velocidad', acceleration: 'Aceleración', kickingPower: 'Potencia de Tiro', jump: 'Salto', physicalContact: 'Contacto Físico',
+    balance: 'Equilibrio', stamina: 'Resistencia',
+};
+
+export function calculateAffinityWithBreakdown(
+    playerStats: PlayerAttributeStats,
+    idealBuildStats: PlayerAttributeStats | null
+): AffinityBreakdownResult {
+    if (!idealBuildStats) return { totalAffinityScore: 0, breakdown: [] };
+
+    let totalAffinityScore = 0;
+    const breakdown: AffinityBreakdownResult['breakdown'] = [];
+
+    for (const key of allStatsKeys) {
+        const playerValue = playerStats[key];
+        const idealValue = idealBuildStats[key];
+        let score = 0;
+
+        if (playerValue !== undefined && idealValue !== undefined && idealValue >= 70) {
+            const diff = playerValue - idealValue;
+            const statScore = diff >= 0 ? diff * 0.15 : diff * 0.2;
+            score = Math.max(-3, statScore);
+            totalAffinityScore += score;
+        }
+        
+        breakdown.push({
+            stat: key,
+            label: statLabels[key] || 'Unknown',
+            playerValue,
+            idealValue,
+            score
+        });
+    }
+
+    return { totalAffinityScore, breakdown };
 }

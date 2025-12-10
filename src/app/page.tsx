@@ -415,6 +415,7 @@ export default function Home() {
         onOpenChange={setPlayerDetailDialogOpen}
         flatPlayer={selectedFlatPlayer}
         onSavePlayerBuild={savePlayerBuild}
+        idealBuilds={idealBuilds}
       />
       <PlayerBuildViewer
         open={isBuildViewerOpen}
