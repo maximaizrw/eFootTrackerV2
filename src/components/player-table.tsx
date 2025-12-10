@@ -233,6 +233,7 @@ export function PlayerTable({
             
             const isPosSelectable = card.selectablePositions?.[position] ?? true;
             const rowId = `${player.id}-${card.id}-${position}`;
+            const hasNoStats = !card.attributeStats || Object.keys(card.attributeStats).length === 0;
 
             return (
               <React.Fragment key={rowId}>
@@ -262,7 +263,7 @@ export function PlayerTable({
                         <div className="flex items-center gap-2">
                             <button 
                                 onClick={(e) => { e.stopPropagation(); onOpenPlayerDetail(flatPlayer); }}
-                                className="font-medium text-sm md:text-base hover:underline text-left"
+                                className={cn("font-medium text-sm md:text-base hover:underline text-left", hasNoStats && "text-red-500")}
                             >
                                 {player.name}
                             </button>
@@ -438,3 +439,5 @@ export function PlayerTable({
 
 PlayerTable.Filters = Filters;
 PlayerTable.Pagination = Pagination;
+
+    
