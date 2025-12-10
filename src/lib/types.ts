@@ -86,14 +86,32 @@ export type PlayerAttributeStats = {
   stamina?: number;
 
   // Base stats for progression
-  baseFinishing?: number;
-  basePlaceKicking?: number;
-  baseCurl?: number;
-  baseLowPass?: number;
-  baseLoftedPass?: number;
+  baseOffensiveAwareness?: number;
   baseBallControl?: number;
   baseDribbling?: number;
   baseTightPossession?: number;
+  baseLowPass?: number;
+  baseLoftedPass?: number;
+  baseFinishing?: number;
+  baseHeading?: number;
+  basePlaceKicking?: number;
+  baseCurl?: number;
+  baseDefensiveAwareness?: number;
+  baseDefensiveEngagement?: number;
+  baseTackling?: number;
+  baseAggression?: number;
+  baseGoalkeeping?: number;
+  baseGkCatching?: number;
+  baseGkParrying?: number;
+  baseGkReflexes?: number;
+  baseGkReach?: number;
+  baseSpeed?: number;
+  baseAcceleration?: number;
+  baseKickingPower?: number;
+  baseJump?: number;
+  basePhysicalContact?: number;
+  baseBalance?: number;
+  baseStamina?: number;
 };
 
 export const positionLabels: Record<Position, string> = {

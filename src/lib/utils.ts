@@ -1,7 +1,7 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild } from "./types";
+import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -71,45 +71,67 @@ export function calculateProgressionStats(
   baseStats: PlayerAttributeStats,
   build: PlayerBuild
 ): PlayerAttributeStats {
-  const newStats = { ...baseStats };
+  const newStats: PlayerAttributeStats = { ...baseStats };
   const outfieldBuild = build as OutfieldBuild;
+  const goalkeeperBuild = build as GoalkeeperBuild;
+
+  const getBase = (stat: keyof PlayerAttributeStats, baseStat: keyof PlayerAttributeStats) => 
+    baseStats[baseStat] !== undefined ? baseStats[baseStat] : baseStats[stat] || 0;
 
   // --- Shooting ---
   const shootingPoints = outfieldBuild.shooting || 0;
-  if (shootingPoints > 0) {
-    newStats.finishing = Math.min(MAX_STAT_VALUE, (baseStats.baseFinishing || baseStats.finishing || 0) + shootingPoints);
-    newStats.placeKicking = Math.min(MAX_STAT_VALUE, (baseStats.basePlaceKicking || baseStats.placeKicking || 0) + shootingPoints);
-    newStats.curl = Math.min(MAX_STAT_VALUE, (baseStats.baseCurl || baseStats.curl || 0) + shootingPoints);
-  } else {
-    newStats.finishing = (baseStats.baseFinishing || baseStats.finishing || 0);
-    newStats.placeKicking = (baseStats.basePlaceKicking || baseStats.placeKicking || 0);
-    newStats.curl = (baseStats.baseCurl || baseStats.curl || 0);
-  }
+  newStats.finishing = Math.min(MAX_STAT_VALUE, (getBase('finishing', 'baseFinishing')!) + shootingPoints);
+  newStats.placeKicking = Math.min(MAX_STAT_VALUE, (getBase('placeKicking', 'basePlaceKicking')!) + shootingPoints);
+  newStats.curl = Math.min(MAX_STAT_VALUE, (getBase('curl', 'baseCurl')!) + shootingPoints);
   
   // --- Passing ---
   const passingPoints = outfieldBuild.passing || 0;
-  if (passingPoints > 0) {
-    newStats.lowPass = Math.min(MAX_STAT_VALUE, (baseStats.baseLowPass || baseStats.lowPass || 0) + passingPoints);
-    newStats.loftedPass = Math.min(MAX_STAT_VALUE, (baseStats.baseLoftedPass || baseStats.loftedPass || 0) + passingPoints);
-  } else {
-    newStats.lowPass = (baseStats.baseLowPass || baseStats.lowPass || 0);
-    newStats.loftedPass = (baseStats.baseLoftedPass || baseStats.loftedPass || 0);
-  }
+  newStats.lowPass = Math.min(MAX_STAT_VALUE, (getBase('lowPass', 'baseLowPass')!) + passingPoints);
+  newStats.loftedPass = Math.min(MAX_STAT_VALUE, (getBase('loftedPass', 'baseLoftedPass')!) + passingPoints);
   
   // --- Dribbling ---
   const dribblingPoints = outfieldBuild.dribbling || 0;
-  if (dribblingPoints > 0) {
-    newStats.ballControl = Math.min(MAX_STAT_VALUE, (baseStats.baseBallControl || baseStats.ballControl || 0) + dribblingPoints);
-    newStats.dribbling = Math.min(MAX_STAT_VALUE, (baseStats.baseDribbling || baseStats.dribbling || 0) + dribblingPoints);
-    newStats.tightPossession = Math.min(MAX_STAT_VALUE, (baseStats.baseTightPossession || baseStats.tightPossession || 0) + dribblingPoints);
-  } else {
-    newStats.ballControl = (baseStats.baseBallControl || baseStats.ballControl || 0);
-    newStats.dribbling = (baseStats.baseDribbling || baseStats.dribbling || 0);
-    newStats.tightPossession = (baseStats.baseTightPossession || baseStats.tightPossession || 0);
+  newStats.ballControl = Math.min(MAX_STAT_VALUE, (getBase('ballControl', 'baseBallControl')!) + dribblingPoints);
+  newStats.dribbling = Math.min(MAX_STAT_VALUE, (getBase('dribbling', 'baseDribbling')!) + dribblingPoints);
+  newStats.tightPossession = Math.min(MAX_STAT_VALUE, (getBase('tightPossession', 'baseTightPossession')!) + dribblingPoints);
+
+  // --- Dexterity ---
+  const dexterityPoints = outfieldBuild.dexterity || 0;
+  newStats.offensiveAwareness = Math.min(MAX_STAT_VALUE, (getBase('offensiveAwareness', 'baseOffensiveAwareness')!) + dexterityPoints);
+  newStats.acceleration = Math.min(MAX_STAT_VALUE, (getBase('acceleration', 'baseAcceleration')!) + dexterityPoints);
+  newStats.balance = Math.min(MAX_STAT_VALUE, (getBase('balance', 'baseBalance')!) + dexterityPoints);
+
+  // --- Lower Body Strength ---
+  const lowerBodyPoints = outfieldBuild.lowerBodyStrength || 0;
+  newStats.speed = Math.min(MAX_STAT_VALUE, (getBase('speed', 'baseSpeed')!) + lowerBodyPoints);
+  newStats.kickingPower = Math.min(MAX_STAT_VALUE, (getBase('kickingPower', 'baseKickingPower')!) + lowerBodyPoints);
+  newStats.stamina = Math.min(MAX_STAT_VALUE, (getBase('stamina', 'baseStamina')!) + lowerBodyPoints);
+
+  // --- Aerial Strength ---
+  const aerialPoints = outfieldBuild.aerialStrength || 0;
+  newStats.heading = Math.min(MAX_STAT_VALUE, (getBase('heading', 'baseHeading')!) + aerialPoints);
+  newStats.jump = Math.min(MAX_STAT_VALUE, (getBase('jump', 'baseJump')!) + aerialPoints);
+  newStats.physicalContact = Math.min(MAX_STAT_VALUE, (getBase('physicalContact', 'basePhysicalContact')!) + aerialPoints);
+
+  // --- Defending ---
+  const defendingPoints = outfieldBuild.defending || 0;
+  newStats.defensiveAwareness = Math.min(MAX_STAT_VALUE, (getBase('defensiveAwareness', 'baseDefensiveAwareness')!) + defendingPoints);
+  newStats.defensiveEngagement = Math.min(MAX_STAT_VALUE, (getBase('defensiveEngagement', 'baseDefensiveEngagement')!) + defendingPoints);
+  newStats.tackling = Math.min(MAX_STAT_VALUE, (getBase('tackling', 'baseTackling')!) + defendingPoints);
+  newStats.aggression = Math.min(MAX_STAT_VALUE, (getBase('aggression', 'baseAggression')!) + defendingPoints);
+
+  // --- Goalkeeping ---
+  const gk1Points = goalkeeperBuild.gk1 || 0;
+  const gk2Points = goalkeeperBuild.gk2 || 0;
+  const gk3Points = goalkeeperBuild.gk3 || 0;
+  newStats.goalkeeping = Math.min(MAX_STAT_VALUE, (getBase('goalkeeping', 'baseGoalkeeping')!) + gk1Points);
+  if(!outfieldBuild.aerialStrength) { // Jump is also in aerial strength
+    newStats.jump = Math.min(MAX_STAT_VALUE, (getBase('jump', 'baseJump')!) + gk1Points);
   }
-
-
-  // TODO: Implement other categories (Dexterity, etc.) here following the same pattern.
-
+  newStats.gkParrying = Math.min(MAX_STAT_VALUE, (getBase('gkParrying', 'baseGkParrying')!) + gk2Points);
+  newStats.gkReach = Math.min(MAX_STAT_VALUE, (getBase('gkReach', 'baseGkReach')!) + gk2Points);
+  newStats.gkCatching = Math.min(MAX_STAT_VALUE, (getBase('gkCatching', 'baseGkCatching')!) + gk3Points);
+  newStats.gkReflexes = Math.min(MAX_STAT_VALUE, (getBase('gkReflexes', 'baseGkReflexes')!) + gk3Points);
+  
   return newStats;
 }
