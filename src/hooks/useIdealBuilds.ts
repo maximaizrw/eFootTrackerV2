@@ -21,7 +21,7 @@ export function useIdealBuilds() {
       return;
     }
 
-    const q = query(collection(db, "idealBuilds"), orderBy("position"));
+    const q = query(collection(db, "idealBuilds"));
 
     const unsub = onSnapshot(q, (snapshot) => {
       try {
@@ -63,17 +63,17 @@ export function useIdealBuilds() {
         const docSnap = await getDoc(buildRef);
 
         if (docSnap.exists()) {
+            // Document exists, average the stats
             const existingBuild = docSnap.data() as IdealBuild;
-            const newBuildData = { ...existingBuild.build };
+            const newBuildData: PlayerAttributeStats = { ...existingBuild.build };
             let updatedFields = 0;
 
             for (const key in build.build) {
                 const statKey = key as keyof PlayerAttributeStats;
-                const newValue = Number(build.build[statKey] || 0);
+                const newValue = Number(build.build[statKey]);
                 
-                if(newValue > 0) {
+                if(!isNaN(newValue) && newValue > 0) {
                   const existingValue = Number(existingBuild.build[statKey] || 0);
-                  // If existing value is 0, just take the new value, otherwise average them
                   newBuildData[statKey] = existingValue > 0 ? Math.round((existingValue + newValue) / 2) : newValue;
                   updatedFields++;
                 }
@@ -82,9 +82,9 @@ export function useIdealBuilds() {
             await setDoc(buildRef, { ...build, build: newBuildData }, { merge: true });
 
             if (updatedFields > 0) {
-              toast({ title: "Build Ideal Actualizada", description: `La build para ${build.position} - ${build.style} ha sido promediada y actualizada.` });
+              toast({ title: "Build Ideal Actualizada", description: `La build para ${build.position} - ${build.style} ha sido promediada.` });
             } else {
-              toast({ title: "Build Ideal Guardada", description: `La build para ${build.position} - ${build.style} se ha guardado sin cambios en las stats.` });
+              toast({ title: "Build Ideal Guardada", description: `Se guardaron los cambios en la build.` });
             }
 
         } else {
@@ -119,5 +119,3 @@ export function useIdealBuilds() {
 
   return { idealBuilds, loading, error, saveIdealBuild, deleteIdealBuild };
 }
-
-    

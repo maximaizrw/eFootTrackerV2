@@ -156,22 +156,22 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
   React.useEffect(() => {
     if (open) {
       setPastedText('');
-      const buildValues: Record<string, any> = {};
-      statFields.forEach(cat => cat.fields.forEach(f => buildValues[f.name] = initialBuild?.build?.[f.name] ?? ''));
+      const defaultBuild: Record<string, any> = {};
+      statFields.forEach(cat => cat.fields.forEach(f => defaultBuild[f.name] = ''));
 
       if (initialBuild) {
+        const initialBuildValues: Record<string, any> = {};
+        statFields.forEach(cat => cat.fields.forEach(f => initialBuildValues[f.name] = initialBuild?.build?.[f.name] ?? ''));
         reset({
           position: initialBuild.position,
           style: initialBuild.style,
-          build: buildValues,
+          build: initialBuildValues,
         });
       } else {
-        const emptyBuild: Record<string, any> = {};
-        statFields.forEach(cat => cat.fields.forEach(f => emptyBuild[f.name] = ''));
         reset({
           position: "DC",
           style: "Cazagoles",
-          build: emptyBuild,
+          build: defaultBuild,
         });
       }
     }
@@ -189,19 +189,9 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
 
   const handleSubmit = (values: IdealBuildFormValues) => {
     const buildId = `${values.position}-${values.style}`;
-    const existingBuildWithSameId = existingBuilds.find(b => b.id === buildId && b.id !== initialBuild?.id);
-
-    if (existingBuildWithSameId && !isEditing) {
-       toast({
-            title: "Build ya existe",
-            description: `Ya existe una build para ${values.position} - ${values.style}. Si quieres añadir nuevas stats para promediar, edita la build existente.`,
-            variant: "destructive",
-        });
-        return;
-    }
     
     const finalBuild: IdealBuild = {
-      id: isEditing ? initialBuild!.id : buildId,
+      id: buildId,
       position: values.position,
       style: values.style,
       build: {},
@@ -286,7 +276,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
           <DialogDescription>
             {isEditing 
                 ? 'Añade nuevas stats para promediar o edita las existentes.' 
-                : 'Define las estadísticas finales para un arquetipo. Si ya existe, edita la build existente para promediar.'}
+                : 'Define las estadísticas finales para un arquetipo. Si ya existe, se promediará automáticamente.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -382,5 +372,3 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
     </Dialog>
   );
 }
-
-    
