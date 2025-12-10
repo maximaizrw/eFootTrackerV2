@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase-config';
-import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, query, where } from 'firebase/firestore';
+import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, query, where, setDoc } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import { v4 as uuidv4 } from 'uuid';
 import type { Player, PlayerCard, Position, AddRatingFormValues, EditCardFormValues, EditPlayerFormValues, PlayerBuild, League, Nationality, PlayerAttributeStats, IdealBuild } from '@/lib/types';
@@ -381,37 +381,37 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
           
           const baseStats: PlayerAttributeStats = {
             ...stats,
-            baseOffensiveAwareness: stats.offensiveAwareness,
-            baseBallControl: stats.ballControl,
-            baseDribbling: stats.dribbling,
-            baseTightPossession: stats.tightPossession,
-            baseLowPass: stats.lowPass,
-            baseLoftedPass: stats.loftedPass,
-            baseFinishing: stats.finishing,
-            baseHeading: stats.heading,
-            basePlaceKicking: stats.placeKicking,
-            baseCurl: stats.curl,
-            baseDefensiveAwareness: stats.defensiveAwareness,
-            baseDefensiveEngagement: stats.defensiveEngagement,
-            baseTackling: stats.tackling,
-            baseAggression: stats.aggression,
-            baseGoalkeeping: stats.goalkeeping,
-            baseGkCatching: stats.gkCatching,
-            baseGkParrying: stats.gkParrying,
-            baseGkReflexes: stats.gkReflexes,
-            baseGkReach: stats.gkReach,
-            baseSpeed: stats.speed,
-            baseAcceleration: stats.acceleration,
-            baseKickingPower: stats.kickingPower,
-            baseJump: stats.jump,
-            basePhysicalContact: stats.physicalContact,
-            baseBalance: stats.balance,
-            baseStamina: stats.stamina,
+            baseOffensiveAwareness: stats.offensiveAwareness, baseBallControl: stats.ballControl, baseDribbling: stats.dribbling,
+            baseTightPossession: stats.tightPossession, baseLowPass: stats.lowPass, baseLoftedPass: stats.loftedPass,
+            baseFinishing: stats.finishing, baseHeading: stats.heading, basePlaceKicking: stats.placeKicking, baseCurl: stats.curl,
+            baseDefensiveAwareness: stats.defensiveAwareness, baseDefensiveEngagement: stats.defensiveEngagement, baseTackling: stats.tackling,
+            baseAggression: stats.aggression, baseGoalkeeping: stats.goalkeeping, baseGkCatching: stats.gkCatching,
+            baseGkParrying: stats.gkParrying, baseGkReflexes: stats.gkReflexes, baseGkReach: stats.gkReach,
+            baseSpeed: stats.speed, baseAcceleration: stats.acceleration, baseKickingPower: stats.kickingPower,
+            baseJump: stats.jump, basePhysicalContact: stats.physicalContact, baseBalance: stats.balance, baseStamina: stats.stamina,
           };
           
           cardToUpdate.attributeStats = baseStats;
-          await updateDoc(playerRef, { cards: newCards });
-          toast({ title: "Atributos Guardados", description: `Los atributos de la carta se han actualizado.` });
+          
+          // Recalculate affinity for all positions on this card
+           if(cardToUpdate.buildsByPosition) {
+              for (const posKey in cardToUpdate.buildsByPosition) {
+                  const position = posKey as Position;
+                  const build = cardToUpdate.buildsByPosition[position];
+                  if(build) {
+                      const isPotw = cardToUpdate.name.toLowerCase().includes('potw');
+                      const finalStats = isPotw ? baseStats : calculateProgressionStats(baseStats, build);
+                      const idealBuild = getIdealBuildForPlayer(cardToUpdate.style, position, idealBuilds);
+                      const newAffinity = calculateAutomaticAffinity(finalStats, idealBuild);
+
+                      build.manualAffinity = newAffinity;
+                      build.updatedAt = new Date().toISOString();
+                  }
+              }
+           }
+
+          await setDoc(playerRef, { ...playerData, cards: newCards });
+          toast({ title: "Atributos Guardados", description: `Los atributos de la carta y las afinidades se han recalculado.` });
         } else {
            throw new Error("Card not found!");
         }
@@ -440,5 +440,3 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
 
   return { players, loading, error, addRating, editCard, editPlayer, deleteRating, savePlayerBuild, saveAttributeStats, downloadBackup, deletePositionRatings, toggleSelectablePosition };
 }
-
-    

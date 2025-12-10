@@ -3,9 +3,10 @@
 
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase-config';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, query, orderBy, getDoc } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, query, getDoc, getDocs } from 'firebase/firestore';
 import { useToast } from './use-toast';
-import type { IdealBuild, PlayerAttributeStats } from '@/lib/types';
+import type { IdealBuild, PlayerAttributeStats, Player, PlayerCard } from '@/lib/types';
+import { calculateAutomaticAffinity, calculateProgressionStats, getIdealBuildForPlayer } from '@/lib/utils';
 
 export function useIdealBuilds() {
   const [idealBuilds, setIdealBuilds] = useState<IdealBuild[]>([]);
@@ -55,6 +56,46 @@ export function useIdealBuilds() {
 
     return () => unsub();
   }, [toast]);
+
+  const recalculateAllRelevantAffinities = async (updatedBuild: IdealBuild) => {
+    if (!db) return;
+    try {
+        const playersSnapshot = await getDocs(collection(db, 'players'));
+        for (const playerDoc of playersSnapshot.docs) {
+            const player = { id: playerDoc.id, ...playerDoc.data() } as Player;
+            let playerWasUpdated = false;
+            const newCards = JSON.parse(JSON.stringify(player.cards)) as PlayerCard[];
+
+            newCards.forEach(card => {
+                if (card.style === updatedBuild.style) {
+                    if (card.buildsByPosition && card.buildsByPosition[updatedBuild.position]) {
+                        const isPotw = card.name.toLowerCase().includes('potw');
+                        const finalStats = isPotw
+                            ? card.attributeStats || {}
+                            : calculateProgressionStats(card.attributeStats || {}, card.buildsByPosition[updatedBuild.position]!);
+
+                        const newAffinity = calculateAutomaticAffinity(finalStats, updatedBuild.build);
+                        
+                        card.buildsByPosition[updatedBuild.position]!.manualAffinity = newAffinity;
+                        card.buildsByPosition[updatedBuild.position]!.updatedAt = new Date().toISOString();
+                        playerWasUpdated = true;
+                    }
+                }
+            });
+
+            if (playerWasUpdated) {
+                await setDoc(doc(db, 'players', player.id), { ...player, cards: newCards });
+            }
+        }
+    } catch (recalcError) {
+        console.error("Error recalculating affinities globally:", recalcError);
+        toast({
+            variant: "destructive",
+            title: "Error de Recálculo",
+            description: `Se guardó la build, pero no se pudo recalcular la afinidad para todos los jugadores.`,
+        });
+    }
+  };
   
   const saveIdealBuild = async (build: IdealBuild) => {
     if (!db || !build.id) return;
@@ -62,10 +103,12 @@ export function useIdealBuilds() {
         const buildRef = doc(db, 'idealBuilds', build.id);
         const docSnap = await getDoc(buildRef);
 
+        let finalBuildData: PlayerAttributeStats = {};
+        let toastMessage = "";
+
         if (docSnap.exists()) {
-            // Document exists, average the stats
             const existingBuild = docSnap.data() as IdealBuild;
-            const newBuildData: PlayerAttributeStats = { ...existingBuild.build };
+            finalBuildData = { ...existingBuild.build };
             let updatedFields = 0;
 
             for (const key in build.build) {
@@ -74,24 +117,24 @@ export function useIdealBuilds() {
                 
                 if(!isNaN(newValue) && newValue > 0) {
                   const existingValue = Number(existingBuild.build[statKey] || 0);
-                  newBuildData[statKey] = existingValue > 0 ? Math.round((existingValue + newValue) / 2) : newValue;
+                  finalBuildData[statKey] = existingValue > 0 ? Math.round((existingValue + newValue) / 2) : newValue;
                   updatedFields++;
                 }
             }
-            
-            await setDoc(buildRef, { ...build, build: newBuildData }, { merge: true });
-
-            if (updatedFields > 0) {
-              toast({ title: "Build Ideal Actualizada", description: `La build para ${build.position} - ${build.style} ha sido promediada.` });
-            } else {
-              toast({ title: "Build Ideal Guardada", description: `Se guardaron los cambios en la build.` });
-            }
+            toastMessage = `La build para ${build.position} - ${build.style} ha sido promediada y actualizada.`;
 
         } else {
-            // Document doesn't exist, create it.
-            await setDoc(buildRef, build);
-            toast({ title: "Build Ideal Creada", description: `La build para ${build.position} - ${build.style} se ha creado.` });
+            finalBuildData = build.build;
+            toastMessage = `La build para ${build.position} - ${build.style} se ha creado.`;
         }
+
+        const finalIdealBuild: IdealBuild = { ...build, build: finalBuildData };
+        await setDoc(buildRef, finalIdealBuild, { merge: true });
+        toast({ title: "Build Ideal Guardada", description: toastMessage });
+
+        // Recalculate affinities for all players affected by this build change
+        await recalculateAllRelevantAffinities(finalIdealBuild);
+
     } catch (error) {
         console.error("Error saving ideal build: ", error);
         toast({
