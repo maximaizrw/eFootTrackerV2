@@ -3,9 +3,10 @@
 
 import * as React from "react";
 import type { Player, PlayerCard, PlayerAttributeStats } from "@/lib/types";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useToast } from "@/hooks/use-toast";
 
 import {
   Dialog,
@@ -15,11 +16,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Button } from '@/components/ui/button';
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
+import { Textarea } from "./ui/textarea";
+import { UploadCloud } from "lucide-react";
 
 const statSchema = z.coerce.number().min(0).max(99).optional();
 
@@ -105,6 +107,35 @@ const statFields: { category: string, fields: { name: keyof PlayerAttributeStats
     }
 ];
 
+const nameToSchemaKeyMap: Record<string, keyof PlayerAttributeStats> = {
+    "offensive awareness": "offensiveAwareness",
+    "ball control": "ballControl",
+    "dribbling": "dribbling",
+    "tight possession": "tightPossession",
+    "low pass": "lowPass",
+    "lofted pass": "loftedPass",
+    "finishing": "finishing",
+    "heading": "heading",
+    "place kicking": "placeKicking",
+    "curl": "curl",
+    "defensive awareness": "defensiveAwareness",
+    "defensive engagement": "defensiveEngagement",
+    "tackling": "tackling",
+    "aggression": "aggression",
+    "goalkeeping": "goalkeeping",
+    "gk catching": "gkCatching",
+    "gk parrying": "gkParrying",
+    "gk reflexes": "gkReflexes",
+    "gk reach": "gkReach",
+    "speed": "speed",
+    "acceleration": "acceleration",
+    "kicking power": "kickingPower",
+    "jump": "jump",
+    "physical contact": "physicalContact",
+    "balance": "balance",
+    "stamina": "stamina",
+};
+
 
 type EditStatsDialogProps = {
   open: boolean;
@@ -117,6 +148,9 @@ type EditStatsDialogProps = {
 };
 
 export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }: EditStatsDialogProps) {
+  const [pastedText, setPastedText] = React.useState('');
+  const { toast } = useToast();
+  
   const form = useForm<PlayerAttributeStats>({
     resolver: zodResolver(formSchema),
     defaultValues: {},
@@ -128,12 +162,48 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
     } else if (open) {
       form.reset({});
     }
+    setPastedText('');
   }, [open, initialData, form]);
 
   const handleSubmit = (values: PlayerAttributeStats) => {
     if (initialData) {
       onSaveStats(initialData.player.id, initialData.card.id, values);
       onOpenChange(false);
+    }
+  };
+
+  const handleParseText = () => {
+    const lines = pastedText.split('\n');
+    let parsedCount = 0;
+    
+    lines.forEach(line => {
+      const parts = line.split(/\s+/).filter(Boolean); // Split by any whitespace and remove empty strings
+      if (parts.length < 2) return;
+
+      const value = parseInt(parts[parts.length - 1], 10);
+      if (isNaN(value)) return;
+      
+      const namePart = parts.slice(0, -1).join(' ').replace('●', '').trim().toLowerCase();
+      
+      const schemaKey = nameToSchemaKeyMap[namePart];
+      if (schemaKey) {
+        form.setValue(schemaKey, value, { shouldValidate: true });
+        parsedCount++;
+      }
+    });
+
+    if (parsedCount > 0) {
+      toast({
+        title: "Estadísticas Cargadas",
+        description: `Se han cargado ${parsedCount} atributos desde el texto.`,
+      });
+      setPastedText('');
+    } else {
+       toast({
+        variant: "destructive",
+        title: "Error al Cargar",
+        description: "No se pudieron encontrar atributos válidos en el texto. Revisa el formato.",
+      });
     }
   };
 
@@ -148,8 +218,20 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
             </DialogDescription>
           )}
         </DialogHeader>
+        <div className="space-y-2">
+            <Textarea
+                placeholder="Pega aquí las estadísticas del jugador para cargarlas automáticamente..."
+                value={pastedText}
+                onChange={(e) => setPastedText(e.target.value)}
+                className="min-h-[60px]"
+            />
+            <Button onClick={handleParseText} disabled={!pastedText} size="sm">
+                <UploadCloud className="mr-2 h-4 w-4" />
+                Cargar desde Texto
+            </Button>
+        </div>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="flex-grow overflow-hidden flex flex-col">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="flex-grow overflow-hidden flex flex-col pt-4">
             <ScrollArea className="flex-grow pr-4 -mr-4">
               <div className="space-y-6">
                 {statFields.map((category) => (
@@ -185,3 +267,5 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
     </Dialog>
   );
 }
+
+    
