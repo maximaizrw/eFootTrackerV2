@@ -160,7 +160,7 @@ export function calculateAutomaticAffinity(
         const playerStat = playerStats[key];
         const idealStat = idealBuildStats[key];
 
-        if (playerStat !== undefined && idealStat !== undefined && idealStat > 0) {
+        if (playerStat !== undefined && idealStat !== undefined && idealStat >= 70) {
             const diff = playerStat - idealStat;
             
             // Formula: MAX(-3, IF(diff >= 0, diff * 0.15, diff * 0.2))
