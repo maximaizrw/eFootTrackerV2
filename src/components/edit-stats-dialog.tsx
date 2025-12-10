@@ -157,17 +157,25 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
   });
 
   React.useEffect(() => {
-    if (open && initialData?.card.attributeStats) {
-      form.reset(initialData.card.attributeStats);
-    } else if (open) {
-      form.reset({});
+    if (open) {
+      const defaultValues: Record<string, any> = {};
+      statFields.forEach(cat => cat.fields.forEach(f => defaultValues[f.name] = initialData?.card?.attributeStats?.[f.name] ?? ''));
+      form.reset(defaultValues);
     }
     setPastedText('');
   }, [open, initialData, form]);
 
   const handleSubmit = (values: PlayerAttributeStats) => {
     if (initialData) {
-      onSaveStats(initialData.player.id, initialData.card.id, values);
+        const cleanedValues: PlayerAttributeStats = {};
+        for (const key in values) {
+            const typedKey = key as keyof PlayerAttributeStats;
+            const value = values[typedKey];
+            if (value !== '' && value !== null && value !== undefined && !isNaN(Number(value))) {
+                cleanedValues[typedKey] = Number(value);
+            }
+        }
+      onSaveStats(initialData.player.id, initialData.card.id, cleanedValues);
       onOpenChange(false);
     }
   };
@@ -247,7 +255,7 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
                             <FormItem>
                               <FormLabel className="text-xs">{field.label}</FormLabel>
                               <FormControl>
-                                <Input type="number" min="0" max="99" {...formField} onChange={e => formField.onChange(e.target.value === '' ? undefined : +e.target.value)} />
+                                <Input type="number" min="0" max="99" {...formField} onChange={e => formField.onChange(e.target.value)} />
                               </FormControl>
                             </FormItem>
                           )}
