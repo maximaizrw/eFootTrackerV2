@@ -232,6 +232,7 @@ export function PlayerTable({
             const generalColorClass = getAverageColorClass(generalScore / 10);
             
             const isPosSelectable = card.selectablePositions?.[position] ?? true;
+            const isPotw = card.name.toLowerCase().includes('potw');
             const rowId = `${player.id}-${card.id}-${position}`;
 
             return (
@@ -267,14 +268,16 @@ export function PlayerTable({
                                 {player.name}
                             </button>
                             <AffinityStatusIndicator player={flatPlayer} />
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <button onClick={(e) => { e.stopPropagation(); onOpenPlayerDetail(flatPlayer); }}><NotebookPen className="h-4 w-4 text-muted-foreground/60 hover:text-muted-foreground" /></button>
-                                </TooltipTrigger>
-                                <TooltipContent><p>Editar Afinidad</p></TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                             {!isPotw && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                      <button onClick={(e) => { e.stopPropagation(); onOpenPlayerDetail(flatPlayer); }}><NotebookPen className="h-4 w-4 text-muted-foreground/60 hover:text-muted-foreground" /></button>
+                                  </TooltipTrigger>
+                                  <TooltipContent><p>Editar Afinidad y Build</p></TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
                         </div>
                         <div className="flex items-center gap-2">
                             <span className="text-xs text-muted-foreground">{card.name} ({performance.stats.matches} P.)</span>
@@ -392,18 +395,20 @@ export function PlayerTable({
                               </TooltipTrigger>
                               <TooltipContent><p>Editar carta (nombre, estilo e imagen)</p></TooltipContent>
                           </Tooltip>
-                           <Tooltip>
-                              <TooltipTrigger asChild>
-                              <Button
-                                  variant="ghost" size="icon" className="h-8 w-8 rounded-full"
-                                  aria-label={`Editar atributos de ${card.name}`}
-                                  onClick={(e) => { e.stopPropagation(); onOpenEditStats(player, card); }}
-                                  >
-                                  <SlidersHorizontal className="h-4 w-4 text-muted-foreground/80 hover:text-muted-foreground" />
-                              </Button>
-                              </TooltipTrigger>
-                              <TooltipContent><p>Editar atributos de la carta</p></TooltipContent>
-                          </Tooltip>
+                           {!isPotw && (
+                              <Tooltip>
+                                  <TooltipTrigger asChild>
+                                  <Button
+                                      variant="ghost" size="icon" className="h-8 w-8 rounded-full"
+                                      aria-label={`Editar atributos de ${card.name}`}
+                                      onClick={(e) => { e.stopPropagation(); onOpenEditStats(player, card); }}
+                                      >
+                                      <SlidersHorizontal className="h-4 w-4 text-muted-foreground/80 hover:text-muted-foreground" />
+                                  </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent><p>Editar atributos de la carta</p></TooltipContent>
+                              </Tooltip>
+                           )}
                           <Tooltip>
                               <TooltipTrigger asChild>
                               <Button

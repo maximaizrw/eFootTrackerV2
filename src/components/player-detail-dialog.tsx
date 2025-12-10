@@ -21,6 +21,9 @@ import { ScrollArea } from "./ui/scroll-area";
 import { Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, SeparatorHorizontal } from "lucide-react";
 import { calculateProgressionStats } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
+import { Info } from 'lucide-react';
+
 
 type PlayerDetailDialogProps = {
   open: boolean;
@@ -54,6 +57,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
   const card = flatPlayer?.card;
   const player = flatPlayer?.player;
   const isGoalkeeper = position === 'PT';
+  const isPotw = card?.name.toLowerCase().includes('potw');
 
   const baseStats = React.useMemo(() => card?.attributeStats || {}, [card?.attributeStats]);
   
@@ -74,14 +78,14 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
   }, [open, flatPlayer, card, position, baseStats]);
 
   React.useEffect(() => {
-    if(open){
+    if(open && !isPotw){
         const newFinalStats = calculateProgressionStats(baseStats, build);
         setFinalStats(newFinalStats);
     }
-  }, [build, baseStats, open]);
+  }, [build, baseStats, open, isPotw]);
 
   const handleSave = () => {
-    if (player && card && position) {
+    if (player && card && position && !isPotw) {
       onSavePlayerBuild(player.id, card.id, position, build);
       onOpenChange(false);
     }
@@ -107,15 +111,19 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
   }
 
   const StatDisplay = ({ label, value }: { label: string; value?: number }) => {
+    const baseValue = baseStats[label.toLowerCase().replace(/\s/g, '') as keyof PlayerAttributeStats];
+    const hasIncreased = value !== undefined && baseValue !== undefined && value > baseValue;
+
     if (value === undefined || value === 0) return null;
     return (
         <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">{label}</span>
             <span className={cn(
                 "font-bold",
-                value >= 90 && "text-sky-400",
-                value >= 85 && value < 90 && "text-green-400",
-                value >= 80 && value < 85 && "text-yellow-400",
+                hasIncreased && "text-primary",
+                !hasIncreased && value >= 90 && "text-sky-400",
+                !hasIncreased && value >= 85 && value < 90 && "text-green-400",
+                !hasIncreased && value >= 80 && value < 85 && "text-yellow-400",
             )}>{value}</span>
         </div>
     );
@@ -146,48 +154,46 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
                     />
                 </div>
                 
-                <p className="font-medium text-sm text-muted-foreground pt-2">Puntos de Progresión (0-20)</p>
-
-                {isGoalkeeper ? (
-                    goalkeeperCategories.map(({key, label, icon: Icon}) => (
-                        <div key={key} className="space-y-2">
-                            <Label className="flex items-center gap-2">{<Icon className="w-4 h-4" />} {label}: <span className="font-bold text-primary">{(build as GoalkeeperBuild)[key] || 0}</span></Label>
-                            <Slider 
-                                value={[(build as GoalkeeperBuild)[key] || 0]}
-                                onValueChange={(v) => handleSliderChange(key, v[0])}
-                                max={20}
-                                step={1}
-                            />
-                        </div>
-                    ))
+                {isPotw ? (
+                     <Alert>
+                        <Info className="h-4 w-4" />
+                        <AlertTitle>Carta Especial</AlertTitle>
+                        <AlertDescription>
+                            Las cartas POTW (Player of the Week) y otras cartas especiales no tienen puntos de progresión. Sus estadísticas son fijas.
+                        </AlertDescription>
+                    </Alert>
                 ) : (
-                     outfieldCategories.map(({key, label, icon: Icon}) => (
-                        <div key={key} className="space-y-2">
-                            <Label className="flex items-center gap-2">{<Icon className="w-4 h-4" />} {label}: <span className="font-bold text-primary">{(build as OutfieldBuild)[key] || 0}</span></Label>
-                            <Slider 
-                                value={[(build as OutfieldBuild)[key] || 0]}
-                                onValueChange={(v) => handleSliderChange(key, v[0])}
-                                max={20}
-                                step={1}
-                            />
-                        </div>
-                    ))
-                )}
-                
-                <SeparatorHorizontal className="my-4" />
-                <p className="font-medium text-sm text-muted-foreground">Estadísticas Finales</p>
+                    <>
+                        <p className="font-medium text-sm text-muted-foreground pt-2">Puntos de Progresión (0-20)</p>
 
-                <div className="space-y-1">
-                    <StatDisplay label="Finalización" value={finalStats.finishing} />
-                    <StatDisplay label="Balón Parado" value={finalStats.placeKicking} />
-                    <StatDisplay label="Efecto" value={finalStats.curl} />
-                </div>
+                        {(isGoalkeeper ? goalkeeperCategories : outfieldCategories).map(({key, label, icon: Icon}) => (
+                            <div key={key} className="space-y-2">
+                                <Label className="flex items-center gap-2">{<Icon className="w-4 h-4" />} {label}: <span className="font-bold text-primary">{(build as any)[key] || 0}</span></Label>
+                                <Slider 
+                                    value={[(build as any)[key] || 0]}
+                                    onValueChange={(v) => handleSliderChange(key as any, v[0])}
+                                    max={20}
+                                    step={1}
+                                />
+                            </div>
+                        ))}
+                        
+                        <SeparatorHorizontal className="my-4" />
+                        <p className="font-medium text-sm text-muted-foreground">Estadísticas Finales</p>
+
+                        <div className="space-y-1">
+                            <StatDisplay label="Finalización" value={finalStats.finishing} />
+                            <StatDisplay label="Balón Parado" value={finalStats.placeKicking} />
+                            <StatDisplay label="Efecto" value={finalStats.curl} />
+                        </div>
+                     </>
+                )}
 
 
             </div>
         </ScrollArea>
         <DialogFooter className="pt-4 border-t mt-4 flex-shrink-0">
-          <Button onClick={handleSave}>Guardar Build de {position}</Button>
+          <Button onClick={handleSave} disabled={isPotw}>Guardar Build de {position}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
