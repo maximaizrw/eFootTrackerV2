@@ -133,6 +133,9 @@ const nameToSchemaKeyMap: Record<string, keyof PlayerAttributeStats> = {
     "kicking power": "kickingPower", "jump": "jump", "physical contact": "physicalContact", "balance": "balance", "stamina": "stamina",
 };
 
+const orderedStatFields: (keyof PlayerAttributeStats)[] = statFields.flatMap(category => category.fields.map(field => field.name));
+
+
 export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, existingBuilds }: IdealBuildEditorProps) {
   const { toast } = useToast();
   const [pastedText, setPastedText] = React.useState('');
@@ -186,70 +189,79 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
 
   const handleSubmit = (values: IdealBuildFormValues) => {
     const buildId = `${values.position}-${values.style}`;
-    const existingBuild = existingBuilds.find(b => b.id === buildId);
+    const existingBuildWithSameId = existingBuilds.find(b => b.id === buildId && b.id !== initialBuild?.id);
 
+    if (existingBuildWithSameId && !isEditing) {
+       toast({
+            title: "Build ya existe",
+            description: `Ya existe una build para ${values.position} - ${values.style}. Si quieres añadir nuevas stats para promediar, edita la build existente.`,
+            variant: "destructive",
+        });
+        return;
+    }
+    
     const finalBuild: IdealBuild = {
-      id: buildId,
+      id: isEditing ? initialBuild!.id : buildId,
       position: values.position,
       style: values.style,
       build: {},
     };
 
-    if (existingBuild) {
-        // Average with existing build
-        statFields.forEach(category => {
-            category.fields.forEach(field => {
-                const key = field.name as keyof PlayerAttributeStats;
-                const existingValue = existingBuild.build[key] || 0;
-                const newValue = values.build[key] ? Number(values.build[key]) : 0;
-                if(newValue > 0) {
-                  finalBuild.build[key] = Math.round((existingValue + newValue) / 2);
-                } else {
-                  finalBuild.build[key] = existingValue;
-                }
-            });
+    statFields.forEach(category => {
+        category.fields.forEach(field => {
+            const key = field.name as keyof PlayerAttributeStats;
+            const value = values.build[key];
+            if (value !== '' && value !== null && value !== undefined && !isNaN(Number(value))) {
+                finalBuild.build[key] = Number(value);
+            }
         });
-         toast({
-            title: "Build Ideal Actualizada",
-            description: `Se promediaron las stats para ${values.position} - ${values.style}.`,
-        });
-
-    } else {
-        // Create new build
-        statFields.forEach(category => {
-            category.fields.forEach(field => {
-                const key = field.name as keyof PlayerAttributeStats;
-                const value = values.build[key];
-                if (value !== '' && value !== null && value !== undefined && !isNaN(Number(value))) {
-                    finalBuild.build[key] = Number(value);
-                }
-            });
-        });
-    }
+    });
     
     onSave(finalBuild);
     onOpenChange(false);
   };
 
   const handleParseText = () => {
-    const lines = pastedText.split('\n');
+    const lines = pastedText.split('\n').filter(line => line.trim() !== '');
     let parsedCount = 0;
-    
-    lines.forEach(line => {
-      const parts = line.split(/\s+/).filter(Boolean);
-      if (parts.length < 2) return;
 
-      const value = parseInt(parts[parts.length - 1], 10);
-      if (isNaN(value)) return;
-      
-      const namePart = parts.slice(0, -1).join(' ').replace('●', '').trim().toLowerCase();
-      
-      const schemaKey = nameToSchemaKeyMap[namePart];
-      if (schemaKey) {
-        form.setValue(`build.${schemaKey as any}`, value, { shouldValidate: true });
-        parsedCount++;
-      }
-    });
+    const isNumericOnly = lines.every(line => /^\d+\s*$/.test(line.trim()));
+
+    if (isNumericOnly) {
+        if (lines.length !== orderedStatFields.length) {
+            toast({
+                variant: "destructive",
+                title: "Error de Formato",
+                description: `Se esperaban ${orderedStatFields.length} atributos, pero se encontraron ${lines.length}.`,
+            });
+            return;
+        }
+        lines.forEach((line, index) => {
+            const value = parseInt(line.trim(), 10);
+            const schemaKey = orderedStatFields[index];
+            if (schemaKey) {
+                form.setValue(`build.${schemaKey}`, value, { shouldValidate: true });
+                parsedCount++;
+            }
+        });
+    } else {
+        lines.forEach(line => {
+            const parts = line.split(/\s+/).filter(Boolean);
+            if (parts.length < 2) return;
+
+            const value = parseInt(parts[parts.length - 1], 10);
+            if (isNaN(value)) return;
+            
+            const namePart = parts.slice(0, -1).join(' ').replace('●', '').trim().toLowerCase();
+            
+            const schemaKey = nameToSchemaKeyMap[namePart];
+            if (schemaKey) {
+                form.setValue(`build.${schemaKey}`, value, { shouldValidate: true });
+                parsedCount++;
+            }
+        });
+    }
+
 
     if (parsedCount > 0) {
       toast({
@@ -273,8 +285,8 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
           <DialogTitle>{isEditing ? 'Editar' : 'Añadir'} Build Ideal</DialogTitle>
           <DialogDescription>
             {isEditing 
-                ? 'Edita las estadísticas finales para este arquetipo.' 
-                : 'Define las estadísticas finales para un arquetipo. Si ya existe, se promediará.'}
+                ? 'Añade nuevas stats para promediar o edita las existentes.' 
+                : 'Define las estadísticas finales para un arquetipo. Si ya existe, edita la build existente para promediar.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -350,7 +362,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
                             <FormItem>
                               <FormLabel className="text-xs">{field.label}</FormLabel>
                               <FormControl>
-                                <Input type="number" min="40" max="99" {...formField} onChange={e => formField.onChange(e.target.value)} />
+                                <Input type="number" min="40" max="99" {...formField} value={formField.value ?? ''} onChange={e => formField.onChange(e.target.value === '' ? undefined : e.target.value)} />
                               </FormControl>
                             </FormItem>
                           )}
@@ -370,3 +382,5 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
     </Dialog>
   );
 }
+
+    
