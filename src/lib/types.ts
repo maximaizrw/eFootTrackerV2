@@ -84,6 +84,11 @@ export type PlayerAttributeStats = {
   physicalContact?: number;
   balance?: number;
   stamina?: number;
+
+  // Base stats for progression
+  baseFinishing?: number;
+  basePlaceKicking?: number;
+  baseCurl?: number;
 };
 
 export const positionLabels: Record<Position, string> = {
@@ -255,7 +260,7 @@ export type PlayerPerformance = {
     isHotStreak: boolean;
     isConsistent: boolean;
     isPromising: boolean;
-isVersatile: boolean;
+    isVersatile: boolean;
 };
 
 export type FlatPlayer = {

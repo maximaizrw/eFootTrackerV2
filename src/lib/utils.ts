@@ -1,6 +1,7 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -59,4 +60,32 @@ export function calculateGeneralScore(affinityScore: number, average: number): n
   const weightedAffinity = affinityScore * 0.4;
   const weightedAverage = matchAverageOn100 * 0.6;
   return weightedAffinity + weightedAverage;
+}
+
+
+// --- New Progression System ---
+
+const MAX_STAT_VALUE = 99;
+
+export function calculateProgressionStats(
+  baseStats: PlayerAttributeStats,
+  build: PlayerBuild
+): PlayerAttributeStats {
+  const newStats = { ...baseStats };
+
+  // --- Shooting ---
+  const shootingPoints = (build as OutfieldBuild).shooting || 0;
+  if (shootingPoints > 0) {
+    newStats.finishing = Math.min(MAX_STAT_VALUE, (baseStats.baseFinishing || baseStats.finishing || 0) + shootingPoints);
+    newStats.placeKicking = Math.min(MAX_STAT_VALUE, (baseStats.basePlaceKicking || baseStats.placeKicking || 0) + shootingPoints);
+    newStats.curl = Math.min(MAX_STAT_VALUE, (baseStats.baseCurl || baseStats.curl || 0) + shootingPoints);
+  } else {
+    newStats.finishing = (baseStats.baseFinishing || baseStats.finishing || 0);
+    newStats.placeKicking = (baseStats.basePlaceKicking || baseStats.placeKicking || 0);
+    newStats.curl = (baseStats.baseCurl || baseStats.curl || 0);
+  }
+
+  // TODO: Implement other categories (Passing, Dribbling, etc.) here following the same pattern.
+
+  return newStats;
 }

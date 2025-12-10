@@ -374,7 +374,17 @@ export function usePlayers() {
         const cardToUpdate = newCards.find(c => c.id === cardId);
 
         if (cardToUpdate) {
-          cardToUpdate.attributeStats = stats;
+          if (!cardToUpdate.attributeStats) cardToUpdate.attributeStats = {};
+          
+          // Separate base stats from calculated stats
+          const baseStats: PlayerAttributeStats = {
+            ...stats,
+            baseFinishing: stats.finishing,
+            basePlaceKicking: stats.placeKicking,
+            baseCurl: stats.curl,
+          };
+          
+          cardToUpdate.attributeStats = baseStats;
           await updateDoc(playerRef, { cards: newCards });
           toast({ title: "Atributos Guardados", description: `Los atributos de la carta se han actualizado.` });
         } else {

@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import type { Position, FlatPlayer, PlayerBuild, OutfieldBuild, GoalkeeperBuild } from "@/lib/types";
+import type { Position, FlatPlayer, PlayerBuild, OutfieldBuild, GoalkeeperBuild, PlayerAttributeStats } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -18,7 +18,9 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Slider } from "./ui/slider";
 import { ScrollArea } from "./ui/scroll-area";
-import { Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand } from "lucide-react";
+import { Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, SeparatorHorizontal } from "lucide-react";
+import { calculateProgressionStats } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 type PlayerDetailDialogProps = {
   open: boolean;
@@ -46,12 +48,14 @@ const goalkeeperCategories: { key: keyof GoalkeeperBuild; label: string, icon: R
 
 export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlayerBuild }: PlayerDetailDialogProps) {
   const [build, setBuild] = React.useState<PlayerBuild>({ manualAffinity: 0 });
+  const [finalStats, setFinalStats] = React.useState<PlayerAttributeStats>({});
   
   const position = flatPlayer?.position;
   const card = flatPlayer?.card;
   const player = flatPlayer?.player;
   const isGoalkeeper = position === 'PT';
 
+  const baseStats = card?.attributeStats || {};
   const buildForPosition = position && card?.buildsByPosition?.[position];
   const updatedAt = buildForPosition?.updatedAt;
 
@@ -59,10 +63,21 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
     if (open && flatPlayer && position) {
       const initialBuild = card?.buildsByPosition?.[position] || { manualAffinity: 0 };
       setBuild(initialBuild);
+      
+      const calculatedStats = calculateProgressionStats(baseStats, initialBuild);
+      setFinalStats(calculatedStats);
     } else {
       setBuild({ manualAffinity: 0 });
+      setFinalStats({});
     }
-  }, [open, flatPlayer, card, position]);
+  }, [open, flatPlayer, card, position, baseStats]);
+
+  React.useEffect(() => {
+    if(open){
+        const newFinalStats = calculateProgressionStats(baseStats, build);
+        setFinalStats(newFinalStats);
+    }
+  }, [build, baseStats, open]);
 
   const handleSave = () => {
     if (player && card && position) {
@@ -89,6 +104,22 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
   const handleSliderChange = (category: keyof OutfieldBuild | keyof GoalkeeperBuild, value: number) => {
     setBuild(prev => ({ ...prev, [category]: value }));
   }
+
+  const StatDisplay = ({ label, value }: { label: string; value?: number }) => {
+    if (value === undefined || value === 0) return null;
+    return (
+        <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">{label}</span>
+            <span className={cn(
+                "font-bold",
+                value >= 90 && "text-sky-400",
+                value >= 85 && value < 90 && "text-green-400",
+                value >= 80 && value < 85 && "text-yellow-400",
+            )}>{value}</span>
+        </div>
+    );
+  };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -141,6 +172,16 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
                         </div>
                     ))
                 )}
+                
+                <SeparatorHorizontal className="my-4" />
+                <p className="font-medium text-sm text-muted-foreground">Estadísticas Finales</p>
+
+                <div className="space-y-1">
+                    <StatDisplay label="Finalización" value={finalStats.finishing} />
+                    <StatDisplay label="Balón Parado" value={finalStats.placeKicking} />
+                    <StatDisplay label="Efecto" value={finalStats.curl} />
+                </div>
+
 
             </div>
         </ScrollArea>
