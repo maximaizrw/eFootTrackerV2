@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import type { Position, PlayerStyle, IdealBuild, PlayerAttributeStats } from "@/lib/types";
+import type { BuildPosition, PlayerStyle, IdealBuild, PlayerAttributeStats } from "@/lib/types";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -23,12 +23,12 @@ import { ScrollArea } from "./ui/scroll-area";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { UploadCloud } from "lucide-react";
-import { positions, playerStyles, getAvailableStylesForPosition } from "@/lib/types";
+import { buildPositions, playerStyles, getAvailableStylesForPosition, positionLabels } from "@/lib/types";
 
 const statSchema = z.coerce.number().min(0).max(99).optional();
 
 const buildSchema = z.object({
-  position: z.enum(positions),
+  position: z.enum(buildPositions),
   style: z.enum(playerStyles),
   build: z.object({
     // Attacking
@@ -297,7 +297,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {positions.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                            {buildPositions.map(p => <SelectItem key={p} value={p}>{positionLabels[p]}</SelectItem>)}
                           </SelectContent>
                         </Select>
                         <FormMessage />

@@ -38,8 +38,8 @@ import { useFormations } from '@/hooks/useFormations';
 import { useIdealBuilds } from '@/hooks/useIdealBuilds';
 import { useToast } from "@/hooks/use-toast";
 
-import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerBuild, IdealTeamPlayer, PlayerAttributeStats, IdealBuild } from '@/lib/types';
-import { positions, leagues, nationalities } from '@/lib/types';
+import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerBuild, IdealTeamPlayer, PlayerAttributeStats, IdealBuild, BuildPosition } from '@/lib/types';
+import { positions, leagues, nationalities, buildPositions } from '@/lib/types';
 import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Wrench, Dna } from 'lucide-react';
 import { calculateStats, normalizeText, calculateGeneralScore } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';

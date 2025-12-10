@@ -341,19 +341,8 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
 
             cardToUpdate.buildsByPosition[position] = updatedBuild;
             
-            const symmetricalPositions: Record<string, Position> = {
-                'LI': 'LD', 'LD': 'LI',
-                'MDI': 'MDD', 'MDD': 'MDI',
-                'EXI': 'EXD', 'EXD': 'EXI',
-            };
-
-            const counterpart = symmetricalPositions[position];
-            if (counterpart) {
-                cardToUpdate.buildsByPosition[counterpart] = updatedBuild;
-            }
-
             await updateDoc(playerRef, { cards: newCards });
-            toast({ title: "Build Guardada", description: `La build del jugador para ${position} ${counterpart ? `y ${counterpart} ` : ''}se ha actualizado con afinidad ${affinity.toFixed(2)}.` });
+            toast({ title: "Build Guardada", description: `La build del jugador para ${position} se ha actualizado con afinidad ${affinity.toFixed(2)}.` });
         } else {
             throw new Error("Card not found in player data!");
         }

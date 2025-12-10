@@ -7,6 +7,9 @@ export type PlayerStyle = typeof playerStyles[number];
 export const positions = ['PT', 'DFC', 'LI', 'LD', 'MCD', 'MC', 'MDI', 'MDD', 'MO', 'EXI', 'EXD', 'SD', 'DC'] as const;
 export type Position = typeof positions[number];
 
+export const buildPositions = [...positions, 'LAT', 'INT', 'EXT'] as const;
+export type BuildPosition = typeof buildPositions[number];
+
 
 export const leagues = [
     "Sin Liga", "Premier League", "Ligue 1 Uber Eats", "Serie A TIM", "LaLiga EA SPORTS",
@@ -55,7 +58,7 @@ export type PlayerBuild = (OutfieldBuild | GoalkeeperBuild) & {
 
 export type IdealBuild = {
   id?: string; // composite key of position-style
-  position: Position;
+  position: BuildPosition;
   style: PlayerStyle;
   build: PlayerAttributeStats;
 };
@@ -121,7 +124,7 @@ export type PlayerAttributeStats = {
   baseStamina?: number;
 };
 
-export const positionLabels: Record<Position, string> = {
+export const positionLabels: Record<BuildPosition, string> = {
     PT: 'Portero',
     DFC: 'Defensa Central',
     LI: 'Lateral Izquierdo',
@@ -135,6 +138,9 @@ export const positionLabels: Record<Position, string> = {
     EXD: 'Extremo Derecho',
     SD: 'Segundo Delantero',
     DC: 'Delantero Centro',
+    LAT: 'Lateral (LI/LD)',
+    INT: 'Interior (MDI/MDD)',
+    EXT: 'Extremo (EXI/EXD)',
 };
 
 
@@ -303,7 +309,7 @@ export type FlatPlayer = {
   position: Position;
 };
 
-export function getAvailableStylesForPosition(position: Position, includeNone: boolean = false): PlayerStyle[] {
+export function getAvailableStylesForPosition(position: BuildPosition, includeNone: boolean = false): PlayerStyle[] {
     const baseStyles: PlayerStyle[] = includeNone ? ['Ninguno'] : [];
 
     switch (position) {
@@ -313,6 +319,7 @@ export function getAvailableStylesForPosition(position: Position, includeNone: b
             return [...baseStyles, 'El destructor', 'Atacante extra', 'Creador de juego'];
         case 'LI':
         case 'LD':
+        case 'LAT':
             return [...baseStyles, 'Lateral defensivo', 'Lateral ofensivo', 'Lateral finalizador', 'Especialista en centros'];
         case 'MCD':
             return [...baseStyles, 'El destructor', 'Medio escudo', 'Omnipresente', 'Organizador', 'Creador de jugadas', 'Atacante extra'];
@@ -320,11 +327,13 @@ export function getAvailableStylesForPosition(position: Position, includeNone: b
             return [...baseStyles, 'Jugador de huecos', 'Omnipresente', 'Creador de jugadas', 'Organizador', 'El destructor', 'Medio escudo'];
         case 'MDI':
         case 'MDD':
+        case 'INT':
             return [...baseStyles, 'Omnipresente', 'Especialista en centros', 'Creador de jugadas', 'Jugador de huecos'];
         case 'MO':
             return [...baseStyles, 'Jugador de huecos', 'Creador de jugadas', 'Diez Clasico', 'Extremo móvil'];
         case 'EXI':
         case 'EXD':
+        case 'EXT':
             return [...baseStyles, 'Extremo móvil', 'Extremo prolífico', 'Especialista en centros', 'Creador de jugadas'];
         case 'SD':
             return [...baseStyles, 'Cazagoles', 'Jugador de huecos', 'Señuelo', 'Hombre objetivo', 'Diez Clasico', 'Extremo móvil', 'Creador de jugadas'];

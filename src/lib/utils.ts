@@ -1,7 +1,7 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position } from "./types";
+import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position, BuildPosition } from "./types";
 import { getAvailableStylesForPosition } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
@@ -144,39 +144,72 @@ export function calculateProgressionStats(
   return newStats;
 }
 
+const symmetricalPositionMap: Record<Position, BuildPosition | undefined> = {
+    'LI': 'LAT', 'LD': 'LAT',
+    'MDI': 'INT', 'MDD': 'INT',
+    'EXI': 'EXT', 'EXD': 'EXT',
+    'PT': undefined, 'DFC': undefined, 'MCD': undefined, 'MC': undefined, 'MO': undefined, 'SD': undefined, 'DC': undefined,
+};
+
+
 export function getIdealBuildForPlayer(
   playerStyle: PlayerStyle,
   position: Position,
   idealBuilds: IdealBuild[],
   playerStats: PlayerAttributeStats,
 ): { bestBuild: PlayerAttributeStats | null; bestStyle: PlayerStyle | null } {
-  const isStyleValid = getAvailableStylesForPosition(position).includes(playerStyle);
-
-  // If the player's style is valid for the position, find that specific build.
-  if (isStyleValid) {
-    const idealBuild = idealBuilds.find(b => b.position === position && b.style === playerStyle);
-    return { bestBuild: idealBuild ? idealBuild.build : null, bestStyle: playerStyle };
-  }
   
-  // If the style is not valid, find the best possible affinity among all valid styles for that position.
-  const validStyles = getAvailableStylesForPosition(position, false);
-  let bestBuild: PlayerAttributeStats | null = null;
-  let bestStyle: PlayerStyle | null = null;
-  let maxAffinity = -Infinity;
+  const findBuild = (pos: BuildPosition, style: PlayerStyle) => 
+    idealBuilds.find(b => b.position === pos && b.style === style);
 
-  for (const style of validStyles) {
-    const idealBuildForStyle = idealBuilds.find(b => b.position === position && b.style === style);
-    if (idealBuildForStyle) {
-      const currentAffinity = calculateAutomaticAffinity(playerStats, idealBuildForStyle.build);
-      if (currentAffinity > maxAffinity) {
-        maxAffinity = currentAffinity;
-        bestBuild = idealBuildForStyle.build;
-        bestStyle = style;
+  const getBestBuildForPosition = (pos: BuildPosition): { build: PlayerAttributeStats | null; style: PlayerStyle | null } => {
+      const isStyleValid = getAvailableStylesForPosition(pos as Position).includes(playerStyle);
+      
+      // If the player's style is valid for the position, find that specific build.
+      if (isStyleValid) {
+          const idealBuild = findBuild(pos, playerStyle);
+          if (idealBuild) {
+            return { bestBuild: idealBuild.build, bestStyle: playerStyle };
+          }
       }
-    }
+      
+      // If the style is not valid or no specific build was found, find the best possible affinity among all valid styles.
+      const validStyles = getAvailableStylesForPosition(pos as Position, false);
+      let bestBuild: PlayerAttributeStats | null = null;
+      let bestStyle: PlayerStyle | null = null;
+      let maxAffinity = -Infinity;
+
+      for (const style of validStyles) {
+        const idealBuildForStyle = findBuild(pos, style);
+        if (idealBuildForStyle) {
+          const currentAffinity = calculateAutomaticAffinity(playerStats, idealBuildForStyle.build);
+          if (currentAffinity > maxAffinity) {
+            maxAffinity = currentAffinity;
+            bestBuild = idealBuildForStyle.build;
+            bestStyle = style;
+          }
+        }
+      }
+      return { bestBuild, bestStyle };
   }
 
-  return { bestBuild, bestStyle };
+  // 1. Try to find a build for the specific position
+  const specificBuildResult = getBestBuildForPosition(position);
+  if (specificBuildResult.bestBuild) {
+      return specificBuildResult;
+  }
+
+  // 2. If not found, try to find a build for the symmetrical archetype
+  const archetype = symmetricalPositionMap[position];
+  if (archetype) {
+      const archetypeBuildResult = getBestBuildForPosition(archetype);
+      if (archetypeBuildResult.bestBuild) {
+          return archetypeBuildResult;
+      }
+  }
+
+  // 3. If still no build is found, return null
+  return { bestBuild: null, bestStyle: null };
 }
 
 export function calculateAutomaticAffinity(
@@ -196,7 +229,6 @@ export function calculateAutomaticAffinity(
         if (playerStat !== undefined && idealStat !== undefined && idealStat >= 70) {
             const diff = playerStat - idealStat;
             
-            // Formula: MAX(-3, IF(diff >= 0, diff * 0.15, diff * 0.2))
             const statScore = diff >= 0 ? diff * 0.15 : diff * 0.2;
             const cappedScore = Math.max(-3, statScore);
             
