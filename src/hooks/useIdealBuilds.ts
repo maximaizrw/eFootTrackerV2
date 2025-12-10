@@ -21,7 +21,7 @@ export function useIdealBuilds() {
       return;
     }
 
-    const q = query(collection(db, "idealBuilds"), orderBy("position"), orderBy("style"));
+    const q = query(collection(db, "idealBuilds"), orderBy("position"));
 
     const unsub = onSnapshot(q, (snapshot) => {
       try {
@@ -29,6 +29,16 @@ export function useIdealBuilds() {
             id: doc.id,
             ...doc.data(),
         } as IdealBuild));
+        
+        // Sort client-side to avoid needing a composite index
+        buildsData.sort((a, b) => {
+          if (a.position < b.position) return -1;
+          if (a.position > b.position) return 1;
+          if (a.style < b.style) return -1;
+          if (a.style > b.style) return 1;
+          return 0;
+        });
+
         setIdealBuilds(buildsData);
         setError(null);
       } catch (err) {
