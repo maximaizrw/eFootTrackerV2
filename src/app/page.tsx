@@ -48,6 +48,14 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 const ITEMS_PER_PAGE = 10;
 
 export default function Home() {
+  const {
+    idealBuilds,
+    loading: idealBuildsLoading,
+    error: idealBuildsError,
+    saveIdealBuild,
+    deleteIdealBuild,
+  } = useIdealBuilds();
+
   const { 
     players, 
     loading: playersLoading, 
@@ -61,7 +69,7 @@ export default function Home() {
     saveAttributeStats,
     deletePositionRatings,
     toggleSelectablePosition,
-  } = usePlayers();
+  } = usePlayers(idealBuilds);
 
   const {
     formations,
@@ -75,13 +83,6 @@ export default function Home() {
     downloadBackup: downloadFormationsBackup,
   } = useFormations();
   
-  const {
-    idealBuilds,
-    loading: idealBuildsLoading,
-    error: idealBuildsError,
-    saveIdealBuild,
-    deleteIdealBuild,
-  } = useIdealBuilds();
 
   const allPlayers = players || [];
 
@@ -714,3 +715,5 @@ export default function Home() {
     </div>
   );
 }
+
+    

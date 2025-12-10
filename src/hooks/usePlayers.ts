@@ -11,9 +11,8 @@ import { getAvailableStylesForPosition } from '@/lib/types';
 import { normalizeText, calculateProgressionStats, calculateAutomaticAffinity, getIdealBuildForPlayer } from '@/lib/utils';
 
 
-export function usePlayers() {
+export function usePlayers(idealBuilds: IdealBuild[] = []) {
   const [players, setPlayers] = useState<Player[]>([]);
-  const [idealBuilds, setIdealBuilds] = useState<IdealBuild[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -90,17 +89,10 @@ export function usePlayers() {
         });
     });
 
-    const unsubBuilds = onSnapshot(collection(db, "idealBuilds"), (snapshot) => {
-        const buildsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as IdealBuild));
-        setIdealBuilds(buildsData);
-    });
-
-
     return () => {
       unsubPlayers();
-      unsubBuilds();
     };
-  }, []);
+  }, [toast]);
 
   const addRating = async (values: AddRatingFormValues) => {
     let { playerName, cardName, position, rating, style, league, nationality, playerId } = values;
@@ -448,3 +440,5 @@ export function usePlayers() {
 
   return { players, loading, error, addRating, editCard, editPlayer, deleteRating, savePlayerBuild, saveAttributeStats, downloadBackup, deletePositionRatings, toggleSelectablePosition };
 }
+
+    
