@@ -1,7 +1,7 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild } from "./types";
+import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -66,6 +66,13 @@ export function calculateGeneralScore(affinityScore: number, average: number): n
 // --- New Progression System ---
 
 const MAX_STAT_VALUE = 99;
+const allStatsKeys: (keyof PlayerAttributeStats)[] = [
+    'offensiveAwareness', 'ballControl', 'dribbling', 'tightPossession', 'lowPass', 'loftedPass', 'finishing', 'heading', 'placeKicking', 'curl',
+    'defensiveAwareness', 'defensiveEngagement', 'tackling', 'aggression',
+    'goalkeeping', 'gkCatching', 'gkParrying', 'gkReflexes', 'gkReach',
+    'speed', 'acceleration', 'kickingPower', 'jump', 'physicalContact', 'balance', 'stamina'
+];
+
 
 export function calculateProgressionStats(
   baseStats: PlayerAttributeStats,
@@ -125,7 +132,7 @@ export function calculateProgressionStats(
   const gk2Points = goalkeeperBuild.gk2 || 0;
   const gk3Points = goalkeeperBuild.gk3 || 0;
   newStats.goalkeeping = Math.min(MAX_STAT_VALUE, (getBase('goalkeeping', 'baseGoalkeeping')!) + gk1Points);
-  if(!outfieldBuild.aerialStrength) { // Jump is also in aerial strength
+  if(!outfieldBuild.aerialStrength) { 
     newStats.jump = Math.min(MAX_STAT_VALUE, (getBase('jump', 'baseJump')!) + gk1Points);
   }
   newStats.gkParrying = Math.min(MAX_STAT_VALUE, (getBase('gkParrying', 'baseGkParrying')!) + gk2Points);
@@ -134,4 +141,35 @@ export function calculateProgressionStats(
   newStats.gkReflexes = Math.min(MAX_STAT_VALUE, (getBase('gkReflexes', 'baseGkReflexes')!) + gk3Points);
   
   return newStats;
+}
+
+export function getIdealBuildForPlayer(playerStyle: PlayerStyle, position: Position, idealBuilds: IdealBuild[]): PlayerAttributeStats | null {
+    const idealBuild = idealBuilds.find(b => b.position === position && b.style === playerStyle);
+    return idealBuild ? idealBuild.build : null;
+}
+
+export function calculateAutomaticAffinity(
+    playerStats: PlayerAttributeStats,
+    idealBuildStats: PlayerAttributeStats | null
+): number {
+    if (!idealBuildStats) return 0;
+
+    let totalAffinityScore = 0;
+
+    for (const key of allStatsKeys) {
+        const playerStat = playerStats[key];
+        const idealStat = idealBuildStats[key];
+
+        if (playerStat !== undefined && idealStat !== undefined && idealStat > 0) {
+            const diff = playerStat - idealStat;
+            
+            // Formula: MAX(-3, IF(diff >= 0, diff * 0.15, diff * 0.2))
+            const statScore = diff >= 0 ? diff * 0.15 : diff * 0.2;
+            const cappedScore = Math.max(-3, statScore);
+            
+            totalAffinityScore += cappedScore;
+        }
+    }
+    
+    return totalAffinityScore;
 }

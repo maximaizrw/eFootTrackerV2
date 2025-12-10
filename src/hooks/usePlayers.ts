@@ -3,16 +3,17 @@
 
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase-config';
-import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import { v4 as uuidv4 } from 'uuid';
-import type { Player, PlayerCard, Position, AddRatingFormValues, EditCardFormValues, EditPlayerFormValues, PlayerBuild, League, Nationality, PlayerAttributeStats } from '@/lib/types';
+import type { Player, PlayerCard, Position, AddRatingFormValues, EditCardFormValues, EditPlayerFormValues, PlayerBuild, League, Nationality, PlayerAttributeStats, IdealBuild } from '@/lib/types';
 import { getAvailableStylesForPosition } from '@/lib/types';
-import { normalizeText } from '@/lib/utils';
+import { normalizeText, calculateProgressionStats, calculateAutomaticAffinity, getIdealBuildForPlayer } from '@/lib/utils';
 
 
 export function usePlayers() {
   const [players, setPlayers] = useState<Player[]>([]);
+  const [idealBuilds, setIdealBuilds] = useState<IdealBuild[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -25,7 +26,7 @@ export function usePlayers() {
       return;
     }
 
-    const unsub = onSnapshot(collection(db, "players"), (snapshot) => {
+    const unsubPlayers = onSnapshot(collection(db, "players"), (snapshot) => {
       try {
         const playerMap = new Map<string, Player>();
 
@@ -47,7 +48,6 @@ export function usePlayers() {
             }));
 
             if (playerMap.has(normalizedName)) {
-                // Merge cards from duplicate player entries
                 const existingPlayer = playerMap.get(normalizedName)!;
                 const existingCards = existingPlayer.cards;
                 const cardsToMerge = newCards.filter(newCard => 
@@ -90,7 +90,16 @@ export function usePlayers() {
         });
     });
 
-    return () => unsub();
+    const unsubBuilds = onSnapshot(collection(db, "idealBuilds"), (snapshot) => {
+        const buildsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as IdealBuild));
+        setIdealBuilds(buildsData);
+    });
+
+
+    return () => {
+      unsubPlayers();
+      unsubBuilds();
+    };
   }, []);
 
   const addRating = async (values: AddRatingFormValues) => {
@@ -101,7 +110,6 @@ export function usePlayers() {
         return;
     }
     
-    // Validate that the chosen style is valid for the position
     const validStylesForPosition = getAvailableStylesForPosition(position);
     if (!validStylesForPosition.includes(style)) {
         style = 'Ninguno';
@@ -329,15 +337,18 @@ export function usePlayers() {
               cardToUpdate.buildsByPosition = {};
             }
             
-            const updatedBuild = {
+            const playerFinalStats = calculateProgressionStats(cardToUpdate.attributeStats || {}, build);
+            const idealBuild = getIdealBuildForPlayer(cardToUpdate.style, position, idealBuilds);
+            const affinity = calculateAutomaticAffinity(playerFinalStats, idealBuild);
+            
+            const updatedBuild: PlayerBuild = {
               ...build,
+              manualAffinity: affinity,
               updatedAt: new Date().toISOString(),
             };
 
-            // Apply the build to the current position
             cardToUpdate.buildsByPosition[position] = updatedBuild;
             
-            // Sync symmetrical positions
             const symmetricalPositions: Record<string, Position> = {
                 'LI': 'LD', 'LD': 'LI',
                 'MDI': 'MDD', 'MDD': 'MDI',
@@ -350,7 +361,7 @@ export function usePlayers() {
             }
 
             await updateDoc(playerRef, { cards: newCards });
-            toast({ title: "Build Guardada", description: `La build del jugador para ${position} ${counterpart ? `y ${counterpart} ` : ''}se ha actualizado.` });
+            toast({ title: "Build Guardada", description: `La build del jugador para ${position} ${counterpart ? `y ${counterpart} ` : ''}se ha actualizado con afinidad ${affinity.toFixed(2)}.` });
         } else {
             throw new Error("Card not found in player data!");
         }
@@ -376,7 +387,6 @@ export function usePlayers() {
         if (cardToUpdate) {
           if (!cardToUpdate.attributeStats) cardToUpdate.attributeStats = {};
           
-          // Separate base stats from calculated stats
           const baseStats: PlayerAttributeStats = {
             ...stats,
             baseOffensiveAwareness: stats.offensiveAwareness,

@@ -145,15 +145,13 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
             <ScrollArea className="flex-grow pr-4 -mr-4">
                 <div className="space-y-4">
                     <div className="space-y-2">
-                        <Label htmlFor="manualAffinity">Afinidad Manual (-100 a 100)</Label>
+                        <Label htmlFor="manualAffinity">Afinidad Automática</Label>
                         <Input
                         id="manualAffinity"
                         type="number"
-                        value={build.manualAffinity ?? ''}
-                        onChange={handleAffinityChange}
-                        placeholder="Ej: 85"
-                        min="-100"
-                        max="100"
+                        value={build.manualAffinity?.toFixed(2) ?? ''}
+                        readOnly
+                        className="bg-muted text-foreground/80 font-bold"
                         />
                     </div>
                     
