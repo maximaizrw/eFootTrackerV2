@@ -1,0 +1,187 @@
+
+"use client";
+
+import * as React from "react";
+import type { Player, PlayerCard, PlayerAttributeStats } from "@/lib/types";
+import { useForm, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Button } from '@/components/ui/button';
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+
+const statSchema = z.coerce.number().min(0).max(99).optional();
+
+const formSchema = z.object({
+    // Attacking
+    offensiveAwareness: statSchema,
+    ballControl: statSchema,
+    dribbling: statSchema,
+    tightPossession: statSchema,
+    lowPass: statSchema,
+    loftedPass: statSchema,
+    finishing: statSchema,
+    heading: statSchema,
+    placeKicking: statSchema,
+    curl: statSchema,
+    // Defending
+    defensiveAwareness: statSchema,
+    defensiveEngagement: statSchema,
+    tackling: statSchema,
+    aggression: statSchema,
+    // Goalkeeping
+    goalkeeping: statSchema,
+    gkCatching: statSchema,
+    gkParrying: statSchema,
+    gkReflexes: statSchema,
+    gkReach: statSchema,
+    // Athleticism
+    speed: statSchema,
+    acceleration: statSchema,
+    kickingPower: statSchema,
+    jump: statSchema,
+    physicalContact: statSchema,
+    balance: statSchema,
+    stamina: statSchema,
+});
+
+const statFields: { category: string, fields: { name: keyof PlayerAttributeStats, label: string }[] }[] = [
+    { 
+        category: 'Ataque',
+        fields: [
+            { name: 'offensiveAwareness', label: 'Act. Ofensiva' },
+            { name: 'ballControl', label: 'Control del Balón' },
+            { name: 'dribbling', label: 'Regate' },
+            { name: 'tightPossession', label: 'Posesión Estrecha' },
+            { name: 'lowPass', label: 'Pase Raso' },
+            { name: 'loftedPass', label: 'Pase Bombeado' },
+            { name: 'finishing', label: 'Finalización' },
+            { name: 'heading', label: 'Cabeceo' },
+            { name: 'placeKicking', label: 'Balón Parado' },
+            { name: 'curl', label: 'Efecto' },
+        ]
+    },
+    {
+        category: 'Defensa',
+        fields: [
+            { name: 'defensiveAwareness', label: 'Act. Defensiva' },
+            { name: 'defensiveEngagement', label: 'Entrada' },
+            { name: 'tackling', label: 'Segada' },
+            { name: 'aggression', label: 'Agresividad' },
+        ]
+    },
+    {
+        category: 'Portería',
+        fields: [
+            { name: 'goalkeeping', label: 'Act. de Portero' },
+            { name: 'gkCatching', label: 'Atajar' },
+            { name: 'gkParrying', label: 'Despejar' },
+            { name: 'gkReflexes', label: 'Reflejos' },
+            { name: 'gkReach', label: 'Alcance' },
+        ]
+    },
+    {
+        category: 'Atletismo',
+        fields: [
+            { name: 'speed', label: 'Velocidad' },
+            { name: 'acceleration', label: 'Aceleración' },
+            { name: 'kickingPower', label: 'Potencia de Tiro' },
+            { name: 'jump', label: 'Salto' },
+            { name: 'physicalContact', label: 'Contacto Físico' },
+            { name: 'balance', label: 'Equilibrio' },
+            { name: 'stamina', label: 'Resistencia' },
+        ]
+    }
+];
+
+
+type EditStatsDialogProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSaveStats: (playerId: string, cardId: string, stats: PlayerAttributeStats) => void;
+  initialData?: {
+    player: Player;
+    card: PlayerCard;
+  };
+};
+
+export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }: EditStatsDialogProps) {
+  const form = useForm<PlayerAttributeStats>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {},
+  });
+
+  React.useEffect(() => {
+    if (open && initialData?.card.attributeStats) {
+      form.reset(initialData.card.attributeStats);
+    } else if (open) {
+      form.reset({});
+    }
+  }, [open, initialData, form]);
+
+  const handleSubmit = (values: PlayerAttributeStats) => {
+    if (initialData) {
+      onSaveStats(initialData.player.id, initialData.card.id, values);
+      onOpenChange(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Editar Atributos de la Carta</DialogTitle>
+          {initialData && (
+            <DialogDescription>
+              {`Editando atributos para ${initialData.player.name} - ${initialData.card.name}`}
+            </DialogDescription>
+          )}
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="flex-grow overflow-hidden flex flex-col">
+            <ScrollArea className="flex-grow pr-4 -mr-4">
+              <div className="space-y-6">
+                {statFields.map((category) => (
+                  <div key={category.category}>
+                    <h3 className="text-lg font-semibold mb-3 text-primary">{category.category}</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-3">
+                      {category.fields.map((field) => (
+                        <FormField
+                          key={field.name}
+                          control={form.control}
+                          name={field.name}
+                          render={({ field: formField }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">{field.label}</FormLabel>
+                              <FormControl>
+                                <Input type="number" min="0" max="99" {...formField} onChange={e => formField.onChange(e.target.value === '' ? undefined : +e.target.value)} />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+            <DialogFooter className="flex-shrink-0 border-t pt-4 mt-4">
+              <Button type="submit">Guardar Atributos</Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}

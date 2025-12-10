@@ -53,6 +53,38 @@ export type PlayerBuild = (OutfieldBuild | GoalkeeperBuild) & {
   updatedAt?: string;
 };
 
+export type PlayerAttributeStats = {
+  // Attacking
+  offensiveAwareness?: number;
+  ballControl?: number;
+  dribbling?: number;
+  tightPossession?: number;
+  lowPass?: number;
+  loftedPass?: number;
+  finishing?: number;
+  heading?: number;
+  placeKicking?: number;
+  curl?: number;
+  // Defending
+  defensiveAwareness?: number;
+  defensiveEngagement?: number;
+  tackling?: number;
+  aggression?: number;
+  // Goalkeeping
+  goalkeeping?: number;
+  gkCatching?: number;
+  gkParrying?: number;
+  gkReflexes?: number;
+  gkReach?: number;
+  // Athleticism
+  speed?: number;
+  acceleration?: number;
+  kickingPower?: number;
+  jump?: number;
+  physicalContact?: number;
+  balance?: number;
+  stamina?: number;
+};
 
 export const positionLabels: Record<Position, string> = {
     PT: 'Portero',
@@ -82,6 +114,7 @@ export type PlayerCard = {
   ratingsByPosition: { [key in Position]?: number[] };
   selectablePositions?: { [key in Position]?: boolean };
   buildsByPosition?: { [key in Position]?: PlayerBuild };
+  attributeStats?: PlayerAttributeStats;
 };
 
 export type Player = {

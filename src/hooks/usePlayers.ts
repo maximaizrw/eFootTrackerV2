@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase-config';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import { v4 as uuidv4 } from 'uuid';
-import type { Player, PlayerCard, Position, AddRatingFormValues, EditCardFormValues, EditPlayerFormValues, PlayerBuild, League, Nationality } from '@/lib/types';
+import type { Player, PlayerCard, Position, AddRatingFormValues, EditCardFormValues, EditPlayerFormValues, PlayerBuild, League, Nationality, PlayerAttributeStats } from '@/lib/types';
 import { getAvailableStylesForPosition } from '@/lib/types';
 import { normalizeText } from '@/lib/utils';
 
@@ -43,6 +43,7 @@ export function usePlayers() {
                 ratingsByPosition: card.ratingsByPosition || {},
                 selectablePositions: card.selectablePositions || {},
                 buildsByPosition: card.buildsByPosition || {},
+                attributeStats: card.attributeStats || {},
             }));
 
             if (playerMap.has(normalizedName)) {
@@ -359,6 +360,33 @@ export function usePlayers() {
     }
   };
 
+  const saveAttributeStats = async (playerId: string, cardId: string, stats: PlayerAttributeStats) => {
+     if (!db) return;
+    const playerRef = doc(db, 'players', playerId);
+    try {
+        const playerDoc = await getDoc(playerRef);
+        if (!playerDoc.exists()) {
+            throw new Error("Player document not found!");
+        }
+
+        const playerData = playerDoc.data() as Player;
+        const newCards = JSON.parse(JSON.stringify(playerData.cards || [])) as PlayerCard[];
+        const cardToUpdate = newCards.find(c => c.id === cardId);
+
+        if (cardToUpdate) {
+          cardToUpdate.attributeStats = stats;
+          await updateDoc(playerRef, { cards: newCards });
+          toast({ title: "Atributos Guardados", description: `Los atributos de la carta se han actualizado.` });
+        } else {
+           throw new Error("Card not found!");
+        }
+
+    } catch (error) {
+      console.error("Error saving attribute stats: ", error);
+      toast({ variant: "destructive", title: "Error al Guardar", description: "No se pudieron guardar los atributos." });
+    }
+  };
+
 
   const downloadBackup = async () => {
     if (!db) return null;
@@ -375,5 +403,5 @@ export function usePlayers() {
     }
   };
 
-  return { players, loading, error, addRating, editCard, editPlayer, deleteRating, savePlayerBuild, downloadBackup, deletePositionRatings, toggleSelectablePosition };
+  return { players, loading, error, addRating, editCard, editPlayer, deleteRating, savePlayerBuild, saveAttributeStats, downloadBackup, deletePositionRatings, toggleSelectablePosition };
 }

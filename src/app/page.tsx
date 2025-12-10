@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { AddRatingDialog, type FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import { EditCardDialog, type FormValues as EditCardFormValues } from '@/components/edit-card-dialog';
 import { EditPlayerDialog, type FormValues as EditPlayerFormValues } from '@/components/edit-player-dialog';
+import { EditStatsDialog } from '@/components/edit-stats-dialog';
 import { AddFormationDialog, type AddFormationFormValues } from '@/components/add-formation-dialog';
 import { EditFormationDialog, type EditFormationFormValues } from '@/components/edit-formation-dialog';
 import { AddMatchDialog, type AddMatchFormValues } from '@/components/add-match-dialog';
@@ -35,7 +36,7 @@ import { usePlayers } from '@/hooks/usePlayers';
 import { useFormations } from '@/hooks/useFormations';
 import { useToast } from "@/hooks/use-toast";
 
-import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerBuild, IdealTeamPlayer } from '@/lib/types';
+import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerBuild, IdealTeamPlayer, PlayerAttributeStats } from '@/lib/types';
 import { positions, leagues, nationalities } from '@/lib/types';
 import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Wrench } from 'lucide-react';
 import { calculateStats, normalizeText, calculateGeneralScore } from '@/lib/utils';
@@ -55,6 +56,7 @@ export default function Home() {
     deleteRating,
     downloadBackup: downloadPlayersBackup,
     savePlayerBuild,
+    saveAttributeStats,
     deletePositionRatings,
     toggleSelectablePosition,
   } = usePlayers();
@@ -81,6 +83,7 @@ export default function Home() {
   const [isAddMatchDialogOpen, setAddMatchDialogOpen] = useState(false);
   const [isEditCardDialogOpen, setEditCardDialogOpen] = useState(false);
   const [isEditPlayerDialogOpen, setEditPlayerDialogOpen] = useState(false);
+  const [isEditStatsDialogOpen, setEditStatsDialogOpen] = useState(false);
   const [isPlayerDetailDialogOpen, setPlayerDetailDialogOpen] = useState(false);
   const [isImageViewerOpen, setImageViewerOpen] = useState(false);
   const [viewingImageUrl, setViewingImageUrl] = useState<string | null>(null);
@@ -90,6 +93,7 @@ export default function Home() {
   const [editCardDialogInitialData, setEditCardDialogInitialData] = useState<EditCardFormValues | undefined>(undefined);
   const [editPlayerDialogInitialData, setEditPlayerDialogInitialData] = useState<Partial<EditPlayerFormValues> | undefined>(undefined);
   const [editFormationDialogInitialData, setEditFormationDialogInitialData] = useState<FormationStats | undefined>(undefined);
+  const [editStatsDialogInitialData, setEditStatsDialogInitialData] = useState<{ player: Player, card: PlayerCardType } | undefined>(undefined);
   const [selectedFlatPlayer, setSelectedFlatPlayer] = useState<FlatPlayer | null>(null);
   const [isBuildViewerOpen, setIsBuildViewerOpen] = useState(false);
   const [viewingPlayerBuild, setViewingPlayerBuild] = useState<IdealTeamPlayer | null>(null);
@@ -149,6 +153,11 @@ export default function Home() {
       nationality: player.nationality || 'Sin Nacionalidad',
     });
     setEditPlayerDialogOpen(true);
+  };
+
+  const handleOpenEditStats = (player: Player, card: PlayerCardType) => {
+    setEditStatsDialogInitialData({ player, card });
+    setEditStatsDialogOpen(true);
   };
 
   const handleOpenPlayerDetail = (flatPlayer: FlatPlayer) => {
@@ -369,6 +378,12 @@ export default function Home() {
         onEditPlayer={editPlayer}
         initialData={editPlayerDialogInitialData}
       />
+      <EditStatsDialog
+        open={isEditStatsDialogOpen}
+        onOpenChange={setEditStatsDialogOpen}
+        onSaveStats={saveAttributeStats}
+        initialData={editStatsDialogInitialData}
+      />
       <PlayerDetailDialog
         open={isPlayerDetailDialogOpen}
         onOpenChange={setPlayerDetailDialogOpen}
@@ -556,6 +571,7 @@ export default function Home() {
                       onOpenAddRating={handleOpenAddRating}
                       onOpenEditCard={handleOpenEditCard}
                       onOpenEditPlayer={handleOpenEditPlayer}
+                      onOpenEditStats={handleOpenEditStats}
                       onOpenPlayerDetail={handleOpenPlayerDetail}
                       onViewImage={handleViewImage}
                       onDeletePositionRatings={deletePositionRatings}

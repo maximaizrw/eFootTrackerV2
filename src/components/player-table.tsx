@@ -9,7 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, X, Wrench, Pencil, NotebookPen, Search, EyeOff, Eye, Star, ChevronDown, ChevronUp } from 'lucide-react';
+import { PlusCircle, Trash2, X, Wrench, Pencil, NotebookPen, Search, EyeOff, Eye, Star, ChevronDown, ChevronUp, SlidersHorizontal } from 'lucide-react';
 import { cn, formatAverage, getAverageColorClass } from '@/lib/utils';
 import type { Player, PlayerCard, Position, FlatPlayer } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
@@ -28,6 +28,7 @@ type PlayerTableProps = {
   onOpenAddRating: (initialData?: Partial<AddRatingFormValues>) => void;
   onOpenEditCard: (player: Player, card: PlayerCard) => void;
   onOpenEditPlayer: (player: Player) => void;
+  onOpenEditStats: (player: Player, card: PlayerCard) => void;
   onOpenPlayerDetail: (flatPlayer: FlatPlayer) => void;
   onViewImage: (url: string, name: string) => void;
   onDeletePositionRatings: (playerId: string, cardId: string, position: Position) => void;
@@ -180,6 +181,7 @@ export function PlayerTable({
   onOpenAddRating,
   onOpenEditCard,
   onOpenEditPlayer,
+  onOpenEditStats,
   onOpenPlayerDetail,
   onViewImage,
   onDeletePositionRatings,
@@ -389,6 +391,18 @@ export function PlayerTable({
                               </Button>
                               </TooltipTrigger>
                               <TooltipContent><p>Editar carta (nombre, estilo e imagen)</p></TooltipContent>
+                          </Tooltip>
+                           <Tooltip>
+                              <TooltipTrigger asChild>
+                              <Button
+                                  variant="ghost" size="icon" className="h-8 w-8 rounded-full"
+                                  aria-label={`Editar atributos de ${card.name}`}
+                                  onClick={(e) => { e.stopPropagation(); onOpenEditStats(player, card); }}
+                                  >
+                                  <SlidersHorizontal className="h-4 w-4 text-muted-foreground/80 hover:text-muted-foreground" />
+                              </Button>
+                              </TooltipTrigger>
+                              <TooltipContent><p>Editar atributos de la carta</p></TooltipContent>
                           </Tooltip>
                           <Tooltip>
                               <TooltipTrigger asChild>
