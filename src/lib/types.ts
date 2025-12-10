@@ -53,6 +53,13 @@ export type PlayerBuild = (OutfieldBuild | GoalkeeperBuild) & {
   updatedAt?: string;
 };
 
+export type IdealBuild = {
+  id?: string; // composite key of position-style
+  position: Position;
+  style: PlayerStyle;
+  build: OutfieldBuild & GoalkeeperBuild;
+};
+
 export type PlayerAttributeStats = {
   // Attacking
   offensiveAwareness?: number;
