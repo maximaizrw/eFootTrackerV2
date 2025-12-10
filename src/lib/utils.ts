@@ -72,9 +72,10 @@ export function calculateProgressionStats(
   build: PlayerBuild
 ): PlayerAttributeStats {
   const newStats = { ...baseStats };
+  const outfieldBuild = build as OutfieldBuild;
 
   // --- Shooting ---
-  const shootingPoints = (build as OutfieldBuild).shooting || 0;
+  const shootingPoints = outfieldBuild.shooting || 0;
   if (shootingPoints > 0) {
     newStats.finishing = Math.min(MAX_STAT_VALUE, (baseStats.baseFinishing || baseStats.finishing || 0) + shootingPoints);
     newStats.placeKicking = Math.min(MAX_STAT_VALUE, (baseStats.basePlaceKicking || baseStats.placeKicking || 0) + shootingPoints);
@@ -84,8 +85,31 @@ export function calculateProgressionStats(
     newStats.placeKicking = (baseStats.basePlaceKicking || baseStats.placeKicking || 0);
     newStats.curl = (baseStats.baseCurl || baseStats.curl || 0);
   }
+  
+  // --- Passing ---
+  const passingPoints = outfieldBuild.passing || 0;
+  if (passingPoints > 0) {
+    newStats.lowPass = Math.min(MAX_STAT_VALUE, (baseStats.baseLowPass || baseStats.lowPass || 0) + passingPoints);
+    newStats.loftedPass = Math.min(MAX_STAT_VALUE, (baseStats.baseLoftedPass || baseStats.loftedPass || 0) + passingPoints);
+  } else {
+    newStats.lowPass = (baseStats.baseLowPass || baseStats.lowPass || 0);
+    newStats.loftedPass = (baseStats.baseLoftedPass || baseStats.loftedPass || 0);
+  }
+  
+  // --- Dribbling ---
+  const dribblingPoints = outfieldBuild.dribbling || 0;
+  if (dribblingPoints > 0) {
+    newStats.ballControl = Math.min(MAX_STAT_VALUE, (baseStats.baseBallControl || baseStats.ballControl || 0) + dribblingPoints);
+    newStats.dribbling = Math.min(MAX_STAT_VALUE, (baseStats.baseDribbling || baseStats.dribbling || 0) + dribblingPoints);
+    newStats.tightPossession = Math.min(MAX_STAT_VALUE, (baseStats.baseTightPossession || baseStats.tightPossession || 0) + dribblingPoints);
+  } else {
+    newStats.ballControl = (baseStats.baseBallControl || baseStats.ballControl || 0);
+    newStats.dribbling = (baseStats.baseDribbling || baseStats.dribbling || 0);
+    newStats.tightPossession = (baseStats.baseTightPossession || baseStats.tightPossession || 0);
+  }
 
-  // TODO: Implement other categories (Passing, Dribbling, etc.) here following the same pattern.
+
+  // TODO: Implement other categories (Dexterity, etc.) here following the same pattern.
 
   return newStats;
 }

@@ -68,14 +68,11 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
     if (open && flatPlayer && position) {
       const initialBuild = card?.buildsByPosition?.[position] || { manualAffinity: 0 };
       setBuild(initialBuild);
-      
-      const calculatedStats = calculateProgressionStats(baseStats, initialBuild);
-      setFinalStats(calculatedStats);
     } else {
       setBuild({ manualAffinity: 0 });
       setFinalStats({});
     }
-  }, [open, flatPlayer, card, position, baseStats]);
+  }, [open, flatPlayer, card, position]);
 
   React.useEffect(() => {
     if(open && !isPotw){
@@ -110,8 +107,8 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
     setBuild(prev => ({ ...prev, [category]: value }));
   }
 
-  const StatDisplay = ({ label, value }: { label: string; value?: number }) => {
-    const baseValue = baseStats[label.toLowerCase().replace(/\s/g, '') as keyof PlayerAttributeStats];
+  const StatDisplay = ({ label, value, baseValueProp }: { label: string; value?: number, baseValueProp?: keyof PlayerAttributeStats }) => {
+    const baseValue = baseValueProp ? baseStats[baseValueProp] : undefined;
     const hasIncreased = value !== undefined && baseValue !== undefined && value > baseValue;
 
     if (value === undefined || value === 0) return null;
@@ -181,10 +178,17 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
                         <SeparatorHorizontal className="my-4" />
                         <p className="font-medium text-sm text-muted-foreground">Estadísticas Finales</p>
 
-                        <div className="space-y-1">
-                            <StatDisplay label="Finalización" value={finalStats.finishing} />
-                            <StatDisplay label="Balón Parado" value={finalStats.placeKicking} />
-                            <StatDisplay label="Efecto" value={finalStats.curl} />
+                        <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+                            <StatDisplay label="Control del Balón" value={finalStats.ballControl} baseValueProp="baseBallControl" />
+                            <StatDisplay label="Regate" value={finalStats.dribbling} baseValueProp="baseDribbling" />
+                            <StatDisplay label="Posesión Estrecha" value={finalStats.tightPossession} baseValueProp="baseTightPossession" />
+                            
+                            <StatDisplay label="Pase Raso" value={finalStats.lowPass} baseValueProp="baseLowPass" />
+                            <StatDisplay label="Pase Bombeado" value={finalStats.loftedPass} baseValueProp="baseLoftedPass" />
+
+                            <StatDisplay label="Finalización" value={finalStats.finishing} baseValueProp="baseFinishing" />
+                            <StatDisplay label="Balón Parado" value={finalStats.placeKicking} baseValueProp="basePlaceKicking" />
+                            <StatDisplay label="Efecto" value={finalStats.curl} baseValueProp="baseCurl" />
                         </div>
                      </>
                 )}

@@ -382,6 +382,11 @@ export function usePlayers() {
             baseFinishing: stats.finishing,
             basePlaceKicking: stats.placeKicking,
             baseCurl: stats.curl,
+            baseLowPass: stats.lowPass,
+            baseLoftedPass: stats.loftedPass,
+            baseBallControl: stats.ballControl,
+            baseDribbling: stats.dribbling,
+            baseTightPossession: stats.tightPossession,
           };
           
           cardToUpdate.attributeStats = baseStats;

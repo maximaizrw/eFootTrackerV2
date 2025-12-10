@@ -89,6 +89,11 @@ export type PlayerAttributeStats = {
   baseFinishing?: number;
   basePlaceKicking?: number;
   baseCurl?: number;
+  baseLowPass?: number;
+  baseLoftedPass?: number;
+  baseBallControl?: number;
+  baseDribbling?: number;
+  baseTightPossession?: number;
 };
 
 export const positionLabels: Record<Position, string> = {
