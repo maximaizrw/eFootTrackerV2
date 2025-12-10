@@ -153,20 +153,22 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
   React.useEffect(() => {
     if (open) {
       setPastedText('');
-      const defaultValues: Record<string, any> = {};
-      statFields.forEach(cat => cat.fields.forEach(f => defaultValues[f.name] = initialBuild?.build?.[f.name] ?? ''));
+      const buildValues: Record<string, any> = {};
+      statFields.forEach(cat => cat.fields.forEach(f => buildValues[f.name] = initialBuild?.build?.[f.name] ?? ''));
 
       if (initialBuild) {
         reset({
           position: initialBuild.position,
           style: initialBuild.style,
-          build: defaultValues,
+          build: buildValues,
         });
       } else {
+        const emptyBuild: Record<string, any> = {};
+        statFields.forEach(cat => cat.fields.forEach(f => emptyBuild[f.name] = ''));
         reset({
           position: "DC",
           style: "Cazagoles",
-          build: {},
+          build: emptyBuild,
         });
       }
     }
@@ -368,5 +370,3 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
     </Dialog>
   );
 }
-
-    
