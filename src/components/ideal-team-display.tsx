@@ -1,7 +1,7 @@
 
 "use client";
 
-import type { IdealTeamPlayer, IdealTeamSlot, FormationStats, Position } from '@/lib/types';
+import type { IdealTeamPlayer, IdealTeamSlot, FormationStats, Position, PlayerBuild } from '@/lib/types';
 import Image from 'next/image';
 import { Users, Shirt, X, Crown, NotebookPen } from 'lucide-react';
 import { Button } from './ui/button';
@@ -19,6 +19,17 @@ type IdealTeamDisplayProps = {
   onViewBuild: (player: IdealTeamPlayer) => void;
 };
 
+const hasProgressionPoints = (build: PlayerBuild | undefined): boolean => {
+    if (!build) return false;
+    // Check if any of the progression keys have a value greater than 0
+    const keys: (keyof PlayerBuild)[] = ['shooting', 'passing', 'dribbling', 'dexterity', 'lowerBodyStrength', 'aerialStrength', 'defending', 'gk1', 'gk2', 'gk3'];
+    return keys.some(key => {
+        const value = build[key];
+        return typeof value === 'number' && value > 0;
+    });
+};
+
+
 const PlayerToken = ({ player, style, onDiscard, onViewBuild }: { player: IdealTeamPlayer | null, style: React.CSSProperties, onDiscard: (cardId: string) => void, onViewBuild: (player: IdealTeamPlayer) => void }) => {
   if (!player || player.player.id.startsWith('placeholder')) {
     return (
@@ -34,6 +45,16 @@ const PlayerToken = ({ player, style, onDiscard, onViewBuild }: { player: IdealT
   }
 
   const displayPosition = player.assignedPosition;
+  const build = player.card.buildsByPosition?.[player.assignedPosition];
+  const isPotw = player.card.name.toLowerCase().includes('potw');
+  const hasNoStats = !player.card.attributeStats || Object.keys(player.card.attributeStats).length === 0;
+  const hasNoProgression = !isPotw && (!build || !hasProgressionPoints(build));
+  
+  const nameColorClass = 
+    hasNoStats ? 'text-red-500' :
+    hasNoProgression ? 'text-violet-400' :
+    '';
+
 
   return (
     <div 
@@ -80,7 +101,7 @@ const PlayerToken = ({ player, style, onDiscard, onViewBuild }: { player: IdealT
             </p>
             <button className="flex items-center justify-center gap-1 group/name" onClick={() => onViewBuild(player)}>
                 <AffinityStatusIndicator player={player} />
-                <p className="font-semibold text-xs truncate group-hover/name:underline" title={player.player.name}>
+                <p className={cn("font-semibold text-xs truncate group-hover/name:underline", nameColorClass)} title={player.player.name}>
                     {player.player.name}
                 </p>
             </button>
@@ -103,6 +124,16 @@ const SubstitutePlayerRow = ({ player, onDiscard, onViewBuild }: { player: Ideal
   }
 
   const displayPosition = player.assignedPosition;
+  const build = player.card.buildsByPosition?.[player.assignedPosition];
+  const isPotw = player.card.name.toLowerCase().includes('potw');
+  const hasNoStats = !player.card.attributeStats || Object.keys(player.card.attributeStats).length === 0;
+  const hasNoProgression = !isPotw && (!build || !hasProgressionPoints(build));
+  
+  const nameColorClass = 
+    hasNoStats ? 'text-red-500' :
+    hasNoProgression ? 'text-violet-400' :
+    '';
+
 
   return (
     <Card className="group relative flex items-center gap-2 p-2 rounded-lg bg-card h-20 overflow-hidden">
@@ -123,7 +154,7 @@ const SubstitutePlayerRow = ({ player, onDiscard, onViewBuild }: { player: Ideal
       <div className="flex-grow overflow-hidden">
         <button className="flex items-center gap-2 group/name" onClick={() => onViewBuild(player)}>
             <AffinityStatusIndicator player={player} />
-            <p className="font-semibold text-base text-foreground truncate group-hover/name:underline" title={player.player.name}>
+            <p className={cn("font-semibold text-base text-foreground truncate group-hover/name:underline", nameColorClass)} title={player.player.name}>
                 {player.player.name}
             </p>
         </button>
