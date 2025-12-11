@@ -67,7 +67,6 @@ export function calculateGeneralScore(affinityScore: number, average: number): n
 
 // --- New Progression System ---
 
-const MAX_STAT_VALUE = 99;
 const outfieldStatsKeys: (keyof PlayerAttributeStats)[] = [
     'offensiveAwareness', 'ballControl', 'dribbling', 'tightPossession', 'lowPass', 'loftedPass', 'finishing', 'heading', 'placeKicking', 'curl',
     'defensiveAwareness', 'defensiveEngagement', 'tackling', 'aggression',
@@ -176,73 +175,57 @@ export function getIdealBuildForPlayer(
   const findBuild = (pos: BuildPosition, style: PlayerStyle) => 
     idealBuilds.find(b => b.position === pos && b.style === style);
 
-  const getBestBuildForAllStyles = (pos: BuildPosition): { build: PlayerAttributeStats | null, style: PlayerStyle | null } => {
-      const validStyles = getAvailableStylesForPosition(pos as Position, false);
-      let bestBuild: PlayerAttributeStats | null = null;
-      let bestStyle: PlayerStyle | null = null;
-      let maxAffinity = -Infinity;
-
-      for (const style of validStyles) {
-        const idealBuildForStyle = findBuild(pos, style);
-        if (idealBuildForStyle?.build) {
-          const currentAffinity = calculateAutomaticAffinity(playerStats, idealBuildForStyle.build, pos === 'PT');
-          if (currentAffinity > maxAffinity) {
-            maxAffinity = currentAffinity;
-            bestBuild = idealBuildForStyle.build;
-            bestStyle = style;
-          }
-        }
-      }
-      return { build: bestBuild, style: bestStyle };
-  }
-
-  // 1. Check if player's own style is valid for the position
+  // 1. Try to find a build for the player's own style.
+  //    Priority: Exact Position > Archetype Position
   const isPlayerStyleValid = getAvailableStylesForPosition(position).includes(playerStyle);
-  let directBuild: IdealBuild | undefined;
-  let hasDirectBuild = false;
-
-  // 2. If valid, try to find a direct match for the player's own style
   if (isPlayerStyleValid) {
-      directBuild = findBuild(position, playerStyle);
-      if (directBuild) {
-          hasDirectBuild = true;
-      } else {
-        const archetype = symmetricalPositionMap[position];
-        if (archetype) {
-            const directArchetypeBuild = findBuild(archetype, playerStyle);
-            if (directArchetypeBuild) {
-                directBuild = directArchetypeBuild;
-                hasDirectBuild = true;
-            }
-        }
+    // Check for exact position match first (e.g., LI)
+    let directBuild = findBuild(position, playerStyle);
+    if (directBuild) {
+      return { bestBuild: directBuild.build, bestStyle: playerStyle };
+    }
+    
+    // If not found, check for archetype match (e.g., LAT for LI)
+    const archetype = symmetricalPositionMap[position];
+    if (archetype) {
+      const archetypeBuild = findBuild(archetype, playerStyle);
+      if (archetypeBuild) {
+        return { bestBuild: archetypeBuild.build, bestStyle: playerStyle };
       }
+    }
   }
 
-  if(hasDirectBuild && directBuild){
-    return { bestBuild: directBuild.build, bestStyle: playerStyle };
-  }
+  // 2. If no build for the player's own style is found, search for the best alternative
+  //    among all available builds for that position/archetype.
+  let bestAlternativeBuild: PlayerAttributeStats | null = null;
+  let bestAlternativeStyle: PlayerStyle | null = null;
+  let maxAffinity = -Infinity;
 
-
-  // 3. If no direct match is found (or style is invalid), find the best alternative among all valid styles
-  const specificPositionBest = getBestBuildForAllStyles(position);
-  let bestOverallBuild = specificPositionBest.build;
-  let bestOverallStyle = specificPositionBest.style;
-  let maxAffinity = calculateAutomaticAffinity(playerStats, bestOverallBuild, position === 'PT');
-
+  const validPositions: BuildPosition[] = [position];
   const archetype = symmetricalPositionMap[position];
   if (archetype) {
-      const archetypeBest = getBestBuildForAllStyles(archetype);
-      const archetypeAffinity = calculateAutomaticAffinity(playerStats, archetypeBest.build, position === 'PT');
-      
-      if (archetypeAffinity > maxAffinity) {
-          maxAffinity = archetypeAffinity;
-          bestOverallBuild = archetypeBest.build;
-          bestOverallStyle = archetypeBest.style;
-      }
+    validPositions.push(archetype);
   }
 
-  return { bestBuild: bestOverallBuild, bestStyle: bestOverallStyle };
+  // Iterate over all ideal builds
+  for (const idealBuild of idealBuilds) {
+    // Check if the ideal build's position is relevant (either exact or archetype)
+    if (validPositions.includes(idealBuild.position)) {
+      // Check if the ideal build's style is valid for the player's *actual* position
+      if (getAvailableStylesForPosition(position).includes(idealBuild.style)) {
+        const currentAffinity = calculateAutomaticAffinity(playerStats, idealBuild.build, position === 'PT');
+        if (currentAffinity > maxAffinity) {
+          maxAffinity = currentAffinity;
+          bestAlternativeBuild = idealBuild.build;
+          bestAlternativeStyle = idealBuild.style;
+        }
+      }
+    }
+  }
+
+  return { bestBuild: bestAlternativeBuild, bestStyle: bestAlternativeStyle };
 }
+
 
 export function calculateAutomaticAffinity(
     playerStats: PlayerAttributeStats,
