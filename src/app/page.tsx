@@ -25,6 +25,7 @@ import { AddMatchDialog, type AddMatchFormValues } from '@/components/add-match-
 import { PlayerDetailDialog } from '@/components/player-detail-dialog';
 import { PlayerBuildViewer } from '@/components/player-build-viewer';
 import { IdealBuildEditor } from '@/components/ideal-build-editor';
+import { PlayerTester } from '@/components/player-tester';
 
 import { FormationsDisplay } from '@/components/formations-display';
 import { IdealTeamDisplay } from '@/components/ideal-team-display';
@@ -40,7 +41,7 @@ import { useToast } from "@/hooks/use-toast";
 
 import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerBuild, IdealTeamPlayer, PlayerAttributeStats, IdealBuild, BuildPosition } from '@/lib/types';
 import { positions, leagues, nationalities, buildPositions } from '@/lib/types';
-import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Wrench, Dna, RefreshCw } from 'lucide-react';
+import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Wrench, Dna, RefreshCw, Beaker } from 'lucide-react';
 import { calculateStats, normalizeText, calculateGeneralScore } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -495,6 +496,10 @@ export default function Home() {
                   <Dna className="mr-2 h-5 w-5"/>
                   Builds Ideales
               </TabsTrigger>
+              <TabsTrigger value="tester" className="py-2 px-3 text-sm data-[state=active]:text-accent-foreground data-[state=active]:bg-accent">
+                  <Beaker className="mr-2 h-5 w-5"/>
+                  Probador
+              </TabsTrigger>
             </TabsList>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
@@ -722,6 +727,10 @@ export default function Home() {
             </Card>
           </TabsContent>
           
+          <TabsContent value="tester" className="mt-6">
+            <PlayerTester idealBuilds={idealBuilds} />
+          </TabsContent>
+
         </Tabs>
       </main>
     </div>
