@@ -18,7 +18,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Slider } from "./ui/slider";
 import { ScrollArea } from "./ui/scroll-area";
-import { Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, BrainCircuit } from "lucide-react";
+import { Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, BrainCircuit, RefreshCw } from "lucide-react";
 import { calculateProgressionStats, getIdealBuildForPlayer, calculateAffinityWithBreakdown, type AffinityBreakdownResult, statLabels } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
@@ -108,6 +108,12 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
     }
   };
   
+  const handleUpdateAffinity = () => {
+    if (player && card && position) {
+      onSavePlayerBuild(player.id, card.id, position, build);
+    }
+  };
+
   const formattedDate = updatedAt 
     ? format(new Date(updatedAt), "d 'de' MMMM 'de' yyyy 'a las' HH:mm", { locale: es }) 
     : 'N/A';
@@ -160,13 +166,18 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
                   <div className="space-y-4">
                       <div className="space-y-2">
                           <Label htmlFor="manualAffinity">Afinidad Automática</Label>
-                          <input
-                          id="manualAffinity"
-                          type="number"
-                          value={affinityBreakdown.totalAffinityScore.toFixed(2) ?? ''}
-                          readOnly
-                          className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm text-foreground/80 font-bold"
-                          />
+                          <div className="flex items-center gap-2">
+                              <input
+                              id="manualAffinity"
+                              type="number"
+                              value={affinityBreakdown.totalAffinityScore.toFixed(2) ?? ''}
+                              readOnly
+                              className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm text-foreground/80 font-bold"
+                              />
+                              <Button variant="outline" size="icon" onClick={handleUpdateAffinity}>
+                                  <RefreshCw className="h-4 w-4" />
+                              </Button>
+                          </div>
                       </div>
                       
                       {isPotw ? (
