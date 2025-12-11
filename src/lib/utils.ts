@@ -80,6 +80,7 @@ const goalkeeperStatsKeys: (keyof PlayerAttributeStats)[] = [
     'speed', 'acceleration', 'kickingPower', 'jump', 'physicalContact', 'balance', 'stamina'
 ];
 
+
 export const allStatsKeys: (keyof PlayerAttributeStats)[] = [
     ...new Set([...outfieldStatsKeys, ...goalkeeperStatsKeys])
 ];
@@ -87,7 +88,8 @@ export const allStatsKeys: (keyof PlayerAttributeStats)[] = [
 
 export function calculateProgressionStats(
   baseStats: PlayerAttributeStats,
-  build: PlayerBuild
+  build: PlayerBuild,
+  isGoalkeeper: boolean = false
 ): PlayerAttributeStats {
   const newStats: PlayerAttributeStats = { ...baseStats };
   const outfieldBuild = build as OutfieldBuild;
@@ -96,54 +98,56 @@ export function calculateProgressionStats(
   const getBase = (stat: keyof PlayerAttributeStats, baseStat: keyof PlayerAttributeStats) => 
     baseStats[baseStat] !== undefined ? baseStats[baseStat] : baseStats[stat] || 0;
 
-  // --- Shooting ---
-  const shootingPoints = outfieldBuild.shooting || 0;
-  newStats.finishing = Math.min(MAX_STAT_VALUE, (getBase('finishing', 'baseFinishing')!) + shootingPoints);
-  newStats.placeKicking = Math.min(MAX_STAT_VALUE, (getBase('placeKicking', 'basePlaceKicking')!) + shootingPoints);
-  newStats.curl = Math.min(MAX_STAT_VALUE, (getBase('curl', 'baseCurl')!) + shootingPoints);
-  
-  // --- Passing ---
-  const passingPoints = outfieldBuild.passing || 0;
-  newStats.lowPass = Math.min(MAX_STAT_VALUE, (getBase('lowPass', 'baseLowPass')!) + passingPoints);
-  newStats.loftedPass = Math.min(MAX_STAT_VALUE, (getBase('loftedPass', 'baseLoftedPass')!) + passingPoints);
-  
-  // --- Dribbling ---
-  const dribblingPoints = outfieldBuild.dribbling || 0;
-  newStats.ballControl = Math.min(MAX_STAT_VALUE, (getBase('ballControl', 'baseBallControl')!) + dribblingPoints);
-  newStats.dribbling = Math.min(MAX_STAT_VALUE, (getBase('dribbling', 'baseDribbling')!) + dribblingPoints);
-  newStats.tightPossession = Math.min(MAX_STAT_VALUE, (getBase('tightPossession', 'baseTightPossession')!) + dribblingPoints);
+  if (!isGoalkeeper) {
+    // --- Shooting ---
+    const shootingPoints = outfieldBuild.shooting || 0;
+    newStats.finishing = Math.min(MAX_STAT_VALUE, (getBase('finishing', 'baseFinishing')!) + shootingPoints);
+    newStats.placeKicking = Math.min(MAX_STAT_VALUE, (getBase('placeKicking', 'basePlaceKicking')!) + shootingPoints);
+    newStats.curl = Math.min(MAX_STAT_VALUE, (getBase('curl', 'baseCurl')!) + shootingPoints);
+    
+    // --- Passing ---
+    const passingPoints = outfieldBuild.passing || 0;
+    newStats.lowPass = Math.min(MAX_STAT_VALUE, (getBase('lowPass', 'baseLowPass')!) + passingPoints);
+    newStats.loftedPass = Math.min(MAX_STAT_VALUE, (getBase('loftedPass', 'baseLoftedPass')!) + passingPoints);
+    
+    // --- Dribbling ---
+    const dribblingPoints = outfieldBuild.dribbling || 0;
+    newStats.ballControl = Math.min(MAX_STAT_VALUE, (getBase('ballControl', 'baseBallControl')!) + dribblingPoints);
+    newStats.dribbling = Math.min(MAX_STAT_VALUE, (getBase('dribbling', 'baseDribbling')!) + dribblingPoints);
+    newStats.tightPossession = Math.min(MAX_STAT_VALUE, (getBase('tightPossession', 'baseTightPossession')!) + dribblingPoints);
 
-  // --- Dexterity ---
-  const dexterityPoints = outfieldBuild.dexterity || 0;
-  newStats.offensiveAwareness = Math.min(MAX_STAT_VALUE, (getBase('offensiveAwareness', 'baseOffensiveAwareness')!) + dexterityPoints);
-  newStats.acceleration = Math.min(MAX_STAT_VALUE, (getBase('acceleration', 'baseAcceleration')!) + dexterityPoints);
-  newStats.balance = Math.min(MAX_STAT_VALUE, (getBase('balance', 'baseBalance')!) + dexterityPoints);
+    // --- Dexterity ---
+    const dexterityPoints = outfieldBuild.dexterity || 0;
+    newStats.offensiveAwareness = Math.min(MAX_STAT_VALUE, (getBase('offensiveAwareness', 'baseOffensiveAwareness')!) + dexterityPoints);
+    newStats.acceleration = Math.min(MAX_STAT_VALUE, (getBase('acceleration', 'baseAcceleration')!) + dexterityPoints);
+    newStats.balance = Math.min(MAX_STAT_VALUE, (getBase('balance', 'baseBalance')!) + dexterityPoints);
 
-  // --- Lower Body Strength ---
-  const lowerBodyPoints = outfieldBuild.lowerBodyStrength || 0;
-  newStats.speed = Math.min(MAX_STAT_VALUE, (getBase('speed', 'baseSpeed')!) + lowerBodyPoints);
-  newStats.kickingPower = Math.min(MAX_STAT_VALUE, (getBase('kickingPower', 'baseKickingPower')!) + lowerBodyPoints);
-  newStats.stamina = Math.min(MAX_STAT_VALUE, (getBase('stamina', 'baseStamina')!) + lowerBodyPoints);
+    // --- Lower Body Strength ---
+    const lowerBodyPoints = outfieldBuild.lowerBodyStrength || 0;
+    newStats.speed = Math.min(MAX_STAT_VALUE, (getBase('speed', 'baseSpeed')!) + lowerBodyPoints);
+    newStats.kickingPower = Math.min(MAX_STAT_VALUE, (getBase('kickingPower', 'baseKickingPower')!) + lowerBodyPoints);
+    newStats.stamina = Math.min(MAX_STAT_VALUE, (getBase('stamina', 'baseStamina')!) + lowerBodyPoints);
 
-  // --- Aerial Strength ---
-  const aerialPoints = outfieldBuild.aerialStrength || 0;
-  newStats.heading = Math.min(MAX_STAT_VALUE, (getBase('heading', 'baseHeading')!) + aerialPoints);
-  newStats.jump = Math.min(MAX_STAT_VALUE, (getBase('jump', 'baseJump')!) + aerialPoints);
-  newStats.physicalContact = Math.min(MAX_STAT_VALUE, (getBase('physicalContact', 'basePhysicalContact')!) + aerialPoints);
+    // --- Aerial Strength ---
+    const aerialPoints = outfieldBuild.aerialStrength || 0;
+    newStats.heading = Math.min(MAX_STAT_VALUE, (getBase('heading', 'baseHeading')!) + aerialPoints);
+    newStats.jump = Math.min(MAX_STAT_VALUE, (getBase('jump', 'baseJump')!) + aerialPoints);
+    newStats.physicalContact = Math.min(MAX_STAT_VALUE, (getBase('physicalContact', 'basePhysicalContact')!) + aerialPoints);
 
-  // --- Defending ---
-  const defendingPoints = outfieldBuild.defending || 0;
-  newStats.defensiveAwareness = Math.min(MAX_STAT_VALUE, (getBase('defensiveAwareness', 'baseDefensiveAwareness')!) + defendingPoints);
-  newStats.defensiveEngagement = Math.min(MAX_STAT_VALUE, (getBase('defensiveEngagement', 'baseDefensiveEngagement')!) + defendingPoints);
-  newStats.tackling = Math.min(MAX_STAT_VALUE, (getBase('tackling', 'baseTackling')!) + defendingPoints);
-  newStats.aggression = Math.min(MAX_STAT_VALUE, (getBase('aggression', 'baseAggression')!) + defendingPoints);
+    // --- Defending ---
+    const defendingPoints = outfieldBuild.defending || 0;
+    newStats.defensiveAwareness = Math.min(MAX_STAT_VALUE, (getBase('defensiveAwareness', 'baseDefensiveAwareness')!) + defendingPoints);
+    newStats.defensiveEngagement = Math.min(MAX_STAT_VALUE, (getBase('defensiveEngagement', 'baseDefensiveEngagement')!) + defendingPoints);
+    newStats.tackling = Math.min(MAX_STAT_VALUE, (getBase('tackling', 'baseTackling')!) + defendingPoints);
+    newStats.aggression = Math.min(MAX_STAT_VALUE, (getBase('aggression', 'baseAggression')!) + defendingPoints);
+  }
 
   // --- Goalkeeping ---
   const gk1Points = goalkeeperBuild.gk1 || 0;
   const gk2Points = goalkeeperBuild.gk2 || 0;
   const gk3Points = goalkeeperBuild.gk3 || 0;
   newStats.goalkeeping = Math.min(MAX_STAT_VALUE, (getBase('goalkeeping', 'baseGoalkeeping')!) + gk1Points);
-  if(!outfieldBuild.aerialStrength) { 
+  if (isGoalkeeper || !outfieldBuild.aerialStrength) { 
     newStats.jump = Math.min(MAX_STAT_VALUE, (getBase('jump', 'baseJump')!) + gk1Points);
   }
   newStats.gkParrying = Math.min(MAX_STAT_VALUE, (getBase('gkParrying', 'baseGkParrying')!) + gk2Points);
@@ -195,22 +199,29 @@ export function getIdealBuildForPlayer(
   // 1. Check if player's own style is valid for the position
   const isPlayerStyleValid = getAvailableStylesForPosition(position).includes(playerStyle);
   let directBuild: IdealBuild | undefined;
+  let hasDirectBuild = false;
 
   // 2. If valid, try to find a direct match for the player's own style
   if (isPlayerStyleValid) {
       directBuild = findBuild(position, playerStyle);
       if (directBuild) {
-          return { bestBuild: directBuild.build, bestStyle: playerStyle };
-      }
-      
-      const archetype = symmetricalPositionMap[position];
-      if (archetype) {
-          const directArchetypeBuild = findBuild(archetype, playerStyle);
-          if (directArchetypeBuild) {
-              return { bestBuild: directArchetypeBuild.build, bestStyle: playerStyle };
-          }
+          hasDirectBuild = true;
+      } else {
+        const archetype = symmetricalPositionMap[position];
+        if (archetype) {
+            const directArchetypeBuild = findBuild(archetype, playerStyle);
+            if (directArchetypeBuild) {
+                directBuild = directArchetypeBuild;
+                hasDirectBuild = true;
+            }
+        }
       }
   }
+
+  if(hasDirectBuild && directBuild){
+    return { bestBuild: directBuild.build, bestStyle: playerStyle };
+  }
+
 
   // 3. If no direct match is found (or style is invalid), find the best alternative among all valid styles
   const specificPositionBest = getBestBuildForAllStyles(position);
@@ -242,7 +253,6 @@ export function calculateAutomaticAffinity(
 
     let totalAffinityScore = 0;
     const relevantKeys = isGoalkeeper ? goalkeeperStatsKeys : outfieldStatsKeys;
-
 
     for (const key of relevantKeys) {
         if (key === 'placeKicking') continue;

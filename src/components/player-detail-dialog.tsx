@@ -19,7 +19,7 @@ import { es } from 'date-fns/locale';
 import { Slider } from "./ui/slider";
 import { ScrollArea } from "./ui/scroll-area";
 import { Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, BrainCircuit } from "lucide-react";
-import { calculateProgressionStats, getIdealBuildForPlayer, calculateAffinityWithBreakdown, type AffinityBreakdownResult } from "@/lib/utils";
+import { calculateProgressionStats, getIdealBuildForPlayer, calculateAffinityWithBreakdown, type AffinityBreakdownResult, statLabels } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 import { Info } from 'lucide-react';
@@ -74,7 +74,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
       setBuild(initialBuild);
       
       const isPotwCard = card.name.toLowerCase().includes('potw');
-      const calculatedFinalStats = isPotwCard ? (card.attributeStats || {}) : calculateProgressionStats(card.attributeStats || {}, initialBuild);
+      const calculatedFinalStats = isPotwCard ? (card.attributeStats || {}) : calculateProgressionStats(card.attributeStats || {}, initialBuild, isGoalkeeper);
       setFinalStats(calculatedFinalStats);
       
       const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, calculatedFinalStats);
@@ -92,7 +92,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
   React.useEffect(() => {
     if(open && card && position){
         const isPotwCard = card.name.toLowerCase().includes('potw');
-        const newFinalStats = isPotwCard ? baseStats : calculateProgressionStats(baseStats, build);
+        const newFinalStats = isPotwCard ? baseStats : calculateProgressionStats(baseStats, build, isGoalkeeper);
         setFinalStats(newFinalStats);
         
         const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, newFinalStats);
@@ -203,48 +203,66 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
                           <div>
                                <h4 className="font-semibold mb-2 flex items-center gap-2"><Target className="w-4 h-4"/>Ataque</h4>
                                <div className="space-y-1 pl-6">
-                                  <StatDisplay label="Act. Ofensiva" value={finalStats.offensiveAwareness} baseValue={getBaseValue('offensiveAwareness', 'baseOffensiveAwareness')} />
-                                  <StatDisplay label="Control de Balón" value={finalStats.ballControl} baseValue={getBaseValue('ballControl', 'baseBallControl')} />
-                                  <StatDisplay label="Regate" value={finalStats.dribbling} baseValue={getBaseValue('dribbling', 'baseDribbling')} />
-                                  <StatDisplay label="Posesión Estrecha" value={finalStats.tightPossession} baseValue={getBaseValue('tightPossession', 'baseTightPossession')} />
-                                  <StatDisplay label="Pase Raso" value={finalStats.lowPass} baseValue={getBaseValue('lowPass', 'baseLowPass')} />
-                                  <StatDisplay label="Pase Bombeado" value={finalStats.loftedPass} baseValue={getBaseValue('loftedPass', 'baseLoftedPass')} />
-                                  <StatDisplay label="Finalización" value={finalStats.finishing} baseValue={getBaseValue('finishing', 'baseFinishing')} />
-                                  <StatDisplay label="Cabeceo" value={finalStats.heading} baseValue={getBaseValue('heading', 'baseHeading')} />
-                                  <StatDisplay label="Balón Parado" value={finalStats.placeKicking} baseValue={getBaseValue('placeKicking', 'basePlaceKicking')} />
-                                  <StatDisplay label="Efecto" value={finalStats.curl} baseValue={getBaseValue('curl', 'baseCurl')} />
+                                  {Object.keys(statLabels)
+                                    .filter(key => ['offensiveAwareness', 'ballControl', 'dribbling', 'tightPossession', 'lowPass', 'loftedPass', 'finishing', 'heading', 'placeKicking', 'curl'].includes(key))
+                                    .map(key => (
+                                      <StatDisplay 
+                                        key={key} 
+                                        label={statLabels[key as keyof PlayerAttributeStats]} 
+                                        value={finalStats[key as keyof PlayerAttributeStats]} 
+                                        baseValue={getBaseValue(key as keyof PlayerAttributeStats, `base${key.charAt(0).toUpperCase() + key.slice(1)}` as keyof PlayerAttributeStats)} 
+                                      />
+                                    ))
+                                  }
                                </div>
                           </div>
                       )}
                        <div>
                            <h4 className="font-semibold mb-2 flex items-center gap-2"><Shield className="w-4 h-4"/>Defensa</h4>
                            <div className="space-y-1 pl-6">
-                              <StatDisplay label="Act. Defensiva" value={finalStats.defensiveAwareness} baseValue={getBaseValue('defensiveAwareness', 'baseDefensiveAwareness')} />
-                              <StatDisplay label="Entrada" value={finalStats.defensiveEngagement} baseValue={getBaseValue('defensiveEngagement', 'baseDefensiveEngagement')} />
-                              <StatDisplay label="Segada" value={finalStats.tackling} baseValue={getBaseValue('tackling', 'baseTackling')} />
-                              <StatDisplay label="Agresividad" value={finalStats.aggression} baseValue={getBaseValue('aggression', 'baseAggression')} />
+                              {Object.keys(statLabels)
+                                .filter(key => ['defensiveAwareness', 'defensiveEngagement', 'tackling', 'aggression'].includes(key))
+                                .map(key => (
+                                  <StatDisplay 
+                                    key={key} 
+                                    label={statLabels[key as keyof PlayerAttributeStats]} 
+                                    value={finalStats[key as keyof PlayerAttributeStats]} 
+                                    baseValue={getBaseValue(key as keyof PlayerAttributeStats, `base${key.charAt(0).toUpperCase() + key.slice(1)}` as keyof PlayerAttributeStats)} 
+                                  />
+                                ))
+                              }
                            </div>
                       </div>
                        <div>
                            <h4 className="font-semibold mb-2 flex items-center gap-2"><Hand className="w-4 h-4"/>Portería</h4>
                            <div className="space-y-1 pl-6">
-                              <StatDisplay label="Act. de Portero" value={finalStats.goalkeeping} baseValue={getBaseValue('goalkeeping', 'baseGoalkeeping')} />
-                              <StatDisplay label="Atajar" value={finalStats.gkCatching} baseValue={getBaseValue('gkCatching', 'baseGkCatching')} />
-                              <StatDisplay label="Despejar" value={finalStats.gkParrying} baseValue={getBaseValue('gkParrying', 'baseGkParrying')} />
-                              <StatDisplay label="Reflejos" value={finalStats.gkReflexes} baseValue={getBaseValue('gkReflexes', 'baseGkReflexes')} />
-                              <StatDisplay label="Alcance" value={finalStats.gkReach} baseValue={getBaseValue('gkReach', 'baseGkReach')} />
+                             {Object.keys(statLabels)
+                                .filter(key => ['goalkeeping', 'gkCatching', 'gkParrying', 'gkReflexes', 'gkReach'].includes(key))
+                                .map(key => (
+                                  <StatDisplay 
+                                    key={key} 
+                                    label={statLabels[key as keyof PlayerAttributeStats]} 
+                                    value={finalStats[key as keyof PlayerAttributeStats]} 
+                                    baseValue={getBaseValue(key as keyof PlayerAttributeStats, `base${key.charAt(0).toUpperCase() + key.slice(1)}` as keyof PlayerAttributeStats)} 
+                                  />
+                                ))
+                              }
                            </div>
                       </div>
                        <div>
                            <h4 className="font-semibold mb-2 flex items-center gap-2"><Zap className="w-4 h-4"/>Físico</h4>
                            <div className="space-y-1 pl-6">
-                              <StatDisplay label="Velocidad" value={finalStats.speed} baseValue={getBaseValue('speed', 'baseSpeed')} />
-                              <StatDisplay label="Aceleración" value={finalStats.acceleration} baseValue={getBaseValue('acceleration', 'baseAcceleration')} />
-                              <StatDisplay label="Potencia de Tiro" value={finalStats.kickingPower} baseValue={getBaseValue('kickingPower', 'baseKickingPower')} />
-                              <StatDisplay label="Salto" value={finalStats.jump} baseValue={getBaseValue('jump', 'baseJump')} />
-                              <StatDisplay label="Contacto Físico" value={finalStats.physicalContact} baseValue={getBaseValue('physicalContact', 'basePhysicalContact')} />
-                              <StatDisplay label="Equilibrio" value={finalStats.balance} baseValue={getBaseValue('balance', 'baseBalance')} />
-                              <StatDisplay label="Resistencia" value={finalStats.stamina} baseValue={getBaseValue('stamina', 'baseStamina')} />
+                              {Object.keys(statLabels)
+                                .filter(key => ['speed', 'acceleration', 'kickingPower', 'jump', 'physicalContact', 'balance', 'stamina'].includes(key))
+                                .map(key => (
+                                  <StatDisplay 
+                                    key={key} 
+                                    label={statLabels[key as keyof PlayerAttributeStats]} 
+                                    value={finalStats[key as keyof PlayerAttributeStats]} 
+                                    baseValue={getBaseValue(key as keyof PlayerAttributeStats, `base${key.charAt(0).toUpperCase() + key.slice(1)}` as keyof PlayerAttributeStats)} 
+                                  />
+                                ))
+                              }
                            </div>
                       </div>
                    </div>
