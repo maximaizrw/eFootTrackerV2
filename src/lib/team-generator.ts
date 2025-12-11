@@ -30,7 +30,8 @@ export function generateIdealTeam(
   discardedCardIds: Set<string> = new Set(),
   league: League | 'all' = 'all',
   nationality: Nationality | 'all' = 'all',
-  sortBy: 'average' | 'general' = 'average'
+  sortBy: 'average' | 'general' = 'average',
+  isFlexibleLaterals: boolean = false
 ): IdealTeamSlot[] {
   
   const hasFilters = league !== 'all' || nationality !== 'all';
@@ -141,8 +142,13 @@ export function generateIdealTeam(
     const hasStylePreference = formationSlot.styles && formationSlot.styles.length > 0;
     const targetPosition = formationSlot.position;
 
+    let targetPositions = [targetPosition];
+    if (isFlexibleLaterals && (targetPosition === 'LI' || targetPosition === 'LD')) {
+      targetPositions = ['LI', 'LD'];
+    }
+
     let positionCandidates = allPlayerCandidates
-        .filter(p => p.position === targetPosition);
+        .filter(p => targetPositions.includes(p.position));
         
     if (hasStylePreference) {
         const styleCandidates = positionCandidates.filter(p => formationSlot.styles!.includes(p.card.style));

@@ -1,11 +1,13 @@
 
 "use client";
 
+import * as React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { FormationStats, League, Nationality } from '@/lib/types';
 import { Label } from './ui/label';
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
-import { BarChart2, Star } from 'lucide-react';
+import { BarChart2, Star, ArrowRightLeft } from 'lucide-react';
+import { Switch } from './ui/switch';
 
 type IdealTeamSetupProps = {
   formations: FormationStats[];
@@ -19,6 +21,8 @@ type IdealTeamSetupProps = {
   onNationalityChange: (nationality: Nationality | 'all') => void;
   sortBy: 'average' | 'general';
   onSortByChange: (value: 'average' | 'general') => void;
+  isFlexibleLaterals: boolean;
+  onFlexibleLateralsChange: (value: boolean) => void;
 };
 
 export function IdealTeamSetup({ 
@@ -33,7 +37,18 @@ export function IdealTeamSetup({
     onNationalityChange,
     sortBy,
     onSortByChange,
+    isFlexibleLaterals,
+    onFlexibleLateralsChange,
 }: IdealTeamSetupProps) {
+
+  const selectedFormation = React.useMemo(() => {
+    return formations.find(f => f.id === selectedFormationId);
+  }, [formations, selectedFormationId]);
+
+  const hasLaterals = React.useMemo(() => {
+    return selectedFormation?.slots.some(s => s.position === 'LI' || s.position === 'LD');
+  }, [selectedFormation]);
+
   if (formations.length === 0) {
     return (
       <div className="text-center text-muted-foreground p-4 border border-dashed rounded-lg">
@@ -122,6 +137,20 @@ export function IdealTeamSetup({
             </SelectContent>
         </Select>
       </div>
+
+      {hasLaterals && (
+          <div className="flex items-center space-x-2 lg:col-start-4">
+            <Switch
+              id="flexible-laterals"
+              checked={isFlexibleLaterals}
+              onCheckedChange={onFlexibleLateralsChange}
+            />
+            <Label htmlFor="flexible-laterals" className="flex items-center gap-2 cursor-pointer">
+              <ArrowRightLeft className="h-4 w-4" />
+              Laterales Flexibles
+            </Label>
+          </div>
+        )}
     </div>
   );
 }
