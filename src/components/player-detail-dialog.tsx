@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from "react";
@@ -77,7 +78,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
       setFinalStats(calculatedFinalStats);
       
       const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, calculatedFinalStats);
-      const breakdown = calculateAffinityWithBreakdown(calculatedFinalStats, bestBuild);
+      const breakdown = calculateAffinityWithBreakdown(calculatedFinalStats, bestBuild, isGoalkeeper);
       setAffinityBreakdown(breakdown);
 
     } else {
@@ -85,7 +86,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
       setFinalStats({});
       setAffinityBreakdown({ totalAffinityScore: 0, breakdown: [] });
     }
-  }, [open, flatPlayer, card, position, idealBuilds]);
+  }, [open, flatPlayer, card, position, idealBuilds, isGoalkeeper]);
 
 
   React.useEffect(() => {
@@ -95,10 +96,10 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
         setFinalStats(newFinalStats);
         
         const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, newFinalStats);
-        const breakdown = calculateAffinityWithBreakdown(newFinalStats, bestBuild);
+        const breakdown = calculateAffinityWithBreakdown(newFinalStats, bestBuild, isGoalkeeper);
         setAffinityBreakdown(breakdown);
     }
-  }, [build, baseStats, open, card, position, idealBuilds]);
+  }, [build, baseStats, open, card, position, idealBuilds, isGoalkeeper]);
 
   const handleSave = () => {
     if (player && card && position && !isPotw) {
@@ -162,7 +163,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
                           <input
                           id="manualAffinity"
                           type="number"
-                          value={build.manualAffinity?.toFixed(2) ?? ''}
+                          value={affinityBreakdown.totalAffinityScore.toFixed(2) ?? ''}
                           readOnly
                           className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm text-foreground/80 font-bold"
                           />

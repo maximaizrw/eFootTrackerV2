@@ -330,8 +330,8 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
             }
             
             const playerFinalStats = calculateProgressionStats(cardToUpdate.attributeStats || {}, build);
-            const { bestBuild } = getIdealBuildForPlayer(cardToUpdate.style, position, idealBuilds, playerFinalStats);
-            const affinity = calculateAutomaticAffinity(playerFinalStats, bestBuild);
+            const { bestBuild, bestStyle } = getIdealBuildForPlayer(cardToUpdate.style, position, idealBuilds, playerFinalStats);
+            const affinity = calculateAutomaticAffinity(playerFinalStats, bestBuild, position === 'PT');
             
             const updatedBuild: PlayerBuild = {
               ...build,
@@ -342,7 +342,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
             cardToUpdate.buildsByPosition[position] = updatedBuild;
             
             await updateDoc(playerRef, { cards: newCards });
-            toast({ title: "Build Guardada", description: `La build del jugador para ${position} se ha actualizado con afinidad ${affinity.toFixed(2)}.` });
+            toast({ title: "Build Guardada", description: `La build del jugador para ${position} se ha actualizado con afinidad ${affinity.toFixed(2)} (estilo ideal: ${bestStyle || 'N/A'}).` });
         } else {
             throw new Error("Card not found in player data!");
         }
@@ -391,7 +391,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
                       const isPotw = cardToUpdate.name.toLowerCase().includes('potw');
                       const finalStats = isPotw ? baseStats : calculateProgressionStats(baseStats, build);
                       const { bestBuild } = getIdealBuildForPlayer(cardToUpdate.style, position, idealBuilds, finalStats);
-                      const newAffinity = calculateAutomaticAffinity(finalStats, bestBuild);
+                      const newAffinity = calculateAutomaticAffinity(finalStats, bestBuild, position === 'PT');
 
                       build.manualAffinity = newAffinity;
                       build.updatedAt = new Date().toISOString();
@@ -449,7 +449,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
                            const isPotw = card.name.toLowerCase().includes('potw');
                            const finalStats = isPotw ? card.attributeStats : calculateProgressionStats(card.attributeStats, build);
                            const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, finalStats);
-                           const newAffinity = calculateAutomaticAffinity(finalStats, bestBuild);
+                           const newAffinity = calculateAutomaticAffinity(finalStats, bestBuild, position === 'PT');
 
                            if (build.manualAffinity !== newAffinity) {
                                 build.manualAffinity = newAffinity;

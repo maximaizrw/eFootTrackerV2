@@ -68,11 +68,20 @@ export function calculateGeneralScore(affinityScore: number, average: number): n
 // --- New Progression System ---
 
 const MAX_STAT_VALUE = 99;
-export const allStatsKeys: (keyof PlayerAttributeStats)[] = [
+const outfieldStatsKeys: (keyof PlayerAttributeStats)[] = [
     'offensiveAwareness', 'ballControl', 'dribbling', 'tightPossession', 'lowPass', 'loftedPass', 'finishing', 'heading', 'placeKicking', 'curl',
+    'defensiveAwareness', 'defensiveEngagement', 'tackling', 'aggression',
+    'speed', 'acceleration', 'kickingPower', 'jump', 'physicalContact', 'balance', 'stamina'
+];
+
+const goalkeeperStatsKeys: (keyof PlayerAttributeStats)[] = [
     'defensiveAwareness', 'defensiveEngagement', 'tackling', 'aggression',
     'goalkeeping', 'gkCatching', 'gkParrying', 'gkReflexes', 'gkReach',
     'speed', 'acceleration', 'kickingPower', 'jump', 'physicalContact', 'balance', 'stamina'
+];
+
+export const allStatsKeys: (keyof PlayerAttributeStats)[] = [
+    ...new Set([...outfieldStatsKeys, ...goalkeeperStatsKeys])
 ];
 
 
@@ -172,7 +181,7 @@ export function getIdealBuildForPlayer(
       for (const style of validStyles) {
         const idealBuildForStyle = findBuild(pos, style);
         if (idealBuildForStyle?.build) {
-          const currentAffinity = calculateAutomaticAffinity(playerStats, idealBuildForStyle.build);
+          const currentAffinity = calculateAutomaticAffinity(playerStats, idealBuildForStyle.build, pos === 'PT');
           if (currentAffinity > maxAffinity) {
             maxAffinity = currentAffinity;
             bestBuild = idealBuildForStyle.build;
@@ -185,10 +194,11 @@ export function getIdealBuildForPlayer(
 
   // 1. Check if player's own style is valid for the position
   const isPlayerStyleValid = getAvailableStylesForPosition(position).includes(playerStyle);
+  let directBuild: IdealBuild | undefined;
 
   // 2. If valid, try to find a direct match for the player's own style
   if (isPlayerStyleValid) {
-      const directBuild = findBuild(position, playerStyle);
+      directBuild = findBuild(position, playerStyle);
       if (directBuild) {
           return { bestBuild: directBuild.build, bestStyle: playerStyle };
       }
@@ -204,30 +214,37 @@ export function getIdealBuildForPlayer(
 
   // 3. If no direct match is found (or style is invalid), find the best alternative among all valid styles
   const specificPositionBest = getBestBuildForAllStyles(position);
+  let bestOverallBuild = specificPositionBest.build;
+  let bestOverallStyle = specificPositionBest.style;
+  let maxAffinity = calculateAutomaticAffinity(playerStats, bestOverallBuild, position === 'PT');
 
   const archetype = symmetricalPositionMap[position];
   if (archetype) {
       const archetypeBest = getBestBuildForAllStyles(archetype);
-      const specificAffinity = calculateAutomaticAffinity(playerStats, specificPositionBest.build);
-      const archetypeAffinity = calculateAutomaticAffinity(playerStats, archetypeBest.build);
+      const archetypeAffinity = calculateAutomaticAffinity(playerStats, archetypeBest.build, position === 'PT');
       
-      if (archetypeAffinity > specificAffinity) {
-          return { bestBuild: archetypeBest.build, bestStyle: archetypeBest.style };
+      if (archetypeAffinity > maxAffinity) {
+          maxAffinity = archetypeAffinity;
+          bestOverallBuild = archetypeBest.build;
+          bestOverallStyle = archetypeBest.style;
       }
   }
 
-  return { bestBuild: specificPositionBest.build, bestStyle: specificPositionBest.style };
+  return { bestBuild: bestOverallBuild, bestStyle: bestOverallStyle };
 }
 
 export function calculateAutomaticAffinity(
     playerStats: PlayerAttributeStats,
-    idealBuildStats: PlayerAttributeStats | null
+    idealBuildStats: PlayerAttributeStats | null,
+    isGoalkeeper: boolean = false
 ): number {
     if (!idealBuildStats) return 0;
 
     let totalAffinityScore = 0;
+    const relevantKeys = isGoalkeeper ? goalkeeperStatsKeys : outfieldStatsKeys;
 
-    for (const key of allStatsKeys) {
+
+    for (const key of relevantKeys) {
         if (key === 'placeKicking') continue;
 
         const playerStat = playerStats[key];
@@ -282,14 +299,16 @@ export const statLabels: Record<keyof PlayerAttributeStats, string> = {
 
 export function calculateAffinityWithBreakdown(
     playerStats: PlayerAttributeStats,
-    idealBuildStats: PlayerAttributeStats | null
+    idealBuildStats: PlayerAttributeStats | null,
+    isGoalkeeper: boolean = false
 ): AffinityBreakdownResult {
     if (!idealBuildStats) return { totalAffinityScore: 0, breakdown: [] };
 
     let totalAffinityScore = 0;
     const breakdown: AffinityBreakdownResult['breakdown'] = [];
+    const relevantKeys = isGoalkeeper ? goalkeeperStatsKeys : allStatsKeys;
 
-    for (const key of allStatsKeys) {
+    for (const key of relevantKeys) {
         const playerValue = playerStats[key];
         const idealValue = idealBuildStats[key];
         let score = 0;
