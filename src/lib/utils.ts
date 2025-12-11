@@ -169,7 +169,7 @@ export function getIdealBuildForPlayer(
       if (isStyleValid) {
           const idealBuild = findBuild(pos, playerStyle);
           if (idealBuild) {
-            return { bestBuild: idealBuild.build, bestStyle: playerStyle };
+            return { build: idealBuild.build, style: playerStyle };
           }
       }
       
@@ -190,12 +190,12 @@ export function getIdealBuildForPlayer(
           }
         }
       }
-      return { bestBuild, bestStyle };
+      return { build: bestBuild, style: bestStyle };
   }
 
   // 1. Try to find a build for the specific position
   const specificBuildResult = getBestBuildForPosition(position);
-  if (specificBuildResult.bestBuild) {
+  if (specificBuildResult.build) {
       return specificBuildResult;
   }
 
@@ -203,7 +203,7 @@ export function getIdealBuildForPlayer(
   const archetype = symmetricalPositionMap[position];
   if (archetype) {
       const archetypeBuildResult = getBestBuildForPosition(archetype);
-      if (archetypeBuildResult.bestBuild) {
+      if (archetypeBuildResult.build) {
           return archetypeBuildResult;
       }
   }
@@ -229,7 +229,20 @@ export function calculateAutomaticAffinity(
         if (playerStat !== undefined && idealStat !== undefined && idealStat >= 70) {
             const diff = playerStat - idealStat;
             
-            const statScore = diff >= 0 ? diff * 0.15 : diff * 0.2;
+            let statScore;
+            if (diff >= 0) {
+                statScore = diff * 0.15; // Bonus for exceeding
+            } else {
+                // Weighted penalty based on ideal stat importance
+                if (idealStat >= 90) {
+                    statScore = diff * 0.3;
+                } else if (idealStat >= 80) {
+                    statScore = diff * 0.25;
+                } else {
+                    statScore = diff * 0.2;
+                }
+            }
+            
             const cappedScore = Math.max(-3, statScore);
             
             totalAffinityScore += cappedScore;
@@ -276,7 +289,21 @@ export function calculateAffinityWithBreakdown(
 
         if (key !== 'placeKicking' && playerValue !== undefined && idealValue !== undefined && idealValue >= 70) {
             const diff = playerValue - idealValue;
-            const statScore = diff >= 0 ? diff * 0.15 : diff * 0.2;
+            
+            let statScore;
+            if (diff >= 0) {
+                statScore = diff * 0.15; // Bonus for exceeding
+            } else {
+                // Weighted penalty based on ideal stat importance
+                if (idealValue >= 90) {
+                    statScore = diff * 0.3;
+                } else if (idealValue >= 80) {
+                    statScore = diff * 0.25;
+                } else {
+                    statScore = diff * 0.2;
+                }
+            }
+
             score = Math.max(-3, statScore);
             totalAffinityScore += score;
         }
