@@ -40,7 +40,7 @@ import { useToast } from "@/hooks/use-toast";
 
 import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerBuild, IdealTeamPlayer, PlayerAttributeStats, IdealBuild, BuildPosition } from '@/lib/types';
 import { positions, leagues, nationalities, buildPositions } from '@/lib/types';
-import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Wrench, Dna } from 'lucide-react';
+import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Wrench, Dna, RefreshCw } from 'lucide-react';
 import { calculateStats, normalizeText, calculateGeneralScore } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -69,6 +69,7 @@ export default function Home() {
     saveAttributeStats,
     deletePositionRatings,
     toggleSelectablePosition,
+    recalculateAllAffinities,
   } = usePlayers(idealBuilds);
 
   const {
@@ -663,6 +664,13 @@ export default function Home() {
                         >
                         <RotateCcw className="mr-2 h-4 w-4" />
                         Reiniciar Descartados ({discardedCardIds.size})
+                    </Button>
+                     <Button
+                        onClick={() => recalculateAllAffinities()}
+                        variant="secondary"
+                        >
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Actualizar Afinidades
                     </Button>
                   </div>
                </CardContent>

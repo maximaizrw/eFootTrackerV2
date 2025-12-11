@@ -43,7 +43,7 @@ export function IdealTeamSetup({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
       <div className="space-y-2 lg:col-span-2">
         <Label>
           Plantilla Táctica

@@ -165,7 +165,6 @@ export function getIdealBuildForPlayer(
   const getBestBuildForPosition = (pos: BuildPosition): { build: PlayerAttributeStats | null; style: PlayerStyle | null } => {
       const isStyleValid = getAvailableStylesForPosition(pos as Position).includes(playerStyle);
       
-      // If the player's style is valid for the position, find that specific build.
       if (isStyleValid) {
           const idealBuild = findBuild(pos, playerStyle);
           if (idealBuild) {
@@ -173,7 +172,6 @@ export function getIdealBuildForPlayer(
           }
       }
       
-      // If the style is not valid or no specific build was found, find the best possible affinity among all valid styles.
       const validStyles = getAvailableStylesForPosition(pos as Position, false);
       let bestBuild: PlayerAttributeStats | null = null;
       let bestStyle: PlayerStyle | null = null;
@@ -181,7 +179,7 @@ export function getIdealBuildForPlayer(
 
       for (const style of validStyles) {
         const idealBuildForStyle = findBuild(pos, style);
-        if (idealBuildForStyle) {
+        if (idealBuildForStyle?.build) {
           const currentAffinity = calculateAutomaticAffinity(playerStats, idealBuildForStyle.build);
           if (currentAffinity > maxAffinity) {
             maxAffinity = currentAffinity;
@@ -208,8 +206,8 @@ export function getIdealBuildForPlayer(
       }
   }
 
-  // 3. If still no build is found, return null
-  return { bestBuild: null, bestStyle: null };
+  // 3. If still no build is found, return the best we could find for the specific position (even if affinity is low)
+  return specificBuildResult;
 }
 
 export function calculateAutomaticAffinity(

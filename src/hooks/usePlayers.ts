@@ -427,5 +427,55 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
     }
   };
 
-  return { players, loading, error, addRating, editCard, editPlayer, deleteRating, savePlayerBuild, saveAttributeStats, downloadBackup, deletePositionRatings, toggleSelectablePosition };
+  const recalculateAllAffinities = async () => {
+    if (!db) return;
+    toast({ title: "Iniciando Recálculo...", description: "Actualizando todas las afinidades de los jugadores." });
+    let updatedCount = 0;
+    try {
+        const playersSnapshot = await getDocs(collection(db, 'players'));
+        const allPlayers = playersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Player));
+
+        for (const player of allPlayers) {
+            let playerWasUpdated = false;
+            const newCards: PlayerCard[] = JSON.parse(JSON.stringify(player.cards || []));
+
+            for (const card of newCards) {
+                if (card.buildsByPosition && Object.keys(card.buildsByPosition).length > 0) {
+                    for (const posKey in card.buildsByPosition) {
+                        const position = posKey as Position;
+                        const build = card.buildsByPosition[position];
+                        
+                        if (build && card.attributeStats) {
+                           const isPotw = card.name.toLowerCase().includes('potw');
+                           const finalStats = isPotw ? card.attributeStats : calculateProgressionStats(card.attributeStats, build);
+                           const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, finalStats);
+                           const newAffinity = calculateAutomaticAffinity(finalStats, bestBuild);
+
+                           if (build.manualAffinity !== newAffinity) {
+                                build.manualAffinity = newAffinity;
+                                build.updatedAt = new Date().toISOString();
+                                playerWasUpdated = true;
+                           }
+                        }
+                    }
+                }
+            }
+            if (playerWasUpdated) {
+                await setDoc(doc(db, 'players', player.id), { ...player, cards: newCards });
+                updatedCount++;
+            }
+        }
+        toast({ title: "Recálculo Completado", description: `Se actualizaron las afinidades de ${updatedCount} jugadores.` });
+
+    } catch (recalcError) {
+        console.error("Error recalculating all affinities:", recalcError);
+        toast({
+            variant: "destructive",
+            title: "Error en el Recálculo",
+            description: `Ocurrió un error al actualizar las afinidades.`,
+        });
+    }
+  };
+
+  return { players, loading, error, addRating, editCard, editPlayer, deleteRating, savePlayerBuild, saveAttributeStats, downloadBackup, deletePositionRatings, toggleSelectablePosition, recalculateAllAffinities };
 }
