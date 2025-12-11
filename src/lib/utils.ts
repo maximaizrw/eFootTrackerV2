@@ -1,4 +1,5 @@
 
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position, BuildPosition } from "./types";
@@ -162,16 +163,7 @@ export function getIdealBuildForPlayer(
   const findBuild = (pos: BuildPosition, style: PlayerStyle) => 
     idealBuilds.find(b => b.position === pos && b.style === style);
 
-  const getBestBuildForPosition = (pos: BuildPosition): { build: PlayerAttributeStats | null; style: PlayerStyle | null } => {
-      const isStyleValid = getAvailableStylesForPosition(pos as Position).includes(playerStyle);
-      
-      if (isStyleValid) {
-          const idealBuild = findBuild(pos, playerStyle);
-          if (idealBuild) {
-            return { build: idealBuild.build, style: playerStyle };
-          }
-      }
-      
+  const getBestBuildForAllStyles = (pos: BuildPosition): { build: PlayerAttributeStats | null, style: PlayerStyle | null } => {
       const validStyles = getAvailableStylesForPosition(pos as Position, false);
       let bestBuild: PlayerAttributeStats | null = null;
       let bestStyle: PlayerStyle | null = null;
@@ -191,23 +183,40 @@ export function getIdealBuildForPlayer(
       return { build: bestBuild, style: bestStyle };
   }
 
-  // 1. Try to find a build for the specific position
-  const specificBuildResult = getBestBuildForPosition(position);
-  if (specificBuildResult.build) {
-      return specificBuildResult;
-  }
+  // 1. Check if player's own style is valid for the position
+  const isPlayerStyleValid = getAvailableStylesForPosition(position).includes(playerStyle);
 
-  // 2. If not found, try to find a build for the symmetrical archetype
-  const archetype = symmetricalPositionMap[position];
-  if (archetype) {
-      const archetypeBuildResult = getBestBuildForPosition(archetype);
-      if (archetypeBuildResult.build) {
-          return archetypeBuildResult;
+  // 2. If valid, try to find a direct match for the player's own style
+  if (isPlayerStyleValid) {
+      const directBuild = findBuild(position, playerStyle);
+      if (directBuild) {
+          return { bestBuild: directBuild.build, bestStyle: playerStyle };
+      }
+      
+      const archetype = symmetricalPositionMap[position];
+      if (archetype) {
+          const directArchetypeBuild = findBuild(archetype, playerStyle);
+          if (directArchetypeBuild) {
+              return { bestBuild: directArchetypeBuild.build, bestStyle: playerStyle };
+          }
       }
   }
 
-  // 3. If still no build is found, return the best we could find for the specific position (even if affinity is low)
-  return specificBuildResult;
+  // 3. If no direct match is found (or style is invalid), find the best alternative among all valid styles
+  const specificPositionBest = getBestBuildForAllStyles(position);
+
+  const archetype = symmetricalPositionMap[position];
+  if (archetype) {
+      const archetypeBest = getBestBuildForAllStyles(archetype);
+      const specificAffinity = calculateAutomaticAffinity(playerStats, specificPositionBest.build);
+      const archetypeAffinity = calculateAutomaticAffinity(playerStats, archetypeBest.build);
+      
+      if (archetypeAffinity > specificAffinity) {
+          return { bestBuild: archetypeBest.build, bestStyle: archetypeBest.style };
+      }
+  }
+
+  return { bestBuild: specificPositionBest.build, bestStyle: specificPositionBest.style };
 }
 
 export function calculateAutomaticAffinity(
