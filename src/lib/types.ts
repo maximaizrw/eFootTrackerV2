@@ -328,7 +328,7 @@ export function getAvailableStylesForPosition(position: BuildPosition, includeNo
         case 'MDI':
         case 'MDD':
         case 'INT':
-            return [...baseStyles, 'Omnipresente', 'Especialista en centros', 'Creador de jugadas', 'Jugador de huecos'];
+            return [...baseStyles, 'Omnipresente', 'Especialista en centros', 'Creador de jugadas', 'Jugador de huecos', 'Extremo móvil'];
         case 'MO':
             return [...baseStyles, 'Jugador de huecos', 'Creador de jugadas', 'Diez Clasico', 'Extremo móvil'];
         case 'EXI':
