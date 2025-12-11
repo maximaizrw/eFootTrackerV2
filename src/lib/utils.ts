@@ -84,6 +84,7 @@ export const allStatsKeys: (keyof PlayerAttributeStats)[] = [
     ...new Set([...outfieldStatsKeys, ...goalkeeperStatsKeys])
 ];
 
+const MAX_STAT_VALUE = 99;
 
 export function calculateProgressionStats(
   baseStats: PlayerAttributeStats,
@@ -175,17 +176,14 @@ export function getIdealBuildForPlayer(
   const findBuild = (pos: BuildPosition, style: PlayerStyle) => 
     idealBuilds.find(b => b.position === pos && b.style === style);
 
-  // 1. Try to find a build for the player's own style.
-  //    Priority: Exact Position > Archetype Position
+  // 1. Prioritize direct match for player's own style
   const isPlayerStyleValid = getAvailableStylesForPosition(position).includes(playerStyle);
   if (isPlayerStyleValid) {
-    // Check for exact position match first (e.g., LI)
     let directBuild = findBuild(position, playerStyle);
     if (directBuild) {
       return { bestBuild: directBuild.build, bestStyle: playerStyle };
     }
     
-    // If not found, check for archetype match (e.g., LAT for LI)
     const archetype = symmetricalPositionMap[position];
     if (archetype) {
       const archetypeBuild = findBuild(archetype, playerStyle);
@@ -195,23 +193,20 @@ export function getIdealBuildForPlayer(
     }
   }
 
-  // 2. If no build for the player's own style is found, search for the best alternative
-  //    among all available builds for that position/archetype.
+  // 2. If no build for the player's own style is found, find the best alternative
   let bestAlternativeBuild: PlayerAttributeStats | null = null;
   let bestAlternativeStyle: PlayerStyle | null = null;
   let maxAffinity = -Infinity;
 
-  const validPositions: BuildPosition[] = [position];
+  const validPositionsForSearch: BuildPosition[] = [position];
   const archetype = symmetricalPositionMap[position];
   if (archetype) {
-    validPositions.push(archetype);
+    validPositionsForSearch.push(archetype);
   }
+  
+  const relevantBuilds = idealBuilds.filter(b => validPositionsForSearch.includes(b.position));
 
-  // Iterate over all ideal builds
-  for (const idealBuild of idealBuilds) {
-    // Check if the ideal build's position is relevant (either exact or archetype)
-    if (validPositions.includes(idealBuild.position)) {
-      // Check if the ideal build's style is valid for the player's *actual* position
+  for (const idealBuild of relevantBuilds) {
       if (getAvailableStylesForPosition(position).includes(idealBuild.style)) {
         const currentAffinity = calculateAutomaticAffinity(playerStats, idealBuild.build, position === 'PT');
         if (currentAffinity > maxAffinity) {
@@ -220,9 +215,8 @@ export function getIdealBuildForPlayer(
           bestAlternativeStyle = idealBuild.style;
         }
       }
-    }
   }
-
+  
   return { bestBuild: bestAlternativeBuild, bestStyle: bestAlternativeStyle };
 }
 
