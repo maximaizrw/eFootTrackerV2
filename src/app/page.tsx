@@ -69,7 +69,6 @@ export default function Home() {
     savePlayerBuild,
     saveAttributeStats,
     deletePositionRatings,
-    toggleSelectablePosition,
     recalculateAllAffinities,
   } = usePlayers(idealBuilds);
 
@@ -620,7 +619,6 @@ export default function Home() {
                       onOpenPlayerDetail={handleOpenPlayerDetail}
                       onViewImage={handleViewImage}
                       onDeletePositionRatings={deletePositionRatings}
-                      onToggleSelectable={toggleSelectablePosition}
                       onDeleteRating={deleteRating}
                     />
                     <PlayerTable.Pagination

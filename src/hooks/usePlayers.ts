@@ -42,7 +42,6 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
                 league: card.league || 'Sin Liga',
                 imageUrl: card.imageUrl || '',
                 ratingsByPosition: card.ratingsByPosition || {},
-                selectablePositions: card.selectablePositions || {},
                 buildsByPosition: card.buildsByPosition || {},
                 attributeStats: card.attributeStats || {},
             }));
@@ -133,9 +132,6 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
           card.ratingsByPosition[position]!.push(rating);
           card.league = league || card.league || 'Sin Liga';
           
-          if (!card.selectablePositions) card.selectablePositions = {};
-          card.selectablePositions[position] = card.selectablePositions[position] ?? true;
-
           if (!card.buildsByPosition) card.buildsByPosition = {};
           if (!card.buildsByPosition[position]) {
             card.buildsByPosition[position] = { manualAffinity: 0 };
@@ -149,7 +145,6 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
               league: league || 'Sin Liga',
               imageUrl: '',
               ratingsByPosition: { [position]: [rating] },
-              selectablePositions: { [position]: true },
               buildsByPosition: { [position]: { manualAffinity: 0 } },
           };
           newCards.push(card);
@@ -166,7 +161,6 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
               league: league || 'Sin Liga',
               imageUrl: '',
               ratingsByPosition: { [position]: [rating] },
-              selectablePositions: { [position]: true },
               buildsByPosition: { [position]: { manualAffinity: 0 } },
           }],
         };
@@ -218,33 +212,6 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
       toast({ variant: "destructive", title: "Error al Actualizar", description: "No se pudo guardar el cambio de nombre." });
     }
   };
-  
-  const toggleSelectablePosition = async (playerId: string, cardId: string, position: Position, currentSelectable?: boolean) => {
-      if (!db) return;
-      const playerRef = doc(db, 'players', playerId);
-      try {
-        const playerDoc = await getDoc(playerRef);
-        if (!playerDoc.exists()) throw new Error("Player not found");
-        
-        const playerData = playerDoc.data() as Player;
-        const newCards: PlayerCard[] = JSON.parse(JSON.stringify(playerData.cards));
-        const cardToUpdate = newCards.find(c => c.id === cardId);
-
-        if(cardToUpdate) {
-          if (!cardToUpdate.selectablePositions) cardToUpdate.selectablePositions = {};
-          
-          cardToUpdate.selectablePositions[position] = currentSelectable === undefined ? false : !currentSelectable;
-          
-          await updateDoc(playerRef, { cards: newCards });
-
-          const status = cardToUpdate.selectablePositions[position] ? "seleccionable" : "no seleccionable";
-          toast({ title: "Posición Actualizada", description: `La carta ahora es ${status} para ${position}.` });
-        }
-      } catch (error) {
-          console.error("Error toggling selectable position: ", error);
-          toast({ variant: "destructive", title: "Error al Actualizar", description: "No se pudo cambiar el estado de la posición." });
-      }
-  };
 
   const deletePositionRatings = async (playerId: string, cardId: string, position: Position) => {
     if (!db) return;
@@ -263,9 +230,6 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
       }
       
       delete cardToUpdate.ratingsByPosition[position];
-
-      if (!cardToUpdate.selectablePositions) cardToUpdate.selectablePositions = {};
-      cardToUpdate.selectablePositions[position] = false;
 
       const hasRatingsLeft = Object.keys(cardToUpdate.ratingsByPosition).length > 0;
       
@@ -299,9 +263,6 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
           card.ratingsByPosition[position]!.splice(ratingIndex, 1);
           if (card.ratingsByPosition[position]!.length === 0) {
               delete card.ratingsByPosition[position];
-              if (card.selectablePositions) {
-                card.selectablePositions[position] = false;
-              }
           }
           await updateDoc(playerRef, { cards: newCards });
           toast({ title: "Valoración Eliminada", description: "La valoración ha sido eliminada." });
@@ -481,5 +442,5 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
     }
   };
 
-  return { players, loading, error, addRating, editCard, editPlayer, deleteRating, savePlayerBuild, saveAttributeStats, downloadBackup, deletePositionRatings, toggleSelectablePosition, recalculateAllAffinities };
+  return { players, loading, error, addRating, editCard, editPlayer, deleteRating, savePlayerBuild, saveAttributeStats, downloadBackup, deletePositionRatings, recalculateAllAffinities };
 }

@@ -9,17 +9,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, X, Wrench, Pencil, NotebookPen, Search, EyeOff, Eye, Star, ChevronDown, ChevronUp, SlidersHorizontal } from 'lucide-react';
+import { PlusCircle, Trash2, X, Wrench, Pencil, NotebookPen, Search, Star, SlidersHorizontal } from 'lucide-react';
 import { cn, formatAverage, getAverageColorClass } from '@/lib/utils';
 import type { Player, PlayerCard, Position, FlatPlayer } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import { PerformanceBadges } from './performance-badges';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { AffinityStatusIndicator } from './affinity-status-indicator';
 
 type PlayerTableProps = {
@@ -32,7 +26,6 @@ type PlayerTableProps = {
   onOpenPlayerDetail: (flatPlayer: FlatPlayer) => void;
   onViewImage: (url: string, name: string) => void;
   onDeletePositionRatings: (playerId: string, cardId: string, position: Position) => void;
-  onToggleSelectable: (playerId: string, cardId: string, position: Position, currentSelectable?: boolean) => void;
   onDeleteRating: (playerId: string, cardId: string, position: Position, ratingIndex: number) => void;
 };
 
@@ -124,56 +117,6 @@ const Pagination = ({ currentPage, totalPages, onPageChange }: PaginationProps) 
     );
 };
 
-const ExpandedContent = ({ flatPlayer, onDeleteRating }: { flatPlayer: FlatPlayer, onDeleteRating: PlayerTableProps['onDeleteRating'] }) => {
-    const { ratingsForPos, performance, player, card, position } = flatPlayer;
-    const stats = performance.stats;
-    
-    if (!ratingsForPos || ratingsForPos.length === 0) return null;
-
-    const maxRating = Math.max(...ratingsForPos);
-    const minRating = Math.min(...ratingsForPos);
-
-    return (
-        <div className="p-4 bg-muted/30">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-center">
-                 <div>
-                    <p className="text-sm text-muted-foreground">Partidos</p>
-                    <p className="text-lg font-bold">{stats.matches}</p>
-                </div>
-                <div>
-                    <p className="text-sm text-muted-foreground">Nota Máx.</p>
-                    <p className={cn("text-lg font-bold", getAverageColorClass(maxRating))}>{maxRating.toFixed(1)}</p>
-                </div>
-                 <div>
-                    <p className="text-sm text-muted-foreground">Nota Mín.</p>
-                    <p className={cn("text-lg font-bold", getAverageColorClass(minRating))}>{minRating.toFixed(1)}</p>
-                </div>
-                 <div>
-                    <p className="text-sm text-muted-foreground">Consistencia</p>
-                    <p className="text-lg font-bold">{stats.stdDev.toFixed(2)}</p>
-                </div>
-            </div>
-             <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm font-semibold mr-2">Valoraciones:</span>
-                {ratingsForPos.map((rating, index) => (
-                  <div key={index} className="group/rating relative">
-                    <Badge variant="default" className="text-sm">
-                      {rating.toFixed(1)}
-                    </Badge>
-                    <Button
-                      size="icon" variant="destructive"
-                      className="absolute -top-2 -right-2 h-4 w-4 rounded-full opacity-0 group-hover/rating:opacity-100 transition-opacity z-10"
-                      onClick={() => onDeleteRating(player.id, card.id, position, index)}
-                      aria-label={`Eliminar valoración ${rating}`}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-        </div>
-    )
-}
 
 export function PlayerTable({
   players: flatPlayers,
@@ -185,16 +128,9 @@ export function PlayerTable({
   onOpenPlayerDetail,
   onViewImage,
   onDeletePositionRatings,
-  onToggleSelectable,
   onDeleteRating,
 }: PlayerTableProps) {
   
-  const [expandedRow, setExpandedRow] = useState<string | null>(null);
-
-  const handleRowClick = (id: string) => {
-    setExpandedRow(prev => (prev === id ? null : id));
-  }
-
   if (flatPlayers.length === 0) {
     return (
       <div className="col-span-full flex flex-col items-center justify-center text-center p-10">
@@ -231,19 +167,12 @@ export function PlayerTable({
             const affinityColorClass = getAverageColorClass(affinityScore / 10);
             const generalColorClass = getAverageColorClass(generalScore / 10);
             
-            const isPosSelectable = card.selectablePositions?.[position] ?? true;
             const rowId = `${player.id}-${card.id}-${position}`;
             const hasNoStats = !card.attributeStats || Object.keys(card.attributeStats).length === 0;
 
             return (
               <React.Fragment key={rowId}>
-                <TableRow 
-                  className={cn(
-                    "cursor-pointer",
-                    !isPosSelectable ? 'bg-muted/30 hover:bg-muted/40' : 'hover:bg-muted/50'
-                  )}
-                  onClick={() => handleRowClick(rowId)}
-                >
+                <TableRow className="hover:bg-muted/50">
                   <TableCell className="p-2 md:p-4">
                     <div className="flex items-center gap-2">
                       {card.imageUrl ? (
@@ -329,7 +258,6 @@ export function PlayerTable({
                   </TableCell>
                   <TableCell className="text-right p-1 md:p-2">
                     <div className="flex items-center justify-end">
-                      {expandedRow === rowId ? <ChevronUp className="h-4 w-4 mr-2" /> : <ChevronDown className="h-4 w-4 mr-2" />}
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -355,18 +283,6 @@ export function PlayerTable({
                           <TooltipContent><p>Añadir valoración</p></TooltipContent>
                         </Tooltip>
                         <div className="hidden md:flex">
-                          <Tooltip>
-                              <TooltipTrigger asChild>
-                              <Button
-                                  variant="ghost" size="icon" className="h-8 w-8 rounded-full"
-                                  aria-label={`Activar/Desactivar para ${position}`}
-                                  onClick={(e) => { e.stopPropagation(); onToggleSelectable(player.id, card.id, position, isPosSelectable); }}
-                                  >
-                                  {isPosSelectable ? <Eye className="h-4 w-4 text-muted-foreground/80 hover:text-muted-foreground" /> : <EyeOff className="h-4 w-4 text-destructive/80 hover:text-destructive" />}
-                              </Button>
-                              </TooltipTrigger>
-                              <TooltipContent><p>{isPosSelectable ? `No seleccionar para ${position}` : `Sí seleccionar para ${position}`}</p></TooltipContent>
-                          </Tooltip>
                           <Tooltip>
                               <TooltipTrigger asChild>
                               <Button
@@ -421,13 +337,6 @@ export function PlayerTable({
                     </div>
                   </TableCell>
                 </TableRow>
-                {expandedRow === rowId && (
-                    <TableRow>
-                        <TableCell colSpan={7} className="p-0">
-                           <ExpandedContent flatPlayer={flatPlayer} onDeleteRating={onDeleteRating} />
-                        </TableCell>
-                    </TableRow>
-                )}
               </React.Fragment>
             );
           })}

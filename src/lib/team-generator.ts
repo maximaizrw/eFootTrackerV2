@@ -34,7 +34,6 @@ export function generateIdealTeam(
   isFlexibleLaterals: boolean = false
 ): IdealTeamSlot[] {
   
-  const hasFilters = league !== 'all' || nationality !== 'all';
   
   const allPlayerCandidates: CandidatePlayer[] = players.flatMap(player => {
     if (nationality !== 'all' && player.nationality !== nationality) {
@@ -71,11 +70,6 @@ export function generateIdealTeam(
         // GK Restriction
         if (isOnlyGoalkeeper && pos !== 'PT') {
           return null;
-        }
-
-        const isSelectable = card.selectablePositions?.[pos] ?? true;
-        if (!hasFilters && !isSelectable) {
-            return null;
         }
 
         const ratings = card.ratingsByPosition![pos]!;
