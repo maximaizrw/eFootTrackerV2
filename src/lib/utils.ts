@@ -186,20 +186,23 @@ export function getIdealBuildForPlayer(
   const findBuild = (pos: BuildPosition, style: PlayerStyle) => 
     idealBuilds.find(b => b.position === pos && b.style === style);
 
-  // 1. Direct match for player's own style (position-specific or archetype)
-  let directBuild = findBuild(position, playerStyle);
-  if (!directBuild) {
-    const archetype = symmetricalPositionMap[position];
-    if (archetype) {
-      directBuild = findBuild(archetype, playerStyle);
+  // If player style is NOT 'Ninguno', perform a strict search for that style.
+  if (playerStyle !== 'Ninguno') {
+    let directBuild = findBuild(position, playerStyle);
+    if (!directBuild) {
+      const archetype = symmetricalPositionMap[position];
+      if (archetype) {
+        directBuild = findBuild(archetype, playerStyle);
+      }
     }
+    // If a build is found for the specific style, return it. Otherwise, return null.
+    if (directBuild) {
+      return { bestBuild: directBuild.build, bestStyle: playerStyle };
+    }
+    return { bestBuild: null, bestStyle: null };
   }
 
-  if (directBuild) {
-    return { bestBuild: directBuild.build, bestStyle: playerStyle };
-  }
-
-  // 2. If no direct match, find the best alternative build among all compatible builds
+  // If player style IS 'Ninguno', find the best possible alternative build.
   let bestAlternativeBuild: PlayerAttributeStats | null = null;
   let bestAlternativeStyle: PlayerStyle | null = null;
   let maxAffinity = -Infinity;
@@ -215,7 +218,6 @@ export function getIdealBuildForPlayer(
 
   if (relevantBuilds.length > 0) {
     for (const idealBuild of relevantBuilds) {
-      // Check if the style of the ideal build is one that can be activated in the player's current position
       const availableStylesForPosition = getAvailableStylesForPosition(position);
       if (availableStylesForPosition.includes(idealBuild.style)) {
         const currentAffinity = calculateAutomaticAffinity(playerStats, idealBuild.build, isGoalkeeper);
@@ -391,6 +393,16 @@ const categoryToStatsMap: Record<CategoryName, (keyof PlayerAttributeStats)[]> =
   gk2: ['gkParrying', 'gkReach'],
   gk3: ['gkCatching', 'gkReflexes'],
 };
+
+const calculatePointsNeeded = (
+  baseStat: number,
+  idealStat: number
+): number => {
+  if (idealStat < 70) return 0;
+  const diff = idealStat - baseStat;
+  return diff > 0 ? diff : 0;
+};
+
 
 export function calculateProgressionSuggestions(
   baseStats: PlayerAttributeStats,

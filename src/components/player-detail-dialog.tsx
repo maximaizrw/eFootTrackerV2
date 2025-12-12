@@ -59,6 +59,8 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
   const [finalStats, setFinalStats] = React.useState<PlayerAttributeStats>({});
   const [affinityBreakdown, setAffinityBreakdown] = React.useState<AffinityBreakdownResult>({ totalAffinityScore: 0, breakdown: [] });
   const [totalProgressionPoints, setTotalProgressionPoints] = React.useState<number | undefined>(undefined);
+  const [bestBuildStyle, setBestBuildStyle] = React.useState<string | null>(null);
+
   const { toast } = useToast();
   
   const position = flatPlayer?.position;
@@ -82,15 +84,17 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
       const calculatedFinalStats = isPotwCard ? (card.attributeStats || {}) : calculateProgressionStats(card.attributeStats || {}, initialBuild, isGoalkeeper);
       setFinalStats(calculatedFinalStats);
       
-      const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, calculatedFinalStats);
+      const { bestBuild, bestStyle } = getIdealBuildForPlayer(card.style, position, idealBuilds, calculatedFinalStats);
       const breakdown = calculateAffinityWithBreakdown(calculatedFinalStats, bestBuild, isGoalkeeper);
       setAffinityBreakdown(breakdown);
+      setBestBuildStyle(bestStyle);
 
     } else {
       setBuild({ manualAffinity: 0 });
       setFinalStats({});
       setAffinityBreakdown({ totalAffinityScore: 0, breakdown: [] });
       setTotalProgressionPoints(undefined);
+      setBestBuildStyle(null);
     }
   }, [open, flatPlayer, card, position, idealBuilds, isGoalkeeper]);
 
@@ -101,9 +105,10 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
         const newFinalStats = isPotwCard ? baseStats : calculateProgressionStats(baseStats, build, isGoalkeeper);
         setFinalStats(newFinalStats);
         
-        const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, newFinalStats);
+        const { bestBuild, bestStyle } = getIdealBuildForPlayer(card.style, position, idealBuilds, newFinalStats);
         const breakdown = calculateAffinityWithBreakdown(newFinalStats, bestBuild, isGoalkeeper);
         setAffinityBreakdown(breakdown);
+        setBestBuildStyle(bestStyle);
     }
   }, [build, baseStats, open, card, position, idealBuilds, isGoalkeeper]);
 
@@ -211,6 +216,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
                                   <RefreshCw className="h-4 w-4" />
                               </Button>
                           </div>
+                          <p className="text-xs text-muted-foreground text-center">Build Ideal usada: <span className="font-semibold text-primary">{bestBuildStyle || 'N/A'}</span></p>
                       </div>
                       
                       {isPotw ? (
