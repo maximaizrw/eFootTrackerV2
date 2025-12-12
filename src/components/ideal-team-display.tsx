@@ -21,7 +21,6 @@ type IdealTeamDisplayProps = {
 
 const hasProgressionPoints = (build: PlayerBuild | undefined): boolean => {
     if (!build) return false;
-    // Check if any of the progression keys have a value greater than 0
     const keys: (keyof PlayerBuild)[] = ['shooting', 'passing', 'dribbling', 'dexterity', 'lowerBodyStrength', 'aerialStrength', 'defending', 'gk1', 'gk2', 'gk3'];
     return keys.some(key => {
         const value = build[key];
