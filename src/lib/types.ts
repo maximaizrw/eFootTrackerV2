@@ -155,6 +155,7 @@ export type PlayerCard = {
   ratingsByPosition: { [key in Position]?: number[] };
   buildsByPosition?: { [key in Position]?: PlayerBuild };
   attributeStats?: PlayerAttributeStats;
+  totalProgressionPoints?: number;
 };
 
 export type Player = {
@@ -342,5 +343,3 @@ export function getAvailableStylesForPosition(position: BuildPosition, includeNo
             return playerStyles;
     }
 }
-
-    

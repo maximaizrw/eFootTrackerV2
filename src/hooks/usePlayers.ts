@@ -273,7 +273,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
     }
   };
   
-  const savePlayerBuild = async (playerId: string, cardId: string, position: Position, build: PlayerBuild) => {
+  const savePlayerBuild = async (playerId: string, cardId: string, position: Position, build: PlayerBuild, totalProgressionPoints?: number) => {
     if (!db) return;
     const playerRef = doc(db, 'players', playerId);
     try {
@@ -289,6 +289,9 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
         if (cardToUpdate) {
             if (!cardToUpdate.buildsByPosition) {
               cardToUpdate.buildsByPosition = {};
+            }
+            if (totalProgressionPoints !== undefined) {
+              cardToUpdate.totalProgressionPoints = totalProgressionPoints;
             }
             
             const isGoalkeeper = position === 'PT';

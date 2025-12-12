@@ -33,7 +33,7 @@ type PlayerDetailDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   flatPlayer: FlatPlayer | null;
-  onSavePlayerBuild: (playerId: string, cardId: string, position: Position, build: PlayerBuild) => void;
+  onSavePlayerBuild: (playerId: string, cardId: string, position: Position, build: PlayerBuild, totalProgressionPoints?: number) => void;
   idealBuilds: IdealBuild[];
 };
 
@@ -58,7 +58,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
   const [build, setBuild] = React.useState<PlayerBuild>({ manualAffinity: 0 });
   const [finalStats, setFinalStats] = React.useState<PlayerAttributeStats>({});
   const [affinityBreakdown, setAffinityBreakdown] = React.useState<AffinityBreakdownResult>({ totalAffinityScore: 0, breakdown: [] });
-  const [progressionPoints, setProgressionPoints] = React.useState<number | undefined>(undefined);
+  const [totalProgressionPoints, setTotalProgressionPoints] = React.useState<number | undefined>(undefined);
   const { toast } = useToast();
   
   const position = flatPlayer?.position;
@@ -76,6 +76,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
     if (open && flatPlayer && position && card) {
       const initialBuild = card?.buildsByPosition?.[position] || { manualAffinity: 0 };
       setBuild(initialBuild);
+      setTotalProgressionPoints(card.totalProgressionPoints);
       
       const isPotwCard = card.name.toLowerCase().includes('potw');
       const calculatedFinalStats = isPotwCard ? (card.attributeStats || {}) : calculateProgressionStats(card.attributeStats || {}, initialBuild, isGoalkeeper);
@@ -84,12 +85,12 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
       const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, calculatedFinalStats);
       const breakdown = calculateAffinityWithBreakdown(calculatedFinalStats, bestBuild, isGoalkeeper);
       setAffinityBreakdown(breakdown);
-      setProgressionPoints(undefined);
 
     } else {
       setBuild({ manualAffinity: 0 });
       setFinalStats({});
       setAffinityBreakdown({ totalAffinityScore: 0, breakdown: [] });
+      setTotalProgressionPoints(undefined);
     }
   }, [open, flatPlayer, card, position, idealBuilds, isGoalkeeper]);
 
@@ -107,15 +108,15 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
   }, [build, baseStats, open, card, position, idealBuilds, isGoalkeeper]);
 
   const handleSave = () => {
-    if (player && card && position && !isPotw) {
-      onSavePlayerBuild(player.id, card.id, position, build);
+    if (player && card && position) {
+      onSavePlayerBuild(player.id, card.id, position, build, totalProgressionPoints);
       onOpenChange(false);
     }
   };
   
   const handleUpdateAffinity = () => {
     if (player && card && position) {
-      onSavePlayerBuild(player.id, card.id, position, build);
+      onSavePlayerBuild(player.id, card.id, position, build, totalProgressionPoints);
     }
   };
 
@@ -132,8 +133,8 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
         return;
     }
     
-    const totalPoints = progressionPoints || 50; // Use default if not provided
-    const suggestions = calculateProgressionSuggestions(baseStats, bestBuild, isGoalkeeper, totalPoints);
+    const pointsToUse = totalProgressionPoints || 50; // Use default if not provided
+    const suggestions = calculateProgressionSuggestions(baseStats, bestBuild, isGoalkeeper, pointsToUse);
     
     setBuild(prev => ({
         ...prev,
@@ -142,7 +143,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
 
     toast({
         title: "Sugerencias Cargadas",
-        description: `Se han distribuido ${totalPoints} puntos de progresión.`,
+        description: `Se han distribuido ${pointsToUse} puntos de progresión.`,
     });
   };
 
@@ -229,8 +230,8 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
                                     id="progression-points"
                                     type="number"
                                     placeholder="Ej: 50"
-                                    value={progressionPoints || ''}
-                                    onChange={(e) => setProgressionPoints(e.target.value ? parseInt(e.target.value, 10) : undefined)}
+                                    value={totalProgressionPoints || ''}
+                                    onChange={(e) => setTotalProgressionPoints(e.target.value ? parseInt(e.target.value, 10) : undefined)}
                                   />
                                 </div>
                                 <Button variant="outline" onClick={handleSuggestBuild}>
@@ -334,7 +335,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
         </Tabs>
 
         <DialogFooter className="pt-4 border-t mt-4 flex-shrink-0">
-          <Button onClick={handleSave} disabled={isPotw}>Guardar Build de {position}</Button>
+          <Button onClick={handleSave}>Guardar Build de {position}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
