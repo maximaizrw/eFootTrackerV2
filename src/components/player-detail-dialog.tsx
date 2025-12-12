@@ -67,7 +67,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
   const card = flatPlayer?.card;
   const player = flatPlayer?.player;
   const isGoalkeeper = position === 'PT';
-  const isPotw = card?.name.toLowerCase().includes('potw');
+  const isPotw = card?.name.toLowerCase().includes('potw') || false;
 
   const baseStats = React.useMemo(() => card?.attributeStats || {}, [card?.attributeStats]);
   
@@ -238,9 +238,10 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
                                     placeholder="Ej: 50"
                                     value={totalProgressionPoints || ''}
                                     onChange={(e) => setTotalProgressionPoints(e.target.value ? parseInt(e.target.value, 10) : undefined)}
+                                    disabled={isPotw}
                                   />
                                 </div>
-                                <Button variant="outline" onClick={handleSuggestBuild}>
+                                <Button variant="outline" onClick={handleSuggestBuild} disabled={isPotw}>
                                     <BrainCircuit className="mr-2 h-4 w-4" />
                                     Sugerir
                                 </Button>
@@ -254,6 +255,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
                                           onValueChange={(v) => handleSliderChange(key as any, v[0])}
                                           max={20}
                                           step={1}
+                                          disabled={isPotw}
                                       />
                                   </div>
                               ))}
@@ -347,3 +349,4 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
     </Dialog>
   );
 }
+

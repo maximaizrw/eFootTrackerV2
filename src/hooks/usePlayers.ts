@@ -290,12 +290,16 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
             if (!cardToUpdate.buildsByPosition) {
               cardToUpdate.buildsByPosition = {};
             }
-            if (totalProgressionPoints !== undefined) {
+            if (totalProgressionPoints !== undefined && !cardToUpdate.name.toLowerCase().includes('potw')) {
               cardToUpdate.totalProgressionPoints = totalProgressionPoints;
             }
             
             const isGoalkeeper = position === 'PT';
-            const playerFinalStats = calculateProgressionStats(cardToUpdate.attributeStats || {}, build, isGoalkeeper);
+            const isPotw = cardToUpdate.name.toLowerCase().includes('potw');
+            const playerFinalStats = isPotw
+                ? cardToUpdate.attributeStats || {}
+                : calculateProgressionStats(cardToUpdate.attributeStats || {}, build, isGoalkeeper);
+
             const { bestBuild, bestStyle } = getIdealBuildForPlayer(cardToUpdate.style, position, idealBuilds, playerFinalStats);
             const affinity = calculateAutomaticAffinity(playerFinalStats, bestBuild, isGoalkeeper);
             
