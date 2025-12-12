@@ -3,7 +3,7 @@
 
 import type { IdealTeamPlayer, IdealTeamSlot, FormationStats, Position, PlayerBuild } from '@/lib/types';
 import Image from 'next/image';
-import { Users, Shirt, X, Crown, NotebookPen } from 'lucide-react';
+import { Users, Shirt, X, Crown } from 'lucide-react';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { PerformanceBadges } from './performance-badges';
@@ -11,13 +11,6 @@ import { FootballPitch } from './football-pitch';
 import { cn } from '@/lib/utils';
 import { Card } from './ui/card';
 import { AffinityStatusIndicator } from './affinity-status-indicator';
-
-type IdealTeamDisplayProps = {
-  teamSlots: IdealTeamSlot[];
-  formation?: FormationStats;
-  onDiscardPlayer: (cardId: string) => void;
-  onViewBuild: (player: IdealTeamPlayer) => void;
-};
 
 const hasProgressionPoints = (build: PlayerBuild | undefined): boolean => {
     if (!build) return false;
