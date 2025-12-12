@@ -20,7 +20,7 @@ import { es } from 'date-fns/locale';
 import { Slider } from "./ui/slider";
 import { ScrollArea } from "./ui/scroll-area";
 import { Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, BrainCircuit, RefreshCw } from "lucide-react";
-import { calculateProgressionStats, getIdealBuildForPlayer, calculateAffinityWithBreakdown, type AffinityBreakdownResult, statLabels, calculateProgressionSuggestions } from "@/lib/utils";
+import { calculateProgressionStats, getIdealBuildForPlayer, calculateAffinityWithBreakdown, type AffinityBreakdownResult, statLabels, calculateProgressionSuggestions, isSpecialCard } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 import { Info } from 'lucide-react';
@@ -67,7 +67,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
   const card = flatPlayer?.card;
   const player = flatPlayer?.player;
   const isGoalkeeper = position === 'PT';
-  const isPotw = card?.name.toLowerCase().includes('potw') || false;
+  const specialCard = isSpecialCard(card?.name || '');
 
   const baseStats = React.useMemo(() => card?.attributeStats || {}, [card?.attributeStats]);
   
@@ -80,8 +80,8 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
       setBuild(initialBuild);
       setTotalProgressionPoints(card.totalProgressionPoints);
       
-      const isPotwCard = card.name.toLowerCase().includes('potw');
-      const calculatedFinalStats = isPotwCard ? (card.attributeStats || {}) : calculateProgressionStats(card.attributeStats || {}, initialBuild, isGoalkeeper);
+      const specialCard = isSpecialCard(card.name);
+      const calculatedFinalStats = specialCard ? (card.attributeStats || {}) : calculateProgressionStats(card.attributeStats || {}, initialBuild, isGoalkeeper);
       setFinalStats(calculatedFinalStats);
       
       const { bestBuild, bestStyle } = getIdealBuildForPlayer(card.style, position, idealBuilds, calculatedFinalStats);
@@ -101,8 +101,8 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
 
   React.useEffect(() => {
     if(open && card && position){
-        const isPotwCard = card.name.toLowerCase().includes('potw');
-        const newFinalStats = isPotwCard ? baseStats : calculateProgressionStats(baseStats, build, isGoalkeeper);
+        const specialCard = isSpecialCard(card.name);
+        const newFinalStats = specialCard ? baseStats : calculateProgressionStats(baseStats, build, isGoalkeeper);
         setFinalStats(newFinalStats);
         
         const { bestBuild, bestStyle } = getIdealBuildForPlayer(card.style, position, idealBuilds, newFinalStats);
@@ -219,12 +219,12 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
                           <p className="text-xs text-muted-foreground text-center">Build Ideal usada: <span className="font-semibold text-primary">{bestBuildStyle || 'N/A'}</span></p>
                       </div>
                       
-                      {isPotw ? (
+                      {specialCard ? (
                           <Alert>
                               <Info className="h-4 w-4" />
                               <AlertTitle>Carta Especial</AlertTitle>
                               <AlertDescription>
-                                  Las cartas POTW (Player of the Week) y otras cartas especiales no tienen puntos de progresión. Sus estadísticas son fijas.
+                                  Las cartas especiales (POTW, POTS, etc.) no tienen puntos de progresión. Sus estadísticas son fijas.
                               </AlertDescription>
                           </Alert>
                       ) : (
@@ -238,10 +238,10 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
                                     placeholder="Ej: 50"
                                     value={totalProgressionPoints || ''}
                                     onChange={(e) => setTotalProgressionPoints(e.target.value ? parseInt(e.target.value, 10) : undefined)}
-                                    disabled={isPotw}
+                                    disabled={specialCard}
                                   />
                                 </div>
-                                <Button variant="outline" onClick={handleSuggestBuild} disabled={isPotw}>
+                                <Button variant="outline" onClick={handleSuggestBuild} disabled={specialCard}>
                                     <BrainCircuit className="mr-2 h-4 w-4" />
                                     Sugerir
                                 </Button>
@@ -255,7 +255,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
                                           onValueChange={(v) => handleSliderChange(key as any, v[0])}
                                           max={20}
                                           step={1}
-                                          disabled={isPotw}
+                                          disabled={specialCard}
                                       />
                                   </div>
                               ))}
@@ -350,3 +350,6 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
   );
 }
 
+
+
+    

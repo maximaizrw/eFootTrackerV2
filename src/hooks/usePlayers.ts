@@ -9,7 +9,7 @@ import { useToast } from './use-toast';
 import { v4 as uuidv4 } from 'uuid';
 import type { Player, PlayerCard, Position, AddRatingFormValues, EditCardFormValues, EditPlayerFormValues, PlayerBuild, League, Nationality, PlayerAttributeStats, IdealBuild } from '@/lib/types';
 import { getAvailableStylesForPosition } from '@/lib/types';
-import { normalizeText, calculateProgressionStats, calculateAutomaticAffinity, getIdealBuildForPlayer } from '@/lib/utils';
+import { normalizeText, calculateProgressionStats, calculateAutomaticAffinity, getIdealBuildForPlayer, isSpecialCard } from '@/lib/utils';
 
 
 export function usePlayers(idealBuilds: IdealBuild[] = []) {
@@ -290,13 +290,13 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
             if (!cardToUpdate.buildsByPosition) {
               cardToUpdate.buildsByPosition = {};
             }
-            if (totalProgressionPoints !== undefined && !cardToUpdate.name.toLowerCase().includes('potw')) {
+            if (totalProgressionPoints !== undefined && !isSpecialCard(cardToUpdate.name)) {
               cardToUpdate.totalProgressionPoints = totalProgressionPoints;
             }
             
             const isGoalkeeper = position === 'PT';
-            const isPotw = cardToUpdate.name.toLowerCase().includes('potw');
-            const playerFinalStats = isPotw
+            const specialCard = isSpecialCard(cardToUpdate.name);
+            const playerFinalStats = specialCard
                 ? cardToUpdate.attributeStats || {}
                 : calculateProgressionStats(cardToUpdate.attributeStats || {}, build, isGoalkeeper);
 
@@ -359,8 +359,8 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
                   const build = cardToUpdate.buildsByPosition[position];
                   if(build) {
                       const isGoalkeeper = position === 'PT';
-                      const isPotw = cardToUpdate.name.toLowerCase().includes('potw');
-                      const finalStats = isPotw ? baseStats : calculateProgressionStats(baseStats, build, isGoalkeeper);
+                      const specialCard = isSpecialCard(cardToUpdate.name);
+                      const finalStats = specialCard ? baseStats : calculateProgressionStats(baseStats, build, isGoalkeeper);
                       const { bestBuild } = getIdealBuildForPlayer(cardToUpdate.style, position, idealBuilds, finalStats);
                       const newAffinity = calculateAutomaticAffinity(finalStats, bestBuild, isGoalkeeper);
 
@@ -418,8 +418,8 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
                         
                         if (build && card.attributeStats) {
                            const isGoalkeeper = position === 'PT';
-                           const isPotw = card.name.toLowerCase().includes('potw');
-                           const finalStats = isPotw ? card.attributeStats : calculateProgressionStats(card.attributeStats, build, isGoalkeeper);
+                           const specialCard = isSpecialCard(card.name);
+                           const finalStats = specialCard ? card.attributeStats : calculateProgressionStats(card.attributeStats, build, isGoalkeeper);
                            const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, finalStats);
                            const newAffinity = calculateAutomaticAffinity(finalStats, bestBuild, isGoalkeeper);
 
@@ -451,3 +451,5 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
 
   return { players, loading, error, addRating, editCard, editPlayer, deleteRating, savePlayerBuild, saveAttributeStats, downloadBackup, deletePositionRatings, recalculateAllAffinities };
 }
+
+    

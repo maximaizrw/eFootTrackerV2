@@ -11,7 +11,7 @@ import { FootballPitch } from './football-pitch';
 import { cn } from '@/lib/utils';
 import { Card } from './ui/card';
 import { AffinityStatusIndicator } from './affinity-status-indicator';
-import { hasProgressionPoints } from '@/lib/utils';
+import { hasProgressionPoints, isSpecialCard } from '@/lib/utils';
 
 
 const PlayerToken = ({ player, style, onDiscard, onViewBuild }: { player: IdealTeamPlayer | null, style: React.CSSProperties, onDiscard: (cardId: string) => void, onViewBuild: (player: IdealTeamPlayer) => void }) => {
@@ -30,9 +30,9 @@ const PlayerToken = ({ player, style, onDiscard, onViewBuild }: { player: IdealT
 
   const displayPosition = player.assignedPosition;
   const build = player.card.buildsByPosition?.[player.assignedPosition];
-  const isPotw = player.card.name.toLowerCase().includes('potw');
+  const specialCard = isSpecialCard(player.card.name);
   const hasNoStats = !player.card.attributeStats || Object.keys(player.card.attributeStats).length === 0;
-  const hasNoProgression = !isPotw && !hasProgressionPoints(build);
+  const hasNoProgression = !specialCard && !hasProgressionPoints(build);
   
   const nameColorClass = 
     hasNoStats ? 'text-red-500' :
@@ -109,9 +109,9 @@ const SubstitutePlayerRow = ({ player, onDiscard, onViewBuild }: { player: Ideal
 
   const displayPosition = player.assignedPosition;
   const build = player.card.buildsByPosition?.[player.assignedPosition];
-  const isPotw = player.card.name.toLowerCase().includes('potw');
+  const specialCard = isSpecialCard(player.card.name);
   const hasNoStats = !player.card.attributeStats || Object.keys(player.card.attributeStats).length === 0;
-  const hasNoProgression = !isPotw && !hasProgressionPoints(build);
+  const hasNoProgression = !specialCard && !hasProgressionPoints(build);
   
   const nameColorClass = 
     hasNoStats ? 'text-red-500' :
@@ -164,6 +164,14 @@ const SubstitutePlayerRow = ({ player, onDiscard, onViewBuild }: { player: Ideal
     </Card>
   );
 };
+
+type IdealTeamDisplayProps = {
+  teamSlots: IdealTeamSlot[];
+  formation: FormationStats | undefined;
+  onDiscardPlayer: (cardId: string) => void;
+  onViewBuild: (player: IdealTeamPlayer) => void;
+};
+
 
 const substituteOrder: Position[] = [
     'PT', 'DFC', 'LI', 'LD', 'MCD', 'MC', 'MDI', 'MDD', 'MO', 'EXI', 'EXD', 'SD', 'DC'
@@ -220,4 +228,5 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onView
   );
 }
 
+    
     

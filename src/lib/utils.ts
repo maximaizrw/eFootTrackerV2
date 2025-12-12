@@ -64,6 +64,12 @@ export function calculateGeneralScore(affinityScore: number, average: number): n
   return weightedAffinity + weightedAverage;
 }
 
+export function isSpecialCard(cardName: string): boolean {
+  if (!cardName) return false;
+  const lowerCaseCardName = cardName.toLowerCase();
+  return lowerCaseCardName.includes('potw') || lowerCaseCardName.includes('pots') || lowerCaseCardName.includes('potm');
+}
+
 
 // --- New Progression System ---
 
@@ -187,9 +193,12 @@ export function getIdealBuildForPlayer(
   const findBuild = (pos: BuildPosition, style: PlayerStyle) => 
     idealBuilds.find(b => b.position === pos && b.style === style);
 
-  // If player style is NOT 'Ninguno', perform a strict search for that style.
+  // --- Priority 1: Strict search for the player's own style ---
   if (playerStyle !== 'Ninguno') {
+    // Search for direct position match first (e.g., LI)
     let directBuild = findBuild(position, playerStyle);
+
+    // If not found, search for archetype match (e.g., LAT)
     if (!directBuild) {
       const archetype = symmetricalPositionMap[position];
       if (archetype) {
@@ -197,14 +206,14 @@ export function getIdealBuildForPlayer(
       }
     }
     
+    // If a build for the player's own style is found, return it immediately.
     if (directBuild) {
       return { bestBuild: directBuild.build, bestStyle: playerStyle };
     }
-    
-    // If strict search fails, fall back to finding the best possible match among all compatible styles
   }
 
-  // Find the best possible alternative build.
+  // --- Priority 2: Find the best possible alternative build ---
+  // This part is reached ONLY if the player's style is 'Ninguno' OR if no build was found for their specific style.
   let bestAlternativeBuild: PlayerAttributeStats | null = null;
   let bestAlternativeStyle: PlayerStyle | null = null;
   let maxAffinity = -Infinity;
@@ -215,10 +224,12 @@ export function getIdealBuildForPlayer(
     validPositionsForSearch.push(archetype);
   }
   
+  // Get all builds that are valid for the player's position/archetype
   const relevantBuilds = idealBuilds.filter(b => validPositionsForSearch.includes(b.position));
   const isGoalkeeper = position === 'PT';
 
   if (relevantBuilds.length > 0) {
+    // Check if any of these builds are for styles compatible with the player's current position
     for (const idealBuild of relevantBuilds) {
       const availableStylesForPosition = getAvailableStylesForPosition(position);
       if (availableStylesForPosition.includes(idealBuild.style)) {
@@ -488,3 +499,6 @@ export function calculateProgressionSuggestions(
   return build;
 }
 
+
+
+    
