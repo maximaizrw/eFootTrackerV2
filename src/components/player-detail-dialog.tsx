@@ -19,12 +19,13 @@ import { es } from 'date-fns/locale';
 import { Slider } from "./ui/slider";
 import { ScrollArea } from "./ui/scroll-area";
 import { Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, BrainCircuit, RefreshCw } from "lucide-react";
-import { calculateProgressionStats, getIdealBuildForPlayer, calculateAffinityWithBreakdown, type AffinityBreakdownResult, statLabels } from "@/lib/utils";
+import { calculateProgressionStats, getIdealBuildForPlayer, calculateAffinityWithBreakdown, type AffinityBreakdownResult, statLabels, calculateProgressionSuggestions } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 import { Info } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { AffinityBreakdown } from "./affinity-breakdown";
+import { useToast } from "@/hooks/use-toast";
 
 
 type PlayerDetailDialogProps = {
@@ -56,6 +57,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
   const [build, setBuild] = React.useState<PlayerBuild>({ manualAffinity: 0 });
   const [finalStats, setFinalStats] = React.useState<PlayerAttributeStats>({});
   const [affinityBreakdown, setAffinityBreakdown] = React.useState<AffinityBreakdownResult>({ totalAffinityScore: 0, breakdown: [] });
+  const { toast } = useToast();
   
   const position = flatPlayer?.position;
   const card = flatPlayer?.card;
@@ -112,6 +114,31 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
     if (player && card && position) {
       onSavePlayerBuild(player.id, card.id, position, build);
     }
+  };
+
+  const handleSuggestBuild = () => {
+    if (!card || !position) return;
+    
+    const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, baseStats);
+    if (!bestBuild) {
+        toast({
+            variant: "destructive",
+            title: "No se encontró Build Ideal",
+            description: `No hay una build ideal definida para ${position} con estilo ${card.style} o un arquetipo compatible.`,
+        });
+        return;
+    }
+    const suggestions = calculateProgressionSuggestions(baseStats, bestBuild, isGoalkeeper);
+    
+    setBuild(prev => ({
+        ...prev,
+        ...suggestions
+    }));
+
+    toast({
+        title: "Sugerencias Cargadas",
+        description: "Se han rellenado los puntos de progresión recomendados.",
+    });
   };
 
   const formattedDate = updatedAt 
@@ -190,7 +217,13 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
                           </Alert>
                       ) : (
                           <>
-                              <p className="font-medium text-sm text-muted-foreground pt-2">Puntos de Progresión (0-20)</p>
+                              <div className="flex items-center justify-between pt-2">
+                                <p className="font-medium text-sm text-muted-foreground">Puntos de Progresión (0-20)</p>
+                                <Button variant="outline" size="sm" onClick={handleSuggestBuild}>
+                                    <BrainCircuit className="mr-2 h-4 w-4" />
+                                    Sugerir Build
+                                </Button>
+                              </div>
 
                               {(isGoalkeeper ? goalkeeperCategories : outfieldCategories).map(({key, label, icon: Icon}) => (
                                   <div key={key} className="space-y-2">
@@ -293,3 +326,4 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
     </Dialog>
   );
 }
+
