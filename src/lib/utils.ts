@@ -1,5 +1,4 @@
 
-
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position, BuildPosition } from "./types";
@@ -339,5 +338,37 @@ export const hasProgressionPoints = (build: PlayerBuild | undefined): boolean =>
         return typeof value === 'number' && value > 0;
     });
 };
+
+export function calculateProgressionSuggestions(
+  baseStats: PlayerAttributeStats,
+  idealBuildStats: PlayerAttributeStats | null,
+  isGoalkeeper: boolean = false
+): Partial<OutfieldBuild & GoalkeeperBuild> {
+  if (!idealBuildStats) return {};
+
+  const suggestions: Partial<OutfieldBuild & GoalkeeperBuild> = {};
+
+  const calculatePointsNeeded = (stat: keyof PlayerAttributeStats): number => {
+    const base = baseStats[stat] || 0;
+    const ideal = idealBuildStats[stat] || 0;
+    return Math.max(0, ideal - base);
+  };
+  
+  if (!isGoalkeeper) {
+    suggestions.shooting = Math.max(calculatePointsNeeded('finishing'), calculatePointsNeeded('placeKicking'), calculatePointsNeeded('curl'));
+    suggestions.passing = Math.max(calculatePointsNeeded('lowPass'), calculatePointsNeeded('loftedPass'));
+    suggestions.dribbling = Math.max(calculatePointsNeeded('ballControl'), calculatePointsNeeded('dribbling'), calculatePointsNeeded('tightPossession'));
+    suggestions.dexterity = Math.max(calculatePointsNeeded('offensiveAwareness'), calculatePointsNeeded('acceleration'), calculatePointsNeeded('balance'));
+    suggestions.lowerBodyStrength = Math.max(calculatePointsNeeded('speed'), calculatePointsNeeded('kickingPower'), calculatePointsNeeded('stamina'));
+    suggestions.aerialStrength = Math.max(calculatePointsNeeded('heading'), calculatePointsNeeded('jump'), calculatePointsNeeded('physicalContact'));
+    suggestions.defending = Math.max(calculatePointsNeeded('defensiveAwareness'), calculatePointsNeeded('defensiveEngagement'), calculatePointsNeeded('tackling'), calculatePointsNeeded('aggression'));
+  }
+  
+  suggestions.gk1 = Math.max(calculatePointsNeeded('goalkeeping'), calculatePointsNeeded('jump'));
+  suggestions.gk2 = Math.max(calculatePointsNeeded('gkParrying'), calculatePointsNeeded('gkReach'));
+  suggestions.gk3 = Math.max(calculatePointsNeeded('gkCatching'), calculatePointsNeeded('gkReflexes'));
+  
+  return suggestions;
+}
 
     

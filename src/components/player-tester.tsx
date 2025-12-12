@@ -9,12 +9,12 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Textarea } from "./ui/textarea";
 import { Button } from "./ui/button";
-import { UploadCloud, Beaker, Star } from "lucide-react";
+import { UploadCloud, Beaker, Star, Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand } from "lucide-react";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "./ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import type { PlayerAttributeStats, IdealBuild, Position, PlayerStyle, BuildPosition } from "@/lib/types";
+import type { PlayerAttributeStats, IdealBuild, Position, PlayerStyle, BuildPosition, OutfieldBuild, GoalkeeperBuild } from "@/lib/types";
 import { positions, playerStyles, getAvailableStylesForPosition } from "@/lib/types";
-import { calculateAutomaticAffinity, getIdealBuildForPlayer, statLabels } from "@/lib/utils";
+import { calculateAutomaticAffinity, getIdealBuildForPlayer, statLabels, calculateProgressionSuggestions } from "@/lib/utils";
 import { cn, getAverageColorClass } from "@/lib/utils";
 import { Label } from "./ui/label";
 
@@ -49,6 +49,23 @@ const orderedStatFields: (keyof PlayerAttributeStats)[] = Object.values(statLabe
     return Object.keys(nameToSchemaKeyMap).find(key => nameToSchemaKeyMap[key] === Object.keys(statLabels).find(slKey => statLabels[slKey as keyof PlayerAttributeStats] === label)) as keyof PlayerAttributeStats;
 }).filter(Boolean);
 
+const outfieldCategories: { key: keyof OutfieldBuild; label: string, icon: React.ElementType }[] = [
+    { key: 'shooting', label: 'Tiro', icon: Target },
+    { key: 'passing', label: 'Pase', icon: Footprints },
+    { key: 'dribbling', label: 'Regate', icon: Dribbble },
+    { key: 'dexterity', label: 'Destreza', icon: Zap },
+    { key: 'lowerBodyStrength', label: 'Fuerza tren inferior', icon: Beef },
+    { key: 'aerialStrength', label: 'Juego aéreo', icon: ChevronsUp },
+    { key: 'defending', label: 'Defensa', icon: Shield },
+];
+
+const goalkeeperCategories: { key: keyof GoalkeeperBuild; label: string, icon: React.ElementType }[] = [
+    { key: 'gk1', label: 'Portero 1', icon: Hand },
+    { key: 'gk2', label: 'Portero 2', icon: Hand },
+    { key: 'gk3', label: 'Portero 3', icon: Hand },
+];
+
+
 type PlayerTesterProps = {
   idealBuilds: IdealBuild[];
 };
@@ -57,6 +74,7 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
   const [pastedText, setPastedText] = React.useState('');
   const [affinity, setAffinity] = React.useState<number | null>(null);
   const [bestBuildStyle, setBestBuildStyle] = React.useState<string | null>(null);
+  const [progressionSuggestions, setProgressionSuggestions] = React.useState<Partial<OutfieldBuild & GoalkeeperBuild>>({});
   const { toast } = useToast();
 
   const form = useForm<PlayerTesterFormValues>({
@@ -92,12 +110,15 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
 
       const { bestBuild, bestStyle } = getIdealBuildForPlayer(style, position, idealBuilds, playerStats);
       const calculatedAffinity = calculateAutomaticAffinity(playerStats, bestBuild, isGoalkeeper);
+      const suggestions = calculateProgressionSuggestions(playerStats, bestBuild, isGoalkeeper);
       
       setAffinity(calculatedAffinity);
       setBestBuildStyle(bestStyle);
+      setProgressionSuggestions(suggestions);
     } else {
       setAffinity(null);
       setBestBuildStyle(null);
+      setProgressionSuggestions({});
     }
   }, [watchedStats, watchedPosition, watchedStyle, idealBuilds, getValues]);
 
@@ -153,6 +174,8 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
   };
 
   const affinityColorClass = affinity !== null ? getAverageColorClass(affinity / 10) : '';
+  const hasSuggestions = Object.values(progressionSuggestions).some(v => v && v > 0);
+  const suggestionCategories = watchedPosition === 'PT' ? goalkeeperCategories : outfieldCategories;
 
   return (
     <Card>
@@ -228,21 +251,39 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
           </Form>
         </div>
 
-        <div className="flex flex-col items-center justify-center bg-muted/50 rounded-lg p-8 space-y-4">
+        <div className="flex flex-col items-center justify-start bg-muted/50 rounded-lg p-6 space-y-4">
           <p className="text-lg font-semibold text-muted-foreground">Afinidad Calculada</p>
           {affinity !== null ? (
-            <>
-              <div className={cn("text-7xl font-bold flex items-center gap-2", affinityColorClass)}>
+            <div className="text-center">
+              <div className={cn("text-7xl font-bold flex items-center justify-center gap-2", affinityColorClass)}>
                 <Star className="w-12 h-12" />
                 {affinity.toFixed(2)}
               </div>
-              <p className="text-sm text-center">
-                Mejor Build Encontrada: <span className="font-semibold text-primary">{bestBuildStyle || 'N/A'}</span>
+              <p className="text-sm mt-1">
+                Build Ideal usada: <span className="font-semibold text-primary">{bestBuildStyle || 'N/A'}</span>
               </p>
-            </>
+            </div>
           ) : (
-            <div className="text-5xl font-bold text-muted-foreground/50">
+            <div className="text-5xl font-bold text-muted-foreground/50 self-center mt-8">
               -
+            </div>
+          )}
+
+          {hasSuggestions && (
+            <div className="w-full pt-4 mt-4 border-t">
+              <p className="text-lg font-semibold text-muted-foreground text-center mb-3">Puntos de Progresión Sugeridos</p>
+              <div className="space-y-2">
+                {suggestionCategories.map(({ key, label, icon: Icon }) => {
+                    const value = (progressionSuggestions as any)[key];
+                    if (!value || value <= 0) return null;
+                    return (
+                        <div key={key} className="flex items-center justify-between p-2 bg-background/50 rounded-md">
+                            <span className="flex items-center gap-2 text-sm"><Icon className="w-4 h-4 text-muted-foreground"/>{label}</span>
+                            <span className="font-bold text-primary text-lg">{value}</span>
+                        </div>
+                    );
+                })}
+              </div>
             </div>
           )}
         </div>
@@ -250,3 +291,5 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
     </Card>
   );
 }
+
+    
