@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Slider } from "./ui/slider";
@@ -57,6 +58,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
   const [build, setBuild] = React.useState<PlayerBuild>({ manualAffinity: 0 });
   const [finalStats, setFinalStats] = React.useState<PlayerAttributeStats>({});
   const [affinityBreakdown, setAffinityBreakdown] = React.useState<AffinityBreakdownResult>({ totalAffinityScore: 0, breakdown: [] });
+  const [progressionPoints, setProgressionPoints] = React.useState<number | undefined>(undefined);
   const { toast } = useToast();
   
   const position = flatPlayer?.position;
@@ -82,6 +84,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
       const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, calculatedFinalStats);
       const breakdown = calculateAffinityWithBreakdown(calculatedFinalStats, bestBuild, isGoalkeeper);
       setAffinityBreakdown(breakdown);
+      setProgressionPoints(undefined);
 
     } else {
       setBuild({ manualAffinity: 0 });
@@ -128,7 +131,9 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
         });
         return;
     }
-    const suggestions = calculateProgressionSuggestions(baseStats, bestBuild, isGoalkeeper);
+    
+    const totalPoints = progressionPoints || 50; // Use default if not provided
+    const suggestions = calculateProgressionSuggestions(baseStats, bestBuild, isGoalkeeper, totalPoints);
     
     setBuild(prev => ({
         ...prev,
@@ -137,7 +142,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
 
     toast({
         title: "Sugerencias Cargadas",
-        description: "Se han rellenado los puntos de progresión recomendados.",
+        description: `Se han distribuido ${totalPoints} puntos de progresión.`,
     });
   };
 
@@ -217,16 +222,25 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
                           </Alert>
                       ) : (
                           <>
-                              <div className="flex items-center justify-between pt-2">
-                                <p className="font-medium text-sm text-muted-foreground">Puntos de Progresión (0-20)</p>
-                                <Button variant="outline" size="sm" onClick={handleSuggestBuild}>
+                              <div className="flex items-end gap-2 pt-2">
+                                <div className="flex-grow space-y-2">
+                                  <Label htmlFor="progression-points">Puntos de Progresión Totales</Label>
+                                  <Input 
+                                    id="progression-points"
+                                    type="number"
+                                    placeholder="Ej: 50"
+                                    value={progressionPoints || ''}
+                                    onChange={(e) => setProgressionPoints(e.target.value ? parseInt(e.target.value, 10) : undefined)}
+                                  />
+                                </div>
+                                <Button variant="outline" onClick={handleSuggestBuild}>
                                     <BrainCircuit className="mr-2 h-4 w-4" />
-                                    Sugerir Build
+                                    Sugerir
                                 </Button>
                               </div>
 
                               {(isGoalkeeper ? goalkeeperCategories : outfieldCategories).map(({key, label, icon: Icon}) => (
-                                  <div key={key} className="space-y-2">
+                                  <div key={key} className="space-y-2 pt-2">
                                       <Label className="flex items-center gap-2">{<Icon className="w-4 h-4" />} {label}: <span className="font-bold text-primary">{(build as any)[key] || 0}</span></Label>
                                       <Slider 
                                           value={[(build as any)[key] || 0]}
@@ -326,4 +340,3 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
     </Dialog>
   );
 }
-

@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Textarea } from "./ui/textarea";
 import { Button } from "./ui/button";
+import { Input } from "./ui/input";
 import { UploadCloud, Beaker, Star, Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand } from "lucide-react";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "./ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
@@ -75,6 +76,8 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
   const [affinity, setAffinity] = React.useState<number | null>(null);
   const [bestBuildStyle, setBestBuildStyle] = React.useState<string | null>(null);
   const [progressionSuggestions, setProgressionSuggestions] = React.useState<Partial<OutfieldBuild & GoalkeeperBuild>>({});
+  const [progressionPoints, setProgressionPoints] = React.useState<number | undefined>(undefined);
+
   const { toast } = useToast();
 
   const form = useForm<PlayerTesterFormValues>({
@@ -110,7 +113,7 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
 
       const { bestBuild, bestStyle } = getIdealBuildForPlayer(style, position, idealBuilds, playerStats);
       const calculatedAffinity = calculateAutomaticAffinity(playerStats, bestBuild, isGoalkeeper);
-      const suggestions = calculateProgressionSuggestions(playerStats, bestBuild, isGoalkeeper);
+      const suggestions = calculateProgressionSuggestions(playerStats, bestBuild, isGoalkeeper, progressionPoints);
       
       setAffinity(calculatedAffinity);
       setBestBuildStyle(bestStyle);
@@ -120,7 +123,7 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
       setBestBuildStyle(null);
       setProgressionSuggestions({});
     }
-  }, [watchedStats, watchedPosition, watchedStyle, idealBuilds, getValues]);
+  }, [watchedStats, watchedPosition, watchedStyle, idealBuilds, getValues, progressionPoints]);
 
 
   const handleParseText = () => {
@@ -247,6 +250,16 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
                   </FormItem>
                 )}
               />
+               <div className="col-span-2 space-y-2">
+                <Label htmlFor="progression-points-tester">Puntos de Progresión Totales (Opcional)</Label>
+                <Input 
+                  id="progression-points-tester"
+                  type="number"
+                  placeholder="Ej: 50"
+                  value={progressionPoints || ''}
+                  onChange={(e) => setProgressionPoints(e.target.value ? parseInt(e.target.value, 10) : undefined)}
+                />
+              </div>
             </div>
           </Form>
         </div>
@@ -291,5 +304,3 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
     </Card>
   );
 }
-
-    

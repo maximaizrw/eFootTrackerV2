@@ -353,40 +353,110 @@ export const hasProgressionPoints = (build: PlayerBuild | undefined): boolean =>
     });
 };
 
+// --- Progression Cost Calculation ---
+
+/**
+ * Calculates the total progression points (PP) required to reach a specific category level.
+ */
+export function calculatePointsForLevel(level: number): number {
+  if (level <= 0) return 0;
+  if (level <= 4) return level * 1;
+  if (level <= 8) return 4 + (level - 4) * 2;
+  if (level <= 12) return 4 + 8 + (level - 8) * 3;
+  return 4 + 8 + 12 + (level - 12) * 4;
+}
+
+/**
+ * Calculates the maximum category level achievable with a given number of progression points (PP).
+ */
+export function calculateLevelForPoints(points: number): number {
+  if (points <= 4) return points;
+  if (points <= 12) return 4 + Math.floor((points - 4) / 2);
+  if (points <= 24) return 8 + Math.floor((points - 12) / 3);
+  return 12 + Math.floor((points - 24) / 4);
+}
+
+
+type CategoryName = keyof (OutfieldBuild & GoalkeeperBuild);
+
+const categoryToStatsMap: Record<CategoryName, (keyof PlayerAttributeStats)[]> = {
+  shooting: ['finishing', 'placeKicking', 'curl'],
+  passing: ['lowPass', 'loftedPass'],
+  dribbling: ['ballControl', 'dribbling', 'tightPossession'],
+  dexterity: ['offensiveAwareness', 'acceleration', 'balance'],
+  lowerBodyStrength: ['speed', 'kickingPower', 'stamina'],
+  aerialStrength: ['heading', 'jump', 'physicalContact'],
+  defending: ['defensiveAwareness', 'defensiveEngagement', 'tackling', 'aggression'],
+  gk1: ['goalkeeping', 'jump'],
+  gk2: ['gkParrying', 'gkReach'],
+  gk3: ['gkCatching', 'gkReflexes'],
+};
+
 export function calculateProgressionSuggestions(
   baseStats: PlayerAttributeStats,
   idealBuildStats: PlayerAttributeStats | null,
-  isGoalkeeper: boolean = false
+  isGoalkeeper: boolean,
+  totalProgressionPoints: number = 50 // Default budget
 ): Partial<OutfieldBuild & GoalkeeperBuild> {
   if (!idealBuildStats) return {};
 
-  const suggestions: Partial<OutfieldBuild & GoalkeeperBuild> = {};
+  const categories: CategoryName[] = isGoalkeeper
+    ? ['gk1', 'gk2', 'gk3', 'defending'] // GKs can also train defending
+    : ['shooting', 'passing', 'dribbling', 'dexterity', 'lowerBodyStrength', 'aerialStrength', 'defending'];
 
-  const calculatePointsNeeded = (stat: keyof PlayerAttributeStats): number => {
-    const base = baseStats[stat] || 0;
-    const ideal = idealBuildStats[stat] || 0;
+  let pointsSpent = 0;
+  const build: { [key in CategoryName]?: number } = {};
+  categories.forEach(cat => build[cat] = 0);
+
+  // Calculate the "value" of increasing each category by one level
+  const calculateCategoryValue = (category: CategoryName, currentLevel: number) => {
+    const currentPoints = calculatePointsForLevel(currentLevel);
+    const nextLevelPoints = calculatePointsForLevel(currentLevel + 1);
+    if (nextLevelPoints > 100) return { value: -1, cost: Infinity }; // Arbitrarily high level limit
+
+    const cost = nextLevelPoints - currentPoints;
     
-    // Only suggest points if the ideal stat is 70 or higher
-    if (ideal < 70) {
-      return 0;
+    let tempBuild = { ...build, [category]: currentLevel + 1 };
+    const currentStats = calculateProgressionStats(baseStats, tempBuild, isGoalkeeper);
+    const newAffinity = calculateAutomaticAffinity(currentStats, idealBuildStats, isGoalkeeper);
+
+    tempBuild = { ...build, [category]: currentLevel };
+    const oldStats = calculateProgressionStats(baseStats, tempBuild, isGoalkeeper);
+    const oldAffinity = calculateAutomaticAffinity(oldStats, idealBuildStats, isGoalkeeper);
+    
+    const affinityGain = newAffinity - oldAffinity;
+    
+    // Do not invest in categories that don't increase affinity, unless we have nothing better to do.
+    if (affinityGain <= 0) return { value: 0.001 / cost, cost }; 
+
+    return { value: affinityGain / cost, cost };
+  };
+
+  // Iteratively spend points on the best value category
+  while (pointsSpent < totalProgressionPoints) {
+    let bestCategory: CategoryName | null = null;
+    let bestValue = -Infinity;
+    let costForBest = Infinity;
+
+    for (const category of categories) {
+      const { value, cost } = calculateCategoryValue(category, build[category]!);
+      if (pointsSpent + cost <= totalProgressionPoints) {
+        if (value > bestValue) {
+          bestValue = value;
+          bestCategory = category;
+          costForBest = cost;
+        }
+      }
     }
 
-    return Math.max(0, ideal - base);
-  };
-  
-  if (!isGoalkeeper) {
-    suggestions.shooting = Math.max(calculatePointsNeeded('finishing'), calculatePointsNeeded('placeKicking'), calculatePointsNeeded('curl'));
-    suggestions.passing = Math.max(calculatePointsNeeded('lowPass'), calculatePointsNeeded('loftedPass'));
-    suggestions.dribbling = Math.max(calculatePointsNeeded('ballControl'), calculatePointsNeeded('dribbling'), calculatePointsNeeded('tightPossession'));
-    suggestions.dexterity = Math.max(calculatePointsNeeded('offensiveAwareness'), calculatePointsNeeded('acceleration'), calculatePointsNeeded('balance'));
-    suggestions.lowerBodyStrength = Math.max(calculatePointsNeeded('speed'), calculatePointsNeeded('kickingPower'), calculatePointsNeeded('stamina'));
-    suggestions.aerialStrength = Math.max(calculatePointsNeeded('heading'), calculatePointsNeeded('jump'), calculatePointsNeeded('physicalContact'));
-    suggestions.defending = Math.max(calculatePointsNeeded('defensiveAwareness'), calculatePointsNeeded('defensiveEngagement'), calculatePointsNeeded('tackling'), calculatePointsNeeded('aggression'));
+    if (bestCategory) {
+      build[bestCategory]! += 1;
+      pointsSpent += costForBest;
+    } else {
+      // No affordable upgrade found, break the loop
+      break;
+    }
   }
-  
-  suggestions.gk1 = Math.max(calculatePointsNeeded('goalkeeping'), calculatePointsNeeded('jump'));
-  suggestions.gk2 = Math.max(calculatePointsNeeded('gkParrying'), calculatePointsNeeded('gkReach'));
-  suggestions.gk3 = Math.max(calculatePointsNeeded('gkCatching'), calculatePointsNeeded('gkReflexes'));
-  
-  return suggestions;
+
+  return build;
 }
