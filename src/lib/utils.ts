@@ -176,30 +176,28 @@ export function getIdealBuildForPlayer(
   const findBuild = (pos: BuildPosition, style: PlayerStyle) => 
     idealBuilds.find(b => b.position === pos && b.style === style);
 
-  // 1. Prioritize direct match for player's own style
-  const isPlayerStyleValid = getAvailableStylesForPosition(position).includes(playerStyle);
-  if (isPlayerStyleValid) {
-    let directBuild = findBuild(position, playerStyle);
-    if (directBuild) {
-      return { bestBuild: directBuild.build, bestStyle: playerStyle };
-    }
-    
-    const archetype = symmetricalPositionMap[position];
-    if (archetype) {
-      const archetypeBuild = findBuild(archetype, playerStyle);
-      if (archetypeBuild) {
-        return { bestBuild: archetypeBuild.build, bestStyle: playerStyle };
-      }
+  // 1. Direct match for player's own style on the exact position
+  let directBuild = findBuild(position, playerStyle);
+  if (directBuild) {
+    return { bestBuild: directBuild.build, bestStyle: playerStyle };
+  }
+
+  // 2. Archetype match for player's own style
+  const archetype = symmetricalPositionMap[position];
+  if (archetype) {
+    const archetypeBuild = findBuild(archetype, playerStyle);
+    if (archetypeBuild) {
+      return { bestBuild: archetypeBuild.build, bestStyle: playerStyle };
     }
   }
 
-  // 2. If no build for the player's own style is found, find the best alternative
+
+  // 3. If no build for the player's own style, find the best alternative
   let bestAlternativeBuild: PlayerAttributeStats | null = null;
   let bestAlternativeStyle: PlayerStyle | null = null;
   let maxAffinity = -Infinity;
 
   const validPositionsForSearch: BuildPosition[] = [position];
-  const archetype = symmetricalPositionMap[position];
   if (archetype) {
     validPositionsForSearch.push(archetype);
   }
@@ -332,3 +330,14 @@ export function calculateAffinityWithBreakdown(
 
     return { totalAffinityScore, breakdown };
 }
+
+export const hasProgressionPoints = (build: PlayerBuild | undefined): boolean => {
+    if (!build) return false;
+    const keys: (keyof PlayerBuild)[] = ['shooting', 'passing', 'dribbling', 'dexterity', 'lowerBodyStrength', 'aerialStrength', 'defending', 'gk1', 'gk2', 'gk3'];
+    return keys.some(key => {
+        const value = build[key];
+        return typeof value === 'number' && value > 0;
+    });
+};
+
+    

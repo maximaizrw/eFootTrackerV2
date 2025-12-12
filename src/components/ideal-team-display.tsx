@@ -11,15 +11,7 @@ import { FootballPitch } from './football-pitch';
 import { cn } from '@/lib/utils';
 import { Card } from './ui/card';
 import { AffinityStatusIndicator } from './affinity-status-indicator';
-
-const hasProgressionPoints = (build: PlayerBuild | undefined): boolean => {
-    if (!build) return false;
-    const keys: (keyof PlayerBuild)[] = ['shooting', 'passing', 'dribbling', 'dexterity', 'lowerBodyStrength', 'aerialStrength', 'defending', 'gk1', 'gk2', 'gk3'];
-    return keys.some(key => {
-        const value = build[key];
-        return typeof value === 'number' && value > 0;
-    });
-};
+import { hasProgressionPoints } from '@/lib/utils';
 
 
 const PlayerToken = ({ player, style, onDiscard, onViewBuild }: { player: IdealTeamPlayer | null, style: React.CSSProperties, onDiscard: (cardId: string) => void, onViewBuild: (player: IdealTeamPlayer) => void }) => {
@@ -40,7 +32,7 @@ const PlayerToken = ({ player, style, onDiscard, onViewBuild }: { player: IdealT
   const build = player.card.buildsByPosition?.[player.assignedPosition];
   const isPotw = player.card.name.toLowerCase().includes('potw');
   const hasNoStats = !player.card.attributeStats || Object.keys(player.card.attributeStats).length === 0;
-  const hasNoProgression = !isPotw && (!build || !hasProgressionPoints(build));
+  const hasNoProgression = !isPotw && !hasProgressionPoints(build);
   
   const nameColorClass = 
     hasNoStats ? 'text-red-500' :
@@ -119,7 +111,7 @@ const SubstitutePlayerRow = ({ player, onDiscard, onViewBuild }: { player: Ideal
   const build = player.card.buildsByPosition?.[player.assignedPosition];
   const isPotw = player.card.name.toLowerCase().includes('potw');
   const hasNoStats = !player.card.attributeStats || Object.keys(player.card.attributeStats).length === 0;
-  const hasNoProgression = !isPotw && (!build || !hasProgressionPoints(build));
+  const hasNoProgression = !isPotw && !hasProgressionPoints(build);
   
   const nameColorClass = 
     hasNoStats ? 'text-red-500' :
@@ -227,3 +219,5 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onView
     </div>
   );
 }
+
+    

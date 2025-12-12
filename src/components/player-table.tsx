@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Trash2, X, Wrench, Pencil, NotebookPen, Search, Star, SlidersHorizontal } from 'lucide-react';
-import { cn, formatAverage, getAverageColorClass } from '@/lib/utils';
+import { cn, formatAverage, getAverageColorClass, hasProgressionPoints } from '@/lib/utils';
 import type { Player, PlayerCard, Position, FlatPlayer } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import { PerformanceBadges } from './performance-badges';
@@ -168,7 +168,14 @@ export function PlayerTable({
             const generalColorClass = getAverageColorClass(generalScore / 10);
             
             const rowId = `${player.id}-${card.id}-${position}`;
+            
+            const build = card.buildsByPosition?.[position];
+            const isPotw = card.name.toLowerCase().includes('potw');
             const hasNoStats = !card.attributeStats || Object.keys(card.attributeStats).length === 0;
+            const hasNoProgression = !isPotw && !hasProgressionPoints(build);
+
+            const nameColorClass = hasNoStats ? "text-red-500" : hasNoProgression ? "text-violet-400" : "";
+
 
             return (
               <React.Fragment key={rowId}>
@@ -192,7 +199,7 @@ export function PlayerTable({
                         <div className="flex items-center gap-2">
                             <button 
                                 onClick={(e) => { e.stopPropagation(); onOpenPlayerDetail(flatPlayer); }}
-                                className={cn("font-medium text-sm md:text-base hover:underline text-left", hasNoStats && "text-red-500")}
+                                className={cn("font-medium text-sm md:text-base hover:underline text-left", nameColorClass)}
                             >
                                 {player.name}
                             </button>
