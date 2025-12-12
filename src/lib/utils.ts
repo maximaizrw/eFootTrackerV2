@@ -66,6 +66,8 @@ export function calculateGeneralScore(affinityScore: number, average: number): n
 
 // --- New Progression System ---
 
+const MAX_STAT_VALUE = 99;
+
 const outfieldStatsKeys: (keyof PlayerAttributeStats)[] = [
     'offensiveAwareness', 'ballControl', 'dribbling', 'tightPossession', 'lowPass', 'loftedPass', 'finishing', 'heading', 'placeKicking', 'curl',
     'defensiveAwareness', 'defensiveEngagement', 'tackling', 'aggression',
@@ -83,7 +85,6 @@ export const allStatsKeys: (keyof PlayerAttributeStats)[] = [
     ...new Set([...outfieldStatsKeys, ...goalkeeperStatsKeys])
 ];
 
-const MAX_STAT_VALUE = 99;
 
 export function calculateProgressionStats(
   baseStats: PlayerAttributeStats,
@@ -185,41 +186,38 @@ export function getIdealBuildForPlayer(
   const findBuild = (pos: BuildPosition, style: PlayerStyle) => 
     idealBuilds.find(b => b.position === pos && b.style === style);
 
-  // 1. Direct match for player's own style on the exact position
+  // 1. Direct match for player's own style (position-specific or archetype)
   let directBuild = findBuild(position, playerStyle);
+  if (!directBuild) {
+    const archetype = symmetricalPositionMap[position];
+    if (archetype) {
+      directBuild = findBuild(archetype, playerStyle);
+    }
+  }
+
   if (directBuild) {
     return { bestBuild: directBuild.build, bestStyle: playerStyle };
   }
 
-  // 2. Archetype match for player's own style
-  const archetype = symmetricalPositionMap[position];
-  if (archetype) {
-    const archetypeBuild = findBuild(archetype, playerStyle);
-    if (archetypeBuild) {
-      return { bestBuild: archetypeBuild.build, bestStyle: playerStyle };
-    }
-  }
-
-  // 3. If no build for the player's own style, find the best alternative by checking other styles
-  // for the same position or archetype that could yield a good affinity.
+  // 2. If no direct match, find the best alternative build among all compatible builds
   let bestAlternativeBuild: PlayerAttributeStats | null = null;
   let bestAlternativeStyle: PlayerStyle | null = null;
   let maxAffinity = -Infinity;
 
   const validPositionsForSearch: BuildPosition[] = [position];
+  const archetype = symmetricalPositionMap[position];
   if (archetype) {
     validPositionsForSearch.push(archetype);
   }
   
   const relevantBuilds = idealBuilds.filter(b => validPositionsForSearch.includes(b.position));
-  
   const isGoalkeeper = position === 'PT';
 
-  // If there are relevant builds, find the one with the highest affinity
   if (relevantBuilds.length > 0) {
     for (const idealBuild of relevantBuilds) {
-      // Ensure the style is valid for the actual position on the field
-      if (getAvailableStylesForPosition(position).includes(idealBuild.style)) {
+      // Check if the style of the ideal build is one that can be activated in the player's current position
+      const availableStylesForPosition = getAvailableStylesForPosition(position);
+      if (availableStylesForPosition.includes(idealBuild.style)) {
         const currentAffinity = calculateAutomaticAffinity(playerStats, idealBuild.build, isGoalkeeper);
         if (currentAffinity > maxAffinity) {
           maxAffinity = currentAffinity;
