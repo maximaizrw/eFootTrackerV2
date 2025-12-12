@@ -139,7 +139,17 @@ export function calculateProgressionStats(
     newStats.defensiveEngagement = Math.min(MAX_STAT_VALUE, (getBase('defensiveEngagement', 'baseDefensiveEngagement')!) + defendingPoints);
     newStats.tackling = Math.min(MAX_STAT_VALUE, (getBase('tackling', 'baseTackling')!) + defendingPoints);
     newStats.aggression = Math.min(MAX_STAT_VALUE, (getBase('aggression', 'baseAggression')!) + defendingPoints);
+  } else {
+    // For GKs, we need to ensure defending stats are also calculated if defending points are applied
+    const defendingPoints = (outfieldBuild as any).defending || 0;
+     if (defendingPoints > 0) {
+        newStats.defensiveAwareness = Math.min(MAX_STAT_VALUE, (getBase('defensiveAwareness', 'baseDefensiveAwareness')!) + defendingPoints);
+        newStats.defensiveEngagement = Math.min(MAX_STAT_VALUE, (getBase('defensiveEngagement', 'baseDefensiveEngagement')!) + defendingPoints);
+        newStats.tackling = Math.min(MAX_STAT_VALUE, (getBase('tackling', 'baseTackling')!) + defendingPoints);
+        newStats.aggression = Math.min(MAX_STAT_VALUE, (getBase('aggression', 'baseAggression')!) + defendingPoints);
+     }
   }
+
 
   // --- Goalkeeping ---
   const gk1Points = goalkeeperBuild.gk1 || 0;
@@ -190,8 +200,8 @@ export function getIdealBuildForPlayer(
     }
   }
 
-
-  // 3. If no build for the player's own style, find the best alternative
+  // 3. If no build for the player's own style, find the best alternative by checking other styles
+  // for the same position or archetype that could yield a good affinity.
   let bestAlternativeBuild: PlayerAttributeStats | null = null;
   let bestAlternativeStyle: PlayerStyle | null = null;
   let maxAffinity = -Infinity;
@@ -202,16 +212,22 @@ export function getIdealBuildForPlayer(
   }
   
   const relevantBuilds = idealBuilds.filter(b => validPositionsForSearch.includes(b.position));
+  
+  const isGoalkeeper = position === 'PT';
 
-  for (const idealBuild of relevantBuilds) {
+  // If there are relevant builds, find the one with the highest affinity
+  if (relevantBuilds.length > 0) {
+    for (const idealBuild of relevantBuilds) {
+      // Ensure the style is valid for the actual position on the field
       if (getAvailableStylesForPosition(position).includes(idealBuild.style)) {
-        const currentAffinity = calculateAutomaticAffinity(playerStats, idealBuild.build, position === 'PT');
+        const currentAffinity = calculateAutomaticAffinity(playerStats, idealBuild.build, isGoalkeeper);
         if (currentAffinity > maxAffinity) {
           maxAffinity = currentAffinity;
           bestAlternativeBuild = idealBuild.build;
           bestAlternativeStyle = idealBuild.style;
         }
       }
+    }
   }
   
   return { bestBuild: bestAlternativeBuild, bestStyle: bestAlternativeStyle };
@@ -351,6 +367,12 @@ export function calculateProgressionSuggestions(
   const calculatePointsNeeded = (stat: keyof PlayerAttributeStats): number => {
     const base = baseStats[stat] || 0;
     const ideal = idealBuildStats[stat] || 0;
+    
+    // Only suggest points if the ideal stat is 70 or higher
+    if (ideal < 70) {
+      return 0;
+    }
+
     return Math.max(0, ideal - base);
   };
   
@@ -370,5 +392,3 @@ export function calculateProgressionSuggestions(
   
   return suggestions;
 }
-
-    
