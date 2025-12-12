@@ -199,6 +199,10 @@ export function getIdealBuildForPlayer(
     if (directBuild) {
       return { bestBuild: directBuild.build, bestStyle: playerStyle };
     }
+    // This is the strict part: if no direct match, return null.
+    // However, the user might want to see the best *possible* fit even for a styled player.
+    // The logic below will handle that if we let it.
+    // Let's stick to the user's last request: if Cazagoles, search only Cazagoles.
     return { bestBuild: null, bestStyle: null };
   }
 
@@ -429,14 +433,30 @@ export function calculateProgressionSuggestions(
     const cost = nextLevelPoints - currentPoints;
     
     let tempBuild = { ...build, [category]: currentLevel + 1 };
-    const currentStats = calculateProgressionStats(baseStats, tempBuild, isGoalkeeper);
-    const newAffinity = calculateAutomaticAffinity(currentStats, idealBuildStats, isGoalkeeper);
+    const newStats = calculateProgressionStats(baseStats, tempBuild, isGoalkeeper);
+    const newAffinity = calculateAutomaticAffinity(newStats, idealBuildStats, isGoalkeeper);
 
     tempBuild = { ...build, [category]: currentLevel };
     const oldStats = calculateProgressionStats(baseStats, tempBuild, isGoalkeeper);
     const oldAffinity = calculateAutomaticAffinity(oldStats, idealBuildStats, isGoalkeeper);
     
-    const affinityGain = newAffinity - oldAffinity;
+    let affinityGain = newAffinity - oldAffinity;
+
+    // Prioritize categories that help reach 90+ stats
+    let hasHighValueTarget = false;
+    const statsInCategory = categoryToStatsMap[category];
+    if (statsInCategory) {
+      for (const stat of statsInCategory) {
+        if ((idealBuildStats[stat] ?? 0) >= 90 && (newStats[stat] ?? 0) <= (idealBuildStats[stat] ?? 0)) {
+          hasHighValueTarget = true;
+          break;
+        }
+      }
+    }
+    
+    if (hasHighValueTarget) {
+      affinityGain *= 1.5; // Weight high-value targets more
+    }
     
     // Do not invest in categories that don't increase affinity, unless we have nothing better to do.
     if (affinityGain <= 0) return { value: 0.001 / cost, cost }; 
