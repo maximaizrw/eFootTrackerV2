@@ -1,4 +1,5 @@
 
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position, BuildPosition } from "./types";
@@ -195,18 +196,15 @@ export function getIdealBuildForPlayer(
         directBuild = findBuild(archetype, playerStyle);
       }
     }
-    // If a build is found for the specific style, return it. Otherwise, return null.
+    
     if (directBuild) {
       return { bestBuild: directBuild.build, bestStyle: playerStyle };
     }
-    // This is the strict part: if no direct match, return null.
-    // However, the user might want to see the best *possible* fit even for a styled player.
-    // The logic below will handle that if we let it.
-    // Let's stick to the user's last request: if Cazagoles, search only Cazagoles.
-    return { bestBuild: null, bestStyle: null };
+    
+    // If strict search fails, fall back to finding the best possible match among all compatible styles
   }
 
-  // If player style IS 'Ninguno', find the best possible alternative build.
+  // Find the best possible alternative build.
   let bestAlternativeBuild: PlayerAttributeStats | null = null;
   let bestAlternativeStyle: PlayerStyle | null = null;
   let maxAffinity = -Infinity;
@@ -442,20 +440,17 @@ export function calculateProgressionSuggestions(
     
     let affinityGain = newAffinity - oldAffinity;
 
-    // Prioritize categories that help reach 90+ stats
-    let hasHighValueTarget = false;
+    // Small incentive to not over-invest in categories that already meet their goals
     const statsInCategory = categoryToStatsMap[category];
     if (statsInCategory) {
-      for (const stat of statsInCategory) {
-        if ((idealBuildStats[stat] ?? 0) >= 90 && (newStats[stat] ?? 0) <= (idealBuildStats[stat] ?? 0)) {
-          hasHighValueTarget = true;
-          break;
+        const allGoalsMet = statsInCategory.every(stat => {
+            const idealValue = idealBuildStats[stat] ?? 0;
+            const currentValue = oldStats[stat] ?? 0;
+            return idealValue < 70 || currentValue >= idealValue;
+        });
+        if (allGoalsMet) {
+            affinityGain *= 0.1; // Deprioritize if all stats in this category already meet the ideal
         }
-      }
-    }
-    
-    if (hasHighValueTarget) {
-      affinityGain *= 1.5; // Weight high-value targets more
     }
     
     // Do not invest in categories that don't increase affinity, unless we have nothing better to do.
@@ -492,3 +487,4 @@ export function calculateProgressionSuggestions(
 
   return build;
 }
+
