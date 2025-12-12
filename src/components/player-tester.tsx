@@ -16,6 +16,7 @@ import type { PlayerAttributeStats, IdealBuild, Position, PlayerStyle, BuildPosi
 import { positions, playerStyles, getAvailableStylesForPosition } from "@/lib/types";
 import { calculateAutomaticAffinity, getIdealBuildForPlayer, statLabels } from "@/lib/utils";
 import { cn, getAverageColorClass } from "@/lib/utils";
+import { Label } from "./ui/label";
 
 const statSchema = z.coerce.number().min(0).max(99).optional();
 
