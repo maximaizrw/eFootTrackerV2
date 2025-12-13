@@ -268,15 +268,15 @@ export function calculateAutomaticAffinity(
             
             let statScore;
             if (diff >= 0) {
-                statScore = diff * 0.15; // Bonus for exceeding
+                statScore = diff * 0.1; // Reduced bonus for exceeding
             } else {
                 // Weighted penalty based on ideal stat importance
                 if (idealStat >= 90) {
-                    statScore = diff * 0.3;
+                    statScore = diff * 0.35; // Stronger penalty for elite stats
                 } else if (idealStat >= 80) {
-                    statScore = diff * 0.25;
+                    statScore = diff * 0.20; // Medium penalty
                 } else {
-                    statScore = diff * 0.2;
+                    statScore = diff * 0.15; // Lighter penalty for base stats
                 }
             }
             
@@ -330,16 +330,16 @@ export function calculateAffinityWithBreakdown(
             const diff = playerValue - idealValue;
             
             let statScore;
-            if (diff >= 0) {
-                statScore = diff * 0.15; // Bonus for exceeding
+             if (diff >= 0) {
+                statScore = diff * 0.1; // Reduced bonus
             } else {
-                // Weighted penalty based on ideal stat importance
+                // Weighted penalty
                 if (idealValue >= 90) {
-                    statScore = diff * 0.3;
+                    statScore = diff * 0.35; // Stronger
                 } else if (idealValue >= 80) {
-                    statScore = diff * 0.25;
+                    statScore = diff * 0.20; // Medium
                 } else {
-                    statScore = diff * 0.2;
+                    statScore = diff * 0.15; // Lighter
                 }
             }
 
@@ -407,15 +407,6 @@ const categoryToStatsMap: Record<CategoryName, (keyof PlayerAttributeStats)[]> =
   gk3: ['gkCatching', 'gkReflexes'],
 };
 
-const calculatePointsNeeded = (
-  baseStat: number,
-  idealStat: number
-): number => {
-  if (idealStat < 70) return 0;
-  const diff = idealStat - baseStat;
-  return diff > 0 ? diff : 0;
-};
-
 
 export function calculateProgressionSuggestions(
   baseStats: PlayerAttributeStats,
@@ -426,18 +417,17 @@ export function calculateProgressionSuggestions(
   if (!idealBuildStats) return {};
 
   const categories: CategoryName[] = isGoalkeeper
-    ? ['gk1', 'gk2', 'gk3', 'defending'] // GKs can also train defending
+    ? ['gk1', 'gk2', 'gk3', 'defending']
     : ['shooting', 'passing', 'dribbling', 'dexterity', 'lowerBodyStrength', 'aerialStrength', 'defending'];
 
   let pointsSpent = 0;
   const build: { [key in CategoryName]?: number } = {};
   categories.forEach(cat => build[cat] = 0);
 
-  // Calculate the "value" of increasing each category by one level
   const calculateCategoryValue = (category: CategoryName, currentLevel: number) => {
     const currentPoints = calculatePointsForLevel(currentLevel);
     const nextLevelPoints = calculatePointsForLevel(currentLevel + 1);
-    if (nextLevelPoints > 100) return { value: -1, cost: Infinity }; // Arbitrarily high level limit
+    if (nextLevelPoints > 100) return { value: -1, cost: Infinity };
 
     const cost = nextLevelPoints - currentPoints;
     
@@ -449,9 +439,9 @@ export function calculateProgressionSuggestions(
     const oldStats = calculateProgressionStats(baseStats, tempBuild, isGoalkeeper);
     const oldAffinity = calculateAutomaticAffinity(oldStats, idealBuildStats, isGoalkeeper);
     
-    let affinityGain = newAffinity - oldAffinity;
+    const affinityGain = newAffinity - oldAffinity;
 
-    // Small incentive to not over-invest in categories that already meet their goals
+    // Deprioritize categories where all goals are already met
     const statsInCategory = categoryToStatsMap[category];
     if (statsInCategory) {
         const allGoalsMet = statsInCategory.every(stat => {
@@ -460,17 +450,15 @@ export function calculateProgressionSuggestions(
             return idealValue < 70 || currentValue >= idealValue;
         });
         if (allGoalsMet) {
-            affinityGain *= 0.1; // Deprioritize if all stats in this category already meet the ideal
+            return { value: 0.001 / cost, cost }; // Very low priority, but not zero
         }
     }
     
-    // Do not invest in categories that don't increase affinity, unless we have nothing better to do.
     if (affinityGain <= 0) return { value: 0.001 / cost, cost }; 
 
     return { value: affinityGain / cost, cost };
   };
 
-  // Iteratively spend points on the best value category
   while (pointsSpent < totalProgressionPoints) {
     let bestCategory: CategoryName | null = null;
     let bestValue = -Infinity;
@@ -491,7 +479,6 @@ export function calculateProgressionSuggestions(
       build[bestCategory]! += 1;
       pointsSpent += costForBest;
     } else {
-      // No affordable upgrade found, break the loop
       break;
     }
   }
