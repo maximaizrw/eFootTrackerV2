@@ -15,9 +15,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import type { PlayerAttributeStats, IdealBuild, Position, PlayerStyle, BuildPosition, OutfieldBuild, GoalkeeperBuild } from "@/lib/types";
 import { positions, playerStyles, getAvailableStylesForPosition } from "@/lib/types";
-import { calculateAutomaticAffinity, getIdealBuildForPlayer, statLabels, calculateProgressionSuggestions } from "@/lib/utils";
+import { calculateAutomaticAffinity, getIdealBuildForPlayer, statLabels, calculateProgressionSuggestions, calculateAffinityWithBreakdown, type AffinityBreakdownResult } from "@/lib/utils";
 import { cn, getAverageColorClass } from "@/lib/utils";
 import { Label } from "./ui/label";
+import { AffinityBreakdown } from "./affinity-breakdown";
+import { ScrollArea } from "./ui/scroll-area";
+
 
 const statSchema = z.coerce.number().min(0).max(99).optional();
 
@@ -73,7 +76,7 @@ type PlayerTesterProps = {
 
 export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
   const [pastedText, setPastedText] = React.useState('');
-  const [affinity, setAffinity] = React.useState<number | null>(null);
+  const [affinityBreakdown, setAffinityBreakdown] = React.useState<AffinityBreakdownResult>({ totalAffinityScore: 0, breakdown: [] });
   const [bestBuildStyle, setBestBuildStyle] = React.useState<string | null>(null);
   const [progressionSuggestions, setProgressionSuggestions] = React.useState<Partial<OutfieldBuild & GoalkeeperBuild>>({});
   const [progressionPoints, setProgressionPoints] = React.useState<number | undefined>(undefined);
@@ -112,14 +115,14 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
       const isGoalkeeper = position === 'PT';
 
       const { bestBuild, bestStyle } = getIdealBuildForPlayer(style, position, idealBuilds, playerStats);
-      const calculatedAffinity = calculateAutomaticAffinity(playerStats, bestBuild, isGoalkeeper);
+      const breakdown = calculateAffinityWithBreakdown(playerStats, bestBuild, isGoalkeeper);
       const suggestions = calculateProgressionSuggestions(playerStats, bestBuild, isGoalkeeper, progressionPoints);
       
-      setAffinity(calculatedAffinity);
+      setAffinityBreakdown(breakdown);
       setBestBuildStyle(bestStyle);
       setProgressionSuggestions(suggestions);
     } else {
-      setAffinity(null);
+      setAffinityBreakdown({ totalAffinityScore: 0, breakdown: [] });
       setBestBuildStyle(null);
       setProgressionSuggestions({});
     }
@@ -176,7 +179,9 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
     }
   };
 
-  const affinityColorClass = affinity !== null ? getAverageColorClass(affinity / 10) : '';
+  const affinityScore = affinityBreakdown.totalAffinityScore;
+  const hasStats = Object.keys(watchedStats).length > 0;
+  const affinityColorClass = affinityScore !== null ? getAverageColorClass(affinityScore / 10) : '';
   const hasSuggestions = Object.values(progressionSuggestions).some(v => v && v > 0);
   const suggestionCategories = watchedPosition === 'PT' ? goalkeeperCategories : outfieldCategories;
 
@@ -266,11 +271,11 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
 
         <div className="flex flex-col items-center justify-start bg-muted/50 rounded-lg p-6 space-y-4">
           <p className="text-lg font-semibold text-muted-foreground">Afinidad Calculada</p>
-          {affinity !== null ? (
+          {hasStats ? (
             <div className="text-center">
               <div className={cn("text-7xl font-bold flex items-center justify-center gap-2", affinityColorClass)}>
                 <Star className="w-12 h-12" />
-                {affinity.toFixed(2)}
+                {affinityScore.toFixed(2)}
               </div>
               <p className="text-sm mt-1">
                 Build Ideal usada: <span className="font-semibold text-primary">{bestBuildStyle || 'N/A'}</span>
@@ -297,6 +302,13 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
                     );
                 })}
               </div>
+            </div>
+          )}
+          {hasStats && (
+            <div className="w-full pt-4 mt-4 border-t">
+                <ScrollArea className="h-[300px] pr-4">
+                  <AffinityBreakdown breakdownResult={affinityBreakdown} />
+                </ScrollArea>
             </div>
           )}
         </div>
