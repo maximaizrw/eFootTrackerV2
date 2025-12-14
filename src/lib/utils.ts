@@ -197,36 +197,48 @@ export function getIdealBuildForPlayer(
     compatiblePositions.push(archetype);
   }
 
-  // 1. Check if the player's own style is compatible with the target position.
-  const positionNativeStyles = getAvailableStylesForPosition(position, true);
-  const isPlayerStyleCompatible = positionNativeStyles.includes(playerStyle);
+  // --- Start of new logic ---
 
-  let candidateBuilds: IdealBuild[] = [];
-
-  if (isPlayerStyleCompatible) {
-    // --- STRICT MODE ---
-    // Player style is valid, so ONLY search for builds matching that style.
-    candidateBuilds = idealBuilds.filter(b => 
-      b.style === playerStyle && compatiblePositions.includes(b.position)
-    );
-  } else {
-    // --- FLEXIBLE MODE ---
-    // Player style is NOT valid for this position, so search for the best alternative.
-    candidateBuilds = idealBuilds.filter(b => 
-      positionNativeStyles.includes(b.style) && compatiblePositions.includes(b.position)
-    );
-  }
-  
-  // If after filtering (in either mode) there are no candidate builds, return null.
-  if (candidateBuilds.length === 0) {
-    return { bestBuild: null, bestStyle: null };
-  }
-
-  // Find the best build among the candidates
   let bestBuild: IdealBuild | null = null;
   let maxAffinity = -Infinity;
 
-  for (const candidate of candidateBuilds) {
+  // Step 1 & 2: Prioritize builds matching the player's own style.
+  // This is only relevant if the style is not 'Ninguno'.
+  if (playerStyle !== 'Ninguno') {
+    const buildsForPlayerStyle = idealBuilds.filter(b => 
+      b.style === playerStyle && compatiblePositions.includes(b.position)
+    );
+
+    if (buildsForPlayerStyle.length > 0) {
+      for (const candidate of buildsForPlayerStyle) {
+        const affinity = calculateAutomaticAffinity(playerStats, candidate.build, isGoalkeeper);
+        if (affinity > maxAffinity) {
+          maxAffinity = affinity;
+          bestBuild = candidate;
+        }
+      }
+      // If we found a build for the player's style, we are done. Return it.
+      return { 
+        bestBuild: bestBuild ? bestBuild.build : null, 
+        bestStyle: bestBuild ? bestBuild.style : null 
+      };
+    }
+  }
+
+  // Step 3: If no build was found for the player's own style (or style is 'Ninguno'),
+  // search for the best possible match among ALL compatible styles for that position.
+  const positionNativeStyles = getAvailableStylesForPosition(position, false); // Get all valid styles, excluding 'Ninguno'
+  const allCompatibleBuilds = idealBuilds.filter(b => 
+    positionNativeStyles.includes(b.style) && compatiblePositions.includes(b.position)
+  );
+
+  if (allCompatibleBuilds.length === 0) {
+    // If absolutely no build exists for this position/archetype, return null.
+    return { bestBuild: null, bestStyle: null };
+  }
+
+  // Find the best build among all compatible ones.
+  for (const candidate of allCompatibleBuilds) {
     const affinity = calculateAutomaticAffinity(playerStats, candidate.build, isGoalkeeper);
     if (affinity > maxAffinity) {
       maxAffinity = affinity;
@@ -426,8 +438,6 @@ export function calculateProgressionSuggestions(
     
     const affinityGain = newAffinity - oldAffinity;
     
-    if (affinityGain <= 0) return { value: 0, cost };
-
     return { value: affinityGain / cost, cost };
   };
 
@@ -446,7 +456,7 @@ export function calculateProgressionSuggestions(
       }
     }
 
-    if (bestCategory) {
+    if (bestCategory && bestValue > 0) {
       build[bestCategory]! += 1;
       pointsSpent += costForBest;
     } else {
