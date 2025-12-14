@@ -84,7 +84,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
       const calculatedFinalStats = specialCard ? (card.attributeStats || {}) : calculateProgressionStats(card.attributeStats || {}, initialBuild, isGoalkeeper);
       setFinalStats(calculatedFinalStats);
       
-      const { bestBuild, bestStyle } = getIdealBuildForPlayer(card.style, position, idealBuilds, calculatedFinalStats);
+      const { bestBuild, bestStyle } = getIdealBuildForPlayer(card.style, position, idealBuilds, calculatedFinalStats, isGoalkeeper);
       const breakdown = calculateAffinityWithBreakdown(calculatedFinalStats, bestBuild, isGoalkeeper);
       setAffinityBreakdown(breakdown);
       setBestBuildStyle(bestStyle);
@@ -105,7 +105,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
         const newFinalStats = specialCard ? baseStats : calculateProgressionStats(baseStats, build, isGoalkeeper);
         setFinalStats(newFinalStats);
         
-        const { bestBuild, bestStyle } = getIdealBuildForPlayer(card.style, position, idealBuilds, newFinalStats);
+        const { bestBuild, bestStyle } = getIdealBuildForPlayer(card.style, position, idealBuilds, newFinalStats, isGoalkeeper);
         const breakdown = calculateAffinityWithBreakdown(newFinalStats, bestBuild, isGoalkeeper);
         setAffinityBreakdown(breakdown);
         setBestBuildStyle(bestStyle);
@@ -128,7 +128,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
   const handleSuggestBuild = () => {
     if (!card || !position) return;
     
-    const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, baseStats);
+    const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, baseStats, isGoalkeeper);
     if (!bestBuild) {
         toast({
             variant: "destructive",

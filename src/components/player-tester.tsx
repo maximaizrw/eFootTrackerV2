@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from "react";
@@ -114,7 +115,7 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
       const style = getValues('style');
       const isGoalkeeper = position === 'PT';
 
-      const { bestBuild, bestStyle } = getIdealBuildForPlayer(style, position, idealBuilds, playerStats);
+      const { bestBuild, bestStyle } = getIdealBuildForPlayer(style, position, idealBuilds, playerStats, isGoalkeeper);
       const breakdown = calculateAffinityWithBreakdown(playerStats, bestBuild, isGoalkeeper);
       const suggestions = calculateProgressionSuggestions(playerStats, bestBuild, isGoalkeeper, progressionPoints);
       
