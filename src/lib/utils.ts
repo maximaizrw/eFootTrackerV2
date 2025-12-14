@@ -197,16 +197,32 @@ export function getIdealBuildForPlayer(
     compatiblePositions.push(archetype);
   }
 
-  const compatibleStyles = getAvailableStylesForPosition(position, true);
+  // 1. Check if the player's own style is compatible with the target position.
+  const positionNativeStyles = getAvailableStylesForPosition(position, true);
+  const isPlayerStyleCompatible = positionNativeStyles.includes(playerStyle);
 
-  const candidateBuilds = idealBuilds.filter(b => 
-    compatiblePositions.includes(b.position) && compatibleStyles.includes(b.style)
-  );
+  let candidateBuilds: IdealBuild[] = [];
 
+  if (isPlayerStyleCompatible) {
+    // --- STRICT MODE ---
+    // Player style is valid, so ONLY search for builds matching that style.
+    candidateBuilds = idealBuilds.filter(b => 
+      b.style === playerStyle && compatiblePositions.includes(b.position)
+    );
+  } else {
+    // --- FLEXIBLE MODE ---
+    // Player style is NOT valid for this position, so search for the best alternative.
+    candidateBuilds = idealBuilds.filter(b => 
+      positionNativeStyles.includes(b.style) && compatiblePositions.includes(b.position)
+    );
+  }
+  
+  // If after filtering (in either mode) there are no candidate builds, return null.
   if (candidateBuilds.length === 0) {
     return { bestBuild: null, bestStyle: null };
   }
 
+  // Find the best build among the candidates
   let bestBuild: IdealBuild | null = null;
   let maxAffinity = -Infinity;
 
@@ -396,7 +412,7 @@ export function calculateProgressionSuggestions(
     const currentPoints = calculatePointsForLevel(currentLevel);
     const cost = nextLevelPoints - currentPoints;
 
-    if (cost === 0 || cost > 100) return { value: -1, cost: Infinity }; // Avoid infinite loops or invalid states
+    if (cost === 0 || cost > 100) return { value: -1, cost: Infinity };
 
     // Calculate affinity with next level
     const tempBuildNext = { ...currentBuild, [category]: currentLevel + 1 };
@@ -409,15 +425,15 @@ export function calculateProgressionSuggestions(
     const oldAffinity = calculateAutomaticAffinity(oldStats, idealBuildStats, isGoalkeeper);
     
     const affinityGain = newAffinity - oldAffinity;
+    
+    if (affinityGain <= 0) return { value: 0, cost };
 
-    if (affinityGain <= 0) return { value: 0, cost }; // No benefit or negative benefit
-
-    return { value: affinityGain / cost, cost }; // "Return on Investment"
+    return { value: affinityGain / cost, cost };
   };
 
   while (pointsSpent < totalProgressionPoints) {
     let bestCategory: CategoryName | null = null;
-    let bestValue = 0;
+    let bestValue = -Infinity;
     let costForBest = Infinity;
 
     for (const category of categories) {
