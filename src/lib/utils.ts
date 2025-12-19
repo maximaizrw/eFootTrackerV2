@@ -191,65 +191,63 @@ export function getIdealBuildForPlayer(
   isGoalkeeper: boolean = false
 ): { bestBuild: PlayerAttributeStats | null; bestStyle: PlayerStyle | null } {
   
-  const compatiblePositions: BuildPosition[] = [position];
-  const archetype = symmetricalPositionMap[position];
-  if (archetype) {
-    compatiblePositions.push(archetype);
-  }
-
-  // --- Start of new logic ---
-  const playerStyleIsValidForPos = getAvailableStylesForPosition(position, false).includes(playerStyle);
-  let bestBuild: IdealBuild | null = null;
-  let maxAffinity = -Infinity;
-
-  // Mode 1: Strict search if player's style is valid for the position.
-  if (playerStyle !== 'Ninguno' && playerStyleIsValidForPos) {
-    const buildsForPlayerStyle = idealBuilds.filter(b => 
-      b.style === playerStyle && compatiblePositions.includes(b.position)
-    );
+    const compatiblePositions: BuildPosition[] = [position];
+    const archetype = symmetricalPositionMap[position];
+    if (archetype) {
+        compatiblePositions.push(archetype);
+    }
     
-    if (buildsForPlayerStyle.length > 0) {
-      for (const candidate of buildsForPlayerStyle) {
+    // 1. Check if the player's native style is valid for the current position
+    const isStyleValidForPosition = getAvailableStylesForPosition(position, false).includes(playerStyle);
+
+    let bestBuild: IdealBuild | null = null;
+    let maxAffinity = -Infinity;
+
+    // 2. If style is valid, perform a strict search for that style
+    if (playerStyle !== 'Ninguno' && isStyleValidForPosition) {
+        const strictBuilds = idealBuilds.filter(b => 
+            b.style === playerStyle && compatiblePositions.includes(b.position)
+        );
+
+        if (strictBuilds.length > 0) {
+            for (const candidate of strictBuilds) {
+                const affinity = calculateAutomaticAffinity(playerStats, candidate.build, isGoalkeeper);
+                if (affinity > maxAffinity) {
+                    maxAffinity = affinity;
+                    bestBuild = candidate;
+                }
+            }
+            return { 
+                bestBuild: bestBuild ? bestBuild.build : null, 
+                bestStyle: bestBuild ? bestBuild.style : null 
+            };
+        }
+    }
+
+    // 3. Flexible Search (Plan B): If no strict build was found, or style was invalid/Ninguno
+    const positionNativeStyles = getAvailableStylesForPosition(position, false);
+    const allCompatibleBuilds = idealBuilds.filter(b => 
+        positionNativeStyles.includes(b.style) && compatiblePositions.includes(b.position)
+    );
+
+    if (allCompatibleBuilds.length === 0) {
+        return { bestBuild: null, bestStyle: null };
+    }
+    
+    maxAffinity = -Infinity; // Reset for flexible search
+    bestBuild = null;
+    for (const candidate of allCompatibleBuilds) {
         const affinity = calculateAutomaticAffinity(playerStats, candidate.build, isGoalkeeper);
         if (affinity > maxAffinity) {
-          maxAffinity = affinity;
-          bestBuild = candidate;
+            maxAffinity = affinity;
+            bestBuild = candidate;
         }
-      }
-      return { 
+    }
+    
+    return { 
         bestBuild: bestBuild ? bestBuild.build : null, 
         bestStyle: bestBuild ? bestBuild.style : null 
-      };
-    }
-  }
-
-  // Mode 2: Flexible search. This runs if:
-  // a) Player style is 'Ninguno'
-  // b) Player style is not valid for the position (e.g. 'Hombre de area' at MCD)
-  // c) No ideal build was found for the player's specific style in Mode 1.
-  const positionNativeStyles = getAvailableStylesForPosition(position, false);
-  const allCompatibleBuilds = idealBuilds.filter(b => 
-    positionNativeStyles.includes(b.style) && compatiblePositions.includes(b.position)
-  );
-
-  if (allCompatibleBuilds.length === 0) {
-    return { bestBuild: null, bestStyle: null };
-  }
-
-  maxAffinity = -Infinity; // Reset maxAffinity for the flexible search
-  bestBuild = null;
-  for (const candidate of allCompatibleBuilds) {
-    const affinity = calculateAutomaticAffinity(playerStats, candidate.build, isGoalkeeper);
-    if (affinity > maxAffinity) {
-      maxAffinity = affinity;
-      bestBuild = candidate;
-    }
-  }
-  
-  return { 
-    bestBuild: bestBuild ? bestBuild.build : null, 
-    bestStyle: bestBuild ? bestBuild.style : null 
-  };
+    };
 }
 
 
@@ -385,8 +383,8 @@ export function calculatePointsForLevel(level: number): number {
   if (level <= 0) return 0;
   if (level <= 4) return level * 1;
   if (level <= 8) return 4 + (level - 4) * 2;
-  if (level <= 12) return 12 + (level - 8) * 3; // Corrected: 4*1 + 4*2 = 12
-  return 24 + (level - 12) * 4; // Corrected: 4*1 + 4*2 + 4*3 = 24
+  if (level <= 12) return 12 + (level - 8) * 3;
+  return 24 + (level - 12) * 4;
 }
 
 /**
@@ -401,6 +399,19 @@ export function calculateLevelForPoints(points: number): number {
 
 
 type CategoryName = keyof (OutfieldBuild & GoalkeeperBuild);
+
+const categoryStatsMap: Record<CategoryName, (keyof PlayerAttributeStats)[]> = {
+    shooting: ['finishing', 'placeKicking', 'curl'],
+    passing: ['lowPass', 'loftedPass'],
+    dribbling: ['ballControl', 'dribbling', 'tightPossession'],
+    dexterity: ['offensiveAwareness', 'acceleration', 'balance'],
+    lowerBodyStrength: ['speed', 'kickingPower', 'stamina'],
+    aerialStrength: ['heading', 'jump', 'physicalContact'],
+    defending: ['defensiveAwareness', 'defensiveEngagement', 'tackling', 'aggression'],
+    gk1: ['goalkeeping', 'jump'],
+    gk2: ['gkParrying', 'gkReach'],
+    gk3: ['gkCatching', 'gkReflexes'],
+};
 
 export function calculateProgressionSuggestions(
   baseStats: PlayerAttributeStats,
@@ -418,56 +429,52 @@ export function calculateProgressionSuggestions(
   const build: { [key in CategoryName]?: number } = {};
   categories.forEach(cat => build[cat] = 0);
 
-  const calculateCategoryValue = (category: CategoryName, currentBuild: typeof build) => {
-    const currentLevel = currentBuild[category]!;
-    const nextLevelPoints = calculatePointsForLevel(currentLevel + 1);
-    const currentPoints = calculatePointsForLevel(currentLevel);
-    const cost = nextLevelPoints - currentPoints;
+  const calculateCategoryPotential = (category: CategoryName, budget: number) => {
+      const currentLevel = build[category]!;
+      const maxPossibleLevel = currentLevel + calculateLevelForPoints(budget);
+      
+      const tempBuild = { ...build, [category]: maxPossibleLevel };
+      const newStats = calculateProgressionStats(baseStats, tempBuild, isGoalkeeper);
+      const newAffinity = calculateAutomaticAffinity(newStats, idealBuildStats, isGoalkeeper);
 
-    if (cost === 0 || cost > 100) return { value: -1, cost: Infinity };
+      const oldStats = calculateProgressionStats(baseStats, build, isGoalkeeper);
+      const oldAffinity = calculateAutomaticAffinity(oldStats, idealBuildStats, isGoalkeeper);
 
-    // Calculate affinity with next level
-    const tempBuildNext = { ...currentBuild, [category]: currentLevel + 1 };
-    const newStats = calculateProgressionStats(baseStats, tempBuildNext, isGoalkeeper);
-    const newAffinity = calculateAutomaticAffinity(newStats, idealBuildStats, isGoalkeeper);
+      let potential = newAffinity - oldAffinity;
 
-    // Calculate affinity with current level
-    const tempBuildCurrent = { ...currentBuild };
-    const oldStats = calculateProgressionStats(baseStats, tempBuildCurrent, isGoalkeeper);
-    const oldAffinity = calculateAutomaticAffinity(oldStats, idealBuildStats, isGoalkeeper);
-    
-    const affinityGain = newAffinity - oldAffinity;
-    
-    return { value: affinityGain / cost, cost };
+      // Add a bonus for categories that target elite stats
+      const statsInCat = categoryStatsMap[category] || [];
+      const hasEliteStat = statsInCat.some(stat => (idealBuildStats[stat] || 0) >= 90);
+      if (hasEliteStat) {
+          potential *= 1.5;
+      }
+      
+      return potential;
   };
 
   while (pointsSpent < totalProgressionPoints) {
     let bestCategory: CategoryName | null = null;
-    let bestValue = -Infinity;
-    let costForBest = Infinity;
+    let bestPotential = -Infinity;
+    
+    const remainingPoints = totalProgressionPoints - pointsSpent;
 
     for (const category of categories) {
-      // Don't waste points on a category if it won't improve affinity.
-      const currentLevel = build[category]!;
-      const tempBuild = { ...build, [category]: currentLevel + 1 };
-      const newStats = calculateProgressionStats(baseStats, tempBuild, isGoalkeeper);
-      const newAffinity = calculateAutomaticAffinity(newStats, idealBuildStats, isGoalkeeper);
-      const oldAffinity = calculateAutomaticAffinity(calculateProgressionStats(baseStats, build, isGoalkeeper), idealBuildStats, isGoalkeeper);
-      
-      if (newAffinity <= oldAffinity) continue;
+        const costOfNextLevel = calculatePointsForLevel((build[category]!) + 1) - calculatePointsForLevel(build[category]!);
+        if (costOfNextLevel > remainingPoints) {
+            continue;
+        }
 
-      const { value, cost } = calculateCategoryValue(category, build);
-      
-      if (value > bestValue && (pointsSpent + cost <= totalProgressionPoints)) {
-        bestValue = value;
-        bestCategory = category;
-        costForBest = cost;
-      }
+        const potential = calculateCategoryPotential(category, remainingPoints);
+        if (potential > bestPotential) {
+            bestPotential = potential;
+            bestCategory = category;
+        }
     }
 
-    if (bestCategory && bestValue > 0) {
-      build[bestCategory]! += 1;
-      pointsSpent += costForBest;
+    if (bestCategory) {
+        const costOfNextLevel = calculatePointsForLevel((build[bestCategory]!) + 1) - calculatePointsForLevel(build[bestCategory]!);
+        build[bestCategory]! += 1;
+        pointsSpent += costOfNextLevel;
     } else {
       break; // No profitable investment found
     }
@@ -479,3 +486,4 @@ export function calculateProgressionSuggestions(
 
 
     
+
