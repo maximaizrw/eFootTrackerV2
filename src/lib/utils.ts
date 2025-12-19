@@ -187,27 +187,43 @@ export function getIdealBuildForPlayer(
   playerStyle: PlayerStyle,
   position: Position,
   idealBuilds: IdealBuild[],
+  playerStats: PlayerAttributeStats,
 ): { bestBuild: PlayerAttributeStats | null; bestStyle: PlayerStyle | null } {
-
+    
+    // 1. Check if the player's native style is valid for the current position
     const isStyleValidForPosition = getAvailableStylesForPosition(position, false).includes(playerStyle);
 
+    // 2. Strict Mode: If style is valid, ONLY search for builds with that style.
     if (playerStyle !== 'Ninguno' && isStyleValidForPosition) {
-        // --- MODO ESTRICTO ---
-        // 1. Buscar build para ESTILO y POSICIÓN EXACTA
-        let build = idealBuilds.find(b => b.style === playerStyle && b.position === position);
-        if (build) return { bestBuild: build.build, bestStyle: build.style };
-
-        // 2. Buscar build para ESTILO y ARQUETIPO de la posición
+        const compatiblePositions: BuildPosition[] = [position];
         const archetype = symmetricalPositionMap[position];
         if (archetype) {
-            build = idealBuilds.find(b => b.style === playerStyle && b.position === archetype);
-            if (build) return { bestBuild: build.build, bestStyle: build.style };
+            compatiblePositions.push(archetype);
+        }
+
+        const strictCandidates = idealBuilds.filter(b =>
+            b.style === playerStyle && compatiblePositions.includes(b.position)
+        );
+
+        if (strictCandidates.length > 0) {
+            // If we found builds for the player's own style, we MUST use one of them.
+            // We just need to find which one gives the best affinity (e.g. DFC vs a generic position build)
+            let bestStrictBuild: PlayerAttributeStats | null = null;
+            let maxAffinity = -Infinity;
+
+            for (const candidate of strictCandidates) {
+                const affinity = calculateAutomaticAffinity(playerStats, candidate.build, position === 'PT');
+                if (affinity > maxAffinity) {
+                    maxAffinity = affinity;
+                    bestStrictBuild = candidate.build;
+                }
+            }
+            return { bestBuild: bestStrictBuild, bestStyle: playerStyle };
         }
     }
-
-    // --- MODO FLEXIBLE ---
-    // Si no se encontró build estricta (o el estilo no era válido/Ninguno),
-    // buscar la mejor alternativa para esa posición.
+    
+    // 3. Flexible Mode: If player's style is 'Ninguno', invalid for the position, or no build was found in strict mode.
+    // Find the best possible role for the player in this position among all available builds.
     const compatiblePositions: BuildPosition[] = [position];
     const archetype = symmetricalPositionMap[position];
     if (archetype) {
@@ -215,37 +231,28 @@ export function getIdealBuildForPlayer(
     }
     const positionNativeStyles = getAvailableStylesForPosition(position, false);
 
-    const candidateBuilds = idealBuilds.filter(b =>
+    const flexibleCandidates = idealBuilds.filter(b =>
         compatiblePositions.includes(b.position) && positionNativeStyles.includes(b.style)
     );
 
-    if (candidateBuilds.length === 0) {
+    if (flexibleCandidates.length === 0) {
         return { bestBuild: null, bestStyle: null };
     }
 
-    // Si hay candidatos, devolvemos el primero para que la afinidad se calcule contra ESE.
-    // La afinidad real se calculará fuera de esta función.
-    // Esta función ahora solo determina *contra qué build* se debe comparar.
-    const bestCandidate = candidateBuilds[0]; // Simplificación: podríamos tener una lógica de "mejor fit" aquí
-    
-    // TEMPORAL: Para el cálculo de afinidad, la lógica externa necesitará iterar.
-    // Esta función debería devolver TODOS los candidatos.
-    // De momento, para no romper todo, devolvemos el primero que encuentra.
-    // Pero la lógica ideal sería que `calculateAutomaticAffinity` reciba la lista y la itere.
+    let bestFlexBuild: PlayerAttributeStats | null = null;
+    let bestFlexStyle: PlayerStyle | null = null;
+    let maxFlexAffinity = -Infinity;
 
-    let bestBuild: IdealBuild | null = null;
-    let maxAffinity = -Infinity;
+    for (const candidate of flexibleCandidates) {
+        const affinity = calculateAutomaticAffinity(playerStats, candidate.build, position === 'PT');
+        if (affinity > maxFlexAffinity) {
+            maxFlexAffinity = affinity;
+            bestFlexBuild = candidate.build;
+            bestFlexStyle = candidate.style;
+        }
+    }
 
-    // Aquí la lógica está incompleta porque no tenemos los stats del jugador para calcular la afinidad.
-    // La responsabilidad de esta función cambia: solo debe identificar las builds candidatas.
-    // Vamos a cambiar lo que devuelve para que la lógica externa pueda trabajar.
-    // NO, la afinidad se calcula fuera. Esta función debe determinar contra QUÉ build se compara.
-    // Y lo hace bien ahora.
-
-    return { 
-        bestBuild: bestCandidate.build, 
-        bestStyle: bestCandidate.style
-    };
+    return { bestBuild: bestFlexBuild, bestStyle: bestFlexStyle };
 }
 
 
@@ -257,7 +264,7 @@ export function calculateAutomaticAffinity(
     if (!idealBuildStats) return 0;
 
     let totalAffinityScore = 0;
-    const relevantKeys = isGoalkeeper ? goalkeeperStatsKeys : outfieldStatsKeys;
+    const relevantKeys = isGoalkeeper ? goalkeeperStatsKeys : allStatsKeys;
 
     for (const key of relevantKeys) {
         if (key === 'placeKicking') continue;
@@ -431,7 +438,7 @@ export function calculateProgressionSuggestions(
   // Loop until we run out of points or can't make any more useful investments
   while (pointsSpent < totalProgressionPoints) {
     let bestCategory: CategoryName | null = null;
-    let highestValue = -Infinity;
+    let highestDeficitValue = -Infinity;
     
     // Calculate the current stats based on the temporary build
     const currentStats = calculateProgressionStats(baseStats, build, isGoalkeeper);
@@ -441,12 +448,11 @@ export function calculateProgressionSuggestions(
       const currentLevel = build[category]!;
       const costForNextLevel = calculatePointsForLevel(currentLevel + 1) - calculatePointsForLevel(currentLevel);
 
-      // Skip if we can't afford it
+      // Skip if we can't afford it or category is maxed
       if (costForNextLevel > (totalProgressionPoints - pointsSpent)) {
         continue;
       }
       
-      // Calculate the total "deficit value" for this category
       let categoryDeficitValue = 0;
       const statsInCat = categoryStatsMap[category] || [];
 
@@ -466,8 +472,10 @@ export function calculateProgressionSuggestions(
         categoryDeficitValue += deficit * weight;
       }
       
-      if (categoryDeficitValue > highestValue) {
-        highestValue = categoryDeficitValue;
+      const value = categoryDeficitValue / costForNextLevel;
+
+      if (value > highestDeficitValue) {
+        highestDeficitValue = value;
         bestCategory = category;
       }
     }

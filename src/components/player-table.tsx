@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Trash2, X, Wrench, Pencil, NotebookPen, Search, Star, SlidersHorizontal } from 'lucide-react';
-import { cn, formatAverage, getAverageColorClass, hasProgressionPoints, isSpecialCard } from '@/lib/utils';
+import { cn, formatAverage, getAverageColorClass, isSpecialCard } from '@/lib/utils';
 import type { Player, PlayerCard, Position, FlatPlayer } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import { PerformanceBadges } from './performance-badges';
@@ -169,12 +169,11 @@ export function PlayerTable({
             
             const rowId = `${player.id}-${card.id}-${position}`;
             
-            const build = card.buildsByPosition?.[position];
             const specialCard = isSpecialCard(card.name);
             const hasNoStats = !card.attributeStats || Object.keys(card.attributeStats).length === 0;
-            const hasNoProgression = !specialCard && !hasProgressionPoints(build);
+            const needsProgressionPoints = !specialCard && !card.totalProgressionPoints;
 
-            const nameColorClass = hasNoStats ? "text-red-500" : hasNoProgression ? "text-violet-400" : "";
+            const nameColorClass = hasNoStats ? "text-red-500" : needsProgressionPoints ? "text-violet-400" : "";
 
 
             return (
