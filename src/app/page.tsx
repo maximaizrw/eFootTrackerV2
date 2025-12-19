@@ -41,7 +41,7 @@ import { useToast } from "@/hooks/use-toast";
 
 import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerBuild, IdealTeamPlayer, PlayerAttributeStats, IdealBuild, BuildPosition } from '@/lib/types';
 import { positions, leagues, nationalities, buildPositions } from '@/lib/types';
-import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Wrench, Dna, RefreshCw, Beaker } from 'lucide-react';
+import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Wrench, Dna, RefreshCw, Beaker, Wand2 } from 'lucide-react';
 import { calculateStats, normalizeText, calculateGeneralScore } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -70,6 +70,7 @@ export default function Home() {
     saveAttributeStats,
     deletePositionRatings,
     recalculateAllAffinities,
+    suggestAllBuilds,
   } = usePlayers(idealBuilds);
 
   const {
@@ -658,7 +659,7 @@ export default function Home() {
                     isFlexibleLaterals={isFlexibleLaterals}
                     onFlexibleLateralsChange={setFlexibleLaterals}
                   />
-                  <div className="flex items-center gap-4 mt-6">
+                  <div className="flex flex-wrap items-center gap-4 mt-6">
                     <Button onClick={handleGenerateTeam} disabled={!selectedFormationId}>
                       <Star className="mr-2 h-4 w-4" />
                       Generar 11 Ideal
@@ -677,6 +678,13 @@ export default function Home() {
                         >
                         <RefreshCw className="mr-2 h-4 w-4" />
                         Actualizar Afinidades
+                    </Button>
+                    <Button
+                        onClick={() => suggestAllBuilds()}
+                        variant="secondary"
+                        >
+                        <Wand2 className="mr-2 h-4 w-4" />
+                        Sugerir Todas las Builds
                     </Button>
                   </div>
                </CardContent>

@@ -9,7 +9,7 @@ import { useToast } from './use-toast';
 import { v4 as uuidv4 } from 'uuid';
 import type { Player, PlayerCard, Position, AddRatingFormValues, EditCardFormValues, EditPlayerFormValues, PlayerBuild, League, Nationality, PlayerAttributeStats, IdealBuild } from '@/lib/types';
 import { getAvailableStylesForPosition } from '@/lib/types';
-import { normalizeText, calculateProgressionStats, calculateAutomaticAffinity, getIdealBuildForPlayer, isSpecialCard } from '@/lib/utils';
+import { normalizeText, calculateProgressionStats, calculateAutomaticAffinity, getIdealBuildForPlayer, isSpecialCard, calculateProgressionSuggestions } from '@/lib/utils';
 
 
 export function usePlayers(idealBuilds: IdealBuild[] = []) {
@@ -449,7 +449,68 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
     }
   };
 
-  return { players, loading, error, addRating, editCard, editPlayer, deleteRating, savePlayerBuild, saveAttributeStats, downloadBackup, deletePositionRatings, recalculateAllAffinities };
+  const suggestAllBuilds = async () => {
+    if (!db) return;
+    toast({ title: "Iniciando Sugerencias Masivas...", description: "Calculando y aplicando builds óptimas." });
+    let updatedPlayers = 0;
+
+    try {
+      const playersSnapshot = await getDocs(collection(db, 'players'));
+      const allPlayers = playersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Player));
+
+      for (const player of allPlayers) {
+        let playerWasUpdated = false;
+        const newCards: PlayerCard[] = JSON.parse(JSON.stringify(player.cards || []));
+
+        for (const card of newCards) {
+          const isEligible = !isSpecialCard(card.name) && card.totalProgressionPoints && card.totalProgressionPoints > 0;
+          
+          if (isEligible && card.buildsByPosition && Object.keys(card.buildsByPosition).length > 0) {
+            for (const posKey in card.buildsByPosition) {
+              const position = posKey as Position;
+              const isGoalkeeper = position === 'PT';
+
+              const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, card.attributeStats || {});
+              if (bestBuild) {
+                const suggestedProgression = calculateProgressionSuggestions(card.attributeStats || {}, bestBuild, isGoalkeeper, card.totalProgressionPoints);
+                const currentBuild = card.buildsByPosition[position] || {};
+
+                // Apply new suggestions
+                const newBuild: PlayerBuild = { ...currentBuild, ...suggestedProgression };
+                
+                // Recalculate affinity with the new build
+                const newFinalStats = calculateProgressionStats(card.attributeStats || {}, newBuild, isGoalkeeper);
+                const { bestBuild: newBestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, newFinalStats);
+                const newAffinity = calculateAutomaticAffinity(newFinalStats, newBestBuild, isGoalkeeper);
+                
+                newBuild.manualAffinity = newAffinity;
+                newBuild.updatedAt = new Date().toISOString();
+                
+                card.buildsByPosition[position] = newBuild;
+                playerWasUpdated = true;
+              }
+            }
+          }
+        }
+
+        if (playerWasUpdated) {
+          await setDoc(doc(db, 'players', player.id), { ...player, cards: newCards });
+          updatedPlayers++;
+        }
+      }
+
+      toast({ title: "Proceso Completado", description: `Se optimizaron las builds de ${updatedPlayers} jugadores.` });
+    } catch (error) {
+      console.error("Error suggesting all builds:", error);
+      toast({
+        variant: "destructive",
+        title: "Error en la Sugerencia Masiva",
+        description: "Ocurrió un error al optimizar las builds.",
+      });
+    }
+  };
+
+  return { players, loading, error, addRating, editCard, editPlayer, deleteRating, savePlayerBuild, saveAttributeStats, downloadBackup, deletePositionRatings, recalculateAllAffinities, suggestAllBuilds };
 }
 
     
