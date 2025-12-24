@@ -23,6 +23,8 @@ type IdealTeamSetupProps = {
   onSortByChange: (value: 'average' | 'general') => void;
   isFlexibleLaterals: boolean;
   onFlexibleLateralsChange: (value: boolean) => void;
+  isFlexibleWingers: boolean;
+  onFlexibleWingersChange: (value: boolean) => void;
 };
 
 export function IdealTeamSetup({ 
@@ -39,6 +41,8 @@ export function IdealTeamSetup({
     onSortByChange,
     isFlexibleLaterals,
     onFlexibleLateralsChange,
+    isFlexibleWingers,
+    onFlexibleWingersChange,
 }: IdealTeamSetupProps) {
 
   const selectedFormation = React.useMemo(() => {
@@ -48,6 +52,11 @@ export function IdealTeamSetup({
   const hasLaterals = React.useMemo(() => {
     return selectedFormation?.slots.some(s => s.position === 'LI' || s.position === 'LD');
   }, [selectedFormation]);
+  
+  const hasWingers = React.useMemo(() => {
+    return selectedFormation?.slots.some(s => s.position === 'EXI' || s.position === 'EXD');
+  }, [selectedFormation]);
+
 
   if (formations.length === 0) {
     return (
@@ -138,8 +147,9 @@ export function IdealTeamSetup({
         </Select>
       </div>
 
-      {hasLaterals && (
-          <div className="flex items-center space-x-2 lg:col-start-4">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 lg:col-span-4">
+        {hasLaterals && (
+          <div className="flex items-center space-x-2">
             <Switch
               id="flexible-laterals"
               checked={isFlexibleLaterals}
@@ -151,6 +161,20 @@ export function IdealTeamSetup({
             </Label>
           </div>
         )}
+         {hasWingers && (
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="flexible-wingers"
+              checked={isFlexibleWingers}
+              onCheckedChange={onFlexibleWingersChange}
+            />
+            <Label htmlFor="flexible-wingers" className="flex items-center gap-2 cursor-pointer">
+              <ArrowRightLeft className="h-4 w-4" />
+              Extremos Flexibles
+            </Label>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

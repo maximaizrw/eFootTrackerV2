@@ -121,6 +121,7 @@ export default function Home() {
   const [discardedCardIds, setDiscardedCardIds] = useState<Set<string>>(new Set());
   const [sortBy, setSortBy] = useState<'average' | 'general'>('general');
   const [isFlexibleLaterals, setFlexibleLaterals] = useState(false);
+  const [isFlexibleWingers, setFlexibleWingers] = useState(false);
   
   const [styleFilter, setStyleFilter] = useState<string>('all');
   const [cardFilter, setCardFilter] = useState<string>('all');
@@ -218,7 +219,7 @@ export default function Home() {
       return;
     }
     
-    const newTeam = generateIdealTeam(players, formation, discardedCardIds, selectedLeague, selectedNationality, sortBy, isFlexibleLaterals);
+    const newTeam = generateIdealTeam(players, formation, discardedCardIds, selectedLeague, selectedNationality, sortBy, isFlexibleLaterals, isFlexibleWingers);
 
     setIdealTeam(newTeam);
     if (document.activeElement instanceof HTMLElement) {
@@ -658,6 +659,8 @@ export default function Home() {
                     onSortByChange={setSortBy}
                     isFlexibleLaterals={isFlexibleLaterals}
                     onFlexibleLateralsChange={setFlexibleLaterals}
+                    isFlexibleWingers={isFlexibleWingers}
+                    onFlexibleWingersChange={setFlexibleWingers}
                   />
                   <div className="flex flex-wrap items-center gap-4 mt-6">
                     <Button onClick={handleGenerateTeam} disabled={!selectedFormationId}>

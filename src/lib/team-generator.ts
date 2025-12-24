@@ -22,6 +22,8 @@ type CandidatePlayer = {
  * @param league - The league to filter by.
  * @param nationality - The nationality to filter by.
  * @param sortBy - The metric to sort players by ('average' or 'general').
+ * @param isFlexibleLaterals - Whether to allow LIs to play as LD and vice versa.
+ * @param isFlexibleWingers - Whether to allow EXIs to play as EXD and vice versa.
  * @returns An array of 11 slots, each with a starter and a substitute.
  */
 export function generateIdealTeam(
@@ -31,7 +33,8 @@ export function generateIdealTeam(
   league: League | 'all' = 'all',
   nationality: Nationality | 'all' = 'all',
   sortBy: 'average' | 'general' = 'average',
-  isFlexibleLaterals: boolean = false
+  isFlexibleLaterals: boolean = false,
+  isFlexibleWingers: boolean = false
 ): IdealTeamSlot[] {
   
   
@@ -136,10 +139,14 @@ export function generateIdealTeam(
     const hasStylePreference = formationSlot.styles && formationSlot.styles.length > 0;
     const targetPosition = formationSlot.position;
 
-    let targetPositions = [targetPosition];
+    let targetPositions: Position[] = [targetPosition];
     if (isFlexibleLaterals && (targetPosition === 'LI' || targetPosition === 'LD')) {
       targetPositions = ['LI', 'LD'];
     }
+    if (isFlexibleWingers && (targetPosition === 'EXI' || targetPosition === 'EXD')) {
+      targetPositions = ['EXI', 'EXD'];
+    }
+
 
     let positionCandidates = allPlayerCandidates
         .filter(p => targetPositions.includes(p.position));
