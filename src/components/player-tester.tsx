@@ -127,27 +127,27 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
   React.useEffect(() => {
     const baseStats = getValues('stats');
     if (Object.keys(baseStats).length > 0) {
-      const position = getValues('position');
-      const style = getValues('style');
-      const isGoalkeeper = position === 'PT';
+        const position = getValues('position');
+        const style = getValues('style');
+        const isGoalkeeper = position === 'PT';
 
-      const { bestBuild, bestStyle } = getIdealBuildForPlayer(style, position, idealBuilds, baseStats, isGoalkeeper);
-      const suggestions = calculateProgressionSuggestions(baseStats, bestBuild, isGoalkeeper, progressionPoints);
-      
-      const finalStats = calculateProgressionStats(baseStats, suggestions, isGoalkeeper);
-      const breakdown = calculateAffinityWithBreakdown(finalStats, bestBuild, isGoalkeeper);
-      
-      setFinalPlayerStats(finalStats);
-      setProgressionSuggestions(suggestions);
-      setAffinityBreakdown(breakdown);
-      setBestBuildStyle(bestStyle);
+        const { bestBuild, bestStyle } = getIdealBuildForPlayer(style, position, idealBuilds, baseStats, isGoalkeeper);
+        const suggestions = calculateProgressionSuggestions(baseStats, bestBuild, isGoalkeeper, progressionPoints);
+        
+        const finalStats = calculateProgressionStats(baseStats, suggestions, isGoalkeeper);
+        const breakdown = calculateAffinityWithBreakdown(finalStats, bestBuild, isGoalkeeper);
+        
+        setFinalPlayerStats(finalStats);
+        setProgressionSuggestions(suggestions);
+        setAffinityBreakdown(breakdown);
+        setBestBuildStyle(bestStyle);
     } else {
-      setFinalPlayerStats({});
-      setProgressionSuggestions({});
-      setAffinityBreakdown({ totalAffinityScore: 0, breakdown: [] });
-      setBestBuildStyle(null);
+        setFinalPlayerStats({});
+        setProgressionSuggestions({});
+        setAffinityBreakdown({ totalAffinityScore: 0, breakdown: [] });
+        setBestBuildStyle(null);
     }
-  }, [watchedStats, watchedPosition, watchedStyle, idealBuilds, getValues, progressionPoints]);
+}, [watchedStats, watchedPosition, watchedStyle, idealBuilds, getValues, progressionPoints]);
 
 
   const handleParseText = () => {
