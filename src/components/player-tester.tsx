@@ -16,7 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import type { PlayerAttributeStats, IdealBuild, Position, PlayerStyle, BuildPosition, OutfieldBuild, GoalkeeperBuild } from "@/lib/types";
 import { positions, playerStyles, getAvailableStylesForPosition } from "@/lib/types";
-import { calculateAutomaticAffinity, getIdealBuildForPlayer, statLabels, calculateProgressionSuggestions, calculateAffinityWithBreakdown, type AffinityBreakdownResult } from "@/lib/utils";
+import { calculateProgressionStats, getIdealBuildForPlayer, statLabels, calculateProgressionSuggestions, calculateAffinityWithBreakdown, type AffinityBreakdownResult, allStatsKeys } from "@/lib/utils";
 import { cn, getAverageColorClass } from "@/lib/utils";
 import { Label } from "./ui/label";
 import { AffinityBreakdown } from "./affinity-breakdown";
@@ -50,9 +50,7 @@ const nameToSchemaKeyMap: Record<string, keyof PlayerAttributeStats> = {
     "kicking power": "kickingPower", "jump": "jump", "physical contact": "physicalContact", "balance": "balance", "stamina": "stamina",
 };
 
-const orderedStatFields: (keyof PlayerAttributeStats)[] = Object.values(statLabels).map(label => {
-    return Object.keys(nameToSchemaKeyMap).find(key => nameToSchemaKeyMap[key] === Object.keys(statLabels).find(slKey => statLabels[slKey as keyof PlayerAttributeStats] === label)) as keyof PlayerAttributeStats;
-}).filter(Boolean);
+const orderedStatFields: (keyof PlayerAttributeStats)[] = allStatsKeys;
 
 const outfieldCategories: { key: keyof OutfieldBuild; label: string, icon: React.ElementType }[] = [
     { key: 'shooting', label: 'Tiro', icon: Target },
@@ -68,7 +66,23 @@ const goalkeeperCategories: { key: keyof GoalkeeperBuild; label: string, icon: R
     { key: 'gk1', label: 'Portero 1', icon: Hand },
     { key: 'gk2', label: 'Portero 2', icon: Hand },
     { key: 'gk3', label: 'Portero 3', icon: Hand },
+    { key: 'defending', label: 'Defensa', icon: Shield },
 ];
+
+const StatDisplay = ({ label, value }: { label: string; value?: number; }) => {
+    if (value === undefined || value === 0) return null;
+    return (
+        <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">{label}</span>
+            <span className={cn(
+                "font-bold",
+                value >= 90 && "text-sky-400",
+                value >= 85 && value < 90 && "text-green-400",
+                value >= 80 && value < 85 && "text-yellow-400",
+            )}>{value}</span>
+        </div>
+    );
+  };
 
 
 type PlayerTesterProps = {
@@ -81,6 +95,8 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
   const [bestBuildStyle, setBestBuildStyle] = React.useState<string | null>(null);
   const [progressionSuggestions, setProgressionSuggestions] = React.useState<Partial<OutfieldBuild & GoalkeeperBuild>>({});
   const [progressionPoints, setProgressionPoints] = React.useState<number | undefined>(undefined);
+  const [finalPlayerStats, setFinalPlayerStats] = React.useState<PlayerAttributeStats>({});
+
 
   const { toast } = useToast();
 
@@ -109,23 +125,27 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
   }, [availableStyles, watchedStyle, setValue]);
 
   React.useEffect(() => {
-    const playerStats = getValues('stats');
-    if (Object.keys(playerStats).length > 0) {
+    const baseStats = getValues('stats');
+    if (Object.keys(baseStats).length > 0) {
       const position = getValues('position');
       const style = getValues('style');
       const isGoalkeeper = position === 'PT';
 
-      const { bestBuild, bestStyle } = getIdealBuildForPlayer(style, position, idealBuilds, playerStats, isGoalkeeper);
-      const breakdown = calculateAffinityWithBreakdown(playerStats, bestBuild, isGoalkeeper);
-      const suggestions = calculateProgressionSuggestions(playerStats, bestBuild, isGoalkeeper, progressionPoints);
+      const { bestBuild, bestStyle } = getIdealBuildForPlayer(style, position, idealBuilds, baseStats, isGoalkeeper);
+      const suggestions = calculateProgressionSuggestions(baseStats, bestBuild, isGoalkeeper, progressionPoints);
       
+      const finalStats = calculateProgressionStats(baseStats, suggestions, isGoalkeeper);
+      const breakdown = calculateAffinityWithBreakdown(finalStats, bestBuild, isGoalkeeper);
+      
+      setFinalPlayerStats(finalStats);
+      setProgressionSuggestions(suggestions);
       setAffinityBreakdown(breakdown);
       setBestBuildStyle(bestStyle);
-      setProgressionSuggestions(suggestions);
     } else {
+      setFinalPlayerStats({});
+      setProgressionSuggestions({});
       setAffinityBreakdown({ totalAffinityScore: 0, breakdown: [] });
       setBestBuildStyle(null);
-      setProgressionSuggestions({});
     }
   }, [watchedStats, watchedPosition, watchedStyle, idealBuilds, getValues, progressionPoints]);
 
@@ -197,8 +217,8 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
           Pega las estadísticas de un jugador, elige una posición y estilo para calcular su afinidad con tus builds ideales.
         </CardDescription>
       </CardHeader>
-      <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="space-y-4">
+      <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="space-y-4 md:col-span-1">
           <div>
             <Label htmlFor="stats-paste">Pegar Estadísticas</Label>
             <Textarea
@@ -262,7 +282,7 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
                   id="progression-points-tester"
                   type="number"
                   placeholder="Ej: 50"
-                  value={progressionPoints || ''}
+                  value={progressionPoints === undefined ? '' : progressionPoints}
                   onChange={(e) => setProgressionPoints(e.target.value ? parseInt(e.target.value, 10) : undefined)}
                 />
               </div>
@@ -270,48 +290,68 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
           </Form>
         </div>
 
-        <div className="flex flex-col items-center justify-start bg-muted/50 rounded-lg p-6 space-y-4">
-          <p className="text-lg font-semibold text-muted-foreground">Afinidad Calculada</p>
-          {hasStats ? (
-            <div className="text-center">
-              <div className={cn("text-7xl font-bold flex items-center justify-center gap-2", affinityColorClass)}>
-                <Star className="w-12 h-12" />
-                {affinityScore.toFixed(2)}
-              </div>
-              <p className="text-sm mt-1">
-                Build Ideal usada: <span className="font-semibold text-primary">{bestBuildStyle || 'N/A'}</span>
-              </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 md:col-span-2 gap-6">
+            <div className="flex flex-col items-center justify-start bg-muted/50 rounded-lg p-6 space-y-4">
+                <p className="text-lg font-semibold text-muted-foreground">Afinidad Calculada</p>
+                {hasStats ? (
+                    <div className="text-center">
+                    <div className={cn("text-7xl font-bold flex items-center justify-center gap-2", affinityColorClass)}>
+                        <Star className="w-12 h-12" />
+                        {affinityScore.toFixed(2)}
+                    </div>
+                    <p className="text-sm mt-1">
+                        Build Ideal usada: <span className="font-semibold text-primary">{bestBuildStyle || 'N/A'}</span>
+                    </p>
+                    </div>
+                ) : (
+                    <div className="text-5xl font-bold text-muted-foreground/50 self-center mt-8">
+                    -
+                    </div>
+                )}
+                 {hasSuggestions && (
+                    <div className="w-full pt-4 mt-4 border-t">
+                    <p className="text-base font-semibold text-muted-foreground text-center mb-3">Puntos de Progresión Sugeridos</p>
+                    <div className="space-y-2">
+                        {suggestionCategories.map(({ key, label, icon: Icon }) => {
+                            const value = (progressionSuggestions as any)[key];
+                            if (!value || value <= 0) return null;
+                            return (
+                                <div key={key} className="flex items-center justify-between p-2 bg-background/50 rounded-md">
+                                    <span className="flex items-center gap-2 text-sm"><Icon className="w-4 h-4 text-muted-foreground"/>{label}</span>
+                                    <span className="font-bold text-primary text-lg">{value}</span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    </div>
+                 )}
             </div>
-          ) : (
-            <div className="text-5xl font-bold text-muted-foreground/50 self-center mt-8">
-              -
+            <div className="flex flex-col items-center justify-start bg-muted/50 rounded-lg p-6 space-y-4">
+                <p className="text-lg font-semibold text-muted-foreground">Estadísticas Finales</p>
+                {hasStats ? (
+                    <div className="w-full space-y-1">
+                        {allStatsKeys.map(key => (
+                            <StatDisplay 
+                                key={key}
+                                label={statLabels[key]}
+                                value={finalPlayerStats[key]}
+                            />
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-5xl font-bold text-muted-foreground/50 self-center mt-8">
+                    -
+                    </div>
+                )}
             </div>
-          )}
-
-          {hasSuggestions && (
-            <div className="w-full pt-4 mt-4 border-t">
-              <p className="text-lg font-semibold text-muted-foreground text-center mb-3">Puntos de Progresión Sugeridos</p>
-              <div className="space-y-2">
-                {suggestionCategories.map(({ key, label, icon: Icon }) => {
-                    const value = (progressionSuggestions as any)[key];
-                    if (!value || value <= 0) return null;
-                    return (
-                        <div key={key} className="flex items-center justify-between p-2 bg-background/50 rounded-md">
-                            <span className="flex items-center gap-2 text-sm"><Icon className="w-4 h-4 text-muted-foreground"/>{label}</span>
-                            <span className="font-bold text-primary text-lg">{value}</span>
-                        </div>
-                    );
-                })}
-              </div>
-            </div>
-          )}
-          {hasStats && (
-            <div className="w-full pt-4 mt-4 border-t">
-                <ScrollArea className="h-[300px] pr-4">
-                  <AffinityBreakdown breakdownResult={affinityBreakdown} />
-                </ScrollArea>
-            </div>
-          )}
+             {hasStats && (
+                <div className="w-full pt-4 md:col-span-2">
+                    <p className="text-lg font-semibold text-muted-foreground text-center mb-3">Desglose de Afinidad</p>
+                    <ScrollArea className="h-[400px] pr-4">
+                        <AffinityBreakdown breakdownResult={affinityBreakdown} />
+                    </ScrollArea>
+                </div>
+            )}
         </div>
       </CardContent>
     </Card>
