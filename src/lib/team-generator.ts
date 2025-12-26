@@ -213,10 +213,24 @@ export function generateIdealTeam(
         stats: { average: 0, matches: 0, stdDev: 0 },
         isHotStreak: false, isConsistent: false, isPromising: false, isVersatile: false
   };
+  
+    // Add 12th substitute - Best of the rest
+    const bestOfTheRest = findBestPlayer(allPlayerCandidates.sort(sortFunction));
+    if (bestOfTheRest) {
+      const bestSub = createTeamPlayer(bestOfTheRest, bestOfTheRest.position);
+      if (bestSub) {
+          finalTeamSlots.push({
+              // This starter is a dummy, won't be displayed
+              starter: null,
+              substitute: bestSub
+          });
+      }
+    }
+
 
   return finalTeamSlots.map((slot, index) => {
-    const formationSlot = formation.slots[index];
-    const assignedPosition = formationSlot.position;
+    const formationSlot = index < formation.slots.length ? formation.slots[index] : null;
+    const assignedPosition = formationSlot?.position || (slot.substitute?.position || 'DFC');
 
     const placeholderPlayer: IdealTeamPlayer = {
         player: { id: `placeholder-S-${index}`, name: `Vacante`, cards: [], nationality: 'Sin Nacionalidad' as Nationality },

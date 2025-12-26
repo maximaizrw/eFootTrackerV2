@@ -29,6 +29,9 @@ const PlayerToken = ({ player, style, onDiscard, onViewBuild }: { player: IdealT
   }
 
   const displayPosition = player.assignedPosition;
+  const originalPosition = player.position;
+  const isFlex = displayPosition !== originalPosition;
+
   const specialCard = isSpecialCard(player.card.name);
   const hasNoStats = !player.card.attributeStats || Object.keys(player.card.attributeStats).length === 0;
   const needsProgressionPoints = !specialCard && !player.card.totalProgressionPoints;
@@ -80,7 +83,7 @@ const PlayerToken = ({ player, style, onDiscard, onViewBuild }: { player: IdealT
        <div className="w-full relative -mt-3 text-white">
         <div className="inline-block bg-black/50 rounded-sm px-1.5 py-0.5" style={{textShadow: '0 1px 3px black'}}>
             <p className="font-bold text-sm leading-tight text-primary">
-            {displayPosition}
+              {displayPosition} {isFlex && <span className="text-xs font-normal">({originalPosition})</span>}
             </p>
             <button className="flex items-center justify-center gap-1 group/name" onClick={() => onViewBuild(player)}>
                 <AffinityStatusIndicator player={player} />
@@ -107,6 +110,9 @@ const SubstitutePlayerRow = ({ player, onDiscard, onViewBuild }: { player: Ideal
   }
 
   const displayPosition = player.assignedPosition;
+  const originalPosition = player.position;
+  const isFlex = displayPosition !== originalPosition;
+
   const specialCard = isSpecialCard(player.card.name);
   const hasNoStats = !player.card.attributeStats || Object.keys(player.card.attributeStats).length === 0;
   const needsProgressionPoints = !specialCard && !player.card.totalProgressionPoints;
@@ -120,7 +126,7 @@ const SubstitutePlayerRow = ({ player, onDiscard, onViewBuild }: { player: Ideal
   return (
     <Card className="group relative flex items-center gap-2 p-2 rounded-lg bg-card h-20 overflow-hidden">
       <div className="absolute top-0 right-0 p-1.5 leading-none text-xs font-bold bg-accent text-accent-foreground rounded-bl-lg">
-          {displayPosition}
+          {displayPosition} {isFlex && <span className="font-normal">({originalPosition})</span>}
       </div>
       <div className="relative w-16 h-full flex-shrink-0">
         {player.card.imageUrl && (
@@ -184,6 +190,7 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onView
     );
   }
   
+  const starters = teamSlots.slice(0, 11);
   const substitutes = teamSlots
     .map(slot => slot.substitute)
     .filter((sub): sub is IdealTeamPlayer => sub !== null && !sub.player.id.startsWith('placeholder'))
@@ -203,7 +210,7 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onView
       <div className="xl:col-span-2">
         <h3 className="text-xl font-semibold mb-4 text-center flex items-center justify-center gap-2"><Crown /> Titulares</h3>
         <FootballPitch>
-          {teamSlots.map((slot, index) => {
+          {starters.map((slot, index) => {
              const formationSlot = formation.slots[index];
              const style: React.CSSProperties = {
                 top: `${formationSlot?.top || 50}%`,
@@ -225,6 +232,3 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onView
     </div>
   );
 }
-
-    
-    
