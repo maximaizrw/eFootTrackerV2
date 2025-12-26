@@ -1,18 +1,19 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { db } from '@/lib/firebase-config';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, query, where, setDoc } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import { v4 as uuidv4 } from 'uuid';
-import type { Player, PlayerCard, Position, AddRatingFormValues, EditCardFormValues, EditPlayerFormValues, PlayerBuild, League, Nationality, PlayerAttributeStats, IdealBuild, PhysicalAttribute } from '@/lib/types';
+import type { Player, PlayerCard, Position, AddRatingFormValues, EditCardFormValues, EditPlayerFormValues, PlayerBuild, League, Nationality, PlayerAttributeStats, IdealBuild, PhysicalAttribute, FlatPlayer, PlayerPerformance } from '@/lib/types';
 import { getAvailableStylesForPosition } from '@/lib/types';
-import { normalizeText, calculateProgressionStats, getIdealBuildForPlayer, isSpecialCard, calculateProgressionSuggestions, calculateAffinityWithBreakdown } from '@/lib/utils';
+import { normalizeText, calculateProgressionStats, getIdealBuildForPlayer, isSpecialCard, calculateProgressionSuggestions, calculateAffinityWithBreakdown, calculateStats, calculateGeneralScore } from '@/lib/utils';
 
 
 export function usePlayers(idealBuilds: IdealBuild[] = []) {
   const [players, setPlayers] = useState<Player[]>([]);
+  const [flatPlayers, setFlatPlayers] = useState<FlatPlayer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -93,6 +94,58 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
       unsubPlayers();
     };
   }, [toast]);
+
+  useEffect(() => {
+    if (players.length > 0) {
+        const allFlatPlayers = players.flatMap(player => 
+            (player.cards || []).flatMap(card => {
+                return (Object.keys(card.ratingsByPosition || {}) as Position[]).map(ratedPos => {
+                    const ratingsForPos = card.ratingsByPosition?.[ratedPos] || [];
+                    if (ratingsForPos.length === 0) return null;
+
+                    const stats = calculateStats(ratingsForPos);
+                    const recentRatings = ratingsForPos.slice(-3);
+                    const recentStats = calculateStats(recentRatings);
+
+                    const highPerfPositions = new Set<Position>();
+                    for (const p in card.ratingsByPosition) {
+                        const positionKey = p as Position;
+                        const posRatings = card.ratingsByPosition[positionKey];
+                        if (posRatings && posRatings.length > 0) {
+                           const posAvg = calculateStats(posRatings).average;
+                           if (posAvg >= 7.0) highPerfPositions.add(positionKey);
+                        }
+                    }
+                    
+                    const performance: PlayerPerformance = {
+                        stats,
+                        isHotStreak: stats.matches >= 3 && recentStats.average > stats.average + 0.5,
+                        isConsistent: stats.matches >= 5 && stats.stdDev < 0.5,
+                        isPromising: stats.matches > 0 && stats.matches < 10 && stats.average >= 7.0,
+                        isVersatile: highPerfPositions.size >= 3,
+                    };
+                    
+                    const isGoalkeeper = ratedPos === 'PT';
+                    const buildForPos = card.buildsByPosition?.[ratedPos];
+                    const specialCard = isSpecialCard(card.name);
+                    
+                    const finalStats = specialCard || !buildForPos
+                        ? (card.attributeStats || {})
+                        : calculateProgressionStats(card.attributeStats || {}, buildForPos, isGoalkeeper);
+
+                    const { bestBuild } = getIdealBuildForPlayer(card.style, ratedPos, idealBuilds, card.attributeStats, isGoalkeeper, card.physicalAttributes);
+                    const affinityScore = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes).totalAffinityScore;
+                    
+                    const generalScore = calculateGeneralScore(affinityScore, stats.average);
+
+                    return { player, card, ratingsForPos, performance, affinityScore, generalScore, position: ratedPos };
+                }).filter((p): p is FlatPlayer => p !== null);
+            })
+        );
+        setFlatPlayers(allFlatPlayers);
+    }
+  }, [players, idealBuilds]);
+
 
   const addRating = async (values: AddRatingFormValues) => {
     let { playerName, cardName, position, rating, style, league, nationality, playerId } = values;
@@ -512,5 +565,5 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
     }
   };
 
-  return { players, loading, error, addRating, editCard, editPlayer, deleteRating, savePlayerBuild, saveAttributeStats, downloadBackup, deletePositionRatings, recalculateAllAffinities, suggestAllBuilds };
+  return { players, flatPlayers, loading, error, addRating, editCard, editPlayer, deleteRating, savePlayerBuild, saveAttributeStats, downloadBackup, deletePositionRatings, recalculateAllAffinities, suggestAllBuilds };
 }

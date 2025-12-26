@@ -42,7 +42,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerBuild, IdealTeamPlayer, PlayerAttributeStats, IdealBuild, BuildPosition } from '@/lib/types';
 import { positions, leagues, nationalities, buildPositions } from '@/lib/types';
 import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Wrench, Dna, RefreshCw, Beaker, Wand2 } from 'lucide-react';
-import { calculateStats, normalizeText, calculateGeneralScore, getIdealBuildForPlayer, calculateProgressionStats, isSpecialCard, calculateAffinityWithBreakdown } from '@/lib/utils';
+import { normalizeText, getIdealBuildForPlayer, calculateProgressionStats, isSpecialCard, calculateAffinityWithBreakdown } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
@@ -59,6 +59,7 @@ export default function Home() {
 
   const { 
     players, 
+    flatPlayers,
     loading: playersLoading, 
     error: playersError,
     addRating,
@@ -518,55 +519,9 @@ export default function Home() {
           </TabsContent>
 
           {positions.map((pos) => {
-            const flatPlayerList: FlatPlayer[] = allPlayers.flatMap(player => 
-                (player.cards || []).flatMap(card => {
-                    return (Object.keys(card.ratingsByPosition || {}) as Position[]).map(ratedPos => {
-                        const ratingsForPos = card.ratingsByPosition?.[ratedPos] || [];
-                        if (ratingsForPos.length === 0) return null;
-                        if (ratedPos !== pos) return null;
+            const positionPlayers = flatPlayers.filter(p => p.position === pos);
 
-                        const stats = calculateStats(ratingsForPos);
-                        const recentRatings = ratingsForPos.slice(-3);
-                        const recentStats = calculateStats(recentRatings);
-
-                        const highPerfPositions = new Set<Position>();
-                        for (const p in card.ratingsByPosition) {
-                            const positionKey = p as Position;
-                            const posRatings = card.ratingsByPosition[positionKey];
-                            if (posRatings && posRatings.length > 0) {
-                               const posAvg = calculateStats(posRatings).average;
-                               if (posAvg >= 7.0) highPerfPositions.add(positionKey);
-                            }
-                        }
-                        
-                        const performance: PlayerPerformance = {
-                            stats,
-                            isHotStreak: stats.matches >= 3 && recentStats.average > stats.average + 0.5,
-                            isConsistent: stats.matches >= 5 && stats.stdDev < 0.5,
-                            isPromising: stats.matches > 0 && stats.matches < 10 && stats.average >= 7.0,
-                            isVersatile: highPerfPositions.size >= 3,
-                        };
-                        
-                        // Live affinity calculation
-                        const isGoalkeeper = ratedPos === 'PT';
-                        const buildForPos = card.buildsByPosition?.[ratedPos];
-                        const specialCard = isSpecialCard(card.name);
-                        
-                        const finalStats = specialCard || !buildForPos
-                            ? (card.attributeStats || {})
-                            : calculateProgressionStats(card.attributeStats || {}, buildForPos, isGoalkeeper);
-
-                        const { bestBuild } = getIdealBuildForPlayer(card.style, ratedPos, idealBuilds, card.attributeStats, isGoalkeeper, card.physicalAttributes);
-                        const affinityScore = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes).totalAffinityScore;
-                        
-                        const generalScore = calculateGeneralScore(affinityScore, stats.average);
-
-                        return { player, card, ratingsForPos, performance, affinityScore, generalScore, position: ratedPos };
-                    }).filter((p): p is FlatPlayer => p !== null);
-                })
-            );
-            
-            const filteredPlayerList = flatPlayerList.filter(({ player, card }) => {
+            const filteredPlayerList = positionPlayers.filter(({ player, card }) => {
                 const searchMatch = normalizeText(player.name).includes(normalizeText(searchTerm));
                 const styleMatch = styleFilter === 'all' || card.style === styleFilter;
                 const cardMatch = cardFilter === 'all' || card.name === cardFilter;
@@ -596,13 +551,13 @@ export default function Home() {
             const totalPages = Math.ceil(filteredPlayerList.length / ITEMS_PER_PAGE);
             
             const allPositionalStyles = new Set<string>();
-            flatPlayerList.forEach(p => {
+            positionPlayers.forEach(p => {
                 allPositionalStyles.add(p.card.style)
             });
             const uniqueStyles = ['all', ...Array.from(allPositionalStyles)];
             
             const allPositionalCards = new Set<string>();
-            flatPlayerList.forEach(p => {
+            positionPlayers.forEach(p => {
                 allPositionalCards.add(p.card.name)
             });
             const uniqueCardNames = ['all', ...Array.from(allPositionalCards)];
@@ -756,9 +711,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
-
-    
-
-    
