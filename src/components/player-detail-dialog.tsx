@@ -84,8 +84,8 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
       const calculatedFinalStats = specialCard ? (card.attributeStats || {}) : calculateProgressionStats(card.attributeStats || {}, initialBuild, isGoalkeeper);
       setFinalStats(calculatedFinalStats);
       
-      const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds);
-      const breakdown = calculateAffinityWithBreakdown(calculatedFinalStats, bestBuild, card.legLength);
+      const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, card.attributeStats, isGoalkeeper, card.physicalAttributes);
+      const breakdown = calculateAffinityWithBreakdown(calculatedFinalStats, bestBuild, card.physicalAttributes);
       setAffinityBreakdown(breakdown);
       setBestBuildStyle(bestBuild?.style || null);
 
@@ -105,8 +105,8 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
         const newFinalStats = specialCard ? baseStats : calculateProgressionStats(baseStats, build, isGoalkeeper);
         setFinalStats(newFinalStats);
         
-        const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds);
-        const breakdown = calculateAffinityWithBreakdown(newFinalStats, bestBuild, card.legLength);
+        const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, card.attributeStats, isGoalkeeper, card.physicalAttributes);
+        const breakdown = calculateAffinityWithBreakdown(newFinalStats, bestBuild, card.physicalAttributes);
         setAffinityBreakdown(breakdown);
         setBestBuildStyle(bestBuild?.style || null);
     }
@@ -128,7 +128,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
   const handleSuggestBuild = () => {
     if (!card || !position) return;
     
-    const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds);
+    const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, card.attributeStats, isGoalkeeper, card.physicalAttributes);
     if (!bestBuild) {
         toast({
             variant: "destructive",

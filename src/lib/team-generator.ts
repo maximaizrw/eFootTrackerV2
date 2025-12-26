@@ -1,6 +1,6 @@
 
 import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, FormationSlot as FormationSlotType, IdealBuild } from './types';
-import { calculateStats, calculateGeneralScore, getIdealBuildForPlayer, calculateAutomaticAffinity, calculateProgressionStats, isSpecialCard } from './utils';
+import { calculateStats, calculateGeneralScore, getIdealBuildForPlayer, calculateProgressionStats, isSpecialCard, calculateAffinityWithBreakdown } from './utils';
 
 type CandidatePlayer = {
   player: Player;
@@ -98,8 +98,8 @@ export function generateIdealTeam(
             ? (card.attributeStats || {})
             : calculateProgressionStats(card.attributeStats || {}, buildForPos, isGoalkeeper);
 
-        const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds);
-        const affinityScore = calculateAutomaticAffinity(finalStats, bestBuild, card.legLength);
+        const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds, card.attributeStats, isGoalkeeper, card.physicalAttributes);
+        const affinityScore = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes).totalAffinityScore;
         
         const generalScore = calculateGeneralScore(affinityScore, stats.average);
 

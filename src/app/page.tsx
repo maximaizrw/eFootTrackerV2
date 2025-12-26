@@ -42,7 +42,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerBuild, IdealTeamPlayer, PlayerAttributeStats, IdealBuild, BuildPosition } from '@/lib/types';
 import { positions, leagues, nationalities, buildPositions } from '@/lib/types';
 import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Wrench, Dna, RefreshCw, Beaker, Wand2 } from 'lucide-react';
-import { calculateStats, normalizeText, calculateGeneralScore, getIdealBuildForPlayer, calculateAutomaticAffinity, calculateProgressionStats, isSpecialCard } from '@/lib/utils';
+import { calculateStats, normalizeText, calculateGeneralScore, getIdealBuildForPlayer, calculateProgressionStats, isSpecialCard, calculateAffinityWithBreakdown } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
@@ -548,15 +548,16 @@ export default function Home() {
                         };
                         
                         // Live affinity calculation
+                        const isGoalkeeper = ratedPos === 'PT';
                         const buildForPos = card.buildsByPosition?.[ratedPos];
                         const specialCard = isSpecialCard(card.name);
-                        const isGoalkeeper = ratedPos === 'PT';
+                        
                         const finalStats = specialCard || !buildForPos
                             ? (card.attributeStats || {})
                             : calculateProgressionStats(card.attributeStats || {}, buildForPos, isGoalkeeper);
 
-                        const { bestBuild } = getIdealBuildForPlayer(card.style, ratedPos, idealBuilds);
-                        const affinityScore = calculateAutomaticAffinity(finalStats, bestBuild, card.physicalAttributes);
+                        const { bestBuild } = getIdealBuildForPlayer(card.style, ratedPos, idealBuilds, card.attributeStats, isGoalkeeper, card.physicalAttributes);
+                        const affinityScore = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes).totalAffinityScore;
                         
                         const generalScore = calculateGeneralScore(affinityScore, stats.average);
 

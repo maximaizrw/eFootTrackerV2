@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase-config';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, query, getDoc, getDocs } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import type { IdealBuild, PlayerAttributeStats, Player, PlayerCard } from '@/lib/types';
-import { calculateAutomaticAffinity, calculateProgressionStats, getIdealBuildForPlayer } from '@/lib/utils';
+import { calculateProgressionStats, getIdealBuildForPlayer, calculateAffinityWithBreakdown } from '@/lib/utils';
 
 export function useIdealBuilds() {
   const [idealBuilds, setIdealBuilds] = useState<IdealBuild[]>([]);
@@ -69,15 +69,14 @@ export function useIdealBuilds() {
             newCards.forEach(card => {
                 if (card.style === updatedBuild.style) {
                     if (card.buildsByPosition && card.buildsByPosition[updatedBuild.position]) {
-                        const isPotw = card.name.toLowerCase().includes('potw');
-                        const finalStats = isPotw
-                            ? card.attributeStats || {}
-                            : calculateProgressionStats(card.attributeStats || {}, card.buildsByPosition[updatedBuild.position]!);
+                        const currentBuild = card.buildsByPosition[updatedBuild.position]!
+                        const isGoalkeeper = updatedBuild.position === 'PT';
+                        const finalStats = calculateProgressionStats(card.attributeStats || {}, currentBuild, isGoalkeeper);
 
-                        const newAffinity = calculateAutomaticAffinity(finalStats, updatedBuild);
+                        const { totalAffinityScore } = calculateAffinityWithBreakdown(finalStats, updatedBuild, card.physicalAttributes);
                         
-                        card.buildsByPosition[updatedBuild.position]!.manualAffinity = newAffinity;
-                        card.buildsByPosition[updatedBuild.position]!.updatedAt = new Date().toISOString();
+                        currentBuild.manualAffinity = totalAffinityScore;
+                        currentBuild.updatedAt = new Date().toISOString();
                         playerWasUpdated = true;
                     }
                 }
@@ -129,13 +128,15 @@ export function useIdealBuilds() {
             finalIdealBuild = { ...build, build: finalBuildData };
         }
 
-        // Handle legLength separately as it should not be averaged
-        if (build.legLength) {
-          finalIdealBuild.legLength = build.legLength;
-        } else if (docSnap.exists()) {
-          finalIdealBuild.legLength = (docSnap.data() as IdealBuild).legLength;
-        }
-
+        const physicalAttrs: (keyof IdealBuild)[] = ['legLength', 'armLength', 'shoulderWidth', 'neckLength'];
+        physicalAttrs.forEach(attr => {
+          if (build[attr]) {
+            (finalIdealBuild as any)[attr] = (build as any)[attr];
+          } else if (docSnap.exists()) {
+            (finalIdealBuild as any)[attr] = (docSnap.data() as IdealBuild)[attr];
+          }
+        });
+        
         await setDoc(buildRef, finalIdealBuild, { merge: true });
         toast({ title: "Build Ideal Guardada", description: toastMessage });
 
