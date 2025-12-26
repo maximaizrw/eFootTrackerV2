@@ -1,7 +1,8 @@
 
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position, BuildPosition } from "./types";
+import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position, BuildPosition, PhysicalAttribute } from "./types";
 import { getAvailableStylesForPosition } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
@@ -243,15 +244,34 @@ export function getIdealBuildForPlayer(
     return { bestBuild: bestFlexBuild, bestStyle: bestFlexBuild?.style || null };
 }
 
+function calculatePhysicalAttributeAffinity(
+    playerValue: number | undefined,
+    idealRange: { min?: number; max?: number } | undefined,
+): number {
+    if (!idealRange || idealRange.min === undefined || playerValue === undefined) {
+        return 0;
+    }
+    if (playerValue >= idealRange.min && (idealRange.max === undefined || playerValue <= idealRange.max)) {
+        return 2.5; // Bonus for being within the ideal range
+    } else if (playerValue < idealRange.min) {
+        const diff = playerValue - idealRange.min;
+        return diff * 0.5; // Penalty for being below min
+    } else if (idealRange.max && playerValue > idealRange.max) {
+        const diff = playerValue - idealRange.max;
+        return -(diff * 0.25); // Smaller penalty for being above max
+    }
+    return 0;
+}
+
 export function calculateAutomaticAffinity(
     playerStats: PlayerAttributeStats,
     idealBuild: IdealBuild | null,
-    playerLegLength?: number,
+    physicalAttributes?: PhysicalAttribute,
 ): number {
     if (!idealBuild) return 0;
 
     let totalAffinityScore = 0;
-    const { build: idealBuildStats, legLength: idealLegLength } = idealBuild;
+    const { build: idealBuildStats } = idealBuild;
     const isGoalkeeper = idealBuild.position === 'PT';
     const relevantKeys = isGoalkeeper ? goalkeeperStatsKeys : allStatsKeys;
 
@@ -278,18 +298,11 @@ export function calculateAutomaticAffinity(
         }
     }
 
-    // 2. Calculate leg length affinity
-    if (idealLegLength && idealLegLength.min && playerLegLength) {
-        if (playerLegLength >= idealLegLength.min && (idealLegLength.max === undefined || playerLegLength <= idealLegLength.max)) {
-            totalAffinityScore += 2.5; // Bonus for being within the ideal range
-        } else if (playerLegLength < idealLegLength.min) {
-            const diff = playerLegLength - idealLegLength.min;
-            totalAffinityScore += diff * 0.5; // Penalty for being below min
-        } else if (idealLegLength.max && playerLegLength > idealLegLength.max) {
-             const diff = playerLegLength - idealLegLength.max;
-             totalAffinityScore -= diff * 0.25; // Smaller penalty for being above max
-        }
-    }
+    // 2. Calculate physical attributes affinity
+    const physicalAttrKeys: (keyof PhysicalAttribute)[] = ['legLength', 'armLength', 'waistSize', 'chestMeasurement', 'shoulderWidth', 'neckLength'];
+    physicalAttrKeys.forEach(key => {
+        totalAffinityScore += calculatePhysicalAttributeAffinity(physicalAttributes?.[key], idealBuild[key]);
+    });
     
     return totalAffinityScore;
 }
@@ -298,7 +311,7 @@ export function calculateAutomaticAffinity(
 export type AffinityBreakdownResult = {
     totalAffinityScore: number;
     breakdown: {
-        stat: keyof PlayerAttributeStats | 'legLength';
+        stat: keyof PlayerAttributeStats | keyof PhysicalAttribute;
         label: string;
         playerValue?: number;
         idealValue?: number | { min?: number, max?: number };
@@ -306,26 +319,31 @@ export type AffinityBreakdownResult = {
     }[];
 };
 
-export const statLabels: Record<keyof PlayerAttributeStats | 'legLength', string> = {
+export const statLabels: Record<keyof PlayerAttributeStats | keyof PhysicalAttribute, string> = {
     offensiveAwareness: 'Act. Ofensiva', ballControl: 'Control de Balón', dribbling: 'Regate', tightPossession: 'Posesión Estrecha',
     lowPass: 'Pase Raso', loftedPass: 'Pase Bombeado', finishing: 'Finalización', heading: 'Cabeceo', placeKicking: 'Balón Parado', curl: 'Efecto',
     defensiveAwareness: 'Act. Defensiva', defensiveEngagement: 'Entrada', tackling: 'Segada', aggression: 'Agresividad',
     goalkeeping: 'Act. Portero', gkCatching: 'Atajar', gkParrying: 'Despejar', gkReflexes: 'Reflejos', gkReach: 'Alcance',
     speed: 'Velocidad', acceleration: 'Aceleración', kickingPower: 'Potencia de Tiro', jump: 'Salto', physicalContact: 'Contacto Físico',
     balance: 'Equilibrio', stamina: 'Resistencia',
-    legLength: 'Longitud de Piernas',
+    legLength: 'Largo de Piernas',
+    armLength: 'Largo de Brazos',
+    waistSize: 'Tamaño de Cintura',
+    chestMeasurement: 'Contorno de Pecho',
+    shoulderWidth: 'Ancho de Hombros',
+    neckLength: 'Largo del Cuello',
 };
 
 export function calculateAffinityWithBreakdown(
     playerStats: PlayerAttributeStats,
     idealBuild: IdealBuild | null,
-    playerLegLength?: number,
+    physicalAttributes?: PhysicalAttribute,
 ): AffinityBreakdownResult {
     if (!idealBuild) return { totalAffinityScore: 0, breakdown: [] };
 
     let totalAffinityScore = 0;
     const breakdown: AffinityBreakdownResult['breakdown'] = [];
-    const { build: idealBuildStats, legLength: idealLegLength } = idealBuild;
+    const { build: idealBuildStats } = idealBuild;
     const isGoalkeeper = idealBuild.position === 'PT';
     const relevantKeys = isGoalkeeper ? goalkeeperStatsKeys : allStatsKeys;
 
@@ -359,27 +377,18 @@ export function calculateAffinityWithBreakdown(
         });
     }
 
-    // Leg length breakdown
-    let legLengthScore = 0;
-    if (idealLegLength && idealLegLength.min && playerLegLength) {
-        if (playerLegLength >= idealLegLength.min && (idealLegLength.max === undefined || playerLegLength <= idealLegLength.max)) {
-            legLengthScore = 2.5; // Bonus for being within the ideal range
-        } else if (playerLegLength < idealLegLength.min) {
-            const diff = playerLegLength - idealLegLength.min;
-            legLengthScore = diff * 0.5; // Penalty for being below min
-        } else if (idealLegLength.max && playerLegLength > idealLegLength.max) {
-             const diff = playerLegLength - idealLegLength.max;
-             legLengthScore = -(diff * 0.25); // Smaller penalty for being above max
-        }
-        totalAffinityScore += legLengthScore;
-    }
-    
-    breakdown.push({
-        stat: 'legLength',
-        label: statLabels.legLength,
-        playerValue: playerLegLength,
-        idealValue: idealLegLength,
-        score: legLengthScore
+    // Physical attributes breakdown
+    const physicalAttrKeys: (keyof PhysicalAttribute)[] = ['legLength', 'armLength', 'waistSize', 'chestMeasurement', 'shoulderWidth', 'neckLength'];
+    physicalAttrKeys.forEach(key => {
+        const score = calculatePhysicalAttributeAffinity(physicalAttributes?.[key], idealBuild[key]);
+        totalAffinityScore += score;
+        breakdown.push({
+            stat: key,
+            label: statLabels[key],
+            playerValue: physicalAttributes?.[key],
+            idealValue: idealBuild[key],
+            score,
+        });
     });
 
 
@@ -414,7 +423,6 @@ export function calculatePointsForLevel(level: number): number {
 export function calculateLevelForPoints(points: number): number {
   if (points <= 4) return points;
   if (points <= 12) return 4 + Math.floor((points - 4) / 2);
-  if (points <= 24) return 8 + Math.floor((points - 12) / 3);
   if (points <= 24) return 8 + Math.floor((points - 12) / 3);
   return 12 + Math.floor((points - 24) / 4);
 }
@@ -500,7 +508,7 @@ export function calculateProgressionSuggestions(
       }
     }
 
-    if (bestCategory) {
+    if (bestCategory && maxWeightedDeficit > 0) {
       const cost = calculatePointsForLevel(build[bestCategory]! + 1) - calculatePointsForLevel(build[bestCategory]!);
       pointsSpent += cost;
       build[bestCategory]! += 1;
@@ -509,6 +517,31 @@ export function calculateProgressionSuggestions(
       break;
     }
   }
+
+  // If points are left over, distribute them greedily to the cheapest categories
+  // that still have some value, to use up the budget.
+  while(pointsSpent < totalProgressionPoints) {
+    let cheapestCategory: CategoryName | null = null;
+    let minCost = Infinity;
+
+    for (const category of categories) {
+      const currentLevel = build[category]!;
+      const cost = calculatePointsForLevel(currentLevel + 1) - calculatePointsForLevel(currentLevel);
+
+      if ((pointsSpent + cost) <= totalProgressionPoints && cost < minCost) {
+          minCost = cost;
+          cheapestCategory = category;
+      }
+    }
+
+    if (cheapestCategory) {
+        pointsSpent += minCost;
+        build[cheapestCategory]! += 1;
+    } else {
+        break; // No affordable category found
+    }
+  }
+
 
   return build;
 }

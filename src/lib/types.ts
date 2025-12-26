@@ -1,4 +1,5 @@
 
+
 import * as z from "zod";
 
 export const playerStyles = ['Ninguno', 'Cazagoles', 'Hombre de área', 'Señuelo', 'Hombre objetivo', 'Creador de juego', 'Creador de jugadas', 'El destructor', 'Portero defensivo', 'Portero ofensivo', 'Atacante extra', 'Lateral defensivo', 'Lateral ofensivo', 'Lateral finalizador', 'Omnipresente', 'Medio escudo', 'Organizador', 'Jugador de huecos', 'Especialista en centros', 'Extremo móvil', 'Extremo prolífico', 'Diez Clasico', 'Segundo delantero'] as const;
@@ -56,15 +57,22 @@ export type PlayerBuild = (OutfieldBuild | GoalkeeperBuild) & {
   updatedAt?: string;
 };
 
+type MinMaxRange = {
+    min?: number;
+    max?: number;
+};
+
 export type IdealBuild = {
   id?: string; // composite key of position-style
   position: BuildPosition;
   style: PlayerStyle;
   build: PlayerAttributeStats;
-  legLength?: {
-    min?: number;
-    max?: number;
-  };
+  legLength?: MinMaxRange;
+  armLength?: MinMaxRange;
+  waistSize?: MinMaxRange;
+  chestMeasurement?: MinMaxRange;
+  shoulderWidth?: MinMaxRange;
+  neckLength?: MinMaxRange;
 };
 
 export type PlayerAttributeStats = {
@@ -150,6 +158,15 @@ export const positionLabels: Record<BuildPosition, string> = {
 
 export type PositionLabel = typeof positionLabels[Position];
 
+export type PhysicalAttribute = {
+  legLength?: number;
+  armLength?: number;
+  waistSize?: number;
+  chestMeasurement?: number;
+  shoulderWidth?: number;
+  neckLength?: number;
+}
+
 export type PlayerCard = {
   id: string;
   name: string; // e.g., "Highlight", "Player of the Week"
@@ -159,8 +176,8 @@ export type PlayerCard = {
   ratingsByPosition: { [key in Position]?: number[] };
   buildsByPosition?: { [key in Position]?: PlayerBuild };
   attributeStats?: PlayerAttributeStats;
+  physicalAttributes?: PhysicalAttribute;
   totalProgressionPoints?: number;
-  legLength?: number;
 };
 
 export type Player = {

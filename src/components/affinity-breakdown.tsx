@@ -6,20 +6,27 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { cn } from "@/lib/utils";
+import type { PhysicalAttribute } from "@/lib/types";
 
 type AffinityBreakdownProps = {
   breakdownResult: AffinityBreakdownResult;
 };
 
+const physicalAttributeKeys: (keyof PhysicalAttribute)[] = [
+    'legLength', 'armLength', 'waistSize', 'chestMeasurement', 'shoulderWidth', 'neckLength'
+];
+
+
 export function AffinityBreakdown({ breakdownResult }: AffinityBreakdownProps) {
   const { totalAffinityScore, breakdown } = breakdownResult;
 
   const relevantStats = breakdown.filter(item => {
-    if (item.stat === 'legLength') {
-      return item.idealValue !== undefined && item.idealValue.min !== undefined;
+    if (physicalAttributeKeys.includes(item.stat as any)) {
+      return item.idealValue !== undefined && (item.idealValue as { min?: number }).min !== undefined;
     }
-    return item.idealValue !== undefined && item.idealValue >= 70;
+    return item.idealValue !== undefined && typeof item.idealValue === 'number' && item.idealValue >= 70;
   });
+
 
   if (relevantStats.length === 0) {
     return (
@@ -57,20 +64,23 @@ export function AffinityBreakdown({ breakdownResult }: AffinityBreakdownProps) {
                      let diffDisplay = '';
                      let playerColor = '';
 
-                     if (item.stat === 'legLength') {
+                     if (physicalAttributeKeys.includes(item.stat as any)) {
                         const idealRange = item.idealValue as { min?: number, max?: number } | undefined;
-                        if (idealRange?.min && idealRange?.max) {
+                        if (idealRange?.min !== undefined && idealRange?.max !== undefined) {
                             idealDisplay = `${idealRange.min}-${idealRange.max}`;
-                        } else if (idealRange?.min) {
+                        } else if (idealRange?.min !== undefined) {
                             idealDisplay = `>= ${idealRange.min}`;
+                        } else if (idealRange?.max !== undefined) {
+                            idealDisplay = `<= ${idealRange.max}`;
                         }
-                        if (item.playerValue !== undefined && idealRange?.min !== undefined) {
-                            if(item.playerValue < idealRange.min) {
+
+                        if (item.playerValue !== undefined) {
+                            if (idealRange?.min !== undefined && item.playerValue < idealRange.min) {
                                 diff = item.playerValue - idealRange.min;
                                 playerColor = "text-orange-400";
-                            } else if (idealRange.max !== undefined && item.playerValue > idealRange.max) {
+                            } else if (idealRange?.max !== undefined && item.playerValue > idealRange.max) {
                                 diff = item.playerValue - idealRange.max;
-                                playerColor = "text-primary";
+                                playerColor = "text-orange-400";
                             } else {
                                 diff = 0; // Inside range
                                 playerColor = "text-primary";
@@ -79,7 +89,7 @@ export function AffinityBreakdown({ breakdownResult }: AffinityBreakdownProps) {
                      } else {
                         idealDisplay = String(item.idealValue || '-');
                         if (item.playerValue !== undefined && item.idealValue !== undefined) {
-                            diff = item.playerValue - item.idealValue;
+                            diff = item.playerValue - (item.idealValue as number);
                             playerColor = diff > 0 ? "text-primary" : diff < 0 ? "text-orange-400" : "";
                         }
                      }
