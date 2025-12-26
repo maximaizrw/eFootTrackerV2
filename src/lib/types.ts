@@ -1,5 +1,4 @@
 
-
 import * as z from "zod";
 
 export const playerStyles = ['Ninguno', 'Cazagoles', 'Hombre de área', 'Señuelo', 'Hombre objetivo', 'Creador de juego', 'Creador de jugadas', 'El destructor', 'Portero defensivo', 'Portero ofensivo', 'Atacante extra', 'Lateral defensivo', 'Lateral ofensivo', 'Lateral finalizador', 'Omnipresente', 'Medio escudo', 'Organizador', 'Jugador de huecos', 'Especialista en centros', 'Extremo móvil', 'Extremo prolífico', 'Diez Clasico', 'Segundo delantero'] as const;
@@ -62,7 +61,10 @@ export type IdealBuild = {
   position: BuildPosition;
   style: PlayerStyle;
   build: PlayerAttributeStats;
-  legLength?: number;
+  legLength?: {
+    min?: number;
+    max?: number;
+  };
 };
 
 export type PlayerAttributeStats = {

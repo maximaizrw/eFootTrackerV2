@@ -1,5 +1,4 @@
 
-
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position, BuildPosition } from "./types";
@@ -280,12 +279,15 @@ export function calculateAutomaticAffinity(
     }
 
     // 2. Calculate leg length affinity
-    if (idealLegLength !== undefined && playerLegLength !== undefined) {
-        if (playerLegLength >= idealLegLength) {
-            totalAffinityScore += 2.5; // Bonus for meeting or exceeding
-        } else {
-            const diff = playerLegLength - idealLegLength;
-            totalAffinityScore += diff * 0.5; // Penalty of -0.5 for each point of difference
+    if (idealLegLength && idealLegLength.min && playerLegLength) {
+        if (playerLegLength >= idealLegLength.min && (idealLegLength.max === undefined || playerLegLength <= idealLegLength.max)) {
+            totalAffinityScore += 2.5; // Bonus for being within the ideal range
+        } else if (playerLegLength < idealLegLength.min) {
+            const diff = playerLegLength - idealLegLength.min;
+            totalAffinityScore += diff * 0.5; // Penalty for being below min
+        } else if (idealLegLength.max && playerLegLength > idealLegLength.max) {
+             const diff = playerLegLength - idealLegLength.max;
+             totalAffinityScore -= diff * 0.25; // Smaller penalty for being above max
         }
     }
     
@@ -299,7 +301,7 @@ export type AffinityBreakdownResult = {
         stat: keyof PlayerAttributeStats | 'legLength';
         label: string;
         playerValue?: number;
-        idealValue?: number;
+        idealValue?: number | { min?: number, max?: number };
         score: number;
     }[];
 };
@@ -359,12 +361,15 @@ export function calculateAffinityWithBreakdown(
 
     // Leg length breakdown
     let legLengthScore = 0;
-    if (idealLegLength !== undefined && playerLegLength !== undefined) {
-        if (playerLegLength >= idealLegLength) {
-            legLengthScore = 2.5;
-        } else {
-            const diff = playerLegLength - idealLegLength;
-            legLengthScore = diff * 0.5;
+    if (idealLegLength && idealLegLength.min && playerLegLength) {
+        if (playerLegLength >= idealLegLength.min && (idealLegLength.max === undefined || playerLegLength <= idealLegLength.max)) {
+            legLengthScore = 2.5; // Bonus for being within the ideal range
+        } else if (playerLegLength < idealLegLength.min) {
+            const diff = playerLegLength - idealLegLength.min;
+            legLengthScore = diff * 0.5; // Penalty for being below min
+        } else if (idealLegLength.max && playerLegLength > idealLegLength.max) {
+             const diff = playerLegLength - idealLegLength.max;
+             legLengthScore = -(diff * 0.25); // Smaller penalty for being above max
         }
         totalAffinityScore += legLengthScore;
     }
@@ -452,8 +457,6 @@ export function calculateProgressionSuggestions(
     let bestCategory: CategoryName | null = null;
     let maxWeightedDeficit = -Infinity;
 
-    const currentStats = calculateProgressionStats(baseStats, build, isGoalkeeper);
-
     for (const category of categories) {
       const currentLevel = build[category]!;
       const costForNextLevel = calculatePointsForLevel(currentLevel + 1) - calculatePointsForLevel(currentLevel);
@@ -463,29 +466,36 @@ export function calculateProgressionSuggestions(
         continue;
       }
       
+      // Calculate current stats with a temporary build that includes the next level for this category
+      const tempBuild = { ...build, [category]: currentLevel + 1 };
+      const projectedStats = calculateProgressionStats(baseStats, tempBuild, isGoalkeeper);
+      
       let categoryWeightedDeficit = 0;
       const statsInCat = categoryStatsMap[category] || [];
 
       for (const stat of statsInCat) {
         const idealStat = idealBuildStats[stat] ?? 0;
         
-        // This is the crucial part: only consider stats that need improvement
+        // Only consider stats that need improvement
         if (idealStat < 70) continue; 
         
-        const currentStat = currentStats[stat] ?? 0;
-        if (currentStat >= idealStat) continue;
+        const currentStat = projectedStats[stat] ?? 0;
+        if (currentStat > idealStat) continue; // Don't reward over-leveling
 
-        const deficit = idealStat - currentStat;
+        // Calculate the deficit reduction this single level provides
+        const deficitReduction = 1; // Each level point adds 1 to the stat
+        
         let weight = 1;
         if (idealStat >= 90) weight = 3;
         else if (idealStat >= 80) weight = 2;
         
-        categoryWeightedDeficit += deficit * weight;
+        categoryWeightedDeficit += deficitReduction * weight;
       }
       
-      // We check if this category is a better investment than what we've seen so far
-      if (categoryWeightedDeficit > maxWeightedDeficit) {
-        maxWeightedDeficit = categoryWeightedDeficit;
+      const valuePerPoint = categoryWeightedDeficit / costForNextLevel;
+
+      if (valuePerPoint > maxWeightedDeficit) {
+        maxWeightedDeficit = valuePerPoint;
         bestCategory = category;
       }
     }
@@ -502,14 +512,3 @@ export function calculateProgressionSuggestions(
 
   return build;
 }
-
-
-
-    
-
-
-
-    
-
-
-    

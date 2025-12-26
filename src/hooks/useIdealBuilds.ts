@@ -130,7 +130,7 @@ export function useIdealBuilds() {
         }
 
         // Handle legLength separately as it should not be averaged
-        if (build.legLength !== undefined) {
+        if (build.legLength) {
           finalIdealBuild.legLength = build.legLength;
         } else if (docSnap.exists()) {
           finalIdealBuild.legLength = (docSnap.data() as IdealBuild).legLength;

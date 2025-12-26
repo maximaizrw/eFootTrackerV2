@@ -173,7 +173,7 @@ export function PlayerTable({
             const hasNoStats = !card.attributeStats || Object.keys(card.attributeStats).length === 0;
             const needsProgressionPoints = !specialCard && !card.totalProgressionPoints;
 
-            const nameColorClass = hasNoStats ? "text-red-500" : needsProgressionPoints ? "text-violet-400" : "";
+            const nameColorClass = hasNoStats || needsProgressionPoints ? "text-red-500" : "";
 
 
             return (
@@ -354,6 +354,3 @@ export function PlayerTable({
 
 PlayerTable.Filters = Filters;
 PlayerTable.Pagination = Pagination;
-
-    
-    

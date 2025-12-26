@@ -37,8 +37,7 @@ const PlayerToken = ({ player, style, onDiscard, onViewBuild }: { player: IdealT
   const needsProgressionPoints = !specialCard && !player.card.totalProgressionPoints;
   
   const nameColorClass = 
-    hasNoStats ? 'text-red-500' :
-    needsProgressionPoints ? 'text-violet-400' :
+    hasNoStats || needsProgressionPoints ? 'text-red-500' :
     '';
 
 
@@ -118,8 +117,7 @@ const SubstitutePlayerRow = ({ player, onDiscard, onViewBuild }: { player: Ideal
   const needsProgressionPoints = !specialCard && !player.card.totalProgressionPoints;
   
   const nameColorClass = 
-    hasNoStats ? 'text-red-500' :
-    needsProgressionPoints ? 'text-violet-400' :
+    hasNoStats || needsProgressionPoints ? 'text-red-500' :
     '';
 
 
