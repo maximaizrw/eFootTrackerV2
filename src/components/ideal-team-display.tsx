@@ -1,7 +1,7 @@
 
 "use client";
 
-import type { IdealTeamPlayer, IdealTeamSlot, FormationStats, Position, PlayerBuild } from '@/lib/types';
+import type { IdealTeamPlayer, IdealTeamSlot, FormationStats, Position, PlayerBuild, PhysicalAttribute } from '@/lib/types';
 import Image from 'next/image';
 import { Users, Shirt, X, Crown } from 'lucide-react';
 import { Button } from './ui/button';
@@ -35,10 +35,10 @@ const PlayerToken = ({ player, style, onDiscard, onViewBuild }: { player: IdealT
   const specialCard = isSpecialCard(player.card.name);
   const hasNoStats = !player.card.attributeStats || Object.keys(player.card.attributeStats).length === 0;
   const needsProgressionPoints = !specialCard && !player.card.totalProgressionPoints;
-  
-  const nameColorClass = 
-    hasNoStats || needsProgressionPoints ? 'text-red-500' :
-    '';
+  const requiredPhysicalKeys: (keyof PhysicalAttribute)[] = ['legLength', 'armLength', 'shoulderWidth', 'neckLength'];
+  const needsPhysicalAttrs = !player.card.physicalAttributes || requiredPhysicalKeys.some(key => player.card.physicalAttributes![key] === undefined);
+
+  const nameColorClass = hasNoStats || needsProgressionPoints || needsPhysicalAttrs ? 'text-red-500' : '';
 
 
   return (
@@ -115,10 +115,10 @@ const SubstitutePlayerRow = ({ player, onDiscard, onViewBuild }: { player: Ideal
   const specialCard = isSpecialCard(player.card.name);
   const hasNoStats = !player.card.attributeStats || Object.keys(player.card.attributeStats).length === 0;
   const needsProgressionPoints = !specialCard && !player.card.totalProgressionPoints;
-  
-  const nameColorClass = 
-    hasNoStats || needsProgressionPoints ? 'text-red-500' :
-    '';
+  const requiredPhysicalKeys: (keyof PhysicalAttribute)[] = ['legLength', 'armLength', 'shoulderWidth', 'neckLength'];
+  const needsPhysicalAttrs = !player.card.physicalAttributes || requiredPhysicalKeys.some(key => player.card.physicalAttributes![key] === undefined);
+
+  const nameColorClass = hasNoStats || needsProgressionPoints || needsPhysicalAttrs ? 'text-red-500' : '';
 
 
   return (

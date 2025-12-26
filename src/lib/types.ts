@@ -69,8 +69,6 @@ export type IdealBuild = {
   build: PlayerAttributeStats;
   legLength?: MinMaxRange;
   armLength?: MinMaxRange;
-  waistSize?: MinMaxRange;
-  chestMeasurement?: MinMaxRange;
   shoulderWidth?: MinMaxRange;
   neckLength?: MinMaxRange;
 };
@@ -161,8 +159,6 @@ export type PositionLabel = typeof positionLabels[Position];
 export type PhysicalAttribute = {
   legLength?: number;
   armLength?: number;
-  waistSize?: number;
-  chestMeasurement?: number;
   shoulderWidth?: number;
   neckLength?: number;
 }
@@ -317,6 +313,7 @@ export type PlayerPerformance = {
     stats: PlayerRatingStats;
     isHotStreak: boolean;
     isConsistent: boolean;
+
     isPromising: boolean;
     isVersatile: boolean;
 };

@@ -248,15 +248,19 @@ function calculatePhysicalAttributeAffinity(
     playerValue: number | undefined,
     idealRange: { min?: number; max?: number } | undefined,
 ): number {
-    if (!idealRange || idealRange.min === undefined || playerValue === undefined) {
+    if (playerValue === undefined || idealRange === undefined || (idealRange.min === undefined && idealRange.max === undefined)) {
         return 0;
     }
-    if (playerValue >= idealRange.min && (idealRange.max === undefined || playerValue <= idealRange.max)) {
+
+    if (
+        (idealRange.min === undefined || playerValue >= idealRange.min) &&
+        (idealRange.max === undefined || playerValue <= idealRange.max)
+    ) {
         return 2.5; // Bonus for being within the ideal range
-    } else if (playerValue < idealRange.min) {
+    } else if (idealRange.min !== undefined && playerValue < idealRange.min) {
         const diff = playerValue - idealRange.min;
         return diff * 0.5; // Penalty for being below min
-    } else if (idealRange.max && playerValue > idealRange.max) {
+    } else if (idealRange.max !== undefined && playerValue > idealRange.max) {
         const diff = playerValue - idealRange.max;
         return -(diff * 0.25); // Smaller penalty for being above max
     }
@@ -299,7 +303,7 @@ export function calculateAutomaticAffinity(
     }
 
     // 2. Calculate physical attributes affinity
-    const physicalAttrKeys: (keyof PhysicalAttribute)[] = ['legLength', 'armLength', 'waistSize', 'chestMeasurement', 'shoulderWidth', 'neckLength'];
+    const physicalAttrKeys: (keyof PhysicalAttribute)[] = ['legLength', 'armLength', 'shoulderWidth', 'neckLength'];
     physicalAttrKeys.forEach(key => {
         totalAffinityScore += calculatePhysicalAttributeAffinity(physicalAttributes?.[key], idealBuild[key]);
     });
@@ -328,8 +332,6 @@ export const statLabels: Record<keyof PlayerAttributeStats | keyof PhysicalAttri
     balance: 'Equilibrio', stamina: 'Resistencia',
     legLength: 'Largo de Piernas',
     armLength: 'Largo de Brazos',
-    waistSize: 'Tamaño de Cintura',
-    chestMeasurement: 'Contorno de Pecho',
     shoulderWidth: 'Ancho de Hombros',
     neckLength: 'Largo del Cuello',
 };
@@ -378,7 +380,7 @@ export function calculateAffinityWithBreakdown(
     }
 
     // Physical attributes breakdown
-    const physicalAttrKeys: (keyof PhysicalAttribute)[] = ['legLength', 'armLength', 'waistSize', 'chestMeasurement', 'shoulderWidth', 'neckLength'];
+    const physicalAttrKeys: (keyof PhysicalAttribute)[] = ['legLength', 'armLength', 'shoulderWidth', 'neckLength'];
     physicalAttrKeys.forEach(key => {
         const score = calculatePhysicalAttributeAffinity(physicalAttributes?.[key], idealBuild[key]);
         totalAffinityScore += score;

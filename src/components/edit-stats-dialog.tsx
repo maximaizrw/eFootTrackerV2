@@ -30,8 +30,6 @@ const formSchema = z.object({
     // Physical
     legLength: physicalSchema,
     armLength: physicalSchema,
-    waistSize: physicalSchema,
-    chestMeasurement: physicalSchema,
     shoulderWidth: physicalSchema,
     neckLength: physicalSchema,
     // Attacking
@@ -69,8 +67,6 @@ const formSchema = z.object({
 const physicalFields: { name: keyof PhysicalAttribute, label: string }[] = [
     { name: 'legLength', label: 'Largo de Piernas' },
     { name: 'armLength', label: 'Largo de Brazos' },
-    { name: 'waistSize', label: 'Tamaño de Cintura' },
-    { name: 'chestMeasurement', label: 'Contorno de Pecho' },
     { name: 'shoulderWidth', label: 'Ancho de Hombros' },
     { name: 'neckLength', label: 'Largo del Cuello' },
 ];
@@ -168,8 +164,8 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
 
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
     if (initialData) {
-        const { legLength, armLength, waistSize, chestMeasurement, shoulderWidth, neckLength, ...stats } = values;
-        const physical: PhysicalAttribute = { legLength, armLength, waistSize, chestMeasurement, shoulderWidth, neckLength };
+        const { legLength, armLength, shoulderWidth, neckLength, ...stats } = values;
+        const physical: PhysicalAttribute = { legLength, armLength, shoulderWidth, neckLength };
 
         const cleanedStats: PlayerAttributeStats = {};
         for (const key in stats) {
@@ -198,7 +194,7 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
     let parsedCount = 0;
     
     // Preserve current physical attributes
-    const currentPhysical: PhysicalAttribute = {};
+    const currentPhysical: Partial<PhysicalAttribute> = {};
     physicalFields.forEach(f => {
         currentPhysical[f.name] = form.getValues(f.name);
     });
@@ -290,7 +286,7 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
               <div className="space-y-6">
                 <div className="p-4 rounded-lg border bg-background/50">
                     <h3 className="text-lg font-semibold mb-3 text-primary text-center">Medidas Físicas</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-3">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-3">
                         {physicalFields.map((field) => (
                            <FormField
                             key={field.name}
@@ -307,6 +303,7 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
                                     onChange={e => formField.onChange(e.target.value === '' ? undefined : e.target.value)}
                                     />
                                 </FormControl>
+                                <FormMessage />
                                 </FormItem>
                             )}
                             />
@@ -329,6 +326,7 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
                               <FormControl>
                                 <Input type="number" min="0" max="99" {...formField} value={formField.value ?? ''} onChange={e => formField.onChange(e.target.value === '' ? undefined : e.target.value)} />
                               </FormControl>
+                              <FormMessage />
                             </FormItem>
                           )}
                         />

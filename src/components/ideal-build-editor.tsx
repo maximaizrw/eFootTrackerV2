@@ -40,8 +40,6 @@ const buildSchema = z.object({
   // Physical
   legLength: minMaxSchema,
   armLength: minMaxSchema,
-  waistSize: minMaxSchema,
-  chestMeasurement: minMaxSchema,
   shoulderWidth: minMaxSchema,
   neckLength: minMaxSchema,
   // Build
@@ -141,8 +139,6 @@ const statFields: { category: string, fields: { name: keyof PlayerAttributeStats
 const physicalFields: { name: keyof PhysicalAttribute, label: string }[] = [
     { name: 'legLength', label: 'Largo de Piernas' },
     { name: 'armLength', label: 'Largo de Brazos' },
-    { name: 'waistSize', label: 'Tamaño de Cintura' },
-    { name: 'chestMeasurement', label: 'Contorno de Pecho' },
     { name: 'shoulderWidth', label: 'Ancho de Hombros' },
     { name: 'neckLength', label: 'Largo del Cuello' },
 ];
@@ -171,8 +167,6 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
       style: "Cazagoles",
       legLength: { min: undefined, max: undefined },
       armLength: { min: undefined, max: undefined },
-      waistSize: { min: undefined, max: undefined },
-      chestMeasurement: { min: undefined, max: undefined },
       shoulderWidth: { min: undefined, max: undefined },
       neckLength: { min: undefined, max: undefined },
       build: {},
@@ -189,32 +183,33 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
       const defaultBuild: Record<string, any> = {};
       statFields.forEach(cat => cat.fields.forEach(f => defaultBuild[f.name] = ''));
 
+      const defaultValues: IdealBuildFormValues = {
+        position: "DC",
+        style: "Cazagoles",
+        legLength: { min: undefined, max: undefined },
+        armLength: { min: undefined, max: undefined },
+        shoulderWidth: { min: undefined, max: undefined },
+        neckLength: { min: undefined, max: undefined },
+        build: defaultBuild,
+      };
+
       if (initialBuild) {
         const initialBuildValues: Record<string, any> = {};
         statFields.forEach(cat => cat.fields.forEach(f => initialBuildValues[f.name] = initialBuild?.build?.[f.name] ?? ''));
-        reset({
+        
+        const mergedInitial: IdealBuildFormValues = {
+          ...defaultValues,
           position: initialBuild.position,
           style: initialBuild.style,
           legLength: { min: initialBuild.legLength?.min || undefined, max: initialBuild.legLength?.max || undefined },
           armLength: { min: initialBuild.armLength?.min || undefined, max: initialBuild.armLength?.max || undefined },
-          waistSize: { min: initialBuild.waistSize?.min || undefined, max: initialBuild.waistSize?.max || undefined },
-          chestMeasurement: { min: initialBuild.chestMeasurement?.min || undefined, max: initialBuild.chestMeasurement?.max || undefined },
           shoulderWidth: { min: initialBuild.shoulderWidth?.min || undefined, max: initialBuild.shoulderWidth?.max || undefined },
           neckLength: { min: initialBuild.neckLength?.min || undefined, max: initialBuild.neckLength?.max || undefined },
           build: initialBuildValues,
-        });
+        };
+        reset(mergedInitial);
       } else {
-        reset({
-          position: "DC",
-          style: "Cazagoles",
-          legLength: { min: undefined, max: undefined },
-          armLength: { min: undefined, max: undefined },
-          waistSize: { min: undefined, max: undefined },
-          chestMeasurement: { min: undefined, max: undefined },
-          shoulderWidth: { min: undefined, max: undefined },
-          neckLength: { min: undefined, max: undefined },
-          build: defaultBuild,
-        });
+        reset(defaultValues);
       }
     }
   }, [open, initialBuild, reset]);
@@ -238,8 +233,6 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
       style: values.style,
       legLength: { min: values.legLength?.min, max: values.legLength?.max },
       armLength: { min: values.armLength?.min, max: values.armLength?.max },
-      waistSize: { min: values.waistSize?.min, max: values.waistSize?.max },
-      chestMeasurement: { min: values.chestMeasurement?.min, max: values.chestMeasurement?.max },
       shoulderWidth: { min: values.shoulderWidth?.min, max: values.shoulderWidth?.max },
       neckLength: { min: values.neckLength?.min, max: values.neckLength?.max },
       build: {},

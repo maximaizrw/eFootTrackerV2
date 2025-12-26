@@ -13,7 +13,7 @@ type AffinityBreakdownProps = {
 };
 
 const physicalAttributeKeys: (keyof PhysicalAttribute)[] = [
-    'legLength', 'armLength', 'waistSize', 'chestMeasurement', 'shoulderWidth', 'neckLength'
+    'legLength', 'armLength', 'shoulderWidth', 'neckLength'
 ];
 
 
@@ -22,7 +22,8 @@ export function AffinityBreakdown({ breakdownResult }: AffinityBreakdownProps) {
 
   const relevantStats = breakdown.filter(item => {
     if (physicalAttributeKeys.includes(item.stat as any)) {
-      return item.idealValue !== undefined && (item.idealValue as { min?: number }).min !== undefined;
+      const idealRange = item.idealValue as { min?: number, max?: number } | undefined;
+      return idealRange !== undefined && (idealRange.min !== undefined || idealRange.max !== undefined);
     }
     return item.idealValue !== undefined && typeof item.idealValue === 'number' && item.idealValue >= 70;
   });
@@ -59,7 +60,7 @@ export function AffinityBreakdown({ breakdownResult }: AffinityBreakdownProps) {
                      const scoreColor = item.score > 0 ? "text-green-400" : item.score < 0 ? "text-red-400" : "text-muted-foreground";
                      
                      let idealDisplay = '-';
-                     let playerValueDisplay: React.ReactNode = item.playerValue || '-';
+                     let playerValueDisplay: React.ReactNode = item.playerValue ?? '-';
                      let diff: number | null = null;
                      let diffDisplay = '';
                      let playerColor = '';

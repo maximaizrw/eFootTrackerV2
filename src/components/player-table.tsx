@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import Image from 'next/image';
@@ -11,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Trash2, X, Wrench, Pencil, NotebookPen, Search, Star, SlidersHorizontal } from 'lucide-react';
 import { cn, formatAverage, getAverageColorClass, isSpecialCard } from '@/lib/utils';
-import type { Player, PlayerCard, Position, FlatPlayer } from '@/lib/types';
+import type { Player, PlayerCard, Position, FlatPlayer, PhysicalAttribute } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import { PerformanceBadges } from './performance-badges';
 import { AffinityStatusIndicator } from './affinity-status-indicator';
@@ -173,7 +174,10 @@ export function PlayerTable({
             const hasNoStats = !card.attributeStats || Object.keys(card.attributeStats).length === 0;
             const needsProgressionPoints = !specialCard && !card.totalProgressionPoints;
 
-            const nameColorClass = hasNoStats || needsProgressionPoints ? "text-red-500" : "";
+            const requiredPhysicalKeys: (keyof PhysicalAttribute)[] = ['legLength', 'armLength', 'shoulderWidth', 'neckLength'];
+            const needsPhysicalAttrs = !card.physicalAttributes || requiredPhysicalKeys.some(key => card.physicalAttributes![key] === undefined);
+
+            const nameColorClass = hasNoStats || needsProgressionPoints || needsPhysicalAttrs ? "text-red-500" : "";
 
 
             return (
