@@ -170,6 +170,7 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
   const handleParseText = () => {
     const lines = pastedText.split('\n').filter(line => line.trim() !== '');
     let parsedCount = 0;
+    const currentLegLength = form.getValues('legLength'); // Preserve current leg length
     
     // Check if the format is just numbers
     const isNumericOnly = lines.every(line => /^\d+\s*$/.test(line.trim()));
@@ -208,6 +209,9 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
             }
         });
     }
+    
+    // Restore leg length
+    form.setValue('legLength', currentLegLength);
 
     if (parsedCount > 0) {
       toast({
@@ -309,5 +313,3 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
     </Dialog>
   );
 }
-
-    

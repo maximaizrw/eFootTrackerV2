@@ -151,7 +151,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
     },
   });
 
-  const { watch, reset, setValue } = form;
+  const { watch, reset, setValue, getValues } = form;
   const watchedPosition = watch("position");
   const isEditing = !!initialBuild?.id;
 
@@ -219,6 +219,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
   const handleParseText = () => {
     const lines = pastedText.split('\n').filter(line => line.trim() !== '');
     let parsedCount = 0;
+    const currentLegLength = getValues('legLength'); // Preserve current leg length
 
     const isNumericOnly = lines.every(line => /^\d+\s*$/.test(line.trim()));
 
@@ -257,6 +258,8 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
         });
     }
 
+    // Restore leg length
+    setValue('legLength', currentLegLength);
 
     if (parsedCount > 0) {
       toast({
