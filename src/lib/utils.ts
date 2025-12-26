@@ -187,6 +187,8 @@ export function getIdealBuildForPlayer(
     playerStyle: PlayerStyle,
     position: Position,
     idealBuilds: IdealBuild[],
+    playerStats?: PlayerAttributeStats,
+    isGoalkeeper?: boolean,
 ): { bestBuild: IdealBuild | null; bestStyle: PlayerStyle | null } {
 
     // --- Search Hierarchy ---
@@ -225,16 +227,25 @@ export function getIdealBuildForPlayer(
 
     for (const candidateBuild of validBuildsForPosition) {
         let potentialAffinity = 0;
-        for (const key in candidateBuild.build) {
-            const statKey = key as keyof PlayerAttributeStats;
-            const idealValue = candidateBuild.build[statKey];
-            if (idealValue && idealValue >= 70) {
-                 if (idealValue >= 90) potentialAffinity += 3;
-                 else if (idealValue >= 80) potentialAffinity += 2;
-                 else potentialAffinity += 1;
+        
+        // If we have player stats, we can calculate a more accurate potential affinity
+        if (playerStats && isGoalkeeper !== undefined) {
+             const tempBuild = calculateProgressionSuggestions(playerStats, candidateBuild, isGoalkeeper);
+             const finalStats = calculateProgressionStats(playerStats, tempBuild, isGoalkeeper);
+             potentialAffinity = calculateAutomaticAffinity(finalStats, candidateBuild);
+        } else {
+            // Fallback to simple potential calculation if no player stats are available
+            for (const key in candidateBuild.build) {
+                const statKey = key as keyof PlayerAttributeStats;
+                const idealValue = candidateBuild.build[statKey];
+                if (idealValue && idealValue >= 70) {
+                    if (idealValue >= 90) potentialAffinity += 3;
+                    else if (idealValue >= 80) potentialAffinity += 2;
+                    else potentialAffinity += 1;
+                }
             }
         }
-
+        
         if (potentialAffinity > maxPotentialAffinity) {
             maxPotentialAffinity = potentialAffinity;
             bestFlexBuild = candidateBuild;
@@ -243,6 +254,7 @@ export function getIdealBuildForPlayer(
 
     return { bestBuild: bestFlexBuild, bestStyle: bestFlexBuild?.style || null };
 }
+
 
 function calculatePhysicalAttributeAffinity(
     playerValue: number | undefined,
@@ -258,8 +270,8 @@ function calculatePhysicalAttributeAffinity(
     ) {
         return 2.5; // Bonus for being within the ideal range
     } else if (idealRange.min !== undefined && playerValue < idealRange.min) {
-        const diff = playerValue - idealRange.min;
-        return diff * 0.5; // Penalty for being below min
+        const diff = idealRange.min - playerValue;
+        return -(diff * 0.5); // Penalty for being below min
     } else if (idealRange.max !== undefined && playerValue > idealRange.max) {
         const diff = playerValue - idealRange.max;
         return -(diff * 0.25); // Smaller penalty for being above max
@@ -267,48 +279,14 @@ function calculatePhysicalAttributeAffinity(
     return 0;
 }
 
+
 export function calculateAutomaticAffinity(
     playerStats: PlayerAttributeStats,
     idealBuild: IdealBuild | null,
     physicalAttributes?: PhysicalAttribute,
 ): number {
     if (!idealBuild) return 0;
-
-    let totalAffinityScore = 0;
-    const { build: idealBuildStats } = idealBuild;
-    const isGoalkeeper = idealBuild.position === 'PT';
-    const relevantKeys = isGoalkeeper ? goalkeeperStatsKeys : allStatsKeys;
-
-    // 1. Calculate stat-based affinity
-    for (const key of relevantKeys) {
-        if (key === 'placeKicking') continue;
-
-        const playerStat = playerStats[key as keyof PlayerAttributeStats];
-        const idealStat = idealBuildStats[key as keyof PlayerAttributeStats];
-
-        if (playerStat !== undefined && idealStat !== undefined && idealStat >= 70) {
-            const diff = playerStat - idealStat;
-            
-            let statScore;
-            if (diff >= 0) {
-                statScore = diff * 0.1; // Reduced bonus
-            } else {
-                if (idealStat >= 90) statScore = diff * 0.35;
-                else if (idealStat >= 80) statScore = diff * 0.20;
-                else statScore = diff * 0.15;
-            }
-            
-            totalAffinityScore += Math.max(-3, statScore);
-        }
-    }
-
-    // 2. Calculate physical attributes affinity
-    const physicalAttrKeys: (keyof PhysicalAttribute)[] = ['legLength', 'armLength', 'shoulderWidth', 'neckLength'];
-    physicalAttrKeys.forEach(key => {
-        totalAffinityScore += calculatePhysicalAttributeAffinity(physicalAttributes?.[key], idealBuild[key]);
-    });
-    
-    return totalAffinityScore;
+    return calculateAffinityWithBreakdown(playerStats, idealBuild, physicalAttributes).totalAffinityScore;
 }
 
 
@@ -547,3 +525,4 @@ export function calculateProgressionSuggestions(
 
   return build;
 }
+
