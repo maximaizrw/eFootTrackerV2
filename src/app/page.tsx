@@ -43,6 +43,7 @@ import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlo
 import { positions, leagues, nationalities, buildPositions } from '@/lib/types';
 import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Wrench, Dna, RefreshCw, Beaker, Wand2 } from 'lucide-react';
 import { calculateStats, normalizeText, calculateGeneralScore, getIdealBuildForPlayer, calculateAutomaticAffinity, calculateProgressionStats, isSpecialCard } from '@/lib/utils';
+import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 const ITEMS_PER_PAGE = 10;
@@ -555,7 +556,7 @@ export default function Home() {
                             : calculateProgressionStats(card.attributeStats || {}, buildForPos, isGoalkeeper);
 
                         const { bestBuild } = getIdealBuildForPlayer(card.style, ratedPos, idealBuilds);
-                        const affinityScore = calculateAutomaticAffinity(finalStats, bestBuild, card.legLength);
+                        const affinityScore = calculateAutomaticAffinity(finalStats, bestBuild, card.physicalAttributes);
                         
                         const generalScore = calculateGeneralScore(affinityScore, stats.average);
 
@@ -754,6 +755,8 @@ export default function Home() {
     </div>
   );
 }
+
+    
 
     
 
