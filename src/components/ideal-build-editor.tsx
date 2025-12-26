@@ -22,7 +22,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from "./ui/scroll-area";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
-import { UploadCloud } from "lucide-react";
+import { UploadCloud, Footprints } from "lucide-react";
 import { buildPositions, playerStyles, getAvailableStylesForPosition, positionLabels } from "@/lib/types";
 
 const statSchema = z.coerce.number().min(0).max(99).optional();
@@ -30,6 +30,7 @@ const statSchema = z.coerce.number().min(0).max(99).optional();
 const buildSchema = z.object({
   position: z.enum(buildPositions),
   style: z.enum(playerStyles),
+  legLength: z.coerce.number().min(1).max(14).optional(),
   build: z.object({
     // Attacking
     offensiveAwareness: statSchema,
@@ -145,6 +146,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
     defaultValues: {
       position: "DC",
       style: "Cazagoles",
+      legLength: undefined,
       build: {},
     },
   });
@@ -165,12 +167,14 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
         reset({
           position: initialBuild.position,
           style: initialBuild.style,
+          legLength: initialBuild.legLength || undefined,
           build: initialBuildValues,
         });
       } else {
         reset({
           position: "DC",
           style: "Cazagoles",
+          legLength: undefined,
           build: defaultBuild,
         });
       }
@@ -194,6 +198,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
       id: buildId,
       position: values.position,
       style: values.style,
+      legLength: values.legLength,
       build: {},
     };
 
@@ -339,6 +344,31 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
                     </Button>
                 </div>
                 
+                <FormField
+                  control={form.control}
+                  name="legLength"
+                  render={({ field }) => (
+                    <FormItem className="max-w-xs mx-auto">
+                      <FormLabel className="flex items-center gap-2 justify-center text-base">
+                        <Footprints />
+                        Longitud de Piernas Ideal (1-14)
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="1"
+                          max="14"
+                          {...field}
+                          value={field.value ?? ''}
+                          onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)}
+                          className="text-center text-lg font-bold"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 {statFields.map((category) => (
                   <div key={category.category}>
                     <h3 className="text-lg font-semibold mb-3 text-primary">{category.category}</h3>

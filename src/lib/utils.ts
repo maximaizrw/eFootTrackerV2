@@ -187,13 +187,10 @@ export function getIdealBuildForPlayer(
   playerStyle: PlayerStyle,
   position: Position,
   idealBuilds: IdealBuild[],
-  playerStats: PlayerAttributeStats,
-): { bestBuild: PlayerAttributeStats | null; bestStyle: PlayerStyle | null } {
-    
-    // 1. Check if the player's native style is valid for the current position
+): { bestBuild: IdealBuild | null; bestStyle: PlayerStyle | null } {
     const isStyleValidForPosition = getAvailableStylesForPosition(position, false).includes(playerStyle);
 
-    // 2. Strict Mode: If style is valid, ONLY search for builds with that style.
+    // --- MODO ESTRICTO ---
     if (playerStyle !== 'Ninguno' && isStyleValidForPosition) {
         const compatiblePositions: BuildPosition[] = [position];
         const archetype = symmetricalPositionMap[position];
@@ -201,98 +198,87 @@ export function getIdealBuildForPlayer(
             compatiblePositions.push(archetype);
         }
 
-        const strictCandidates = idealBuilds.filter(b =>
+        // Busca una build que coincida exactamente con el estilo y la posición/arquetipo
+        const strictBuild = idealBuilds.find(b =>
             b.style === playerStyle && compatiblePositions.includes(b.position)
         );
 
-        if (strictCandidates.length > 0) {
-            // If we found builds for the player's own style, we MUST use one of them.
-            // We just need to find which one gives the best affinity (e.g. DFC vs a generic position build)
-            let bestStrictBuild: PlayerAttributeStats | null = null;
-            let maxAffinity = -Infinity;
-
-            for (const candidate of strictCandidates) {
-                const affinity = calculateAutomaticAffinity(playerStats, candidate.build, position === 'PT');
-                if (affinity > maxAffinity) {
-                    maxAffinity = affinity;
-                    bestStrictBuild = candidate.build;
-                }
-            }
-            return { bestBuild: bestStrictBuild, bestStyle: playerStyle };
+        if (strictBuild) {
+            return { bestBuild: strictBuild, bestStyle: playerStyle };
         }
     }
     
-    // 3. Flexible Mode: If player's style is 'Ninguno', invalid for the position, or no build was found in strict mode.
-    // Find the best possible role for the player in this position among all available builds.
+    // --- MODO FLEXIBLE ---
+    // Si el estilo no es válido, es "Ninguno" o no se encontró build en modo estricto.
     const compatiblePositions: BuildPosition[] = [position];
     const archetype = symmetricalPositionMap[position];
     if (archetype) {
         compatiblePositions.push(archetype);
     }
-    const positionNativeStyles = getAvailableStylesForPosition(position, false);
-
-    const flexibleCandidates = idealBuilds.filter(b =>
-        compatiblePositions.includes(b.position) && positionNativeStyles.includes(b.style)
-    );
-
-    if (flexibleCandidates.length === 0) {
+    
+    // Filtra todas las builds que son válidas para esta posición/arquetipo
+    const validBuildsForPosition = idealBuilds.filter(b => compatiblePositions.includes(b.position));
+    
+    if (validBuildsForPosition.length === 0) {
         return { bestBuild: null, bestStyle: null };
     }
 
-    let bestFlexBuild: PlayerAttributeStats | null = null;
-    let bestFlexStyle: PlayerStyle | null = null;
+    // Calcula la afinidad para cada build candidata y encuentra la mejor
+    let bestFlexBuild: IdealBuild | null = null;
     let maxFlexAffinity = -Infinity;
 
-    for (const candidate of flexibleCandidates) {
-        const affinity = calculateAutomaticAffinity(playerStats, candidate.build, position === 'PT');
+    for (const candidateBuild of validBuildsForPosition) {
+        const affinity = calculateAutomaticAffinity({} as PlayerAttributeStats, candidateBuild); // We pass empty stats because we only care about the build itself for selection
         if (affinity > maxFlexAffinity) {
             maxFlexAffinity = affinity;
-            bestFlexBuild = candidate.build;
-            bestFlexStyle = candidate.style;
+            bestFlexBuild = candidateBuild;
         }
     }
 
-    return { bestBuild: bestFlexBuild, bestStyle: bestFlexStyle };
+    return { bestBuild: bestFlexBuild, bestStyle: bestFlexBuild?.style || null };
 }
-
 
 export function calculateAutomaticAffinity(
     playerStats: PlayerAttributeStats,
-    idealBuildStats: PlayerAttributeStats | null,
-    isGoalkeeper: boolean = false
+    idealBuild: IdealBuild | null
 ): number {
-    if (!idealBuildStats) return 0;
+    if (!idealBuild) return 0;
 
     let totalAffinityScore = 0;
+    const { build: idealBuildStats, legLength: idealLegLength } = idealBuild;
+    const isGoalkeeper = idealBuild.position === 'PT';
     const relevantKeys = isGoalkeeper ? goalkeeperStatsKeys : allStatsKeys;
 
+    // 1. Calculate stat-based affinity
     for (const key of relevantKeys) {
         if (key === 'placeKicking') continue;
 
-        const playerStat = playerStats[key];
-        const idealStat = idealBuildStats[key];
+        const playerStat = playerStats[key as keyof PlayerAttributeStats];
+        const idealStat = idealBuildStats[key as keyof PlayerAttributeStats];
 
         if (playerStat !== undefined && idealStat !== undefined && idealStat >= 70) {
             const diff = playerStat - idealStat;
             
             let statScore;
             if (diff >= 0) {
-                // Bonus for exceeding the ideal, but reduced
-                statScore = diff * 0.1;
+                statScore = diff * 0.1; // Reduced bonus
             } else {
-                // Weighted penalty for being below the ideal
-                if (idealStat >= 90) {
-                    statScore = diff * 0.35; // Stronger penalty for elite stats
-                } else if (idealStat >= 80) {
-                    statScore = diff * 0.20; // Medium penalty for key stats
-                } else {
-                    statScore = diff * 0.15; // Lighter penalty for base stats
-                }
+                if (idealStat >= 90) statScore = diff * 0.35;
+                else if (idealStat >= 80) statScore = diff * 0.20;
+                else statScore = diff * 0.15;
             }
             
-            const cappedScore = Math.max(-3, statScore);
-            
-            totalAffinityScore += cappedScore;
+            totalAffinityScore += Math.max(-3, statScore);
+        }
+    }
+
+    // 2. Calculate leg length affinity
+    if (idealLegLength !== undefined && playerStats.legLength !== undefined) {
+        if (playerStats.legLength >= idealLegLength) {
+            totalAffinityScore += 2.5; // Bonus for meeting or exceeding
+        } else {
+            const diff = playerStats.legLength - idealLegLength;
+            totalAffinityScore += diff * 0.5; // Penalty of -0.5 for each point of difference
         }
     }
     
@@ -303,7 +289,7 @@ export function calculateAutomaticAffinity(
 export type AffinityBreakdownResult = {
     totalAffinityScore: number;
     breakdown: {
-        stat: keyof PlayerAttributeStats;
+        stat: keyof PlayerAttributeStats | 'legLength';
         label: string;
         playerValue?: number;
         idealValue?: number;
@@ -311,61 +297,79 @@ export type AffinityBreakdownResult = {
     }[];
 };
 
-export const statLabels: Record<keyof PlayerAttributeStats, string> = {
+export const statLabels: Record<keyof PlayerAttributeStats | 'legLength', string> = {
     offensiveAwareness: 'Act. Ofensiva', ballControl: 'Control de Balón', dribbling: 'Regate', tightPossession: 'Posesión Estrecha',
     lowPass: 'Pase Raso', loftedPass: 'Pase Bombeado', finishing: 'Finalización', heading: 'Cabeceo', placeKicking: 'Balón Parado', curl: 'Efecto',
     defensiveAwareness: 'Act. Defensiva', defensiveEngagement: 'Entrada', tackling: 'Segada', aggression: 'Agresividad',
     goalkeeping: 'Act. Portero', gkCatching: 'Atajar', gkParrying: 'Despejar', gkReflexes: 'Reflejos', gkReach: 'Alcance',
     speed: 'Velocidad', acceleration: 'Aceleración', kickingPower: 'Potencia de Tiro', jump: 'Salto', physicalContact: 'Contacto Físico',
     balance: 'Equilibrio', stamina: 'Resistencia',
+    legLength: 'Longitud de Piernas',
 };
 
 export function calculateAffinityWithBreakdown(
     playerStats: PlayerAttributeStats,
-    idealBuildStats: PlayerAttributeStats | null,
-    isGoalkeeper: boolean = false
+    idealBuild: IdealBuild | null,
+    playerLegLength?: number,
 ): AffinityBreakdownResult {
-    if (!idealBuildStats) return { totalAffinityScore: 0, breakdown: [] };
+    if (!idealBuild) return { totalAffinityScore: 0, breakdown: [] };
 
     let totalAffinityScore = 0;
     const breakdown: AffinityBreakdownResult['breakdown'] = [];
+    const { build: idealBuildStats, legLength: idealLegLength } = idealBuild;
+    const isGoalkeeper = idealBuild.position === 'PT';
     const relevantKeys = isGoalkeeper ? goalkeeperStatsKeys : allStatsKeys;
 
+    // Stat breakdown
     for (const key of relevantKeys) {
-        const playerValue = playerStats[key];
-        const idealValue = idealBuildStats[key];
+        const playerValue = playerStats[key as keyof PlayerAttributeStats];
+        const idealValue = idealBuildStats[key as keyof PlayerAttributeStats];
         let score = 0;
 
         if (key !== 'placeKicking' && playerValue !== undefined && idealValue !== undefined && idealValue >= 70) {
-            const diff = playerValue - idealValue;
+             const diff = playerValue - idealValue;
             
-            let statScore;
             if (diff >= 0) {
-                // Bonus for exceeding the ideal, but reduced
-                statScore = diff * 0.1;
+                score = diff * 0.1;
             } else {
-                // Weighted penalty for being below the ideal
-                if (idealValue >= 90) {
-                    statScore = diff * 0.35; // Stronger penalty for elite stats
-                } else if (idealValue >= 80) {
-                    statScore = diff * 0.20; // Medium penalty for key stats
-                } else {
-                    statScore = diff * 0.15; // Lighter penalty for base stats
-                }
+                if (idealValue >= 90) score = diff * 0.35;
+                else if (idealValue >= 80) score = diff * 0.20;
+                else score = diff * 0.15;
             }
 
-            score = Math.max(-3, statScore);
+            score = Math.max(-3, score);
             totalAffinityScore += score;
         }
         
         breakdown.push({
-            stat: key,
-            label: statLabels[key] || 'Unknown',
+            stat: key as keyof PlayerAttributeStats,
+            label: statLabels[key as keyof PlayerAttributeStats] || 'Unknown',
             playerValue,
             idealValue,
             score
         });
     }
+
+    // Leg length breakdown
+    let legLengthScore = 0;
+    if (idealLegLength !== undefined && playerLegLength !== undefined) {
+        if (playerLegLength >= idealLegLength) {
+            legLengthScore = 2.5;
+        } else {
+            const diff = playerLegLength - idealLegLength;
+            legLengthScore = diff * 0.5;
+        }
+        totalAffinityScore += legLengthScore;
+    }
+    
+    breakdown.push({
+        stat: 'legLength',
+        label: statLabels.legLength,
+        playerValue: playerLegLength,
+        idealValue: idealLegLength,
+        score: legLengthScore
+    });
+
 
     return { totalAffinityScore, breakdown };
 }
@@ -421,39 +425,37 @@ const categoryStatsMap: Record<CategoryName, (keyof PlayerAttributeStats)[]> = {
 
 export function calculateProgressionSuggestions(
   baseStats: PlayerAttributeStats,
-  idealBuildStats: PlayerAttributeStats | null,
+  idealBuild: IdealBuild | null,
   isGoalkeeper: boolean,
   totalProgressionPoints: number = 50 // Default budget
 ): Partial<OutfieldBuild & GoalkeeperBuild> {
-  if (!idealBuildStats || totalProgressionPoints <= 0) return {};
+  if (!idealBuild || totalProgressionPoints <= 0) return {};
 
+  const idealBuildStats = idealBuild.build;
   const categories: CategoryName[] = isGoalkeeper
     ? ['gk1', 'gk2', 'gk3', 'defending']
     : ['shooting', 'passing', 'dribbling', 'dexterity', 'lowerBodyStrength', 'aerialStrength', 'defending'];
 
-  let pointsSpent = 0;
   const build: { [key in CategoryName]?: number } = {};
   categories.forEach(cat => build[cat] = 0);
+  let pointsSpent = 0;
 
   // Loop until we run out of points or can't make any more useful investments
   while (pointsSpent < totalProgressionPoints) {
     let bestCategory: CategoryName | null = null;
-    let highestDeficitValue = -Infinity;
-    
-    // Calculate the current stats based on the temporary build
+    let maxWeightedDeficit = -Infinity;
+
     const currentStats = calculateProgressionStats(baseStats, build, isGoalkeeper);
 
-    // In each iteration, find the most "valuable" category to invest in
     for (const category of categories) {
       const currentLevel = build[category]!;
       const costForNextLevel = calculatePointsForLevel(currentLevel + 1) - calculatePointsForLevel(currentLevel);
 
-      // Skip if we can't afford it or category is maxed
-      if (costForNextLevel > (totalProgressionPoints - pointsSpent)) {
+      if ((pointsSpent + costForNextLevel) > totalProgressionPoints) {
         continue;
       }
       
-      let categoryDeficitValue = 0;
+      let categoryDeficit = 0;
       const statsInCat = categoryStatsMap[category] || [];
 
       for (const stat of statsInCat) {
@@ -461,32 +463,28 @@ export function calculateProgressionSuggestions(
         const currentStat = currentStats[stat] ?? 0;
 
         if (idealStat < 70 || currentStat >= idealStat) {
-          continue; // Ignore stats below the threshold or stats that already meet/exceed the ideal
+          continue; 
         }
         
         const deficit = idealStat - currentStat;
-        let weight = 1; // Base weight
+        let weight = 1;
         if (idealStat >= 90) weight = 3;
         else if (idealStat >= 80) weight = 2;
         
-        categoryDeficitValue += deficit * weight;
+        categoryDeficit += deficit * weight;
       }
-      
-      const value = categoryDeficitValue / costForNextLevel;
 
-      if (value > highestDeficitValue) {
-        highestDeficitValue = value;
+      if (categoryDeficit > maxWeightedDeficit) {
+        maxWeightedDeficit = categoryDeficit;
         bestCategory = category;
       }
     }
 
-    // If we found a valuable category to invest in, do it
     if (bestCategory) {
       const cost = calculatePointsForLevel(build[bestCategory]! + 1) - calculatePointsForLevel(build[bestCategory]!);
       pointsSpent += cost;
       build[bestCategory]! += 1;
     } else {
-      // No more valuable investments can be made, so break
       break;
     }
   }

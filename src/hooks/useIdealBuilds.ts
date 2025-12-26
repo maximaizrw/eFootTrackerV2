@@ -74,7 +74,7 @@ export function useIdealBuilds() {
                             ? card.attributeStats || {}
                             : calculateProgressionStats(card.attributeStats || {}, card.buildsByPosition[updatedBuild.position]!);
 
-                        const newAffinity = calculateAutomaticAffinity(finalStats, updatedBuild.build);
+                        const newAffinity = calculateAutomaticAffinity(finalStats, updatedBuild);
                         
                         card.buildsByPosition[updatedBuild.position]!.manualAffinity = newAffinity;
                         card.buildsByPosition[updatedBuild.position]!.updatedAt = new Date().toISOString();
@@ -105,12 +105,12 @@ export function useIdealBuilds() {
 
         let finalBuildData: PlayerAttributeStats = {};
         let toastMessage = "";
+        let finalIdealBuild: IdealBuild;
 
         if (docSnap.exists()) {
             const existingBuild = docSnap.data() as IdealBuild;
             finalBuildData = { ...existingBuild.build };
-            let updatedFields = 0;
-
+            
             for (const key in build.build) {
                 const statKey = key as keyof PlayerAttributeStats;
                 const newValue = Number(build.build[statKey]);
@@ -118,17 +118,24 @@ export function useIdealBuilds() {
                 if(!isNaN(newValue) && newValue > 0) {
                   const existingValue = Number(existingBuild.build[statKey] || 0);
                   finalBuildData[statKey] = existingValue > 0 ? Math.round((existingValue + newValue) / 2) : newValue;
-                  updatedFields++;
                 }
             }
             toastMessage = `La build para ${build.position} - ${build.style} ha sido promediada y actualizada.`;
+            finalIdealBuild = { ...build, build: finalBuildData };
 
         } else {
             finalBuildData = build.build;
             toastMessage = `La build para ${build.position} - ${build.style} se ha creado.`;
+            finalIdealBuild = { ...build, build: finalBuildData };
         }
 
-        const finalIdealBuild: IdealBuild = { ...build, build: finalBuildData };
+        // Handle legLength separately as it should not be averaged
+        if (build.legLength !== undefined) {
+          finalIdealBuild.legLength = build.legLength;
+        } else if (docSnap.exists()) {
+          finalIdealBuild.legLength = (docSnap.data() as IdealBuild).legLength;
+        }
+
         await setDoc(buildRef, finalIdealBuild, { merge: true });
         toast({ title: "Build Ideal Guardada", description: toastMessage });
 

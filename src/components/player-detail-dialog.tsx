@@ -84,10 +84,10 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
       const calculatedFinalStats = specialCard ? (card.attributeStats || {}) : calculateProgressionStats(card.attributeStats || {}, initialBuild, isGoalkeeper);
       setFinalStats(calculatedFinalStats);
       
-      const { bestBuild, bestStyle } = getIdealBuildForPlayer(card.style, position, idealBuilds, calculatedFinalStats, isGoalkeeper);
-      const breakdown = calculateAffinityWithBreakdown(calculatedFinalStats, bestBuild, isGoalkeeper);
+      const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds);
+      const breakdown = calculateAffinityWithBreakdown(calculatedFinalStats, bestBuild, card.legLength);
       setAffinityBreakdown(breakdown);
-      setBestBuildStyle(bestStyle);
+      setBestBuildStyle(bestBuild?.style || null);
 
     } else {
       setBuild({ manualAffinity: 0 });
@@ -105,10 +105,10 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
         const newFinalStats = specialCard ? baseStats : calculateProgressionStats(baseStats, build, isGoalkeeper);
         setFinalStats(newFinalStats);
         
-        const { bestBuild, bestStyle } = getIdealBuildForPlayer(card.style, position, idealBuilds, newFinalStats, isGoalkeeper);
-        const breakdown = calculateAffinityWithBreakdown(newFinalStats, bestBuild, isGoalkeeper);
+        const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds);
+        const breakdown = calculateAffinityWithBreakdown(newFinalStats, bestBuild, card.legLength);
         setAffinityBreakdown(breakdown);
-        setBestBuildStyle(bestStyle);
+        setBestBuildStyle(bestBuild?.style || null);
     }
   }, [build, baseStats, open, card, position, idealBuilds, isGoalkeeper]);
 
@@ -128,7 +128,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
   const handleSuggestBuild = () => {
     if (!card || !position) return;
     
-    const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, baseStats, isGoalkeeper);
+    const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds);
     if (!bestBuild) {
         toast({
             variant: "destructive",

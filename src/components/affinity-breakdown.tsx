@@ -14,7 +14,12 @@ type AffinityBreakdownProps = {
 export function AffinityBreakdown({ breakdownResult }: AffinityBreakdownProps) {
   const { totalAffinityScore, breakdown } = breakdownResult;
 
-  const relevantStats = breakdown.filter(item => item.idealValue !== undefined && item.idealValue >= 70);
+  const relevantStats = breakdown.filter(item => {
+    if (item.stat === 'legLength') {
+      return item.idealValue !== undefined;
+    }
+    return item.idealValue !== undefined && item.idealValue >= 70;
+  });
 
   if (relevantStats.length === 0) {
     return (

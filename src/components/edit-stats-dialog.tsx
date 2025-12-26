@@ -21,11 +21,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "./ui/textarea";
-import { UploadCloud } from "lucide-react";
+import { UploadCloud, Footprints } from "lucide-react";
 
 const statSchema = z.coerce.number().min(0).max(99).optional();
 
 const formSchema = z.object({
+    legLength: z.coerce.number().min(1).max(14).optional(),
     // Attacking
     offensiveAwareness: statSchema,
     ballControl: statSchema,
@@ -123,7 +124,7 @@ const orderedStatFields: (keyof PlayerAttributeStats)[] = statFields.flatMap(cat
 type EditStatsDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSaveStats: (playerId: string, cardId: string, stats: PlayerAttributeStats) => void;
+  onSaveStats: (playerId: string, cardId: string, stats: PlayerAttributeStats, legLength?: number) => void;
   initialData?: {
     player: Player;
     card: PlayerCard;
@@ -134,31 +135,34 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
   const [pastedText, setPastedText] = React.useState('');
   const { toast } = useToast();
   
-  const form = useForm<PlayerAttributeStats>({
+  const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {},
   });
 
   React.useEffect(() => {
     if (open) {
-      const defaultValues: Record<string, any> = {};
+      const defaultValues: Record<string, any> = {
+        legLength: initialData?.card?.legLength ?? ''
+      };
       statFields.forEach(cat => cat.fields.forEach(f => defaultValues[f.name] = initialData?.card?.attributeStats?.[f.name] ?? ''));
       form.reset(defaultValues);
     }
     setPastedText('');
   }, [open, initialData, form]);
 
-  const handleSubmit = (values: PlayerAttributeStats) => {
+  const handleSubmit = (values: z.infer<typeof formSchema>) => {
     if (initialData) {
+        const { legLength, ...stats } = values;
         const cleanedValues: PlayerAttributeStats = {};
-        for (const key in values) {
+        for (const key in stats) {
             const typedKey = key as keyof PlayerAttributeStats;
-            const value = values[typedKey];
+            const value = stats[typedKey];
             if (value !== '' && value !== null && value !== undefined && !isNaN(Number(value))) {
                 cleanedValues[typedKey] = Number(value);
             }
         }
-      onSaveStats(initialData.player.id, initialData.card.id, cleanedValues);
+      onSaveStats(initialData.player.id, initialData.card.id, cleanedValues, legLength);
       onOpenChange(false);
     }
   };
@@ -247,6 +251,31 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
           <form onSubmit={form.handleSubmit(handleSubmit)} className="flex-grow overflow-hidden flex flex-col pt-4">
             <ScrollArea className="flex-grow pr-4 -mr-4">
               <div className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="legLength"
+                  render={({ field }) => (
+                    <FormItem className="max-w-xs mx-auto">
+                      <FormLabel className="flex items-center gap-2 justify-center text-base">
+                        <Footprints />
+                        Longitud de Piernas (1-14)
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="1"
+                          max="14"
+                          {...field}
+                          value={field.value ?? ''}
+                          onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)}
+                          className="text-center text-lg font-bold"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 {statFields.map((category) => (
                   <div key={category.category}>
                     <h3 className="text-lg font-semibold mb-3 text-primary">{category.category}</h3>

@@ -300,8 +300,8 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
                 ? cardToUpdate.attributeStats || {}
                 : calculateProgressionStats(cardToUpdate.attributeStats || {}, build, isGoalkeeper);
 
-            const { bestBuild, bestStyle } = getIdealBuildForPlayer(cardToUpdate.style, position, idealBuilds, playerFinalStats);
-            const affinity = calculateAutomaticAffinity(playerFinalStats, bestBuild, isGoalkeeper);
+            const { bestBuild, bestStyle } = getIdealBuildForPlayer(cardToUpdate.style, position, idealBuilds);
+            const affinity = calculateAutomaticAffinity(playerFinalStats, bestBuild);
             
             const updatedBuild: PlayerBuild = {
               ...build,
@@ -322,7 +322,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
     }
   };
 
-  const saveAttributeStats = async (playerId: string, cardId: string, stats: PlayerAttributeStats) => {
+  const saveAttributeStats = async (playerId: string, cardId: string, stats: PlayerAttributeStats, legLength?: number) => {
      if (!db) return;
     const playerRef = doc(db, 'players', playerId);
     try {
@@ -338,6 +338,8 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
         if (cardToUpdate) {
           if (!cardToUpdate.attributeStats) cardToUpdate.attributeStats = {};
           
+          cardToUpdate.legLength = legLength;
+
           const baseStats: PlayerAttributeStats = {
             ...stats,
             baseOffensiveAwareness: stats.offensiveAwareness, baseBallControl: stats.ballControl, baseDribbling: stats.dribbling,
@@ -361,8 +363,8 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
                       const isGoalkeeper = position === 'PT';
                       const specialCard = isSpecialCard(cardToUpdate.name);
                       const finalStats = specialCard ? baseStats : calculateProgressionStats(baseStats, build, isGoalkeeper);
-                      const { bestBuild } = getIdealBuildForPlayer(cardToUpdate.style, position, idealBuilds, finalStats);
-                      const newAffinity = calculateAutomaticAffinity(finalStats, bestBuild, isGoalkeeper);
+                      const { bestBuild } = getIdealBuildForPlayer(cardToUpdate.style, position, idealBuilds);
+                      const newAffinity = calculateAutomaticAffinity(finalStats, bestBuild);
 
                       build.manualAffinity = newAffinity;
                       build.updatedAt = new Date().toISOString();
@@ -420,8 +422,8 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
                            const isGoalkeeper = position === 'PT';
                            const specialCard = isSpecialCard(card.name);
                            const finalStats = specialCard ? card.attributeStats : calculateProgressionStats(card.attributeStats, build, isGoalkeeper);
-                           const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, finalStats);
-                           const newAffinity = calculateAutomaticAffinity(finalStats, bestBuild, isGoalkeeper);
+                           const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds);
+                           const newAffinity = calculateAutomaticAffinity(finalStats, bestBuild);
 
                            if (build.manualAffinity !== newAffinity) {
                                 build.manualAffinity = newAffinity;
@@ -470,7 +472,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
               const position = posKey as Position;
               const isGoalkeeper = position === 'PT';
 
-              const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, card.attributeStats || {});
+              const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds);
               if (bestBuild) {
                 const suggestedProgression = calculateProgressionSuggestions(card.attributeStats || {}, bestBuild, isGoalkeeper, card.totalProgressionPoints);
                 const currentBuild = card.buildsByPosition[position] || {};
@@ -480,8 +482,8 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
                 
                 // Recalculate affinity with the new build
                 const newFinalStats = calculateProgressionStats(card.attributeStats || {}, newBuild, isGoalkeeper);
-                const { bestBuild: newBestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, newFinalStats);
-                const newAffinity = calculateAutomaticAffinity(newFinalStats, newBestBuild, isGoalkeeper);
+                const { bestBuild: newBestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds);
+                const newAffinity = calculateAutomaticAffinity(newFinalStats, newBestBuild);
                 
                 newBuild.manualAffinity = newAffinity;
                 newBuild.updatedAt = new Date().toISOString();

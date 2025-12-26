@@ -1,4 +1,5 @@
 
+
 import * as z from "zod";
 
 export const playerStyles = ['Ninguno', 'Cazagoles', 'Hombre de área', 'Señuelo', 'Hombre objetivo', 'Creador de juego', 'Creador de jugadas', 'El destructor', 'Portero defensivo', 'Portero ofensivo', 'Atacante extra', 'Lateral defensivo', 'Lateral ofensivo', 'Lateral finalizador', 'Omnipresente', 'Medio escudo', 'Organizador', 'Jugador de huecos', 'Especialista en centros', 'Extremo móvil', 'Extremo prolífico', 'Diez Clasico', 'Segundo delantero'] as const;
@@ -61,6 +62,7 @@ export type IdealBuild = {
   position: BuildPosition;
   style: PlayerStyle;
   build: PlayerAttributeStats;
+  legLength?: number;
 };
 
 export type PlayerAttributeStats = {
@@ -156,6 +158,7 @@ export type PlayerCard = {
   buildsByPosition?: { [key in Position]?: PlayerBuild };
   attributeStats?: PlayerAttributeStats;
   totalProgressionPoints?: number;
+  legLength?: number;
 };
 
 export type Player = {
@@ -211,8 +214,8 @@ export type IdealTeamPlayer = {
 };
 
 export type IdealTeamSlot = {
-  starter: IdealTeamPlayer;
-  substitute: IdealTeamPlayer;
+  starter: IdealTeamPlayer | null;
+  substitute: IdealTeamPlayer | null;
 }
 
 // --- Tipos para Formaciones ---
