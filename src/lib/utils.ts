@@ -184,53 +184,59 @@ const symmetricalPositionMap: Record<Position, BuildPosition | undefined> = {
 
 
 export function getIdealBuildForPlayer(
-  playerStyle: PlayerStyle,
-  position: Position,
-  idealBuilds: IdealBuild[],
+    playerStyle: PlayerStyle,
+    position: Position,
+    idealBuilds: IdealBuild[],
 ): { bestBuild: IdealBuild | null; bestStyle: PlayerStyle | null } {
-    const isStyleValidForPosition = getAvailableStylesForPosition(position, false).includes(playerStyle);
 
-    // --- MODO ESTRICTO ---
-    if (playerStyle !== 'Ninguno' && isStyleValidForPosition) {
-        const compatiblePositions: BuildPosition[] = [position];
-        const archetype = symmetricalPositionMap[position];
-        if (archetype) {
-            compatiblePositions.push(archetype);
-        }
+    // --- Search Hierarchy ---
 
-        // Busca una build que coincida exactamente con el estilo y la posición/arquetipo
-        const strictBuild = idealBuilds.find(b =>
-            b.style === playerStyle && compatiblePositions.includes(b.position)
-        );
+    // 1. Strict Search: Exact Position + Player Style
+    const strictBuild = idealBuilds.find(b => b.position === position && b.style === playerStyle);
+    if (strictBuild) {
+        return { bestBuild: strictBuild, bestStyle: playerStyle };
+    }
 
-        if (strictBuild) {
-            return { bestBuild: strictBuild, bestStyle: playerStyle };
+    // 2. Archetype Search: Symmetrical Position Archetype + Player Style
+    const archetype = symmetricalPositionMap[position];
+    if (archetype) {
+        const archetypeBuild = idealBuilds.find(b => b.position === archetype && b.style === playerStyle);
+        if (archetypeBuild) {
+            return { bestBuild: archetypeBuild, bestStyle: playerStyle };
         }
     }
     
-    // --- MODO FLEXIBLE ---
-    // Si el estilo no es válido, es "Ninguno" o no se encontró build en modo estricto.
+    // 3. Flexible Search: Find the best alternative build for the position
     const compatiblePositions: BuildPosition[] = [position];
-    const archetype = symmetricalPositionMap[position];
     if (archetype) {
         compatiblePositions.push(archetype);
     }
     
-    // Filtra todas las builds que son válidas para esta posición/arquetipo
+    // Find all builds that are valid for this position or its archetype
     const validBuildsForPosition = idealBuilds.filter(b => compatiblePositions.includes(b.position));
-    
+
     if (validBuildsForPosition.length === 0) {
         return { bestBuild: null, bestStyle: null };
     }
-
-    // Calcula la afinidad para cada build candidata y encuentra la mejor
+    
+    // Among the valid builds, find the one with the highest *potential* affinity score (most important stats)
     let bestFlexBuild: IdealBuild | null = null;
-    let maxFlexAffinity = -Infinity;
+    let maxPotentialAffinity = -Infinity;
 
     for (const candidateBuild of validBuildsForPosition) {
-        const affinity = calculateAutomaticAffinity({} as PlayerAttributeStats, candidateBuild); // We pass empty stats because we only care about the build itself for selection
-        if (affinity > maxFlexAffinity) {
-            maxFlexAffinity = affinity;
+        let potentialAffinity = 0;
+        for (const key in candidateBuild.build) {
+            const statKey = key as keyof PlayerAttributeStats;
+            const idealValue = candidateBuild.build[statKey];
+            if (idealValue && idealValue >= 70) {
+                 if (idealValue >= 90) potentialAffinity += 3;
+                 else if (idealValue >= 80) potentialAffinity += 2;
+                 else potentialAffinity += 1;
+            }
+        }
+
+        if (potentialAffinity > maxPotentialAffinity) {
+            maxPotentialAffinity = potentialAffinity;
             bestFlexBuild = candidateBuild;
         }
     }
@@ -240,7 +246,8 @@ export function getIdealBuildForPlayer(
 
 export function calculateAutomaticAffinity(
     playerStats: PlayerAttributeStats,
-    idealBuild: IdealBuild | null
+    idealBuild: IdealBuild | null,
+    playerLegLength?: number,
 ): number {
     if (!idealBuild) return 0;
 
@@ -273,11 +280,11 @@ export function calculateAutomaticAffinity(
     }
 
     // 2. Calculate leg length affinity
-    if (idealLegLength !== undefined && playerStats.legLength !== undefined) {
-        if (playerStats.legLength >= idealLegLength) {
+    if (idealLegLength !== undefined && playerLegLength !== undefined) {
+        if (playerLegLength >= idealLegLength) {
             totalAffinityScore += 2.5; // Bonus for meeting or exceeding
         } else {
-            const diff = playerStats.legLength - idealLegLength;
+            const diff = playerLegLength - idealLegLength;
             totalAffinityScore += diff * 0.5; // Penalty of -0.5 for each point of difference
         }
     }
@@ -450,32 +457,35 @@ export function calculateProgressionSuggestions(
     for (const category of categories) {
       const currentLevel = build[category]!;
       const costForNextLevel = calculatePointsForLevel(currentLevel + 1) - calculatePointsForLevel(currentLevel);
-
+      
+      // If we can't afford the next level, skip this category for this iteration
       if ((pointsSpent + costForNextLevel) > totalProgressionPoints) {
         continue;
       }
       
-      let categoryDeficit = 0;
+      let categoryWeightedDeficit = 0;
       const statsInCat = categoryStatsMap[category] || [];
 
       for (const stat of statsInCat) {
         const idealStat = idealBuildStats[stat] ?? 0;
-        const currentStat = currentStats[stat] ?? 0;
-
-        if (idealStat < 70 || currentStat >= idealStat) {
-          continue; 
-        }
         
+        // This is the crucial part: only consider stats that need improvement
+        if (idealStat < 70) continue; 
+        
+        const currentStat = currentStats[stat] ?? 0;
+        if (currentStat >= idealStat) continue;
+
         const deficit = idealStat - currentStat;
         let weight = 1;
         if (idealStat >= 90) weight = 3;
         else if (idealStat >= 80) weight = 2;
         
-        categoryDeficit += deficit * weight;
+        categoryWeightedDeficit += deficit * weight;
       }
-
-      if (categoryDeficit > maxWeightedDeficit) {
-        maxWeightedDeficit = categoryDeficit;
+      
+      // We check if this category is a better investment than what we've seen so far
+      if (categoryWeightedDeficit > maxWeightedDeficit) {
+        maxWeightedDeficit = categoryWeightedDeficit;
         bestCategory = category;
       }
     }
@@ -485,6 +495,7 @@ export function calculateProgressionSuggestions(
       pointsSpent += cost;
       build[bestCategory]! += 1;
     } else {
+      // If no category offers improvement, break the loop
       break;
     }
   }
@@ -496,6 +507,9 @@ export function calculateProgressionSuggestions(
 
     
 
+
+
+    
 
 
     

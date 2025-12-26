@@ -42,8 +42,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerBuild, IdealTeamPlayer, PlayerAttributeStats, IdealBuild, BuildPosition } from '@/lib/types';
 import { positions, leagues, nationalities, buildPositions } from '@/lib/types';
 import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Wrench, Dna, RefreshCw, Beaker, Wand2 } from 'lucide-react';
-import { calculateStats, normalizeText, calculateGeneralScore } from '@/lib/utils';
-import { generateIdealTeam } from '@/lib/team-generator';
+import { calculateStats, normalizeText, calculateGeneralScore, getIdealBuildForPlayer, calculateAutomaticAffinity, calculateProgressionStats, isSpecialCard } from '@/lib/utils';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 const ITEMS_PER_PAGE = 10;
@@ -219,7 +218,7 @@ export default function Home() {
       return;
     }
     
-    const newTeam = generateIdealTeam(players, formation, discardedCardIds, selectedLeague, selectedNationality, sortBy, isFlexibleLaterals, isFlexibleWingers);
+    const newTeam = generateIdealTeam(players, formation, idealBuilds, discardedCardIds, selectedLeague, selectedNationality, sortBy, isFlexibleLaterals, isFlexibleWingers);
 
     setIdealTeam(newTeam);
     if (document.activeElement instanceof HTMLElement) {
@@ -547,7 +546,17 @@ export default function Home() {
                             isVersatile: highPerfPositions.size >= 3,
                         };
                         
-                        const affinityScore = card.buildsByPosition?.[ratedPos]?.manualAffinity || 0;
+                        // Live affinity calculation
+                        const buildForPos = card.buildsByPosition?.[ratedPos];
+                        const specialCard = isSpecialCard(card.name);
+                        const isGoalkeeper = ratedPos === 'PT';
+                        const finalStats = specialCard || !buildForPos
+                            ? (card.attributeStats || {})
+                            : calculateProgressionStats(card.attributeStats || {}, buildForPos, isGoalkeeper);
+
+                        const { bestBuild } = getIdealBuildForPlayer(card.style, ratedPos, idealBuilds);
+                        const affinityScore = calculateAutomaticAffinity(finalStats, bestBuild, card.legLength);
+                        
                         const generalScore = calculateGeneralScore(affinityScore, stats.average);
 
                         return { player, card, ratingsForPos, performance, affinityScore, generalScore, position: ratedPos };
@@ -745,5 +754,7 @@ export default function Home() {
     </div>
   );
 }
+
+    
 
     

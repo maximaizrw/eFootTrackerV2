@@ -1,6 +1,6 @@
 
-import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, FormationSlot as FormationSlotType } from './types';
-import { calculateStats, calculateGeneralScore } from './utils';
+import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, FormationSlot as FormationSlotType, IdealBuild } from './types';
+import { calculateStats, calculateGeneralScore, getIdealBuildForPlayer, calculateAutomaticAffinity, calculateProgressionStats, isSpecialCard } from './utils';
 
 type CandidatePlayer = {
   player: Player;
@@ -18,17 +18,19 @@ type CandidatePlayer = {
  * 
  * @param players - The list of all available players.
  * @param formation - The selected formation with defined slots.
+ * @param idealBuilds - The list of all ideal builds.
  * @param discardedCardIds - A set of card IDs to exclude from the selection.
  * @param league - The league to filter by.
  * @param nationality - The nationality to filter by.
  * @param sortBy - The metric to sort players by ('average' or 'general').
  * @param isFlexibleLaterals - Whether to allow LIs to play as LD and vice versa.
  * @param isFlexibleWingers - Whether to allow EXIs to play as EXD and vice versa.
- * @returns An array of 11 slots, each with a starter and a substitute.
+ * @returns An array of slots, each with a starter and a substitute.
  */
 export function generateIdealTeam(
   players: Player[],
   formation: FormationStats,
+  idealBuilds: IdealBuild[],
   discardedCardIds: Set<string> = new Set(),
   league: League | 'all' = 'all',
   nationality: Nationality | 'all' = 'all',
@@ -88,7 +90,17 @@ export function generateIdealTeam(
             isVersatile: isVersatile,
         };
         
-        const affinityScore = card.buildsByPosition?.[pos]?.manualAffinity || 0;
+        // Live affinity calculation
+        const buildForPos = card.buildsByPosition?.[pos];
+        const specialCard = isSpecialCard(card.name);
+        const isGoalkeeper = pos === 'PT';
+        const finalStats = specialCard || !buildForPos
+            ? (card.attributeStats || {})
+            : calculateProgressionStats(card.attributeStats || {}, buildForPos, isGoalkeeper);
+
+        const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds);
+        const affinityScore = calculateAutomaticAffinity(finalStats, bestBuild, card.legLength);
+        
         const generalScore = calculateGeneralScore(affinityScore, stats.average);
 
         return {
@@ -256,3 +268,5 @@ export function generateIdealTeam(
     return { starter, substitute };
   });
 }
+
+    
