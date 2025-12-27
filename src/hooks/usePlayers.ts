@@ -98,7 +98,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
   }, [toast]);
 
   useEffect(() => {
-    if (players.length > 0) {
+    if (players.length > 0 && idealBuilds) {
         const allFlatPlayers = players.flatMap(player => 
             (player.cards || []).flatMap(card => {
                 const playerPositions = Object.keys(card.ratingsByPosition || {}) as Position[];
@@ -136,7 +136,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
                         ? (card.attributeStats || {})
                         : calculateProgressionStats(card.attributeStats || {}, buildForPos, isGoalkeeper);
 
-                    const { bestBuild } = getIdealBuildForPlayer(card.style, ratedPos, idealBuilds, card.physicalAttributes, isGoalkeeper, card.physicalAttributes);
+                    const { bestBuild } = getIdealBuildForPlayer(card.style, ratedPos, idealBuilds, card.physicalAttributes, isGoalkeeper);
                     const affinityScore = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills).totalAffinityScore;
                     
                     const generalScore = calculateGeneralScore(affinityScore, stats.average);
@@ -358,7 +358,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
                 ? cardToUpdate.attributeStats || {}
                 : calculateProgressionStats(cardToUpdate.attributeStats || {}, build, isGoalkeeper);
 
-            const { bestBuild, bestStyle } = getIdealBuildForPlayer(cardToUpdate.style, position, idealBuilds);
+            const { bestBuild, bestStyle } = getIdealBuildForPlayer(cardToUpdate.style, position, idealBuilds, cardToUpdate.physicalAttributes, isGoalkeeper);
             const affinity = calculateAffinityWithBreakdown(playerFinalStats, bestBuild, cardToUpdate.physicalAttributes, cardToUpdate.skills).totalAffinityScore;
             
             const updatedBuild: PlayerBuild = {
@@ -422,7 +422,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
                       const isGoalkeeper = position === 'PT';
                       const specialCard = isSpecialCard(cardToUpdate.name);
                       const finalStats = specialCard ? baseStats : calculateProgressionStats(baseStats, build, isGoalkeeper);
-                      const { bestBuild } = getIdealBuildForPlayer(cardToUpdate.style, position, idealBuilds);
+                      const { bestBuild } = getIdealBuildForPlayer(cardToUpdate.style, position, idealBuilds, cardToUpdate.physicalAttributes, isGoalkeeper);
                       const newAffinity = calculateAffinityWithBreakdown(finalStats, bestBuild, cardToUpdate.physicalAttributes, cardToUpdate.skills).totalAffinityScore;
 
                       build.manualAffinity = newAffinity;
@@ -481,7 +481,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
                            const isGoalkeeper = position === 'PT';
                            const specialCard = isSpecialCard(card.name);
                            const finalStats = specialCard ? card.attributeStats : calculateProgressionStats(card.attributeStats, build, isGoalkeeper);
-                           const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds);
+                           const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, card.physicalAttributes, isGoalkeeper);
                            const newAffinity = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills).totalAffinityScore;
 
                            if (build.manualAffinity !== newAffinity) {
@@ -531,7 +531,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
               const position = posKey as Position;
               const isGoalkeeper = position === 'PT';
 
-              const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds);
+              const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, card.physicalAttributes, isGoalkeeper);
               if (bestBuild) {
                 const suggestedProgression = calculateProgressionSuggestions(card.attributeStats || {}, bestBuild, isGoalkeeper, card.totalProgressionPoints);
                 const currentBuild = card.buildsByPosition[position] || {};
@@ -541,7 +541,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
                 
                 // Recalculate affinity with the new build
                 const newFinalStats = calculateProgressionStats(card.attributeStats || {}, newBuild, isGoalkeeper);
-                const { bestBuild: newBestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds);
+                const { bestBuild: newBestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, card.physicalAttributes, isGoalkeeper);
                 const newAffinity = calculateAffinityWithBreakdown(newFinalStats, newBestBuild, card.physicalAttributes, card.skills).totalAffinityScore;
                 
                 newBuild.manualAffinity = newAffinity;
