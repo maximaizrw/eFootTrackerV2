@@ -7,12 +7,12 @@ import { db } from '@/lib/firebase-config';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, query, where, setDoc } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import { v4 as uuidv4 } from 'uuid';
-import type { Player, PlayerCard, Position, AddRatingFormValues, EditCardFormValues, EditPlayerFormValues, PlayerBuild, League, Nationality, PlayerAttributeStats, IdealBuild, PhysicalAttribute, FlatPlayer, PlayerPerformance, PlayerSkill } from '@/lib/types';
+import type { Player, PlayerCard, Position, AddRatingFormValues, EditCardFormValues, EditPlayerFormValues, PlayerBuild, League, Nationality, PlayerAttributeStats, IdealBuild, PhysicalAttribute, FlatPlayer, PlayerPerformance, PlayerSkill, Skill } from '@/lib/types';
 import { getAvailableStylesForPosition } from '@/lib/types';
 import { normalizeText, calculateProgressionStats, getIdealBuildForPlayer, isSpecialCard, calculateProgressionSuggestions, calculateAffinityWithBreakdown, calculateStats, calculateGeneralScore } from '@/lib/utils';
 
 
-export function usePlayers(idealBuilds: IdealBuild[] = []) {
+export function usePlayers(idealBuilds: IdealBuild[] = [], skills: Skill[] = []) {
   const [players, setPlayers] = useState<Player[]>([]);
   const [flatPlayers, setFlatPlayers] = useState<FlatPlayer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -101,7 +101,8 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
     if (players.length > 0) {
         const allFlatPlayers = players.flatMap(player => 
             (player.cards || []).flatMap(card => {
-                return (Object.keys(card.ratingsByPosition || {}) as Position[]).map(ratedPos => {
+                const playerPositions = Object.keys(card.ratingsByPosition || {}) as Position[];
+                return playerPositions.map(ratedPos => {
                     const ratingsForPos = card.ratingsByPosition?.[ratedPos] || [];
                     if (ratingsForPos.length === 0) return null;
 
@@ -146,7 +147,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
         );
         setFlatPlayers(allFlatPlayers);
     }
-  }, [players, idealBuilds]);
+  }, [players, idealBuilds, skills]); // Add skills dependency
 
 
   const addRating = async (values: AddRatingFormValues) => {

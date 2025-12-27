@@ -3,7 +3,7 @@
 "use client";
 
 import * as React from "react";
-import type { Player, PlayerCard, PlayerAttributeStats, PhysicalAttribute, PlayerSkill } from "@/lib/types";
+import type { Player, PlayerCard, PlayerAttributeStats, PhysicalAttribute, PlayerSkill, Skill } from "@/lib/types";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -23,7 +23,6 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "./ui/textarea";
 import { UploadCloud } from "lucide-react";
-import { playerSkills } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "./ui/command";
 import { Badge } from "./ui/badge";
@@ -36,7 +35,10 @@ const physicalSchema = z.coerce.number().min(0).optional();
 
 const formSchema = z.object({
     legLength: physicalSchema,
-    skills: z.array(z.enum(playerSkills)).optional(),
+    armLength: physicalSchema,
+    shoulderWidth: physicalSchema,
+    neckLength: physicalSchema,
+    skills: z.array(z.string()).optional(),
     // Attacking
     offensiveAwareness: statSchema,
     ballControl: statSchema,
@@ -140,9 +142,10 @@ type EditStatsDialogProps = {
     player: Player;
     card: PlayerCard;
   };
+  playerSkills: Skill[];
 };
 
-export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }: EditStatsDialogProps) {
+export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData, playerSkills }: EditStatsDialogProps) {
   const [pastedText, setPastedText] = React.useState('');
   const [skillsPopoverOpen, setSkillsPopoverOpen] = React.useState(false);
   const { toast } = useToast();
@@ -159,6 +162,9 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
     if (open) {
       const defaultValues: Record<string, any> = {
         legLength: initialData?.card?.physicalAttributes?.legLength ?? '',
+        armLength: initialData?.card?.physicalAttributes?.armLength ?? '',
+        shoulderWidth: initialData?.card?.physicalAttributes?.shoulderWidth ?? '',
+        neckLength: initialData?.card?.physicalAttributes?.neckLength ?? '',
         skills: initialData?.card?.skills || [],
       };
       statFields.forEach(cat => cat.fields.forEach(f => defaultValues[f.name] = initialData?.card?.attributeStats?.[f.name] ?? ''));
@@ -169,8 +175,8 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
 
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
     if (initialData) {
-        const { legLength, skills, ...stats } = values;
-        const physical: PhysicalAttribute = { legLength };
+        const { legLength, armLength, shoulderWidth, neckLength, skills, ...stats } = values;
+        const physical: PhysicalAttribute = { legLength, armLength, shoulderWidth, neckLength };
 
         const cleanedStats: PlayerAttributeStats = {};
         for (const key in stats) {
@@ -185,6 +191,15 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
         if (physical.legLength !== '' && physical.legLength !== null && physical.legLength !== undefined && !isNaN(Number(physical.legLength))) {
             cleanedPhysical.legLength = Number(physical.legLength);
         }
+        if (physical.armLength !== '' && physical.armLength !== null && physical.armLength !== undefined && !isNaN(Number(physical.armLength))) {
+            cleanedPhysical.armLength = Number(physical.armLength);
+        }
+        if (physical.shoulderWidth !== '' && physical.shoulderWidth !== null && physical.shoulderWidth !== undefined && !isNaN(Number(physical.shoulderWidth))) {
+            cleanedPhysical.shoulderWidth = Number(physical.shoulderWidth);
+        }
+        if (physical.neckLength !== '' && physical.neckLength !== null && physical.neckLength !== undefined && !isNaN(Number(physical.neckLength))) {
+            cleanedPhysical.neckLength = Number(physical.neckLength);
+        }
 
       onSaveStats(initialData.player.id, initialData.card.id, cleanedStats, cleanedPhysical, skills || []);
       onOpenChange(false);
@@ -196,7 +211,12 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
     let parsedCount = 0;
     
     // Preserve current physical attributes and skills
-    const currentLegLength = form.getValues('legLength');
+    const currentPhysical = {
+      legLength: form.getValues('legLength'),
+      armLength: form.getValues('armLength'),
+      shoulderWidth: form.getValues('shoulderWidth'),
+      neckLength: form.getValues('neckLength'),
+    };
     const currentSkills = form.getValues('skills');
     
     // Check if the format is just numbers
@@ -238,7 +258,10 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
     }
     
     // Restore physical attributes and skills
-    form.setValue('legLength', currentLegLength);
+    form.setValue('legLength', currentPhysical.legLength);
+    form.setValue('armLength', currentPhysical.armLength);
+    form.setValue('shoulderWidth', currentPhysical.shoulderWidth);
+    form.setValue('neckLength', currentPhysical.neckLength);
     form.setValue('skills', currentSkills);
 
     if (parsedCount > 0) {
@@ -256,7 +279,7 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
     }
   };
 
-  const handleSkillToggle = (skillToToggle: PlayerSkill) => {
+  const handleSkillToggle = (skillToToggle: string) => {
     const currentValues = watchedSkills;
     const isSelected = currentValues.includes(skillToToggle);
     const newValues = isSelected
@@ -295,23 +318,76 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
               <div className="space-y-6">
                 <div className="p-4 rounded-lg border bg-background/50">
                     <h3 className="text-lg font-semibold mb-3 text-primary">Medidas Físicas</h3>
-                     <FormField
-                      control={form.control}
-                      name="legLength"
-                      render={({ field: formField }) => (
-                          <FormItem>
-                          <FormLabel className="text-xs">Largo de Piernas</FormLabel>
-                          <FormControl>
-                              <Input
-                              type="number"
-                              {...formField}
-                              value={formField.value ?? ''}
-                              onChange={e => formField.onChange(e.target.value === '' ? undefined : e.target.value)}
-                              />
-                          </FormControl>
-                          </FormItem>
-                      )}
-                      />
+                     <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-3">
+                       <FormField
+                        control={form.control}
+                        name="legLength"
+                        render={({ field: formField }) => (
+                            <FormItem>
+                            <FormLabel className="text-xs">Largo de Piernas</FormLabel>
+                            <FormControl>
+                                <Input
+                                type="number"
+                                {...formField}
+                                value={formField.value ?? ''}
+                                onChange={e => formField.onChange(e.target.value === '' ? undefined : e.target.value)}
+                                />
+                            </FormControl>
+                            </FormItem>
+                        )}
+                        />
+                         <FormField
+                          control={form.control}
+                          name="armLength"
+                          render={({ field: formField }) => (
+                              <FormItem>
+                              <FormLabel className="text-xs">Largo de Brazo</FormLabel>
+                              <FormControl>
+                                  <Input
+                                  type="number"
+                                  {...formField}
+                                  value={formField.value ?? ''}
+                                  onChange={e => formField.onChange(e.target.value === '' ? undefined : e.target.value)}
+                                  />
+                              </FormControl>
+                              </FormItem>
+                          )}
+                          />
+                          <FormField
+                          control={form.control}
+                          name="shoulderWidth"
+                          render={({ field: formField }) => (
+                              <FormItem>
+                              <FormLabel className="text-xs">Ancho de Hombros</FormLabel>
+                              <FormControl>
+                                  <Input
+                                  type="number"
+                                  {...formField}
+                                  value={formField.value ?? ''}
+                                  onChange={e => formField.onChange(e.target.value === '' ? undefined : e.target.value)}
+                                  />
+                              </FormControl>
+                              </FormItem>
+                          )}
+                          />
+                          <FormField
+                          control={form.control}
+                          name="neckLength"
+                          render={({ field: formField }) => (
+                              <FormItem>
+                              <FormLabel className="text-xs">Largo del Cuello</FormLabel>
+                              <FormControl>
+                                  <Input
+                                  type="number"
+                                  {...formField}
+                                  value={formField.value ?? ''}
+                                  onChange={e => formField.onChange(e.target.value === '' ? undefined : e.target.value)}
+                                  />
+                              </FormControl>
+                              </FormItem>
+                          )}
+                          />
+                     </div>
                 </div>
                 
                  <div className="p-4 rounded-lg border bg-background/50">
@@ -345,17 +421,17 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
                                       <CommandEmpty>No se encontró la habilidad.</CommandEmpty>
                                       {playerSkills.map((skill) => (
                                           <CommandItem
-                                              key={skill}
-                                              value={skill}
-                                              onSelect={() => handleSkillToggle(skill)}
+                                              key={skill.id}
+                                              value={skill.name}
+                                              onSelect={() => handleSkillToggle(skill.name)}
                                           >
                                               <Check
                                                   className={cn(
                                                       "mr-2 h-4 w-4",
-                                                      watchedSkills.includes(skill) ? "opacity-100" : "opacity-0"
+                                                      watchedSkills.includes(skill.name) ? "opacity-100" : "opacity-0"
                                                   )}
                                               />
-                                              {skill}
+                                              {skill.name}
                                           </CommandItem>
                                       ))}
                                   </CommandList>

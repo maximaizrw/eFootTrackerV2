@@ -26,6 +26,7 @@ import { PlayerDetailDialog } from '@/components/player-detail-dialog';
 import { PlayerBuildViewer } from '@/components/player-build-viewer';
 import { IdealBuildEditor } from '@/components/ideal-build-editor';
 import { PlayerTester } from '@/components/player-tester';
+import { SkillsManager } from '@/components/skills-manager';
 
 import { FormationsDisplay } from '@/components/formations-display';
 import { IdealTeamDisplay } from '@/components/ideal-team-display';
@@ -37,18 +38,28 @@ import { NationalityDistribution } from '@/components/nationality-distribution';
 import { usePlayers } from '@/hooks/usePlayers';
 import { useFormations } from '@/hooks/useFormations';
 import { useIdealBuilds } from '@/hooks/useIdealBuilds';
+import { useSkills } from '@/hooks/useSkills';
 import { useToast } from "@/hooks/use-toast";
 
 import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerBuild, IdealTeamPlayer, PlayerAttributeStats, IdealBuild, BuildPosition } from '@/lib/types';
-import { positions, leagues, nationalities, buildPositions } from '@/lib/types';
-import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Wrench, Dna, RefreshCw, Beaker, Wand2 } from 'lucide-react';
-import { normalizeText, getIdealBuildForPlayer, calculateProgressionStats, isSpecialCard, calculateAffinityWithBreakdown } from '@/lib/utils';
+import { positions, leagues, nationalities } from '@/lib/types';
+import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Wrench, Dna, RefreshCw, Beaker, Wand2, Sparkles } from 'lucide-react';
+import { normalizeText } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 const ITEMS_PER_PAGE = 10;
 
 export default function Home() {
+  const {
+    skills,
+    loading: skillsLoading,
+    error: skillsError,
+    addSkill,
+    updateSkill,
+    deleteSkill
+  } = useSkills();
+
   const {
     idealBuilds,
     loading: idealBuildsLoading,
@@ -72,7 +83,7 @@ export default function Home() {
     deletePositionRatings,
     recalculateAllAffinities,
     suggestAllBuilds,
-  } = usePlayers(idealBuilds);
+  } = usePlayers(idealBuilds, skills);
 
   const {
     formations,
@@ -220,7 +231,7 @@ export default function Home() {
       return;
     }
     
-    const newTeam = generateIdealTeam(players, formation, idealBuilds, discardedCardIds, selectedLeague, selectedNationality, sortBy, isFlexibleLaterals, isFlexibleWingers);
+    const newTeam = generateIdealTeam(flatPlayers, formation, discardedCardIds, sortBy, isFlexibleLaterals, isFlexibleWingers);
 
     setIdealTeam(newTeam);
     if (document.activeElement instanceof HTMLElement) {
@@ -315,7 +326,7 @@ export default function Home() {
 
 
   const getHeaderButtons = () => {
-    const isPositionTab = positions.includes(activeTab as Position);
+    const isPositionTab = positions.some(p => p === activeTab);
 
     return (
         <div className="flex items-center gap-2">
@@ -351,7 +362,7 @@ export default function Home() {
   };
 
 
-  const error = playersError || formationsError || idealBuildsError;
+  const error = playersError || formationsError || idealBuildsError || skillsError;
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen text-center p-4">
@@ -363,7 +374,7 @@ export default function Home() {
     );
   }
 
-  if (playersLoading || formationsLoading || idealBuildsLoading) {
+  if (playersLoading || formationsLoading || idealBuildsLoading || skillsLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-xl font-semibold">Conectando a la base de datos...</div>
@@ -414,6 +425,7 @@ export default function Home() {
         onOpenChange={setEditStatsDialogOpen}
         onSaveStats={saveAttributeStats}
         initialData={editStatsDialogInitialData}
+        playerSkills={skills}
       />
       <PlayerDetailDialog
         open={isPlayerDetailDialogOpen}
@@ -433,6 +445,7 @@ export default function Home() {
         onSave={saveIdealBuild}
         initialBuild={editingIdealBuild}
         existingBuilds={idealBuilds}
+        playerSkills={skills}
       />
       <AlertDialog open={isImageViewerOpen} onOpenChange={setImageViewerOpen}>
         <AlertDialogContent className="max-w-xl p-0">
@@ -498,6 +511,10 @@ export default function Home() {
                   <Dna className="mr-2 h-5 w-5"/>
                   Builds Ideales
               </TabsTrigger>
+              <TabsTrigger value="skills" className="py-2 px-3 text-sm data-[state=active]:text-accent-foreground data-[state=active]:bg-accent">
+                  <Sparkles className="mr-2 h-5 w-5"/>
+                  Habilidades
+              </TabsTrigger>
               <TabsTrigger value="tester" className="py-2 px-3 text-sm data-[state=active]:text-accent-foreground data-[state=active]:bg-accent">
                   <Beaker className="mr-2 h-5 w-5"/>
                   Probador
@@ -525,7 +542,9 @@ export default function Home() {
                 const searchMatch = normalizeText(player.name).includes(normalizeText(searchTerm));
                 const styleMatch = styleFilter === 'all' || card.style === styleFilter;
                 const cardMatch = cardFilter === 'all' || card.name === cardFilter;
-                return searchMatch && styleMatch && cardMatch;
+                const leagueMatch = selectedLeague === 'all' || card.league === selectedLeague;
+                const nationalityMatch = selectedNationality === 'all' || player.nationality === selectedNationality;
+                return searchMatch && styleMatch && cardMatch && leagueMatch && nationalityMatch;
             
             }).sort((a, b) => {
               if (sortBy === 'general') {
@@ -701,9 +720,18 @@ export default function Home() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="skills" className="mt-6">
+            <SkillsManager 
+              skills={skills}
+              onAddSkill={addSkill}
+              onUpdateSkill={updateSkill}
+              onDeleteSkill={deleteSkill}
+            />
+          </TabsContent>
           
           <TabsContent value="tester" className="mt-6">
-            <PlayerTester idealBuilds={idealBuilds} />
+            <PlayerTester idealBuilds={idealBuilds} playerSkills={skills} />
           </TabsContent>
 
         </Tabs>
@@ -711,3 +739,4 @@ export default function Home() {
     </div>
   );
 }
+

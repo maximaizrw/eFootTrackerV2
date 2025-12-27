@@ -3,7 +3,7 @@
 "use client";
 
 import * as React from "react";
-import type { BuildPosition, PlayerStyle, IdealBuild, PlayerAttributeStats, PhysicalAttribute, PlayerSkill } from "@/lib/types";
+import type { BuildPosition, PlayerStyle, IdealBuild, PlayerAttributeStats, PhysicalAttribute, PlayerSkill, Skill } from "@/lib/types";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -24,7 +24,7 @@ import { ScrollArea } from "./ui/scroll-area";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { UploadCloud } from "lucide-react";
-import { buildPositions, playerStyles, getAvailableStylesForPosition, positionLabels, playerSkills } from "@/lib/types";
+import { buildPositions, playerStyles, getAvailableStylesForPosition, positionLabels } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "./ui/command";
 import { Badge } from "./ui/badge";
@@ -43,8 +43,11 @@ const minMaxSchema = z.object({
 const buildSchema = z.object({
   position: z.enum(buildPositions),
   style: z.enum(playerStyles),
-  idealSkills: z.array(z.enum(playerSkills)).optional(),
+  idealSkills: z.array(z.string()).optional(),
   legLength: minMaxSchema,
+  armLength: minMaxSchema,
+  shoulderWidth: minMaxSchema,
+  neckLength: minMaxSchema,
   build: z.object({
     // Attacking
     offensiveAwareness: statSchema,
@@ -87,6 +90,7 @@ type IdealBuildEditorProps = {
   onSave: (build: IdealBuild) => void;
   initialBuild?: IdealBuild;
   existingBuilds: IdealBuild[];
+  playerSkills: Skill[];
 };
 
 const statFields: { category: string, fields: { name: keyof PlayerAttributeStats, label: string }[] }[] = [
@@ -151,7 +155,7 @@ const nameToSchemaKeyMap: Record<string, keyof PlayerAttributeStats> = {
 const orderedStatFields: (keyof PlayerAttributeStats)[] = statFields.flatMap(category => category.fields.map(field => field.name));
 
 
-export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, existingBuilds }: IdealBuildEditorProps) {
+export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, existingBuilds, playerSkills }: IdealBuildEditorProps) {
   const { toast } = useToast();
   const [pastedText, setPastedText] = React.useState('');
   const [skillsPopoverOpen, setSkillsPopoverOpen] = React.useState(false);
@@ -164,6 +168,9 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
       style: "Cazagoles",
       idealSkills: [],
       legLength: { min: undefined, max: undefined },
+      armLength: { min: undefined, max: undefined },
+      shoulderWidth: { min: undefined, max: undefined },
+      neckLength: { min: undefined, max: undefined },
       build: {},
     },
   });
@@ -184,6 +191,9 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
         style: "Cazagoles",
         idealSkills: [],
         legLength: { min: undefined, max: undefined },
+        armLength: { min: undefined, max: undefined },
+        shoulderWidth: { min: undefined, max: undefined },
+        neckLength: { min: undefined, max: undefined },
         build: defaultBuild,
       };
 
@@ -197,6 +207,9 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
           style: initialBuild.style,
           idealSkills: initialBuild.idealSkills || [],
           legLength: { min: initialBuild.legLength?.min || undefined, max: initialBuild.legLength?.max || undefined },
+          armLength: { min: initialBuild.armLength?.min || undefined, max: initialBuild.armLength?.max || undefined },
+          shoulderWidth: { min: initialBuild.shoulderWidth?.min || undefined, max: initialBuild.shoulderWidth?.max || undefined },
+          neckLength: { min: initialBuild.neckLength?.min || undefined, max: initialBuild.neckLength?.max || undefined },
           build: initialBuildValues,
         };
         reset(mergedInitial);
@@ -225,6 +238,9 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
       style: values.style,
       idealSkills: values.idealSkills || [],
       legLength: { min: values.legLength?.min, max: values.legLength?.max },
+      armLength: { min: values.armLength?.min, max: values.armLength?.max },
+      shoulderWidth: { min: values.shoulderWidth?.min, max: values.shoulderWidth?.max },
+      neckLength: { min: values.neckLength?.min, max: values.neckLength?.max },
       build: {},
     };
 
@@ -304,7 +320,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
     }
   };
   
-  const handleSkillToggle = (skillToToggle: PlayerSkill) => {
+  const handleSkillToggle = (skillToToggle: string) => {
     const currentValues = watchedIdealSkills;
     const isSelected = currentValues.includes(skillToToggle);
     const newValues = isSelected
@@ -388,46 +404,16 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
                  <div className="p-4 rounded-lg border bg-background/50 space-y-4">
                     <h3 className="text-lg font-semibold text-primary">Atributos Ideales</h3>
                     <div>
-                        <FormLabel className="text-base mb-2 block">Largo de Piernas</FormLabel>
-                        <div className="grid grid-cols-2 gap-4 max-w-sm">
-                            <FormField
-                                control={form.control}
-                                name="legLength.min"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-sm">Mínimo Ideal</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                type="number"
-                                                {...field}
-                                                value={field.value ?? ''}
-                                                onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)}
-                                                className="text-center"
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="legLength.max"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-sm">Máximo Ideal</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                type="number"
-                                                {...field}
-                                                value={field.value ?? ''}
-                                                onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)}
-                                                className="text-center"
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                        <FormLabel className="text-base mb-2 block">Medidas Físicas</FormLabel>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <FormField control={form.control} name="legLength.min" render={({ field }) => (<FormItem><FormLabel className="text-sm">Piernas (Min)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
+                            <FormField control={form.control} name="legLength.max" render={({ field }) => (<FormItem><FormLabel className="text-sm">Piernas (Max)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
+                            <FormField control={form.control} name="armLength.min" render={({ field }) => (<FormItem><FormLabel className="text-sm">Brazos (Min)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
+                            <FormField control={form.control} name="armLength.max" render={({ field }) => (<FormItem><FormLabel className="text-sm">Brazos (Max)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
+                            <FormField control={form.control} name="shoulderWidth.min" render={({ field }) => (<FormItem><FormLabel className="text-sm">Hombros (Min)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
+                            <FormField control={form.control} name="shoulderWidth.max" render={({ field }) => (<FormItem><FormLabel className="text-sm">Hombros (Max)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
+                            <FormField control={form.control} name="neckLength.min" render={({ field }) => (<FormItem><FormLabel className="text-sm">Cuello (Min)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
+                            <FormField control={form.control} name="neckLength.max" render={({ field }) => (<FormItem><FormLabel className="text-sm">Cuello (Max)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
                         </div>
                     </div>
                      <div>
@@ -461,17 +447,17 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
                                         <CommandEmpty>No se encontró la habilidad.</CommandEmpty>
                                         {playerSkills.map((skill) => (
                                             <CommandItem
-                                                key={skill}
-                                                value={skill}
-                                                onSelect={() => handleSkillToggle(skill)}
+                                                key={skill.id}
+                                                value={skill.name}
+                                                onSelect={() => handleSkillToggle(skill.name)}
                                             >
                                                 <Check
                                                     className={cn(
                                                         "mr-2 h-4 w-4",
-                                                        watchedIdealSkills.includes(skill) ? "opacity-100" : "opacity-0"
+                                                        watchedIdealSkills.includes(skill.name) ? "opacity-100" : "opacity-0"
                                                     )}
                                                 />
-                                                {skill}
+                                                {skill.name}
                                             </CommandItem>
                                         ))}
                                     </CommandList>

@@ -35,21 +35,12 @@ export const nationalities = [
 ] as const;
 export type Nationality = typeof nationalities[number];
 
-export const playerSkills = [
-  "Elástica", "Marsellesa", "Sombrero", "Recorte con giro", "Amago por detrás y giro",
-  "Rebote interior", "Control con la suela", "Cabeceador", "Disparo lejano con rosca",
-  "Vaselina", "Tiro de larga distancia", "Disparo descendente",
-  "Disparo ascendente", "Finalización acrobática", "Espuela", "Remate al primer toque",
-  "Pase al primer toque", "Pase en profundidad", "Pase al hueco", "Pase cruzado",
-  "Centro con rosca", "Rabona", "Pase sin mirar", "Pase bombeado bajo",
-  "Patadon por bajo (Portero)", "Patadon en largo (Portero)", "Saque de banda largo",
-  "Saque largo (Portero)", "Especialista en penaltis", "Parapenaltis (Portero)",
-  "Picardía", "Marcaje", "Delantero atrasado", "Interceptador", "Bloqueador",
-  "Superioridad aérea", "Entrada deslizante", "Despeje acrobático", "Capitanía",
-  "As en la manga", "Croqueta", "Espíritu de lucha"
-] as const;
+export type Skill = {
+  id: string;
+  name: string;
+};
+export type PlayerSkill = string;
 
-export type PlayerSkill = typeof playerSkills[number];
 
 export type OutfieldBuild = {
   shooting?: number; // 0-20
@@ -83,6 +74,9 @@ export type IdealBuild = {
   style: PlayerStyle;
   build: PlayerAttributeStats;
   legLength?: MinMaxRange;
+  armLength?: MinMaxRange;
+  shoulderWidth?: MinMaxRange;
+  neckLength?: MinMaxRange;
   idealSkills?: PlayerSkill[];
 };
 
@@ -171,6 +165,9 @@ export type PositionLabel = typeof positionLabels[Position];
 
 export type PhysicalAttribute = {
   legLength?: number;
+  armLength?: number;
+  shoulderWidth?: number;
+  neckLength?: number;
 }
 
 export type PlayerCard = {
@@ -264,7 +261,7 @@ export type MatchResult = {
 
 export const FormationSlotSchema = z.object({
   position: z.enum(positions),
-  styles: z.array(z.enum(playerStyles)).optional().default([]),
+  styles: z.array(z.string()).optional().default([]),
   top: z.number().optional(),
   left: z.number().optional(),
 });
@@ -370,7 +367,6 @@ export function getAvailableStylesForPosition(position: BuildPosition, includeNo
         case 'DC':
             return [...baseStyles, 'Cazagoles', 'Hombre de área', 'Señuelo', 'Hombre objetivo', 'Jugador de huecos', 'Extremo móvil', 'Segundo delantero'];
         default:
-            // For safety, return all styles if position is not recognized, though this shouldn't happen with TypeScript.
             return [...playerStyles];
     }
 }
