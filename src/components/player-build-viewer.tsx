@@ -41,10 +41,11 @@ const goalkeeperCategories: { key: keyof GoalkeeperBuild; label: string, icon: R
 export function PlayerBuildViewer({ open, onOpenChange, player }: PlayerBuildViewerProps) {
   if (!player) return null;
 
-  const { player: playerData, card, assignedPosition } = player;
+  const { player: playerData, card, position, assignedPosition } = player;
   
-  const build = card?.buildsByPosition?.[assignedPosition];
-  const isGoalkeeper = assignedPosition === 'PT';
+  // Use the build from the original rated position, not the assigned one.
+  const build = card?.buildsByPosition?.[position];
+  const isGoalkeeper = position === 'PT';
 
   const updatedAt = build?.updatedAt;
   const formattedDate = updatedAt 
@@ -57,18 +58,18 @@ export function PlayerBuildViewer({ open, onOpenChange, player }: PlayerBuildVie
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Build de {playerData.name} (<span className="text-primary">{assignedPosition}</span>)</DialogTitle>
+          <DialogTitle>Build de {playerData.name} ({card.name})</DialogTitle>
           <DialogDescription>
-             <span className="font-semibold text-foreground">{card.name}</span>. Últ. act: {formattedDate}
+             Build definida para <span className="font-semibold text-foreground">{position}</span>. Últ. act: {formattedDate}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
              <div className="p-4 bg-muted/50 rounded-lg flex items-center justify-center gap-4">
                 <div className="flex items-center gap-2 text-lg font-bold">
                     <Star className="w-5 h-5 text-yellow-400" />
-                    <span>Afinidad Manual:</span>
+                    <span>Afinidad Calculada:</span>
                 </div>
-                <span className="text-2xl font-bold text-primary">{affinity}</span>
+                <span className="text-2xl font-bold text-primary">{affinity.toFixed(2)}</span>
              </div>
             
             <p className="font-medium text-sm text-muted-foreground pt-2 text-center">Puntos de Progresión</p>
