@@ -136,12 +136,13 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
                         ? (card.attributeStats || {})
                         : calculateProgressionStats(card.attributeStats || {}, buildForPos, isGoalkeeper);
 
-                    const { bestBuild } = getIdealBuildForPlayer(card.style, ratedPos, idealBuilds, card.physicalAttributes, isGoalkeeper);
-                    const affinityScore = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills).totalAffinityScore;
+                    const { bestBuild } = getIdealBuildForPlayer(card.style, ratedPos, idealBuilds, card.physicalAttributes, isGoalkeeper, card.physicalAttributes);
+                    const affinityBreakdown = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills);
+                    const affinityScore = affinityBreakdown.totalAffinityScore;
                     
                     const generalScore = calculateGeneralScore(affinityScore, stats.average);
 
-                    return { player, card, ratingsForPos, performance, affinityScore, generalScore, position: ratedPos };
+                    return { player, card, ratingsForPos, performance, affinityScore, generalScore, position: ratedPos, affinityBreakdown };
                 }).filter((p): p is FlatPlayer => p !== null);
             })
         );
@@ -573,3 +574,5 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
 
   return { players, flatPlayers, loading, error, addRating, editCard, editPlayer, deleteRating, savePlayerBuild, saveAttributeStats, downloadBackup, deletePositionRatings, recalculateAllAffinities, suggestAllBuilds };
 }
+
+    

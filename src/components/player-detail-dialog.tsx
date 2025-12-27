@@ -57,7 +57,6 @@ const goalkeeperCategories: { key: keyof GoalkeeperBuild; label: string, icon: R
 export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlayerBuild, idealBuilds }: PlayerDetailDialogProps) {
   const [build, setBuild] = React.useState<PlayerBuild>({ manualAffinity: 0 });
   const [finalStats, setFinalStats] = React.useState<PlayerAttributeStats>({});
-  const [affinityBreakdown, setAffinityBreakdown] = React.useState<AffinityBreakdownResult>({ totalAffinityScore: 0, breakdown: [] });
   const [totalProgressionPoints, setTotalProgressionPoints] = React.useState<number | undefined>(undefined);
   const [bestBuildStyle, setBestBuildStyle] = React.useState<string | null>(null);
 
@@ -80,19 +79,12 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
       setBuild(initialBuild);
       setTotalProgressionPoints(card.totalProgressionPoints);
       
-      const specialCard = isSpecialCard(card.name);
-      const calculatedFinalStats = specialCard ? (card.attributeStats || {}) : calculateProgressionStats(card.attributeStats || {}, initialBuild, isGoalkeeper);
-      setFinalStats(calculatedFinalStats);
-      
       const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, card.attributeStats, isGoalkeeper, card.physicalAttributes);
-      const breakdown = calculateAffinityWithBreakdown(calculatedFinalStats, bestBuild, card.physicalAttributes);
-      setAffinityBreakdown(breakdown);
       setBestBuildStyle(bestBuild?.style || null);
 
     } else {
       setBuild({ manualAffinity: 0 });
       setFinalStats({});
-      setAffinityBreakdown({ totalAffinityScore: 0, breakdown: [] });
       setTotalProgressionPoints(undefined);
       setBestBuildStyle(null);
     }
@@ -104,13 +96,8 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
         const specialCard = isSpecialCard(card.name);
         const newFinalStats = specialCard ? baseStats : calculateProgressionStats(baseStats, build, isGoalkeeper);
         setFinalStats(newFinalStats);
-        
-        const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, card.attributeStats, isGoalkeeper, card.physicalAttributes);
-        const breakdown = calculateAffinityWithBreakdown(newFinalStats, bestBuild, card.physicalAttributes);
-        setAffinityBreakdown(breakdown);
-        setBestBuildStyle(bestBuild?.style || null);
     }
-  }, [build, baseStats, open, card, position, idealBuilds, isGoalkeeper]);
+  }, [build, baseStats, open, card, position, isGoalkeeper]);
 
   const handleSave = () => {
     if (player && card && position) {
@@ -208,7 +195,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
                               <input
                               id="manualAffinity"
                               type="number"
-                              value={affinityBreakdown.totalAffinityScore.toFixed(2) ?? ''}
+                              value={flatPlayer?.affinityScore.toFixed(2) ?? ''}
                               readOnly
                               className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm text-foreground/80 font-bold"
                               />
@@ -337,7 +324,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
           </TabsContent>
           <TabsContent value="affinity" className="flex-grow overflow-hidden mt-4">
               <ScrollArea className="h-full pr-4 -mr-4">
-                <AffinityBreakdown breakdownResult={affinityBreakdown} />
+                <AffinityBreakdown breakdownResult={flatPlayer?.affinityBreakdown || { totalAffinityScore: 0, breakdown: [] }} />
               </ScrollArea>
           </TabsContent>
         </Tabs>
@@ -352,4 +339,5 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
 
 
 
+    
     
