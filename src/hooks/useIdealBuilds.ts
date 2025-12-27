@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase-config';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, query, getDoc, getDocs } from 'firebase/firestore';
 import { useToast } from './use-toast';
-import type { IdealBuild, PlayerAttributeStats, Player, PlayerCard } from '@/lib/types';
+import type { IdealBuild, PlayerAttributeStats, Player, PlayerCard, PlayerSkill } from '@/lib/types';
 import { calculateProgressionStats, getIdealBuildForPlayer, calculateAffinityWithBreakdown } from '@/lib/utils';
 
 export function useIdealBuilds() {
@@ -73,7 +73,7 @@ export function useIdealBuilds() {
                         const isGoalkeeper = updatedBuild.position === 'PT';
                         const finalStats = calculateProgressionStats(card.attributeStats || {}, currentBuild, isGoalkeeper);
 
-                        const { totalAffinityScore } = calculateAffinityWithBreakdown(finalStats, updatedBuild, card.physicalAttributes);
+                        const { totalAffinityScore } = calculateAffinityWithBreakdown(finalStats, updatedBuild, card.physicalAttributes, card.skills);
                         
                         currentBuild.manualAffinity = totalAffinityScore;
                         currentBuild.updatedAt = new Date().toISOString();
@@ -127,21 +127,33 @@ export function useIdealBuilds() {
             toastMessage = `La build para ${build.position} - ${build.style} se ha creado.`;
             finalIdealBuild = { ...build, build: finalBuildData };
         }
-
-        const physicalAttrs: (keyof IdealBuild)[] = ['legLength', 'armLength', 'shoulderWidth', 'neckLength'];
-        physicalAttrs.forEach(attr => {
-          if (build[attr]) {
-            (finalIdealBuild as any)[attr] = (build as any)[attr];
-          } else if (docSnap.exists()) {
-            (finalIdealBuild as any)[attr] = (docSnap.data() as IdealBuild)[attr];
-          }
-        });
         
-        await setDoc(buildRef, finalIdealBuild, { merge: true });
+        // Ensure legLength and idealSkills are handled correctly
+        const dataToSave: IdealBuild = {
+          position: finalIdealBuild.position,
+          style: finalIdealBuild.style,
+          build: finalIdealBuild.build,
+        };
+
+        if (finalIdealBuild.legLength && (finalIdealBuild.legLength.min !== undefined || finalIdealBuild.legLength.max !== undefined)) {
+          dataToSave.legLength = {};
+          if (finalIdealBuild.legLength.min !== undefined) {
+            dataToSave.legLength.min = finalIdealBuild.legLength.min;
+          }
+          if (finalIdealBuild.legLength.max !== undefined) {
+            dataToSave.legLength.max = finalIdealBuild.legLength.max;
+          }
+        }
+        
+        if (finalIdealBuild.idealSkills && finalIdealBuild.idealSkills.length > 0) {
+          dataToSave.idealSkills = finalIdealBuild.idealSkills;
+        }
+
+        await setDoc(buildRef, dataToSave, { merge: true });
         toast({ title: "Build Ideal Guardada", description: toastMessage });
 
         // Recalculate affinities for all players affected by this build change
-        await recalculateAllRelevantAffinities(finalIdealBuild);
+        await recalculateAllRelevantAffinities({ ...dataToSave, id: build.id });
 
     } catch (error) {
         console.error("Error saving ideal build: ", error);
