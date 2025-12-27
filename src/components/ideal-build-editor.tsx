@@ -3,7 +3,7 @@
 "use client";
 
 import * as React from "react";
-import type { BuildPosition, PlayerStyle, IdealBuild, PlayerAttributeStats, PhysicalAttribute } from "@/lib/types";
+import type { BuildPosition, PlayerStyle, IdealBuild, PlayerAttributeStats, PhysicalAttribute, PlayerSkill } from "@/lib/types";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -23,8 +23,13 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from "./ui/scroll-area";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
-import { UploadCloud, Footprints } from "lucide-react";
-import { buildPositions, playerStyles, getAvailableStylesForPosition, positionLabels } from "@/lib/types";
+import { UploadCloud } from "lucide-react";
+import { buildPositions, playerStyles, getAvailableStylesForPosition, positionLabels, playerSkills } from "@/lib/types";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "./ui/command";
+import { Badge } from "./ui/badge";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const statSchema = z.coerce.number().min(0).max(99).optional();
 const physicalSchema = z.coerce.number().optional();
@@ -38,9 +43,8 @@ const minMaxSchema = z.object({
 const buildSchema = z.object({
   position: z.enum(buildPositions),
   style: z.enum(playerStyles),
-  // Physical
+  idealSkills: z.array(z.enum(playerSkills)).optional(),
   legLength: minMaxSchema,
-  // Build
   build: z.object({
     // Attacking
     offensiveAwareness: statSchema,
@@ -150,12 +154,15 @@ const orderedStatFields: (keyof PlayerAttributeStats)[] = statFields.flatMap(cat
 export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, existingBuilds }: IdealBuildEditorProps) {
   const { toast } = useToast();
   const [pastedText, setPastedText] = React.useState('');
+  const [skillsPopoverOpen, setSkillsPopoverOpen] = React.useState(false);
+
 
   const form = useForm<IdealBuildFormValues>({
     resolver: zodResolver(buildSchema),
     defaultValues: {
       position: "DC",
       style: "Cazagoles",
+      idealSkills: [],
       legLength: { min: undefined, max: undefined },
       build: {},
     },
@@ -163,6 +170,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
 
   const { watch, reset, setValue, getValues } = form;
   const watchedPosition = watch("position");
+  const watchedIdealSkills = watch("idealSkills") || [];
   const isEditing = !!initialBuild?.id;
 
   React.useEffect(() => {
@@ -174,6 +182,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
       const defaultValues: IdealBuildFormValues = {
         position: "DC",
         style: "Cazagoles",
+        idealSkills: [],
         legLength: { min: undefined, max: undefined },
         build: defaultBuild,
       };
@@ -186,6 +195,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
           ...defaultValues,
           position: initialBuild.position,
           style: initialBuild.style,
+          idealSkills: initialBuild.idealSkills || [],
           legLength: { min: initialBuild.legLength?.min || undefined, max: initialBuild.legLength?.max || undefined },
           build: initialBuildValues,
         };
@@ -213,6 +223,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
       id: buildId,
       position: values.position,
       style: values.style,
+      idealSkills: values.idealSkills || [],
       legLength: { min: values.legLength?.min, max: values.legLength?.max },
       build: {},
     };
@@ -236,6 +247,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
     let parsedCount = 0;
     
     const currentLegLength = getValues("legLength");
+    const currentIdealSkills = getValues("idealSkills");
 
     const isNumericOnly = lines.every(line => /^\d+\s*$/.test(line.trim()));
 
@@ -275,6 +287,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
     }
 
     setValue("legLength", currentLegLength);
+    setValue("idealSkills", currentIdealSkills);
 
     if (parsedCount > 0) {
       toast({
@@ -290,6 +303,16 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
       });
     }
   };
+  
+  const handleSkillToggle = (skillToToggle: PlayerSkill) => {
+    const currentValues = watchedIdealSkills;
+    const isSelected = currentValues.includes(skillToToggle);
+    const newValues = isSelected
+      ? currentValues.filter((s) => s !== skillToToggle)
+      : [...currentValues, skillToToggle];
+    setValue('idealSkills', newValues, { shouldValidate: true });
+  };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -363,10 +386,10 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
                 </div>
                 
                  <div className="p-4 rounded-lg border bg-background/50 space-y-4">
-                    <h3 className="text-lg font-semibold mb-3 text-primary text-center">Rango de Medida Física Ideal</h3>
+                    <h3 className="text-lg font-semibold text-primary">Atributos Ideales</h3>
                     <div>
-                        <FormLabel className="text-base mb-2 block text-center">Largo de Piernas</FormLabel>
-                        <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
+                        <FormLabel className="text-base mb-2 block">Largo de Piernas</FormLabel>
+                        <div className="grid grid-cols-2 gap-4 max-w-sm">
                             <FormField
                                 control={form.control}
                                 name="legLength.min"
@@ -406,6 +429,59 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
                                 )}
                             />
                         </div>
+                    </div>
+                     <div>
+                        <FormLabel className="text-base mb-2 block">Habilidades Ideales</FormLabel>
+                        <FormField
+                        control={form.control}
+                        name="idealSkills"
+                        render={({ field }) => (
+                            <FormItem>
+                            <Popover open={skillsPopoverOpen} onOpenChange={setSkillsPopoverOpen}>
+                                <PopoverTrigger asChild>
+                                <Button variant="outline" role="combobox" className="w-full justify-between h-auto min-h-10">
+                                    <div className="flex gap-1 flex-wrap">
+                                    {watchedIdealSkills.length > 0 ? (
+                                        watchedIdealSkills.map((skill) => (
+                                        <Badge variant="secondary" key={skill} className="mr-1">
+                                            {skill}
+                                        </Badge>
+                                        ))
+                                    ) : (
+                                        <span className="text-muted-foreground">Seleccionar habilidades...</span>
+                                    )}
+                                    </div>
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                <Command>
+                                    <CommandInput placeholder="Buscar habilidad..." />
+                                    <CommandList>
+                                        <CommandEmpty>No se encontró la habilidad.</CommandEmpty>
+                                        {playerSkills.map((skill) => (
+                                            <CommandItem
+                                                key={skill}
+                                                value={skill}
+                                                onSelect={() => handleSkillToggle(skill)}
+                                            >
+                                                <Check
+                                                    className={cn(
+                                                        "mr-2 h-4 w-4",
+                                                        watchedIdealSkills.includes(skill) ? "opacity-100" : "opacity-0"
+                                                    )}
+                                                />
+                                                {skill}
+                                            </CommandItem>
+                                        ))}
+                                    </CommandList>
+                                </Command>
+                                </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
                     </div>
                 </div>
 

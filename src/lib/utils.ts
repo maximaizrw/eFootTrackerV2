@@ -2,8 +2,7 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position, BuildPosition, PhysicalAttribute } from "./types";
-import { getAvailableStylesForPosition } from "./types";
+import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position, BuildPosition, PhysicalAttribute, PlayerSkill } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -186,14 +185,8 @@ const symmetricalPositionMap: Record<Position, BuildPosition | undefined> = {
 export function getIdealBuildForPlayer(
     playerStyle: PlayerStyle,
     position: Position,
-    idealBuilds: IdealBuild[],
-    playerStats?: PlayerAttributeStats,
-    isGoalkeeper?: boolean,
-    physicalAttributes?: PhysicalAttribute,
+    idealBuilds: IdealBuild[]
 ): { bestBuild: IdealBuild | null; bestStyle: PlayerStyle | null } {
-
-    // --- Search Hierarchy ---
-
     // 1. Strict Search: Exact Position + Player Style
     const strictBuild = idealBuilds.find(b => b.position === position && b.style === playerStyle);
     if (strictBuild) {
@@ -215,43 +208,14 @@ export function getIdealBuildForPlayer(
         compatiblePositions.push(archetype);
     }
     
-    // Find all builds that are valid for this position or its archetype
     const validBuildsForPosition = idealBuilds.filter(b => compatiblePositions.includes(b.position));
 
     if (validBuildsForPosition.length === 0) {
         return { bestBuild: null, bestStyle: null };
     }
     
-    // Among the valid builds, find the one with the highest *potential* affinity score
-    let bestFlexBuild: IdealBuild | null = null;
-    let maxPotentialAffinity = -Infinity;
-
-    for (const candidateBuild of validBuildsForPosition) {
-        let potentialAffinity = 0;
-        
-        // If we have player stats, we can calculate a more accurate potential affinity
-        if (playerStats && isGoalkeeper !== undefined) {
-             const tempBuild = calculateProgressionSuggestions(playerStats, candidateBuild, isGoalkeeper);
-             const finalStats = calculateProgressionStats(playerStats, tempBuild, isGoalkeeper);
-             potentialAffinity = calculateAffinityWithBreakdown(finalStats, candidateBuild, physicalAttributes).totalAffinityScore;
-        } else {
-            // Fallback to simple potential calculation if no player stats are available
-            for (const key in candidateBuild.build) {
-                const statKey = key as keyof PlayerAttributeStats;
-                const idealValue = candidateBuild.build[statKey];
-                if (idealValue && idealValue >= 70) {
-                    if (idealValue >= 90) potentialAffinity += 3;
-                    else if (idealValue >= 80) potentialAffinity += 2;
-                    else potentialAffinity += 1;
-                }
-            }
-        }
-        
-        if (potentialAffinity > maxPotentialAffinity) {
-            maxPotentialAffinity = potentialAffinity;
-            bestFlexBuild = candidateBuild;
-        }
-    }
+    // Fallback: just return the first valid build if no better logic is defined
+    const bestFlexBuild = validBuildsForPosition[0];
 
     return { bestBuild: bestFlexBuild, bestStyle: bestFlexBuild?.style || null };
 }
@@ -289,6 +253,11 @@ export type AffinityBreakdownResult = {
         idealValue?: number | { min?: number, max?: number };
         score: number;
     }[];
+    skillsBreakdown?: {
+        skill: PlayerSkill;
+        hasSkill: boolean;
+        score: number;
+    }[];
 };
 
 export const statLabels: Record<keyof PlayerAttributeStats | keyof PhysicalAttribute, string> = {
@@ -305,12 +274,14 @@ export function calculateAffinityWithBreakdown(
     playerStats: PlayerAttributeStats,
     idealBuild: IdealBuild | null,
     physicalAttributes?: PhysicalAttribute,
+    playerSkills?: PlayerSkill[]
 ): AffinityBreakdownResult {
-    if (!idealBuild) return { totalAffinityScore: 0, breakdown: [] };
+    if (!idealBuild) return { totalAffinityScore: 0, breakdown: [], skillsBreakdown: [] };
 
     let totalAffinityScore = 0;
     const breakdown: AffinityBreakdownResult['breakdown'] = [];
-    const { build: idealBuildStats } = idealBuild;
+    const skillsBreakdown: AffinityBreakdownResult['skillsBreakdown'] = [];
+    const { build: idealBuildStats, idealSkills = [] } = idealBuild;
     const isGoalkeeper = idealBuild.position === 'PT';
     const relevantKeys = isGoalkeeper ? goalkeeperStatsKeys : allStatsKeys;
 
@@ -358,8 +329,21 @@ export function calculateAffinityWithBreakdown(
         });
     });
 
+    // Skills breakdown
+    const playerSkillsSet = new Set(playerSkills || []);
+    for (const idealSkill of idealSkills) {
+        const hasSkill = playerSkillsSet.has(idealSkill);
+        const score = hasSkill ? 2.0 : 0;
+        totalAffinityScore += score;
+        skillsBreakdown.push({
+            skill: idealSkill,
+            hasSkill,
+            score
+        });
+    }
 
-    return { totalAffinityScore, breakdown };
+
+    return { totalAffinityScore, breakdown, skillsBreakdown };
 }
 
 export const hasProgressionPoints = (build: PlayerBuild | undefined): boolean => {
@@ -512,5 +496,3 @@ export function calculateProgressionSuggestions(
 
   return build;
 }
-
-

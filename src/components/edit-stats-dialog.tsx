@@ -3,7 +3,7 @@
 "use client";
 
 import * as React from "react";
-import type { Player, PlayerCard, PlayerAttributeStats, PhysicalAttribute } from "@/lib/types";
+import type { Player, PlayerCard, PlayerAttributeStats, PhysicalAttribute, PlayerSkill } from "@/lib/types";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -22,14 +22,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "./ui/textarea";
-import { UploadCloud, Footprints } from "lucide-react";
+import { UploadCloud } from "lucide-react";
+import { playerSkills } from "@/lib/types";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "./ui/command";
+import { Badge } from "./ui/badge";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+
 
 const statSchema = z.coerce.number().min(0).max(99).optional();
 const physicalSchema = z.coerce.number().min(0).optional();
 
 const formSchema = z.object({
-    // Physical
     legLength: physicalSchema,
+    skills: z.array(z.enum(playerSkills)).optional(),
     // Attacking
     offensiveAwareness: statSchema,
     ballControl: statSchema,
@@ -128,7 +135,7 @@ const orderedStatFields: (keyof PlayerAttributeStats)[] = statFields.flatMap(cat
 type EditStatsDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSaveStats: (playerId: string, cardId: string, stats: PlayerAttributeStats, physical: PhysicalAttribute) => void;
+  onSaveStats: (playerId: string, cardId: string, stats: PlayerAttributeStats, physical: PhysicalAttribute, skills: PlayerSkill[]) => void;
   initialData?: {
     player: Player;
     card: PlayerCard;
@@ -137,17 +144,22 @@ type EditStatsDialogProps = {
 
 export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }: EditStatsDialogProps) {
   const [pastedText, setPastedText] = React.useState('');
+  const [skillsPopoverOpen, setSkillsPopoverOpen] = React.useState(false);
   const { toast } = useToast();
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {},
   });
+  
+  const { setValue, watch } = form;
+  const watchedSkills = watch('skills') || [];
 
   React.useEffect(() => {
     if (open) {
       const defaultValues: Record<string, any> = {
-        legLength: initialData?.card?.physicalAttributes?.legLength ?? ''
+        legLength: initialData?.card?.physicalAttributes?.legLength ?? '',
+        skills: initialData?.card?.skills || [],
       };
       statFields.forEach(cat => cat.fields.forEach(f => defaultValues[f.name] = initialData?.card?.attributeStats?.[f.name] ?? ''));
       form.reset(defaultValues);
@@ -157,7 +169,7 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
 
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
     if (initialData) {
-        const { legLength, ...stats } = values;
+        const { legLength, skills, ...stats } = values;
         const physical: PhysicalAttribute = { legLength };
 
         const cleanedStats: PlayerAttributeStats = {};
@@ -174,7 +186,7 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
             cleanedPhysical.legLength = Number(physical.legLength);
         }
 
-      onSaveStats(initialData.player.id, initialData.card.id, cleanedStats, cleanedPhysical);
+      onSaveStats(initialData.player.id, initialData.card.id, cleanedStats, cleanedPhysical, skills || []);
       onOpenChange(false);
     }
   };
@@ -183,8 +195,9 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
     const lines = pastedText.split('\n').filter(line => line.trim() !== '');
     let parsedCount = 0;
     
-    // Preserve current physical attributes
+    // Preserve current physical attributes and skills
     const currentLegLength = form.getValues('legLength');
+    const currentSkills = form.getValues('skills');
     
     // Check if the format is just numbers
     const isNumericOnly = lines.every(line => /^\d+\s*$/.test(line.trim()));
@@ -224,8 +237,9 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
         });
     }
     
-    // Restore physical attributes
+    // Restore physical attributes and skills
     form.setValue('legLength', currentLegLength);
+    form.setValue('skills', currentSkills);
 
     if (parsedCount > 0) {
       toast({
@@ -241,6 +255,16 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
       });
     }
   };
+
+  const handleSkillToggle = (skillToToggle: PlayerSkill) => {
+    const currentValues = watchedSkills;
+    const isSelected = currentValues.includes(skillToToggle);
+    const newValues = isSelected
+      ? currentValues.filter((s) => s !== skillToToggle)
+      : [...currentValues, skillToToggle];
+    setValue('skills', newValues, { shouldValidate: true });
+  };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -270,28 +294,80 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
             <ScrollArea className="flex-grow pr-4 -mr-4">
               <div className="space-y-6">
                 <div className="p-4 rounded-lg border bg-background/50">
-                    <h3 className="text-lg font-semibold mb-3 text-primary text-center">Medida Física</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-3">
-                       <FormField
-                        control={form.control}
-                        name="legLength"
-                        render={({ field: formField }) => (
-                            <FormItem>
-                            <FormLabel className="text-xs">Largo de Piernas</FormLabel>
-                            <FormControl>
-                                <Input
-                                type="number"
-                                {...formField}
-                                value={formField.value ?? ''}
-                                onChange={e => formField.onChange(e.target.value === '' ? undefined : e.target.value)}
-                                />
-                            </FormControl>
-                            
-                            </FormItem>
-                        )}
-                        />
-                    </div>
+                    <h3 className="text-lg font-semibold mb-3 text-primary">Medidas Físicas</h3>
+                     <FormField
+                      control={form.control}
+                      name="legLength"
+                      render={({ field: formField }) => (
+                          <FormItem>
+                          <FormLabel className="text-xs">Largo de Piernas</FormLabel>
+                          <FormControl>
+                              <Input
+                              type="number"
+                              {...formField}
+                              value={formField.value ?? ''}
+                              onChange={e => formField.onChange(e.target.value === '' ? undefined : e.target.value)}
+                              />
+                          </FormControl>
+                          </FormItem>
+                      )}
+                      />
                 </div>
+                
+                 <div className="p-4 rounded-lg border bg-background/50">
+                    <h3 className="text-lg font-semibold mb-3 text-primary">Habilidades del Jugador</h3>
+                    <FormField
+                      control={form.control}
+                      name="skills"
+                      render={({ field }) => (
+                        <FormItem>
+                          <Popover open={skillsPopoverOpen} onOpenChange={setSkillsPopoverOpen}>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" role="combobox" className="w-full justify-between h-auto min-h-10">
+                                <div className="flex gap-1 flex-wrap">
+                                  {watchedSkills.length > 0 ? (
+                                    watchedSkills.map((skill) => (
+                                      <Badge variant="secondary" key={skill} className="mr-1">
+                                        {skill}
+                                      </Badge>
+                                    ))
+                                  ) : (
+                                    <span className="text-muted-foreground">Seleccionar habilidades...</span>
+                                  )}
+                                </div>
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                               <Command>
+                                  <CommandInput placeholder="Buscar habilidad..." />
+                                  <CommandList>
+                                      <CommandEmpty>No se encontró la habilidad.</CommandEmpty>
+                                      {playerSkills.map((skill) => (
+                                          <CommandItem
+                                              key={skill}
+                                              value={skill}
+                                              onSelect={() => handleSkillToggle(skill)}
+                                          >
+                                              <Check
+                                                  className={cn(
+                                                      "mr-2 h-4 w-4",
+                                                      watchedSkills.includes(skill) ? "opacity-100" : "opacity-0"
+                                                  )}
+                                              />
+                                              {skill}
+                                          </CommandItem>
+                                      ))}
+                                  </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                </div>
+
 
                 {statFields.map((category) => (
                   <div key={category.category}>
