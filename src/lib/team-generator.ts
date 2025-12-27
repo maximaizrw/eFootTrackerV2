@@ -1,5 +1,6 @@
 
 import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, FormationSlot as FormationSlotType, IdealBuild } from './types';
+import { getAvailableStylesForPosition } from './types';
 import { calculateStats, calculateGeneralScore, getIdealBuildForPlayer, calculateProgressionStats, isSpecialCard, calculateAffinityWithBreakdown } from './utils';
 
 type CandidatePlayer = {
@@ -148,7 +149,8 @@ export function generateIdealTeam(
   };
   
   const getCandidatesForSlot = (formationSlot: FormationSlotType): CandidatePlayer[] => {
-    const hasStylePreference = formationSlot.styles && formationSlot.styles.length > 0;
+    const slotStyles = formationSlot.styles || [];
+    const hasStylePreference = slotStyles.length > 0;
     const targetPosition = formationSlot.position;
 
     let targetPositions: Position[] = [targetPosition];
@@ -164,9 +166,16 @@ export function generateIdealTeam(
         .filter(p => targetPositions.includes(p.position));
         
     if (hasStylePreference) {
-        const styleCandidates = positionCandidates.filter(p => formationSlot.styles!.includes(p.card.style));
-        if (styleCandidates.length > 0) {
-            positionCandidates = styleCandidates;
+        // Special case for "Ninguno": find players with deactivated playstyles for the target position.
+        if (slotStyles.length === 1 && slotStyles[0] === 'Ninguno') {
+            const activeStylesForPos = getAvailableStylesForPosition(targetPosition);
+            positionCandidates = positionCandidates.filter(p => !activeStylesForPos.includes(p.card.style));
+        } else {
+            // Standard filtering: find players that have one of the required styles.
+            const styleCandidates = positionCandidates.filter(p => slotStyles.includes(p.card.style));
+            if (styleCandidates.length > 0) {
+                positionCandidates = styleCandidates;
+            }
         }
     }
     return positionCandidates.sort(sortFunction);
@@ -268,5 +277,3 @@ export function generateIdealTeam(
     return { starter, substitute };
   });
 }
-
-    

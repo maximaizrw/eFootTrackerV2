@@ -353,6 +353,7 @@ export function getAvailableStylesForPosition(position: BuildPosition, includeNo
         case 'DC':
             return [...baseStyles, 'Cazagoles', 'Hombre de área', 'Señuelo', 'Hombre objetivo', 'Jugador de huecos', 'Extremo móvil', 'Segundo delantero'];
         default:
+            // For safety, return all styles if position is not recognized, though this shouldn't happen with TypeScript.
             return playerStyles;
     }
 }

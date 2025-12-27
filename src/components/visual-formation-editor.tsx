@@ -53,7 +53,8 @@ const PlayerToken = ({
   };
 
   const displayPosition = slot.position;
-  const availableStyles = getAvailableStylesForPosition(slot.position);
+  // Always include "Ninguno" as an option in the formation editor.
+  const availableStyles: PlayerStyle[] = ['Ninguno', ...getAvailableStylesForPosition(slot.position, false)];
   
   return (
     <div
