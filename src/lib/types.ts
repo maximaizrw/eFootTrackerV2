@@ -47,7 +47,7 @@ export const playerSkillsList = [
     "Especialista en penaltis", "Parapenaltis (Portero)", "Picardía", "Marcaje",
     "Delantero atrasado", "Interceptador", "Bloqueador", "Superioridad aérea",
     "Entrada deslizante", "Despeje acrobático", "Capitanía", "As en la manga",
-    "Croqueta", "Espíritu de lucha", "Pase medido", "Doble toque", "Tijera", "Elastica"
+    "Croqueta", "Espíritu de lucha", "Pase medido", "Doble toque", "Tijera", "Elastica", "Taconazo"
 ] as const;
 
 export type PlayerSkill = typeof playerSkillsList[number];
