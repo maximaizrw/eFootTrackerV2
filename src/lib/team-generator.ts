@@ -1,4 +1,5 @@
 
+
 import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, FormationSlot as FormationSlotType, IdealBuild } from './types';
 import { getAvailableStylesForPosition } from './types';
 import { calculateStats, calculateGeneralScore, getIdealBuildForPlayer, calculateProgressionStats, isSpecialCard, calculateAffinityWithBreakdown } from './utils';
@@ -99,7 +100,7 @@ export function generateIdealTeam(
             ? (card.attributeStats || {})
             : calculateProgressionStats(card.attributeStats || {}, buildForPos, isGoalkeeper);
 
-        const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds, card.attributeStats, isGoalkeeper, card.physicalAttributes);
+        const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds, card.physicalAttributes, isGoalkeeper, card.physicalAttributes);
         const affinityScore = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes).totalAffinityScore;
         
         const generalScore = calculateGeneralScore(affinityScore, stats.average);
@@ -198,30 +199,12 @@ export function generateIdealTeam(
   }
   
   // --- SUBSTITUTE SELECTION ---
+  // Step 1: Find a direct substitute for each starter position
   finalTeamSlots.forEach((slot, index) => {
     const formationSlot = formation.slots[index];
     const allCandidatesForSlot = getCandidatesForSlot(formationSlot);
-
-    // 1. Separate candidates into "test" and "consolidated" pools
-    const testPlayers = allCandidatesForSlot.filter(p => p.performance.stats.matches < 10);
-    const consolidatedPlayers = allCandidatesForSlot.filter(p => p.performance.stats.matches >= 10);
+    const substituteCandidate = findBestPlayer(allCandidatesForSlot);
     
-    // 2. Sort "test" players by affinity first, then average
-    testPlayers.sort((a, b) => {
-        if (b.affinityScore !== a.affinityScore) return b.affinityScore - a.affinityScore;
-        if (b.average !== a.average) return b.average - a.average;
-        return b.performance.stats.matches - a.performance.stats.matches;
-    });
-
-    // 3. Find the best substitute
-    // Priority 1: Best "test" player available
-    let substituteCandidate = findBestPlayer(testPlayers);
-    
-    // Priority 2: If no "test" player is available, find the best "consolidated" player
-    if (!substituteCandidate) {
-        substituteCandidate = findBestPlayer(consolidatedPlayers);
-    }
-
     if (substituteCandidate) {
       usedPlayerIds.add(substituteCandidate.player.id);
       usedCardIds.add(substituteCandidate.card.id);
@@ -230,25 +213,23 @@ export function generateIdealTeam(
     slot.substitute = createTeamPlayer(substituteCandidate, formationSlot.position);
   });
   
+  // Step 2: Find the 12th substitute (best player with < 10 matches)
+  const testPlayersPool = allPlayerCandidates.filter(p => p.performance.stats.matches < 10);
+  const bestTestPlayer = findBestPlayer(testPlayersPool.sort(sortFunction));
+
+  if (bestTestPlayer) {
+    finalTeamSlots.push({
+      starter: null, // This slot is just for the 12th sub
+      substitute: createTeamPlayer(bestTestPlayer, bestTestPlayer.position),
+    });
+  }
+
   const placeholderPerformance: PlayerPerformance = {
         stats: { average: 0, matches: 0, stdDev: 0 },
         isHotStreak: false, isConsistent: false, isPromising: false, isVersatile: false
   };
   
-    // Add 12th substitute - Best of the rest
-    const bestOfTheRest = findBestPlayer(allPlayerCandidates.sort(sortFunction));
-    if (bestOfTheRest) {
-      const bestSub = createTeamPlayer(bestOfTheRest, bestOfTheRest.position);
-      if (bestSub) {
-          finalTeamSlots.push({
-              // This starter is a dummy, won't be displayed
-              starter: null,
-              substitute: bestSub
-          });
-      }
-    }
-
-
+  // Fill any empty slots with placeholders
   return finalTeamSlots.map((slot, index) => {
     const formationSlot = index < formation.slots.length ? formation.slots[index] : null;
     const assignedPosition = formationSlot?.position || (slot.substitute?.position || 'DFC');
