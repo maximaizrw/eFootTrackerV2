@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import type { IdealTeamPlayer, IdealTeamSlot, FormationStats, Position, PlayerBuild, PhysicalAttribute } from '@/lib/types';
@@ -35,8 +36,8 @@ const PlayerToken = ({ player, style, onDiscard, onViewBuild }: { player: IdealT
   const specialCard = isSpecialCard(player.card.name);
   const hasNoStats = !player.card.attributeStats || Object.keys(player.card.attributeStats).length === 0;
   const needsProgressionPoints = !specialCard && !player.card.totalProgressionPoints;
-  const requiredPhysicalKeys: (keyof PhysicalAttribute)[] = ['legLength', 'armLength', 'shoulderWidth', 'neckLength'];
-  const needsPhysicalAttrs = !player.card.physicalAttributes || requiredPhysicalKeys.some(key => player.card.physicalAttributes![key] === undefined);
+  const needsPhysicalAttrs = !player.card.physicalAttributes || player.card.physicalAttributes.legLength === undefined;
+
 
   const nameColorClass = hasNoStats || needsProgressionPoints || needsPhysicalAttrs ? 'text-red-500' : '';
 
@@ -115,8 +116,8 @@ const SubstitutePlayerRow = ({ player, onDiscard, onViewBuild }: { player: Ideal
   const specialCard = isSpecialCard(player.card.name);
   const hasNoStats = !player.card.attributeStats || Object.keys(player.card.attributeStats).length === 0;
   const needsProgressionPoints = !specialCard && !player.card.totalProgressionPoints;
-  const requiredPhysicalKeys: (keyof PhysicalAttribute)[] = ['legLength', 'armLength', 'shoulderWidth', 'neckLength'];
-  const needsPhysicalAttrs = !player.card.physicalAttributes || requiredPhysicalKeys.some(key => player.card.physicalAttributes![key] === undefined);
+  const needsPhysicalAttrs = !player.card.physicalAttributes || player.card.physicalAttributes.legLength === undefined;
+
 
   const nameColorClass = hasNoStats || needsProgressionPoints || needsPhysicalAttrs ? 'text-red-500' : '';
 

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from "react";
@@ -39,9 +40,6 @@ const buildSchema = z.object({
   style: z.enum(playerStyles),
   // Physical
   legLength: minMaxSchema,
-  armLength: minMaxSchema,
-  shoulderWidth: minMaxSchema,
-  neckLength: minMaxSchema,
   // Build
   build: z.object({
     // Attacking
@@ -136,13 +134,6 @@ const statFields: { category: string, fields: { name: keyof PlayerAttributeStats
     }
 ];
 
-const physicalFields: { name: keyof PhysicalAttribute, label: string }[] = [
-    { name: 'legLength', label: 'Largo de Piernas' },
-    { name: 'armLength', label: 'Largo de Brazos' },
-    { name: 'shoulderWidth', label: 'Ancho de Hombros' },
-    { name: 'neckLength', label: 'Largo del Cuello' },
-];
-
 const nameToSchemaKeyMap: Record<string, keyof PlayerAttributeStats> = {
     "offensive awareness": "offensiveAwareness", "ball control": "ballControl", "dribbling": "dribbling",
     "tight possession": "tightPossession", "low pass": "lowPass", "lofted pass": "loftedPass",
@@ -166,9 +157,6 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
       position: "DC",
       style: "Cazagoles",
       legLength: { min: undefined, max: undefined },
-      armLength: { min: undefined, max: undefined },
-      shoulderWidth: { min: undefined, max: undefined },
-      neckLength: { min: undefined, max: undefined },
       build: {},
     },
   });
@@ -187,9 +175,6 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
         position: "DC",
         style: "Cazagoles",
         legLength: { min: undefined, max: undefined },
-        armLength: { min: undefined, max: undefined },
-        shoulderWidth: { min: undefined, max: undefined },
-        neckLength: { min: undefined, max: undefined },
         build: defaultBuild,
       };
 
@@ -202,9 +187,6 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
           position: initialBuild.position,
           style: initialBuild.style,
           legLength: { min: initialBuild.legLength?.min || undefined, max: initialBuild.legLength?.max || undefined },
-          armLength: { min: initialBuild.armLength?.min || undefined, max: initialBuild.armLength?.max || undefined },
-          shoulderWidth: { min: initialBuild.shoulderWidth?.min || undefined, max: initialBuild.shoulderWidth?.max || undefined },
-          neckLength: { min: initialBuild.neckLength?.min || undefined, max: initialBuild.neckLength?.max || undefined },
           build: initialBuildValues,
         };
         reset(mergedInitial);
@@ -232,9 +214,6 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
       position: values.position,
       style: values.style,
       legLength: { min: values.legLength?.min, max: values.legLength?.max },
-      armLength: { min: values.armLength?.min, max: values.armLength?.max },
-      shoulderWidth: { min: values.shoulderWidth?.min, max: values.shoulderWidth?.max },
-      neckLength: { min: values.neckLength?.min, max: values.neckLength?.max },
       build: {},
     };
 
@@ -256,11 +235,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
     const lines = pastedText.split('\n').filter(line => line.trim() !== '');
     let parsedCount = 0;
     
-    // Preserve current physical attributes
-    const currentPhysical: any = {};
-    physicalFields.forEach(f => {
-        currentPhysical[f.name] = getValues(f.name as any);
-    });
+    const currentLegLength = getValues("legLength");
 
     const isNumericOnly = lines.every(line => /^\d+\s*$/.test(line.trim()));
 
@@ -299,10 +274,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
         });
     }
 
-    // Restore physical attributes
-    physicalFields.forEach(f => {
-      setValue(f.name as any, currentPhysical[f.name]);
-    });
+    setValue("legLength", currentLegLength);
 
     if (parsedCount > 0) {
       toast({
@@ -391,52 +363,50 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
                 </div>
                 
                  <div className="p-4 rounded-lg border bg-background/50 space-y-4">
-                    <h3 className="text-lg font-semibold mb-3 text-primary text-center">Rango de Medidas Físicas Ideales</h3>
-                    {physicalFields.map(fieldInfo => (
-                        <div key={fieldInfo.name}>
-                            <FormLabel className="text-base mb-2 block text-center">{fieldInfo.label}</FormLabel>
-                            <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
-                                <FormField
-                                    control={form.control}
-                                    name={`${fieldInfo.name}.min` as any}
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-sm">Mínimo Ideal</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    type="number"
-                                                    {...field}
-                                                    value={field.value ?? ''}
-                                                    onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)}
-                                                    className="text-center"
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name={`${fieldInfo.name}.max` as any}
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-sm">Máximo Ideal</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    type="number"
-                                                    {...field}
-                                                    value={field.value ?? ''}
-                                                    onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)}
-                                                    className="text-center"
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
+                    <h3 className="text-lg font-semibold mb-3 text-primary text-center">Rango de Medida Física Ideal</h3>
+                    <div>
+                        <FormLabel className="text-base mb-2 block text-center">Largo de Piernas</FormLabel>
+                        <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
+                            <FormField
+                                control={form.control}
+                                name="legLength.min"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-sm">Mínimo Ideal</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                type="number"
+                                                {...field}
+                                                value={field.value ?? ''}
+                                                onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)}
+                                                className="text-center"
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="legLength.max"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-sm">Máximo Ideal</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                type="number"
+                                                {...field}
+                                                value={field.value ?? ''}
+                                                onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)}
+                                                className="text-center"
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                         </div>
-                    ))}
+                    </div>
                 </div>
 
                 {statFields.map((category) => (

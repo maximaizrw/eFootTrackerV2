@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import type { AffinityBreakdownResult } from "@/lib/utils";
@@ -13,7 +14,7 @@ type AffinityBreakdownProps = {
 };
 
 const physicalAttributeKeys: (keyof PhysicalAttribute)[] = [
-    'legLength', 'armLength', 'shoulderWidth', 'neckLength'
+    'legLength'
 ];
 
 

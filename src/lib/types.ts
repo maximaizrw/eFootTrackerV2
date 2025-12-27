@@ -68,9 +68,6 @@ export type IdealBuild = {
   style: PlayerStyle;
   build: PlayerAttributeStats;
   legLength?: MinMaxRange;
-  armLength?: MinMaxRange;
-  shoulderWidth?: MinMaxRange;
-  neckLength?: MinMaxRange;
 };
 
 export type PlayerAttributeStats = {
@@ -158,9 +155,6 @@ export type PositionLabel = typeof positionLabels[Position];
 
 export type PhysicalAttribute = {
   legLength?: number;
-  armLength?: number;
-  shoulderWidth?: number;
-  neckLength?: number;
 }
 
 export type PlayerCard = {

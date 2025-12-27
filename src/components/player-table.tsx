@@ -173,9 +173,7 @@ export function PlayerTable({
             const specialCard = isSpecialCard(card.name);
             const hasNoStats = !card.attributeStats || Object.keys(card.attributeStats).length === 0;
             const needsProgressionPoints = !specialCard && !card.totalProgressionPoints;
-
-            const requiredPhysicalKeys: (keyof PhysicalAttribute)[] = ['legLength', 'armLength', 'shoulderWidth', 'neckLength'];
-            const needsPhysicalAttrs = !card.physicalAttributes || requiredPhysicalKeys.some(key => card.physicalAttributes![key] === undefined);
+            const needsPhysicalAttrs = !card.physicalAttributes || card.physicalAttributes.legLength === undefined;
 
             const nameColorClass = hasNoStats || needsProgressionPoints || needsPhysicalAttrs ? "text-red-500" : "";
 

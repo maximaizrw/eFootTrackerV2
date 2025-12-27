@@ -299,9 +299,6 @@ export const statLabels: Record<keyof PlayerAttributeStats | keyof PhysicalAttri
     speed: 'Velocidad', acceleration: 'Aceleración', kickingPower: 'Potencia de Tiro', jump: 'Salto', physicalContact: 'Contacto Físico',
     balance: 'Equilibrio', stamina: 'Resistencia',
     legLength: 'Largo de Piernas',
-    armLength: 'Largo de Brazos',
-    shoulderWidth: 'Ancho de Hombros',
-    neckLength: 'Largo del Cuello',
 };
 
 export function calculateAffinityWithBreakdown(
@@ -348,7 +345,7 @@ export function calculateAffinityWithBreakdown(
     }
 
     // Physical attributes breakdown
-    const physicalAttrKeys: (keyof PhysicalAttribute)[] = ['legLength', 'armLength', 'shoulderWidth', 'neckLength'];
+    const physicalAttrKeys: (keyof PhysicalAttribute)[] = ['legLength'];
     physicalAttrKeys.forEach(key => {
         const score = calculatePhysicalAttributeAffinity(physicalAttributes?.[key], idealBuild[key]);
         totalAffinityScore += score;
@@ -515,4 +512,5 @@ export function calculateProgressionSuggestions(
 
   return build;
 }
+
 

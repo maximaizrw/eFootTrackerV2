@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from "react";
@@ -29,9 +30,6 @@ const physicalSchema = z.coerce.number().min(0).optional();
 const formSchema = z.object({
     // Physical
     legLength: physicalSchema,
-    armLength: physicalSchema,
-    shoulderWidth: physicalSchema,
-    neckLength: physicalSchema,
     // Attacking
     offensiveAwareness: statSchema,
     ballControl: statSchema,
@@ -64,12 +62,6 @@ const formSchema = z.object({
     stamina: statSchema,
 });
 
-const physicalFields: { name: keyof PhysicalAttribute, label: string }[] = [
-    { name: 'legLength', label: 'Largo de Piernas' },
-    { name: 'armLength', label: 'Largo de Brazos' },
-    { name: 'shoulderWidth', label: 'Ancho de Hombros' },
-    { name: 'neckLength', label: 'Largo del Cuello' },
-];
 
 const statFields: { category: string, fields: { name: keyof PlayerAttributeStats, label: string }[] }[] = [
     { 
@@ -154,8 +146,9 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
 
   React.useEffect(() => {
     if (open) {
-      const defaultValues: Record<string, any> = {};
-      physicalFields.forEach(f => defaultValues[f.name] = initialData?.card?.physicalAttributes?.[f.name] ?? '');
+      const defaultValues: Record<string, any> = {
+        legLength: initialData?.card?.physicalAttributes?.legLength ?? ''
+      };
       statFields.forEach(cat => cat.fields.forEach(f => defaultValues[f.name] = initialData?.card?.attributeStats?.[f.name] ?? ''));
       form.reset(defaultValues);
     }
@@ -164,8 +157,8 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
 
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
     if (initialData) {
-        const { legLength, armLength, shoulderWidth, neckLength, ...stats } = values;
-        const physical: PhysicalAttribute = { legLength, armLength, shoulderWidth, neckLength };
+        const { legLength, ...stats } = values;
+        const physical: PhysicalAttribute = { legLength };
 
         const cleanedStats: PlayerAttributeStats = {};
         for (const key in stats) {
@@ -177,13 +170,10 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
         }
         
         const cleanedPhysical: PhysicalAttribute = {};
-        for (const key in physical) {
-            const typedKey = key as keyof PhysicalAttribute;
-            const value = physical[typedKey];
-            if (value !== '' && value !== null && value !== undefined && !isNaN(Number(value))) {
-                cleanedPhysical[typedKey] = Number(value);
-            }
+        if (physical.legLength !== '' && physical.legLength !== null && physical.legLength !== undefined && !isNaN(Number(physical.legLength))) {
+            cleanedPhysical.legLength = Number(physical.legLength);
         }
+
       onSaveStats(initialData.player.id, initialData.card.id, cleanedStats, cleanedPhysical);
       onOpenChange(false);
     }
@@ -194,10 +184,7 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
     let parsedCount = 0;
     
     // Preserve current physical attributes
-    const currentPhysical: Partial<PhysicalAttribute> = {};
-    physicalFields.forEach(f => {
-        currentPhysical[f.name] = form.getValues(f.name);
-    });
+    const currentLegLength = form.getValues('legLength');
     
     // Check if the format is just numbers
     const isNumericOnly = lines.every(line => /^\d+\s*$/.test(line.trim()));
@@ -238,9 +225,7 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
     }
     
     // Restore physical attributes
-    physicalFields.forEach(f => {
-      form.setValue(f.name, currentPhysical[f.name]);
-    });
+    form.setValue('legLength', currentLegLength);
 
     if (parsedCount > 0) {
       toast({
@@ -285,29 +270,26 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
             <ScrollArea className="flex-grow pr-4 -mr-4">
               <div className="space-y-6">
                 <div className="p-4 rounded-lg border bg-background/50">
-                    <h3 className="text-lg font-semibold mb-3 text-primary text-center">Medidas Físicas</h3>
+                    <h3 className="text-lg font-semibold mb-3 text-primary text-center">Medida Física</h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-3">
-                        {physicalFields.map((field) => (
-                           <FormField
-                            key={field.name}
-                            control={form.control}
-                            name={field.name}
-                            render={({ field: formField }) => (
-                                <FormItem>
-                                <FormLabel className="text-xs">{field.label}</FormLabel>
-                                <FormControl>
-                                    <Input
-                                    type="number"
-                                    {...formField}
-                                    value={formField.value ?? ''}
-                                    onChange={e => formField.onChange(e.target.value === '' ? undefined : e.target.value)}
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                            />
-                        ))}
+                       <FormField
+                        control={form.control}
+                        name="legLength"
+                        render={({ field: formField }) => (
+                            <FormItem>
+                            <FormLabel className="text-xs">Largo de Piernas</FormLabel>
+                            <FormControl>
+                                <Input
+                                type="number"
+                                {...formField}
+                                value={formField.value ?? ''}
+                                onChange={e => formField.onChange(e.target.value === '' ? undefined : e.target.value)}
+                                />
+                            </FormControl>
+                            
+                            </FormItem>
+                        )}
+                        />
                     </div>
                 </div>
 
@@ -326,7 +308,7 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
                               <FormControl>
                                 <Input type="number" min="0" max="99" {...formField} value={formField.value ?? ''} onChange={e => formField.onChange(e.target.value === '' ? undefined : e.target.value)} />
                               </FormControl>
-                              <FormMessage />
+                              
                             </FormItem>
                           )}
                         />
