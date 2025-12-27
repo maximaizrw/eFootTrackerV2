@@ -43,6 +43,7 @@ import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlo
 import { positions, leagues, nationalities } from '@/lib/types';
 import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Wrench, Dna, RefreshCw, Beaker, Wand2, Sparkles } from 'lucide-react';
 import { normalizeText } from '@/lib/utils';
+import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 const ITEMS_PER_PAGE = 10;
@@ -159,7 +160,7 @@ export default function Home() {
       return;
     }
     
-    const newTeam = flatPlayers.length > 0 ? generateIdealTeam(flatPlayers, formation, discardedCardIds, sortBy, isFlexibleLaterals, isFlexibleWingers) : [];
+    const newTeam = players.length > 0 ? generateIdealTeam(players, formation, idealBuilds, discardedCardIds, selectedLeague, selectedNationality, sortBy, isFlexibleLaterals, isFlexibleWingers) : [];
 
     setIdealTeam(newTeam);
     if (document.activeElement instanceof HTMLElement) {
@@ -713,3 +714,4 @@ export default function Home() {
     </div>
   );
 }
+
