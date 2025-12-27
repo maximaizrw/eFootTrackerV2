@@ -37,7 +37,7 @@ export const nationalities = [
 export type Nationality = typeof nationalities[number];
 
 export const playerSkillsList = [
-    "Elástica", "Marsellesa", "Sombrero", "Recorte con giro", "Amago por detrás y giro",
+    "Elástica", "Marsellesa", "Sombrero", "Recorte y cambio", "Amago por detrás y giro",
     "Rebote interior", "Control con la suela", "Cabeceador", "Disparo lejano con rosca",
     "Vaselina", "Tiro de larga distancia", "Disparo descendente", "Disparo ascendente",
     "Finalización acrobática", "Espuela", "Remate al primer toque", "Pase al primer toque",
@@ -47,7 +47,7 @@ export const playerSkillsList = [
     "Especialista en penaltis", "Parapenaltis (Portero)", "Picardía", "Marcaje",
     "Delantero atrasado", "Interceptador", "Bloqueador", "Superioridad aérea",
     "Entrada deslizante", "Despeje acrobático", "Capitanía", "As en la manga",
-    "Croqueta", "Espíritu de lucha", "Pase medido", "Doble toque"
+    "Croqueta", "Espíritu de lucha", "Pase medido", "Doble toque", "Tijera"
 ] as const;
 
 export type PlayerSkill = typeof playerSkillsList[number];
