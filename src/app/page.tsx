@@ -26,7 +26,6 @@ import { PlayerDetailDialog } from '@/components/player-detail-dialog';
 import { PlayerBuildViewer } from '@/components/player-build-viewer';
 import { IdealBuildEditor } from '@/components/ideal-build-editor';
 import { PlayerTester } from '@/components/player-tester';
-import { SkillsManager } from '@/components/skills-manager';
 
 import { FormationsDisplay } from '@/components/formations-display';
 import { IdealTeamDisplay } from '@/components/ideal-team-display';
@@ -38,28 +37,17 @@ import { NationalityDistribution } from '@/components/nationality-distribution';
 import { usePlayers } from '@/hooks/usePlayers';
 import { useFormations } from '@/hooks/useFormations';
 import { useIdealBuilds } from '@/hooks/useIdealBuilds';
-import { useSkills } from '@/hooks/useSkills';
 import { useToast } from "@/hooks/use-toast";
 
-import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerBuild, IdealTeamPlayer, PlayerAttributeStats, IdealBuild, BuildPosition } from '@/lib/types';
+import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerBuild, IdealTeamPlayer, PlayerAttributeStats, IdealBuild } from '@/lib/types';
 import { positions, leagues, nationalities } from '@/lib/types';
 import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Wrench, Dna, RefreshCw, Beaker, Wand2, Sparkles } from 'lucide-react';
 import { normalizeText } from '@/lib/utils';
-import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 const ITEMS_PER_PAGE = 10;
 
 export default function Home() {
-  const {
-    skills,
-    loading: skillsLoading,
-    error: skillsError,
-    addSkill,
-    updateSkill,
-    deleteSkill
-  } = useSkills();
-
   const {
     idealBuilds,
     loading: idealBuildsLoading,
@@ -83,7 +71,7 @@ export default function Home() {
     deletePositionRatings,
     recalculateAllAffinities,
     suggestAllBuilds,
-  } = usePlayers(idealBuilds, skills);
+  } = usePlayers(idealBuilds);
 
   const {
     formations,
@@ -151,6 +139,38 @@ export default function Home() {
     }
   }, [formations, selectedFormationId]);
 
+  const handleGenerateTeam = () => {
+    if (!players || !selectedFormationId) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Por favor, selecciona jugadores y una formación primero.',
+      });
+      return;
+    }
+
+    const formation = formations.find(f => f.id === selectedFormationId);
+    if (!formation || !formation.slots) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'La formación seleccionada no es válida.',
+      });
+      return;
+    }
+    
+    const newTeam = flatPlayers.length > 0 ? generateIdealTeam(flatPlayers, formation, discardedCardIds, sortBy, isFlexibleLaterals, isFlexibleWingers) : [];
+
+    setIdealTeam(newTeam);
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    toast({
+      title: "11 Ideal Generado",
+      description: `Se ha generado un equipo para la formación "${formation.name}".`,
+    });
+  };
+
   useEffect(() => {
     if (idealTeam.length > 0) {
       handleGenerateTeam();
@@ -211,37 +231,6 @@ export default function Home() {
     setAddMatchDialogOpen(true);
   };
 
-  const handleGenerateTeam = () => {
-    if (!players || !selectedFormationId) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Por favor, selecciona jugadores y una formación primero.',
-      });
-      return;
-    }
-
-    const formation = formations.find(f => f.id === selectedFormationId);
-    if (!formation || !formation.slots) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'La formación seleccionada no es válida.',
-      });
-      return;
-    }
-    
-    const newTeam = generateIdealTeam(flatPlayers, formation, discardedCardIds, sortBy, isFlexibleLaterals, isFlexibleWingers);
-
-    setIdealTeam(newTeam);
-    if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur();
-    }
-    toast({
-      title: "11 Ideal Generado",
-      description: `Se ha generado un equipo para la formación "${formation.name}".`,
-    });
-  };
   
   const handleFormationSelectionChange = (id: string) => {
     setSelectedFormationId(id);
@@ -362,7 +351,7 @@ export default function Home() {
   };
 
 
-  const error = playersError || formationsError || idealBuildsError || skillsError;
+  const error = playersError || formationsError || idealBuildsError;
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen text-center p-4">
@@ -374,7 +363,7 @@ export default function Home() {
     );
   }
 
-  if (playersLoading || formationsLoading || idealBuildsLoading || skillsLoading) {
+  if (playersLoading || formationsLoading || idealBuildsLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-xl font-semibold">Conectando a la base de datos...</div>
@@ -425,7 +414,6 @@ export default function Home() {
         onOpenChange={setEditStatsDialogOpen}
         onSaveStats={saveAttributeStats}
         initialData={editStatsDialogInitialData}
-        playerSkills={skills}
       />
       <PlayerDetailDialog
         open={isPlayerDetailDialogOpen}
@@ -445,7 +433,6 @@ export default function Home() {
         onSave={saveIdealBuild}
         initialBuild={editingIdealBuild}
         existingBuilds={idealBuilds}
-        playerSkills={skills}
       />
       <AlertDialog open={isImageViewerOpen} onOpenChange={setImageViewerOpen}>
         <AlertDialogContent className="max-w-xl p-0">
@@ -510,10 +497,6 @@ export default function Home() {
                <TabsTrigger value="ideal-builds" className="py-2 px-3 text-sm data-[state=active]:text-accent-foreground data-[state=active]:bg-accent">
                   <Dna className="mr-2 h-5 w-5"/>
                   Builds Ideales
-              </TabsTrigger>
-              <TabsTrigger value="skills" className="py-2 px-3 text-sm data-[state=active]:text-accent-foreground data-[state=active]:bg-accent">
-                  <Sparkles className="mr-2 h-5 w-5"/>
-                  Habilidades
               </TabsTrigger>
               <TabsTrigger value="tester" className="py-2 px-3 text-sm data-[state=active]:text-accent-foreground data-[state=active]:bg-accent">
                   <Beaker className="mr-2 h-5 w-5"/>
@@ -720,18 +703,9 @@ export default function Home() {
               </CardContent>
             </Card>
           </TabsContent>
-
-          <TabsContent value="skills" className="mt-6">
-            <SkillsManager 
-              skills={skills}
-              onAddSkill={addSkill}
-              onUpdateSkill={updateSkill}
-              onDeleteSkill={deleteSkill}
-            />
-          </TabsContent>
           
           <TabsContent value="tester" className="mt-6">
-            <PlayerTester idealBuilds={idealBuilds} playerSkills={skills} />
+            <PlayerTester idealBuilds={idealBuilds} />
           </TabsContent>
 
         </Tabs>
@@ -739,4 +713,3 @@ export default function Home() {
     </div>
   );
 }
-

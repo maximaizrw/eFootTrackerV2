@@ -35,11 +35,21 @@ export const nationalities = [
 ] as const;
 export type Nationality = typeof nationalities[number];
 
-export type Skill = {
-  id: string;
-  name: string;
-};
-export type PlayerSkill = string;
+export const playerSkillsList = [
+    "Elástica", "Marsellesa", "Sombrero", "Recorte con giro", "Amago por detrás y giro",
+    "Rebote interior", "Control con la suela", "Cabeceador", "Disparo lejano con rosca",
+    "Vaselina", "Tiro de larga distancia", "Disparo descendente", "Disparo ascendente",
+    "Finalización acrobática", "Espuela", "Remate al primer toque", "Pase al primer toque",
+    "Pase en profundidad", "Pase al hueco", "Pase cruzado", "Centro con rosca", "Rabona",
+    "Pase sin mirar", "Pase bombeado bajo", "Patadon por bajo (Portero)",
+    "Patadon en largo (Portero)", "Saque de banda largo", "Saque largo (Portero)",
+    "Especialista en penaltis", "Parapenaltis (Portero)", "Picardía", "Marcaje",
+    "Delantero atrasado", "Interceptador", "Bloqueador", "Superioridad aérea",
+    "Entrada deslizante", "Despeje acrobático", "Capitanía", "As en la manga",
+    "Croqueta", "Espíritu de lucha"
+] as const;
+
+export type PlayerSkill = typeof playerSkillsList[number];
 
 
 export type OutfieldBuild = {
@@ -74,9 +84,6 @@ export type IdealBuild = {
   style: PlayerStyle;
   build: PlayerAttributeStats;
   legLength?: MinMaxRange;
-  armLength?: MinMaxRange;
-  shoulderWidth?: MinMaxRange;
-  neckLength?: MinMaxRange;
   idealSkills?: PlayerSkill[];
 };
 
@@ -165,9 +172,6 @@ export type PositionLabel = typeof positionLabels[Position];
 
 export type PhysicalAttribute = {
   legLength?: number;
-  armLength?: number;
-  shoulderWidth?: number;
-  neckLength?: number;
 }
 
 export type PlayerCard = {

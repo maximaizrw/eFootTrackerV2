@@ -129,7 +129,7 @@ export function useIdealBuilds() {
         }
         
         // Ensure legLength and idealSkills are handled correctly
-        const dataToSave: IdealBuild = {
+        const dataToSave: Partial<IdealBuild> = {
           position: finalIdealBuild.position,
           style: finalIdealBuild.style,
           build: finalIdealBuild.build,
@@ -153,7 +153,7 @@ export function useIdealBuilds() {
         toast({ title: "Build Ideal Guardada", description: toastMessage });
 
         // Recalculate affinities for all players affected by this build change
-        await recalculateAllRelevantAffinities({ ...dataToSave, id: build.id });
+        await recalculateAllRelevantAffinities({ ...dataToSave, id: build.id } as IdealBuild);
 
     } catch (error) {
         console.error("Error saving ideal build: ", error);

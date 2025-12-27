@@ -14,7 +14,7 @@ import { Input } from "./ui/input";
 import { UploadCloud, Beaker, Star, Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand } from "lucide-react";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "./ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import type { PlayerAttributeStats, IdealBuild, Position, PlayerStyle, BuildPosition, OutfieldBuild, GoalkeeperBuild, Skill } from "@/lib/types";
+import type { PlayerAttributeStats, IdealBuild, Position, PlayerStyle, BuildPosition, OutfieldBuild, GoalkeeperBuild } from "@/lib/types";
 import { positions, playerStyles, getAvailableStylesForPosition } from "@/lib/types";
 import { calculateProgressionStats, getIdealBuildForPlayer, statLabels, calculateProgressionSuggestions, calculateAffinityWithBreakdown, type AffinityBreakdownResult, allStatsKeys } from "@/lib/utils";
 import { cn, getAverageColorClass } from "@/lib/utils";
@@ -87,10 +87,9 @@ const StatDisplay = ({ label, value }: { label: string; value?: number; }) => {
 
 type PlayerTesterProps = {
   idealBuilds: IdealBuild[];
-  playerSkills: Skill[];
 };
 
-export function PlayerTester({ idealBuilds, playerSkills }: PlayerTesterProps) {
+export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
   const [pastedText, setPastedText] = React.useState('');
   const [affinityBreakdown, setAffinityBreakdown] = React.useState<AffinityBreakdownResult>({ totalAffinityScore: 0, breakdown: [] });
   const [bestBuildStyle, setBestBuildStyle] = React.useState<string | null>(null);

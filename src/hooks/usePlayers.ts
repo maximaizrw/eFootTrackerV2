@@ -7,12 +7,12 @@ import { db } from '@/lib/firebase-config';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, query, where, setDoc } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import { v4 as uuidv4 } from 'uuid';
-import type { Player, PlayerCard, Position, AddRatingFormValues, EditCardFormValues, EditPlayerFormValues, PlayerBuild, League, Nationality, PlayerAttributeStats, IdealBuild, PhysicalAttribute, FlatPlayer, PlayerPerformance, PlayerSkill, Skill } from '@/lib/types';
+import type { Player, PlayerCard, Position, AddRatingFormValues, EditCardFormValues, EditPlayerFormValues, PlayerBuild, League, Nationality, PlayerAttributeStats, IdealBuild, PhysicalAttribute, FlatPlayer, PlayerPerformance, PlayerSkill } from '@/lib/types';
 import { getAvailableStylesForPosition } from '@/lib/types';
 import { normalizeText, calculateProgressionStats, getIdealBuildForPlayer, isSpecialCard, calculateProgressionSuggestions, calculateAffinityWithBreakdown, calculateStats, calculateGeneralScore } from '@/lib/utils';
 
 
-export function usePlayers(idealBuilds: IdealBuild[] = [], skills: Skill[] = []) {
+export function usePlayers(idealBuilds: IdealBuild[] = []) {
   const [players, setPlayers] = useState<Player[]>([]);
   const [flatPlayers, setFlatPlayers] = useState<FlatPlayer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -136,7 +136,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], skills: Skill[] = [])
                         ? (card.attributeStats || {})
                         : calculateProgressionStats(card.attributeStats || {}, buildForPos, isGoalkeeper);
 
-                    const { bestBuild } = getIdealBuildForPlayer(card.style, ratedPos, idealBuilds);
+                    const { bestBuild } = getIdealBuildForPlayer(card.style, ratedPos, idealBuilds, card.physicalAttributes, isGoalkeeper, card.physicalAttributes);
                     const affinityScore = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills).totalAffinityScore;
                     
                     const generalScore = calculateGeneralScore(affinityScore, stats.average);
@@ -147,7 +147,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], skills: Skill[] = [])
         );
         setFlatPlayers(allFlatPlayers);
     }
-  }, [players, idealBuilds, skills]); // Add skills dependency
+  }, [players, idealBuilds]);
 
 
   const addRating = async (values: AddRatingFormValues) => {
