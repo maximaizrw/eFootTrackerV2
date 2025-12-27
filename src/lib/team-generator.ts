@@ -100,8 +100,8 @@ export function generateIdealTeam(
             ? (card.attributeStats || {})
             : calculateProgressionStats(card.attributeStats || {}, buildForPos, isGoalkeeper);
 
-        const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds, card.physicalAttributes, isGoalkeeper, card.physicalAttributes);
-        const affinityScore = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes).totalAffinityScore;
+        const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds, card.physicalAttributes, isGoalkeeper);
+        const affinityScore = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills).totalAffinityScore;
         
         const generalScore = calculateGeneralScore(affinityScore, stats.average);
 
@@ -213,16 +213,28 @@ export function generateIdealTeam(
     slot.substitute = createTeamPlayer(substituteCandidate, formationSlot.position);
   });
   
-  // Step 2: Find the 12th substitute (best player with < 10 matches)
-  const testPlayersPool = allPlayerCandidates.filter(p => p.performance.stats.matches < 10);
+  // Step 2: Find the 12th substitute (best player with < 10 matches from a relevant position)
+  const formationPositions = new Set(formation.slots.map(s => s.position));
+  const testPlayersPool = allPlayerCandidates.filter(p => 
+      p.performance.stats.matches < 10 && formationPositions.has(p.position)
+  );
   const bestTestPlayer = findBestPlayer(testPlayersPool.sort(sortFunction));
 
   if (bestTestPlayer) {
-    finalTeamSlots.push({
-      starter: null, // This slot is just for the 12th sub
-      substitute: createTeamPlayer(bestTestPlayer, bestTestPlayer.position),
-    });
+    // Find an empty substitute slot to place the test player
+    const emptySubSlotIndex = finalTeamSlots.findIndex(s => s.substitute === null || s.substitute.player.id.startsWith('placeholder'));
+    
+    if (emptySubSlotIndex !== -1) {
+        finalTeamSlots[emptySubSlotIndex].substitute = createTeamPlayer(bestTestPlayer, bestTestPlayer.position);
+    } else {
+        // If all sub slots are somehow filled, just add them. This is a fallback.
+        finalTeamSlots.push({
+            starter: null,
+            substitute: createTeamPlayer(bestTestPlayer, bestTestPlayer.position),
+        });
+    }
   }
+
 
   const placeholderPerformance: PlayerPerformance = {
         stats: { average: 0, matches: 0, stdDev: 0 },
