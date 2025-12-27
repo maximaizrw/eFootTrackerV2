@@ -174,8 +174,15 @@ export function PlayerTable({
             const hasNoStats = !card.attributeStats || Object.keys(card.attributeStats).length === 0;
             const needsProgressionPoints = !specialCard && !card.totalProgressionPoints;
             const needsPhysicalAttrs = !card.physicalAttributes || card.physicalAttributes.legLength === undefined;
+            const needsSkills = !card.skills || card.skills.length === 0;
 
-            const nameColorClass = hasNoStats || needsProgressionPoints || needsPhysicalAttrs ? "text-red-500" : "";
+            const isMissingCriticalData = hasNoStats || needsProgressionPoints || needsPhysicalAttrs;
+            let nameColorClass = "";
+            if (isMissingCriticalData) {
+                nameColorClass = "text-red-500";
+            } else if (needsSkills) {
+                nameColorClass = "text-blue-400";
+            }
 
 
             return (
@@ -356,3 +363,5 @@ export function PlayerTable({
 
 PlayerTable.Filters = Filters;
 PlayerTable.Pagination = Pagination;
+
+    

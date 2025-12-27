@@ -37,9 +37,15 @@ const PlayerToken = ({ player, style, onDiscard, onViewBuild }: { player: IdealT
   const hasNoStats = !player.card.attributeStats || Object.keys(player.card.attributeStats).length === 0;
   const needsProgressionPoints = !specialCard && !player.card.totalProgressionPoints;
   const needsPhysicalAttrs = !player.card.physicalAttributes || player.card.physicalAttributes.legLength === undefined;
+  const needsSkills = !player.card.skills || player.card.skills.length === 0;
 
-
-  const nameColorClass = hasNoStats || needsProgressionPoints || needsPhysicalAttrs ? 'text-red-500' : '';
+  const isMissingCriticalData = hasNoStats || needsProgressionPoints || needsPhysicalAttrs;
+  let nameColorClass = "";
+  if (isMissingCriticalData) {
+      nameColorClass = "text-red-500";
+  } else if (needsSkills) {
+      nameColorClass = "text-blue-400";
+  }
 
 
   return (
@@ -117,9 +123,15 @@ const SubstitutePlayerRow = ({ player, onDiscard, onViewBuild }: { player: Ideal
   const hasNoStats = !player.card.attributeStats || Object.keys(player.card.attributeStats).length === 0;
   const needsProgressionPoints = !specialCard && !player.card.totalProgressionPoints;
   const needsPhysicalAttrs = !player.card.physicalAttributes || player.card.physicalAttributes.legLength === undefined;
+  const needsSkills = !player.card.skills || player.card.skills.length === 0;
 
-
-  const nameColorClass = hasNoStats || needsProgressionPoints || needsPhysicalAttrs ? 'text-red-500' : '';
+  const isMissingCriticalData = hasNoStats || needsProgressionPoints || needsPhysicalAttrs;
+  let nameColorClass = "";
+  if (isMissingCriticalData) {
+      nameColorClass = "text-red-500";
+  } else if (needsSkills) {
+      nameColorClass = "text-blue-400";
+  }
 
 
   return (
@@ -231,3 +243,5 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onView
     </div>
   );
 }
+
+    
