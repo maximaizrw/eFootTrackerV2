@@ -37,8 +37,8 @@ export const nationalities = [
 export type Nationality = typeof nationalities[number];
 
 export const playerSkillsList = [
-    "Elástica", "Marsellesa", "Sombrero", "Recorte y cambio", "Amago por detrás y giro",
-    "Rebote interior", "Control con la suela", "Cabeceador", "Disparo lejano con rosca/Cañonero",
+    "Elástica", "Marsellesa", "Sombrero", "Recorte y cambio/cortada", "Amago por detrás y giro",
+    "Rebote interior", "Control con la suela/pisar el balon", "Cabeceador", "Disparo lejano con rosca/Cañonero",
     "Vaselina", "Tiro de larga distancia", "Disparo descendente", "Disparo ascendente",
     "Finalización acrobática", "Espuela/Taconazo", "Remate al primer toque", "Pase al primer toque",
     "Pase en profundidad", "Pase al hueco", "Pase cruzado", "Centro con rosca", "Rabona",
