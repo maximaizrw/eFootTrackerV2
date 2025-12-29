@@ -202,7 +202,9 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onView
   }
   
   const starters = teamSlots.slice(0, 11);
-  const substitutes = teamSlots
+  const extraSub = teamSlots.length > 11 ? teamSlots[11].substitute : null;
+  const regularSubstitutes = teamSlots
+    .slice(0, 11)
     .map(slot => slot.substitute)
     .filter((sub): sub is IdealTeamPlayer => sub !== null && !sub.player.id.startsWith('placeholder'))
     .sort((a, b) => {
@@ -215,6 +217,12 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onView
         if(indexB === -1) return -1;
         return indexA - indexB;
     });
+
+  const finalSubstitutes = [...regularSubstitutes];
+  if (extraSub && !extraSub.player.id.startsWith('placeholder')) {
+      finalSubstitutes.push(extraSub);
+  }
+
 
   return (
     <div className="mt-8 grid grid-cols-1 xl:grid-cols-3 gap-8">
@@ -235,7 +243,7 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onView
       <div className="xl:col-span-1">
         <h3 className="text-xl font-semibold mb-4 text-center flex items-center justify-center gap-2"><Users /> Banquillo</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-2">
-          {substitutes.map((sub, index) => (
+          {finalSubstitutes.map((sub, index) => (
              <SubstitutePlayerRow key={sub?.card.id || `sub-${index}`} player={sub} onDiscard={onDiscardPlayer} onViewBuild={onViewBuild}/>
           ))}
         </div>
@@ -243,5 +251,3 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onView
     </div>
   );
 }
-
-    
