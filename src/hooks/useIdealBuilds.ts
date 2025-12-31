@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -128,7 +129,7 @@ export function useIdealBuilds() {
             finalIdealBuild = { ...build, build: finalBuildData };
         }
         
-        // Ensure legLength and idealSkills are handled correctly
+        // Ensure legLength and skills are handled correctly
         const dataToSave: Partial<IdealBuild> = {
           position: finalIdealBuild.position,
           style: finalIdealBuild.style,
@@ -145,8 +146,11 @@ export function useIdealBuilds() {
           }
         }
         
-        if (finalIdealBuild.idealSkills && finalIdealBuild.idealSkills.length > 0) {
-          dataToSave.idealSkills = finalIdealBuild.idealSkills;
+        if (finalIdealBuild.primarySkills && finalIdealBuild.primarySkills.length > 0) {
+          dataToSave.primarySkills = finalIdealBuild.primarySkills;
+        }
+        if (finalIdealBuild.secondarySkills && finalIdealBuild.secondarySkills.length > 0) {
+          dataToSave.secondarySkills = finalIdealBuild.secondarySkills;
         }
 
         await setDoc(buildRef, dataToSave, { merge: true });

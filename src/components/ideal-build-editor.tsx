@@ -44,7 +44,8 @@ const minMaxSchema = z.object({
 const buildSchema = z.object({
   position: z.enum(buildPositions),
   style: z.enum(playerStyles),
-  idealSkills: z.array(z.string()).optional(),
+  primarySkills: z.array(z.string()).optional(),
+  secondarySkills: z.array(z.string()).optional(),
   legLength: minMaxSchema,
   build: z.object({
     // Attacking
@@ -155,7 +156,8 @@ const orderedStatFields: (keyof PlayerAttributeStats)[] = statFields.flatMap(cat
 export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, existingBuilds }: IdealBuildEditorProps) {
   const { toast } = useToast();
   const [pastedText, setPastedText] = React.useState('');
-  const [skillsPopoverOpen, setSkillsPopoverOpen] = React.useState(false);
+  const [primarySkillsPopoverOpen, setPrimarySkillsPopoverOpen] = React.useState(false);
+  const [secondarySkillsPopoverOpen, setSecondarySkillsPopoverOpen] = React.useState(false);
 
 
   const form = useForm<IdealBuildFormValues>({
@@ -163,7 +165,8 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
     defaultValues: {
       position: "DC",
       style: "Cazagoles",
-      idealSkills: [],
+      primarySkills: [],
+      secondarySkills: [],
       legLength: { min: undefined, max: undefined },
       build: {},
     },
@@ -171,7 +174,8 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
 
   const { watch, reset, setValue, getValues } = form;
   const watchedPosition = watch("position");
-  const watchedIdealSkills = watch("idealSkills") || [];
+  const watchedPrimarySkills = watch("primarySkills") || [];
+  const watchedSecondarySkills = watch("secondarySkills") || [];
   const isEditing = !!initialBuild?.id;
 
   React.useEffect(() => {
@@ -183,7 +187,8 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
       const defaultValues: IdealBuildFormValues = {
         position: "DC",
         style: "Cazagoles",
-        idealSkills: [],
+        primarySkills: [],
+        secondarySkills: [],
         legLength: { min: undefined, max: undefined },
         build: defaultBuild,
       };
@@ -196,7 +201,8 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
           ...defaultValues,
           position: initialBuild.position,
           style: initialBuild.style,
-          idealSkills: initialBuild.idealSkills || [],
+          primarySkills: initialBuild.primarySkills || [],
+          secondarySkills: initialBuild.secondarySkills || [],
           legLength: { min: initialBuild.legLength?.min || undefined, max: initialBuild.legLength?.max || undefined },
           build: initialBuildValues,
         };
@@ -224,7 +230,8 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
       id: buildId,
       position: values.position,
       style: values.style,
-      idealSkills: values.idealSkills || [],
+      primarySkills: values.primarySkills || [],
+      secondarySkills: values.secondarySkills || [],
       legLength: { min: values.legLength?.min, max: values.legLength?.max },
       build: {},
     };
@@ -248,7 +255,8 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
     let parsedCount = 0;
     
     const currentLegLength = getValues("legLength");
-    const currentIdealSkills = getValues("idealSkills");
+    const currentPrimarySkills = getValues("primarySkills");
+    const currentSecondarySkills = getValues("secondarySkills");
 
     const isNumericOnly = lines.every(line => /^\d+\s*$/.test(line.trim()));
 
@@ -288,7 +296,8 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
     }
 
     setValue("legLength", currentLegLength);
-    setValue("idealSkills", currentIdealSkills);
+    setValue("primarySkills", currentPrimarySkills);
+    setValue("secondarySkills", currentSecondarySkills);
 
     if (parsedCount > 0) {
       toast({
@@ -305,13 +314,28 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
     }
   };
   
-  const handleSkillToggle = (skillToToggle: string) => {
-    const currentValues = watchedIdealSkills;
+  const handleSkillToggle = (skillToToggle: string, type: 'primary' | 'secondary') => {
+    const fieldName = type === 'primary' ? 'primarySkills' : 'secondarySkills';
+    const otherFieldName = type === 'primary' ? 'secondarySkills' : 'primarySkills';
+    
+    const currentValues = getValues(fieldName) || [];
+    const otherValues = getValues(otherFieldName) || [];
+
+    // Prevent adding to one list if it exists in the other
+    if (otherValues.includes(skillToToggle)) {
+        toast({
+            variant: "destructive",
+            title: "Habilidad Duplicada",
+            description: "Una habilidad no puede ser primaria y secundaria a la vez."
+        });
+        return;
+    }
+    
     const isSelected = currentValues.includes(skillToToggle);
     const newValues = isSelected
       ? currentValues.filter((s) => s !== skillToToggle)
       : [...currentValues, skillToToggle];
-    setValue('idealSkills', newValues, { shouldValidate: true });
+    setValue(fieldName, newValues, { shouldValidate: true });
   };
 
 
@@ -396,56 +420,91 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
                         </div>
                     </div>
                      <div>
-                        <FormLabel className="text-base mb-2 block">Habilidades Ideales</FormLabel>
-                        <FormField
-                        control={form.control}
-                        name="idealSkills"
-                        render={({ field }) => (
-                            <FormItem>
-                            <Popover open={skillsPopoverOpen} onOpenChange={setSkillsPopoverOpen}>
-                                <PopoverTrigger asChild>
-                                <Button variant="outline" role="combobox" className="w-full justify-between h-auto min-h-10">
-                                    <div className="flex gap-1 flex-wrap">
-                                    {watchedIdealSkills.length > 0 ? (
-                                        watchedIdealSkills.map((skill) => (
-                                        <Badge variant="secondary" key={skill} className="mr-1">
-                                            {skill}
-                                        </Badge>
-                                        ))
-                                    ) : (
-                                        <span className="text-muted-foreground">Seleccionar habilidades...</span>
-                                    )}
-                                    </div>
-                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                <Command>
-                                    <CommandInput placeholder="Buscar habilidad..." />
-                                    <CommandList>
-                                        <CommandEmpty>No se encontró la habilidad.</CommandEmpty>
-                                        {playerSkillsList.map((skill) => (
-                                            <CommandItem
-                                                key={skill}
-                                                value={skill}
-                                                onSelect={() => handleSkillToggle(skill)}
-                                            >
-                                                <Check
-                                                    className={cn(
-                                                        "mr-2 h-4 w-4",
-                                                        watchedIdealSkills.includes(skill) ? "opacity-100" : "opacity-0"
-                                                    )}
-                                                />
+                        <FormLabel className="text-base mb-2 block">Habilidades Primarias</FormLabel>
+                         <FormField
+                            control={form.control}
+                            name="primarySkills"
+                            render={() => (
+                                <FormItem>
+                                <Popover open={primarySkillsPopoverOpen} onOpenChange={setPrimarySkillsPopoverOpen}>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="outline" role="combobox" className="w-full justify-between h-auto min-h-10">
+                                        <div className="flex gap-1 flex-wrap">
+                                            {watchedPrimarySkills.length > 0 ? (
+                                            watchedPrimarySkills.map((skill) => (
+                                                <Badge variant="default" key={skill} className="mr-1">
+                                                {skill}
+                                                </Badge>
+                                            ))
+                                            ) : (
+                                            <span className="text-muted-foreground">Seleccionar habilidades primarias...</span>
+                                            )}
+                                        </div>
+                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                        <Command>
+                                        <CommandInput placeholder="Buscar habilidad..." />
+                                        <CommandList>
+                                            <CommandEmpty>No se encontró la habilidad.</CommandEmpty>
+                                            {playerSkillsList.map((skill) => (
+                                            <CommandItem key={skill} value={skill} onSelect={() => handleSkillToggle(skill, 'primary')}>
+                                                <Check className={cn("mr-2 h-4 w-4", watchedPrimarySkills.includes(skill) ? "opacity-100" : "opacity-0")} />
                                                 {skill}
                                             </CommandItem>
+                                            ))}
+                                        </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                    </Popover>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+                     <div>
+                        <FormLabel className="text-base mb-2 block">Habilidades Secundarias</FormLabel>
+                         <FormField
+                            control={form.control}
+                            name="secondarySkills"
+                            render={() => (
+                                <FormItem>
+                                <Popover open={secondarySkillsPopoverOpen} onOpenChange={setSecondarySkillsPopoverOpen}>
+                                    <PopoverTrigger asChild>
+                                    <Button variant="outline" role="combobox" className="w-full justify-between h-auto min-h-10">
+                                        <div className="flex gap-1 flex-wrap">
+                                        {watchedSecondarySkills.length > 0 ? (
+                                            watchedSecondarySkills.map((skill) => (
+                                            <Badge variant="secondary" key={skill} className="mr-1">
+                                                {skill}
+                                            </Badge>
+                                            ))
+                                        ) : (
+                                            <span className="text-muted-foreground">Seleccionar habilidades secundarias...</span>
+                                        )}
+                                        </div>
+                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                    <Command>
+                                        <CommandInput placeholder="Buscar habilidad..." />
+                                        <CommandList>
+                                        <CommandEmpty>No se encontró la habilidad.</CommandEmpty>
+                                        {playerSkillsList.map((skill) => (
+                                            <CommandItem key={skill} value={skill} onSelect={() => handleSkillToggle(skill, 'secondary')}>
+                                            <Check className={cn("mr-2 h-4 w-4", watchedSecondarySkills.includes(skill) ? "opacity-100" : "opacity-0")} />
+                                            {skill}
+                                            </CommandItem>
                                         ))}
-                                    </CommandList>
-                                </Command>
-                                </PopoverContent>
-                            </Popover>
-                            <FormMessage />
-                            </FormItem>
-                        )}
+                                        </CommandList>
+                                    </Command>
+                                    </PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                                </FormItem>
+                            )}
                         />
                     </div>
                 </div>

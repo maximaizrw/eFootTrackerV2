@@ -85,7 +85,8 @@ export type IdealBuild = {
   style: PlayerStyle;
   build: PlayerAttributeStats;
   legLength?: MinMaxRange;
-  idealSkills?: PlayerSkill[];
+  primarySkills?: PlayerSkill[];
+  secondarySkills?: PlayerSkill[];
 };
 
 export type PlayerAttributeStats = {
@@ -339,7 +340,7 @@ export type FlatPlayer = {
   affinityScore: number;
   generalScore: number;
   position: Position;
-  affinityBreakdown?: AffinityBreakdownResult;
+  affinityBreakdown: AffinityBreakdownResult;
 };
 
 export function getAvailableStylesForPosition(position: BuildPosition, includeNone: boolean = false): PlayerStyle[] {
@@ -376,5 +377,3 @@ export function getAvailableStylesForPosition(position: BuildPosition, includeNo
             return [...playerStyles];
     }
 }
-
-    

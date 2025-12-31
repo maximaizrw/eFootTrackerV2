@@ -142,14 +142,20 @@ export function AffinityBreakdown({ breakdownResult }: AffinityBreakdownProps) {
                     <TableHeader>
                         <TableRow>
                             <TableHead>Habilidad Ideal</TableHead>
+                            <TableHead>Tipo</TableHead>
                             <TableHead className="text-center">El Jugador la Tiene</TableHead>
                             <TableHead className="text-right">Puntaje</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {skillsBreakdown.map(item => (
-                            <TableRow key={item.skill}>
+                            <TableRow key={`${item.skill}-${item.type}`}>
                                 <TableCell className="font-medium">{item.skill}</TableCell>
+                                <TableCell>
+                                    <span className={cn("text-xs font-semibold", item.type === 'primary' ? 'text-primary' : 'text-amber-500')}>
+                                        {item.type === 'primary' ? 'Primaria' : 'Secundaria'}
+                                    </span>
+                                </TableCell>
                                 <TableCell className="text-center">
                                     {item.hasSkill ? (
                                         <span className="text-green-400 font-bold">Sí</span>

@@ -257,6 +257,7 @@ export type AffinityBreakdownResult = {
         skill: PlayerSkill;
         hasSkill: boolean;
         score: number;
+        type: 'primary' | 'secondary';
     }[];
 };
 
@@ -281,7 +282,7 @@ export function calculateAffinityWithBreakdown(
     let totalAffinityScore = 0;
     const breakdown: AffinityBreakdownResult['breakdown'] = [];
     const skillsBreakdown: AffinityBreakdownResult['skillsBreakdown'] = [];
-    const { build: idealBuildStats, idealSkills = [] } = idealBuild;
+    const { build: idealBuildStats, primarySkills = [], secondarySkills = [] } = idealBuild;
     const isGoalkeeper = idealBuild.position === 'PT';
     const relevantKeys = isGoalkeeper ? goalkeeperStatsKeys : allStatsKeys;
 
@@ -331,14 +332,30 @@ export function calculateAffinityWithBreakdown(
 
     // Skills breakdown
     const playerSkillsSet = new Set(playerSkills || []);
-    for (const idealSkill of idealSkills) {
+    
+    // Primary Skills
+    for (const idealSkill of primarySkills) {
         const hasSkill = playerSkillsSet.has(idealSkill);
         const score = hasSkill ? 2.0 : 0;
         totalAffinityScore += score;
         skillsBreakdown.push({
             skill: idealSkill,
             hasSkill,
-            score
+            score,
+            type: 'primary'
+        });
+    }
+
+    // Secondary Skills
+    for (const idealSkill of secondarySkills) {
+        const hasSkill = playerSkillsSet.has(idealSkill);
+        const score = hasSkill ? 1.0 : 0;
+        totalAffinityScore += score;
+        skillsBreakdown.push({
+            skill: idealSkill,
+            hasSkill,
+            score,
+            type: 'secondary'
         });
     }
 
