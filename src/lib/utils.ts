@@ -56,10 +56,26 @@ export function normalizeText(text: string): string {
     .replace(/([A-Z])/g, ' $1');
 }
 
-export function calculateGeneralScore(affinityScore: number, average: number): number {
+export function calculateGeneralScore(affinityScore: number, average: number, matches: number): number {
   const matchAverageOn100 = (average > 0) ? average * 10 : 0;
-  const weightedAffinity = affinityScore * 0.4;
-  const weightedAverage = matchAverageOn100 * 0.6;
+  
+  // Confidence factor transitions from 0 (no matches) to ~1 (many matches)
+  // It reaches ~0.9 at 30 matches.
+  const confidenceFactor = 1 - Math.exp(-matches / 15);
+
+  // When confidence is low, rely more on affinity. When high, rely more on match average.
+  const affinityWeight = 1 - (0.6 * confidenceFactor); // Starts at 1.0, drops to 0.4
+  const averageWeight = 0.6 * confidenceFactor;     // Starts at 0, grows to 0.6
+  
+  // This seems reversed, let's correct it.
+  // We want average to be MORE important as matches increase.
+  // Let's define the WEIGHT of the average score based on confidence.
+  const averageFinalWeight = Math.min(0.8, 0.2 + (0.6 * confidenceFactor)); // Starts at 20%, goes up to 80%
+  const affinityFinalWeight = 1 - averageFinalWeight;
+  
+  const weightedAffinity = affinityScore * affinityFinalWeight;
+  const weightedAverage = matchAverageOn100 * averageFinalWeight;
+
   return weightedAffinity + weightedAverage;
 }
 
