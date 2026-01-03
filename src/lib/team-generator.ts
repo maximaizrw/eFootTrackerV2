@@ -136,9 +136,8 @@ export function generateIdealTeam(
     if (Math.abs(a.momentumScore - b.momentumScore) > 0.01) {
         return b.momentumScore - a.momentumScore;
     }
-
+    
     // 2. Tie-breaker: Consistency Badge
-    // If scores are very close, prefer the consistent player
     if (a.performance.isConsistent !== b.performance.isConsistent) {
         return a.performance.isConsistent ? -1 : 1;
     }
@@ -163,7 +162,17 @@ export function generateIdealTeam(
   }
 
   const findBestPlayer = (candidates: CandidatePlayer[]): CandidatePlayer | undefined => {
-      return candidates.find(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id) && !discardedCardIds.has(p.card.id));
+      const availableCandidates = candidates.filter(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id) && !discardedCardIds.has(p.card.id));
+      
+      const highAffinityCandidates = availableCandidates.filter(p => p.affinityScore >= -10);
+
+      // Prefer high affinity players if any are available
+      if (highAffinityCandidates.length > 0) {
+          return highAffinityCandidates[0]; // The list is already sorted
+      }
+
+      // If no high affinity players, fall back to any available player (last resort)
+      return availableCandidates[0];
   };
   
   const getCandidatesForSlot = (formationSlot: FormationSlotType): CandidatePlayer[] => {
