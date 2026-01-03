@@ -3,7 +3,7 @@
 "use client";
 
 import Image from 'next/image';
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -41,7 +41,7 @@ type FilterProps = {
   uniqueCardNames: string[];
 };
 
-const Filters = ({
+const Filters = memo(({
   searchTerm,
   onSearchTermChange,
   styleFilter,
@@ -82,7 +82,9 @@ const Filters = ({
       </SelectContent>
     </Select>
   </div>
-);
+));
+Filters.displayName = 'Filters';
+
 
 type PaginationProps = {
     currentPage: number;
@@ -90,7 +92,7 @@ type PaginationProps = {
     onPageChange: (direction: 'next' | 'prev') => void;
 };
 
-const Pagination = ({ currentPage, totalPages, onPageChange }: PaginationProps) => {
+const Pagination = memo(({ currentPage, totalPages, onPageChange }: PaginationProps) => {
     if (totalPages <= 1) return null;
 
     return (
@@ -116,10 +118,11 @@ const Pagination = ({ currentPage, totalPages, onPageChange }: PaginationProps) 
             </Button>
         </div>
     );
-};
+});
+Pagination.displayName = 'Pagination';
 
 
-export function PlayerTable({
+const PlayerTableMemo = memo(function PlayerTable({
   players: flatPlayers,
   position,
   onOpenAddRating,
@@ -359,9 +362,12 @@ export function PlayerTable({
       </Table>
     </div>
   );
-}
+});
 
-PlayerTable.Filters = Filters;
-PlayerTable.Pagination = Pagination;
+PlayerTableMemo.displayName = 'PlayerTable';
 
-    
+
+(PlayerTableMemo as any).Filters = Filters;
+(PlayerTableMemo as any).Pagination = Pagination;
+
+export { PlayerTableMemo as PlayerTable };

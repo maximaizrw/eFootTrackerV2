@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -140,7 +140,7 @@ export default function Home() {
     }
   }, [formations, selectedFormationId]);
 
-  const handleGenerateTeam = () => {
+  const handleGenerateTeam = useCallback(() => {
     if (!players || !selectedFormationId) {
       toast({
         variant: 'destructive',
@@ -170,7 +170,7 @@ export default function Home() {
       title: "11 Ideal Generado",
       description: `Se ha generado un equipo para la formación "${formation.name}".`,
     });
-  };
+  }, [players, selectedFormationId, formations, idealBuilds, discardedCardIds, selectedLeague, selectedNationality, sortBy, isFlexibleLaterals, isFlexibleWingers, toast]);
 
   useEffect(() => {
     if (idealTeam.length > 0) {
@@ -180,12 +180,12 @@ export default function Home() {
   }, [discardedCardIds]);
 
 
-  const handleOpenAddRating = (initialData?: Partial<AddRatingFormValues>) => {
+  const handleOpenAddRating = useCallback((initialData?: Partial<AddRatingFormValues>) => {
     setAddDialogInitialData(initialData);
     setAddRatingDialogOpen(true);
-  };
+  }, []);
   
-  const handleOpenEditCard = (player: Player, card: PlayerCardType) => {
+  const handleOpenEditCard = useCallback((player: Player, card: PlayerCardType) => {
     setEditCardDialogInitialData({
         playerId: player.id,
         cardId: card.id,
@@ -195,74 +195,78 @@ export default function Home() {
         imageUrl: card.imageUrl || '',
     });
     setEditCardDialogOpen(true);
-  };
+  }, []);
 
-  const handleOpenEditPlayer = (player: Player) => {
+  const handleOpenEditPlayer = useCallback((player: Player) => {
     setEditPlayerDialogInitialData({
       playerId: player.id,
       currentPlayerName: player.name,
       nationality: player.nationality || 'Sin Nacionalidad',
     });
     setEditPlayerDialogOpen(true);
-  };
+  }, []);
 
-  const handleOpenEditStats = (player: Player, card: PlayerCardType) => {
+  const handleOpenEditStats = useCallback((player: Player, card: PlayerCardType) => {
     setEditStatsDialogInitialData({ player, card });
     setEditStatsDialogOpen(true);
-  };
+  }, []);
 
-  const handleOpenPlayerDetail = (flatPlayer: FlatPlayer) => {
+  const handleOpenPlayerDetail = useCallback((flatPlayer: FlatPlayer) => {
     setSelectedFlatPlayer(flatPlayer);
     setPlayerDetailDialogOpen(true);
-  };
+  }, []);
   
-  const handleOpenEditFormation = (formation: FormationStats) => {
+  const handleOpenEditFormation = useCallback((formation: FormationStats) => {
     setEditFormationDialogInitialData(formation);
     setEditFormationDialogOpen(true);
-  };
+  }, []);
 
-  const handleViewImage = (url: string, name: string) => {
+  const handleViewImage = useCallback((url: string, name: string) => {
     setViewingImageUrl(url);
     setViewingImageName(name);
     setImageViewerOpen(true);
-  };
+  }, []);
 
-  const handleOpenAddMatch = (formationId: string, formationName: string) => {
+  const handleOpenAddMatch = useCallback((formationId: string, formationName: string) => {
     setAddMatchInitialData({ formationId, formationName });
     setAddMatchDialogOpen(true);
-  };
+  }, []);
 
   
-  const handleFormationSelectionChange = (id: string) => {
+  const handleFormationSelectionChange = useCallback((id: string) => {
     setSelectedFormationId(id);
-  };
+  }, []);
 
-  const handleLeagueChange = (league: League | 'all') => {
+  const handleLeagueChange = useCallback((league: League | 'all') => {
     setSelectedLeague(league);
-  };
+  }, []);
 
-  const handleNationalityChange = (nationality: Nationality | 'all') => {
+  const handleNationalityChange = useCallback((nationality: Nationality | 'all') => {
     setSelectedNationality(nationality);
-  };
+  }, []);
   
-  const handleGoToIdealTeam = (formationId: string) => {
+  const handleGoToIdealTeam = useCallback((formationId: string) => {
     setActiveTab('ideal-11');
     handleFormationSelectionChange(formationId);
-  }
+  }, [handleFormationSelectionChange]);
 
-  const handleDiscardPlayer = (cardId: string) => {
-    setDiscardedCardIds(prev => new Set(prev).add(cardId));
-  };
+  const handleDiscardPlayer = useCallback((cardId: string) => {
+    setDiscardedCardIds(prev => {
+        const newSet = new Set(prev);
+        newSet.add(cardId);
+        return newSet;
+    });
+  }, []);
   
-  const handleResetDiscards = () => {
+  const handleResetDiscards = useCallback(() => {
     setDiscardedCardIds(new Set());
     toast({
         title: "Lista de Descartados Reiniciada",
         description: "Se volverán a considerar todos los jugadores.",
     });
-  };
+  }, [toast]);
   
-  const handleDownloadBackup = async () => {
+  const handleDownloadBackup = useCallback(async () => {
     const playersData = await downloadPlayersBackup();
     const formationsData = await downloadFormationsBackup();
     
@@ -295,24 +299,24 @@ export default function Home() {
       title: "Descarga Iniciada",
       description: "El backup de la base de datos se está descargando.",
     });
-  };
+  }, [downloadPlayersBackup, downloadFormationsBackup, toast]);
 
-  const handleTabChange = (value: string) => {
+  const handleTabChange = useCallback((value: string) => {
     setActiveTab(value);
     setSearchTerm('');
     setStyleFilter('all');
     setCardFilter('all');
-  };
+  }, []);
 
-  const handleViewPlayerBuild = (player: IdealTeamPlayer) => {
+  const handleViewPlayerBuild = useCallback((player: IdealTeamPlayer) => {
     setViewingPlayerBuild(player);
     setIsBuildViewerOpen(true);
-  };
+  }, []);
 
-  const handleOpenIdealBuildEditor = (build?: IdealBuild) => {
+  const handleOpenIdealBuildEditor = useCallback((build?: IdealBuild) => {
     setEditingIdealBuild(build);
     setIsIdealBuildEditorOpen(true);
-  };
+  }, []);
 
 
   const getHeaderButtons = () => {
@@ -343,13 +347,44 @@ export default function Home() {
     );
   };
   
-  const handlePageChange = (position: Position, direction: 'next' | 'prev') => {
+  const handlePageChange = useCallback((position: Position, direction: 'next' | 'prev') => {
     setPagination(prev => {
       const currentPage = prev[position] || 0;
       const newPage = direction === 'next' ? currentPage + 1 : currentPage - 1;
       return { ...prev, [position]: Math.max(0, newPage) };
     });
-  };
+  }, []);
+
+  const filteredPlayersByPosition = useMemo(() => {
+    const grouped: Record<string, FlatPlayer[]> = {};
+    for (const pos of positions) {
+        const positionPlayers = flatPlayers.filter(p => p.position === pos);
+        grouped[pos] = positionPlayers.filter(({ player, card }) => {
+            const searchMatch = normalizeText(player.name).includes(normalizeText(searchTerm));
+            const styleMatch = styleFilter === 'all' || card.style === styleFilter;
+            const cardMatch = cardFilter === 'all' || card.name === cardFilter;
+            const leagueMatch = selectedLeague === 'all' || card.league === selectedLeague;
+            const nationalityMatch = selectedNationality === 'all' || player.nationality === selectedNationality;
+            return searchMatch && styleMatch && cardMatch && leagueMatch && nationalityMatch;
+        
+        }).sort((a, b) => {
+          if (sortBy === 'general') {
+            const generalA = a.generalScore;
+            const generalB = b.generalScore;
+            if (generalB !== generalA) return generalB - generalA;
+          }
+          
+          const avgA = a.performance.stats.average;
+          const avgB = b.performance.stats.average;
+          if (avgB !== avgA) return avgB - avgA;
+          
+          const matchesA = a.performance.stats.matches;
+          const matchesB = b.performance.stats.matches;
+          return matchesB - matchesA;
+        });
+    }
+    return grouped;
+  }, [flatPlayers, searchTerm, styleFilter, cardFilter, selectedLeague, selectedNationality, sortBy]);
 
 
   const error = playersError || formationsError || idealBuildsError;
@@ -520,32 +555,8 @@ export default function Home() {
           </TabsContent>
 
           {positions.map((pos) => {
-            const positionPlayers = flatPlayers.filter(p => p.position === pos);
-
-            const filteredPlayerList = positionPlayers.filter(({ player, card }) => {
-                const searchMatch = normalizeText(player.name).includes(normalizeText(searchTerm));
-                const styleMatch = styleFilter === 'all' || card.style === styleFilter;
-                const cardMatch = cardFilter === 'all' || card.name === cardFilter;
-                const leagueMatch = selectedLeague === 'all' || card.league === selectedLeague;
-                const nationalityMatch = selectedNationality === 'all' || player.nationality === selectedNationality;
-                return searchMatch && styleMatch && cardMatch && leagueMatch && nationalityMatch;
+            const filteredPlayerList = filteredPlayersByPosition[pos] || [];
             
-            }).sort((a, b) => {
-              if (sortBy === 'general') {
-                const generalA = a.generalScore;
-                const generalB = b.generalScore;
-                if (generalB !== generalA) return generalB - generalA;
-              }
-              
-              const avgA = a.performance.stats.average;
-              const avgB = b.performance.stats.average;
-              if (avgB !== avgA) return avgB - avgA;
-              
-              const matchesA = a.performance.stats.matches;
-              const matchesB = b.performance.stats.matches;
-              return matchesB - matchesA;
-            });
-
             const currentPage = pagination[pos] || 0;
             const paginatedPlayers = filteredPlayerList.slice(
               currentPage * ITEMS_PER_PAGE,
@@ -553,17 +564,17 @@ export default function Home() {
             );
             const totalPages = Math.ceil(filteredPlayerList.length / ITEMS_PER_PAGE);
             
-            const allPositionalStyles = new Set<string>();
-            positionPlayers.forEach(p => {
-                allPositionalStyles.add(p.card.style)
-            });
-            const uniqueStyles = ['all', ...Array.from(allPositionalStyles)];
+            const uniqueStyles = useMemo(() => {
+                const allPositionalStyles = new Set<string>();
+                flatPlayers.filter(p => p.position === pos).forEach(p => allPositionalStyles.add(p.card.style));
+                return ['all', ...Array.from(allPositionalStyles)];
+            }, [flatPlayers, pos]);
             
-            const allPositionalCards = new Set<string>();
-            positionPlayers.forEach(p => {
-                allPositionalCards.add(p.card.name)
-            });
-            const uniqueCardNames = ['all', ...Array.from(allPositionalCards)];
+            const uniqueCardNames = useMemo(() => {
+                const allPositionalCards = new Set<string>();
+                flatPlayers.filter(p => p.position === pos).forEach(p => allPositionalCards.add(p.card.name));
+                return ['all', ...Array.from(allPositionalCards)];
+            }, [flatPlayers, pos]);
 
             return (
               <TabsContent key={pos} value={pos} className="mt-6">

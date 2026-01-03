@@ -27,7 +27,7 @@ type IdealTeamSetupProps = {
   onFlexibleWingersChange: (value: boolean) => void;
 };
 
-export function IdealTeamSetup({ 
+const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({ 
     formations, 
     selectedFormationId, 
     onFormationChange, 
@@ -177,4 +177,6 @@ export function IdealTeamSetup({
       </div>
     </div>
   );
-}
+});
+
+export { IdealTeamSetupMemo as IdealTeamSetup };

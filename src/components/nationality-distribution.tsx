@@ -16,7 +16,7 @@ type NationalityData = {
   count: number;
 };
 
-export function NationalityDistribution({ players }: NationalityDistributionProps) {
+const NationalityDistributionMemo = React.memo(function NationalityDistribution({ players }: NationalityDistributionProps) {
 
   const nationalityCounts = React.useMemo(() => {
     const counts = new Map<string, number>();
@@ -94,4 +94,6 @@ export function NationalityDistribution({ players }: NationalityDistributionProp
       </CardContent>
     </Card>
   );
-}
+});
+
+export { NationalityDistributionMemo as NationalityDistribution };

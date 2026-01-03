@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { Card } from './ui/card';
 import { AffinityStatusIndicator } from './affinity-status-indicator';
 import { isSpecialCard } from '@/lib/utils';
+import { memo } from 'react';
 
 
 const PlayerToken = ({ player, style, onDiscard, onViewBuild }: { player: IdealTeamPlayer | null, style: React.CSSProperties, onDiscard: (cardId: string) => void, onViewBuild: (player: IdealTeamPlayer) => void }) => {
@@ -192,7 +193,7 @@ const substituteOrder: Position[] = [
     'PT', 'DFC', 'LI', 'LD', 'MCD', 'MC', 'MDI', 'MDD', 'MO', 'EXI', 'EXD', 'SD', 'DC'
 ];
 
-export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onViewBuild }: IdealTeamDisplayProps) {
+const IdealTeamDisplayMemo = memo(function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onViewBuild }: IdealTeamDisplayProps) {
   if (teamSlots.length === 0 || !formation) {
     return (
       <div className="mt-8 text-center text-muted-foreground p-8 bg-card rounded-lg border border-dashed">
@@ -251,4 +252,6 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onView
       </div>
     </div>
   );
-}
+});
+
+export { IdealTeamDisplayMemo as IdealTeamDisplay };

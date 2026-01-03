@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { FormationStats, MatchResult } from '@/lib/types';
@@ -317,7 +317,7 @@ const FormationRow = ({ formation, onAddMatch, onEdit, onDeleteFormation, onGene
     );
 };
 
-export function FormationsDisplay({ formations, onAddMatch, onDeleteFormation, onEdit, onViewImage, onDeleteMatchResult, onGenerateIdealTeam }: FormationsDisplayProps) {
+const FormationsDisplayMemo = memo(function FormationsDisplay({ formations, onAddMatch, onDeleteFormation, onEdit, onViewImage, onDeleteMatchResult, onGenerateIdealTeam }: FormationsDisplayProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
   const sortedFormations = [...formations].sort((a, b) => {
@@ -380,4 +380,6 @@ export function FormationsDisplay({ formations, onAddMatch, onDeleteFormation, o
         )}
     </div>
   );
-}
+});
+
+export { FormationsDisplayMemo as FormationsDisplay };

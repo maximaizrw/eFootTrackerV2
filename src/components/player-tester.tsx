@@ -89,7 +89,7 @@ type PlayerTesterProps = {
   idealBuilds: IdealBuild[];
 };
 
-export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
+const PlayerTesterMemo = React.memo(function PlayerTester({ idealBuilds }: PlayerTesterProps) {
   const [pastedText, setPastedText] = React.useState('');
   const [affinityBreakdown, setAffinityBreakdown] = React.useState<AffinityBreakdownResult>({ totalAffinityScore: 0, breakdown: [] });
   const [bestBuildStyle, setBestBuildStyle] = React.useState<string | null>(null);
@@ -356,4 +356,6 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
       </CardContent>
     </Card>
   );
-}
+});
+
+export { PlayerTesterMemo as PlayerTester };
