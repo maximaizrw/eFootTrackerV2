@@ -12,6 +12,7 @@ type CandidatePlayer = {
   generalScore: number;
   position: Position;
   performance: PlayerPerformance;
+  momentumScore: number;
 };
 
 
@@ -105,6 +106,12 @@ export function generateIdealTeam(
         const affinityScore = affinityBreakdown.totalAffinityScore;
         
         const generalScore = calculateGeneralScore(affinityScore, stats.average, stats.matches);
+        
+        // Momentum Score Calculation
+        let momentumScore = sortBy === 'general' ? generalScore : stats.average;
+        if (performance.isHotStreak) {
+            momentumScore *= 1.05; // Apply a 5% bonus for being on a hot streak
+        }
 
         return {
           player,
@@ -114,6 +121,7 @@ export function generateIdealTeam(
           affinityScore,
           generalScore: generalScore,
           performance: performance,
+          momentumScore: momentumScore,
         };
       }).filter((p): p is CandidatePlayer => p !== null);
     })
@@ -124,6 +132,7 @@ export function generateIdealTeam(
   const finalTeamSlots: IdealTeamSlot[] = [];
   
   const sortFunction = (a: CandidatePlayer, b: CandidatePlayer) => {
+    if (b.momentumScore !== a.momentumScore) return b.momentumScore - a.momentumScore;
     if (sortBy === 'general') {
         if (b.generalScore !== a.generalScore) return b.generalScore - a.generalScore;
     }
@@ -200,6 +209,8 @@ export function generateIdealTeam(
   }
   
   // --- SUBSTITUTE SELECTION ---
+  const extraSubstitutes: IdealTeamPlayer[] = [];
+
   // Step 1: Find a direct substitute for each starter position, prioritizing players with < 10 matches.
   finalTeamSlots.forEach((slot, index) => {
     const formationSlot = formation.slots[index];
@@ -218,9 +229,8 @@ export function generateIdealTeam(
     if (substituteCandidate) {
       usedPlayerIds.add(substituteCandidate.player.id);
       usedCardIds.add(substituteCandidate.card.id);
+      slot.substitute = createTeamPlayer(substituteCandidate, formationSlot.position);
     }
-    
-    slot.substitute = createTeamPlayer(substituteCandidate, formationSlot.position);
   });
   
   // Step 2: Find the 12th substitute (best player with < 10 matches from a relevant position)
@@ -230,22 +240,17 @@ export function generateIdealTeam(
   );
   const bestTestPlayer = findBestPlayer(testPlayersPool.sort(sortFunction));
 
-  // Add the 12th man as an extra slot. This will be handled by the display component.
   if (bestTestPlayer) {
-    finalTeamSlots.push({
-        starter: null,
-        substitute: createTeamPlayer(bestTestPlayer, bestTestPlayer.position),
-    });
+    extraSubstitutes.push(createTeamPlayer(bestTestPlayer, bestTestPlayer.position)!);
   }
 
-
+  // Fill empty slots and manage final list including extra sub
   const placeholderPerformance: PlayerPerformance = {
         stats: { average: 0, matches: 0, stdDev: 0 },
         isHotStreak: false, isConsistent: false, isPromising: false, isVersatile: false
   };
   
-  // Fill any empty slots with placeholders
-  return finalTeamSlots.map((slot, index) => {
+  const finalSlots = finalTeamSlots.map((slot, index) => {
     const formationSlot = index < formation.slots.length ? formation.slots[index] : null;
     const assignedPosition = formationSlot?.position || (slot.substitute?.position || 'DFC');
 
@@ -272,4 +277,14 @@ export function generateIdealTeam(
 
     return { starter, substitute };
   });
+
+  // Add the extra "promise" substitute at the end.
+  if (extraSubstitutes.length > 0) {
+      finalSlots.push({
+          starter: null,
+          substitute: extraSubstitutes[0]
+      });
+  }
+
+  return finalSlots;
 }
