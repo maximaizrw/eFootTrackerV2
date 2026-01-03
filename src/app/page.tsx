@@ -386,6 +386,25 @@ export default function Home() {
     return grouped;
   }, [flatPlayers, searchTerm, styleFilter, cardFilter, selectedLeague, selectedNationality, sortBy]);
 
+  const uniqueFiltersByPosition = useMemo(() => {
+    const filters: Record<string, { uniqueStyles: string[], uniqueCardNames: string[] }> = {};
+    for (const pos of positions) {
+      const allPositionalStyles = new Set<string>();
+      const allPositionalCards = new Set<string>();
+      
+      flatPlayers.filter(p => p.position === pos).forEach(p => {
+        allPositionalStyles.add(p.card.style);
+        allPositionalCards.add(p.card.name);
+      });
+      
+      filters[pos] = {
+        uniqueStyles: ['all', ...Array.from(allPositionalStyles)],
+        uniqueCardNames: ['all', ...Array.from(allPositionalCards)],
+      };
+    }
+    return filters;
+  }, [flatPlayers]);
+
 
   const error = playersError || formationsError || idealBuildsError;
   if (error) {
@@ -564,17 +583,7 @@ export default function Home() {
             );
             const totalPages = Math.ceil(filteredPlayerList.length / ITEMS_PER_PAGE);
             
-            const uniqueStyles = useMemo(() => {
-                const allPositionalStyles = new Set<string>();
-                flatPlayers.filter(p => p.position === pos).forEach(p => allPositionalStyles.add(p.card.style));
-                return ['all', ...Array.from(allPositionalStyles)];
-            }, [flatPlayers, pos]);
-            
-            const uniqueCardNames = useMemo(() => {
-                const allPositionalCards = new Set<string>();
-                flatPlayers.filter(p => p.position === pos).forEach(p => allPositionalCards.add(p.card.name));
-                return ['all', ...Array.from(allPositionalCards)];
-            }, [flatPlayers, pos]);
+            const { uniqueStyles, uniqueCardNames } = uniqueFiltersByPosition[pos] || { uniqueStyles: ['all'], uniqueCardNames: ['all'] };
 
             return (
               <TabsContent key={pos} value={pos} className="mt-6">
@@ -726,3 +735,4 @@ export default function Home() {
   );
 }
 
+    
