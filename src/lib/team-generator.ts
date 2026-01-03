@@ -132,11 +132,18 @@ export function generateIdealTeam(
   const finalTeamSlots: IdealTeamSlot[] = [];
   
   const sortFunction = (a: CandidatePlayer, b: CandidatePlayer) => {
-    if (b.momentumScore !== a.momentumScore) return b.momentumScore - a.momentumScore;
-    if (sortBy === 'general') {
-        if (b.generalScore !== a.generalScore) return b.generalScore - a.generalScore;
+    // 1. Momentum Score (includes hot streak bonus)
+    if (Math.abs(a.momentumScore - b.momentumScore) > 0.01) {
+        return b.momentumScore - a.momentumScore;
     }
-    if (b.average !== a.average) return b.average - a.average;
+
+    // 2. Tie-breaker: Consistency Badge
+    // If scores are very close, prefer the consistent player
+    if (a.performance.isConsistent !== b.performance.isConsistent) {
+        return a.performance.isConsistent ? -1 : 1;
+    }
+
+    // 3. Fallback to number of matches
     return b.performance.stats.matches - a.performance.stats.matches;
   };
 
@@ -209,7 +216,7 @@ export function generateIdealTeam(
   }
   
   // --- SUBSTITUTE SELECTION ---
-  const extraSubstitutes: IdealTeamPlayer[] = [];
+  let extraSubstitute: IdealTeamPlayer | null = null;
 
   // Step 1: Find a direct substitute for each starter position, prioritizing players with < 10 matches.
   finalTeamSlots.forEach((slot, index) => {
@@ -233,16 +240,20 @@ export function generateIdealTeam(
     }
   });
   
-  // Step 2: Find the 12th substitute (best player with < 10 matches from a relevant position)
+  // Step 2: Find the 12th substitute (best "Promising" player from a relevant position)
   const formationPositions = new Set(formation.slots.map(s => s.position));
-  const testPlayersPool = allPlayerCandidates.filter(p => 
-      p.performance.stats.matches < 10 && formationPositions.has(p.position)
+  const promisingPlayersPool = allPlayerCandidates.filter(p => 
+      p.performance.isPromising && formationPositions.has(p.position)
   );
-  const bestTestPlayer = findBestPlayer(testPlayersPool.sort(sortFunction));
 
-  if (bestTestPlayer) {
-    extraSubstitutes.push(createTeamPlayer(bestTestPlayer, bestTestPlayer.position)!);
+  const bestPromisingPlayer = findBestPlayer(promisingPlayersPool.sort(sortFunction));
+
+  if (bestPromisingPlayer) {
+    extraSubstitute = createTeamPlayer(bestPromisingPlayer, bestPromisingPlayer.position)!;
+    usedPlayerIds.add(bestPromisingPlayer.player.id);
+    usedCardIds.add(bestPromisingPlayer.card.id);
   }
+
 
   // Fill empty slots and manage final list including extra sub
   const placeholderPerformance: PlayerPerformance = {
@@ -278,11 +289,11 @@ export function generateIdealTeam(
     return { starter, substitute };
   });
 
-  // Add the extra "promise" substitute at the end.
-  if (extraSubstitutes.length > 0) {
+  // Add the extra "promise" substitute at the end if found.
+  if (extraSubstitute) {
       finalSlots.push({
           starter: null,
-          substitute: extraSubstitutes[0]
+          substitute: extraSubstitute
       });
   }
 

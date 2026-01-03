@@ -201,8 +201,9 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onView
     );
   }
   
-  const starters = teamSlots.slice(0, 11);
+  const starters = teamSlots.slice(0, 11).map(slot => slot.starter);
   const extraSub = teamSlots.length > 11 ? teamSlots[11].substitute : null;
+  
   const regularSubstitutes = teamSlots
     .slice(0, 11)
     .map(slot => slot.substitute)
@@ -229,13 +230,13 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onView
       <div className="xl:col-span-2">
         <h3 className="text-xl font-semibold mb-4 text-center flex items-center justify-center gap-2"><Crown /> Titulares</h3>
         <FootballPitch>
-          {starters.map((slot, index) => {
+          {starters.map((starter, index) => {
              const formationSlot = formation.slots[index];
              const style: React.CSSProperties = {
                 top: `${formationSlot?.top || 50}%`,
                 left: `${formationSlot?.left || 50}%`,
              };
-             return <PlayerToken key={slot.starter?.card.id || `starter-${index}`} player={slot.starter} style={style} onDiscard={onDiscardPlayer} onViewBuild={onViewBuild} />;
+             return <PlayerToken key={starter?.card.id || `starter-${index}`} player={starter} style={style} onDiscard={onDiscardPlayer} onViewBuild={onViewBuild} />;
           })}
         </FootballPitch>
       </div>
