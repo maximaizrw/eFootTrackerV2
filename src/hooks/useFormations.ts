@@ -125,6 +125,7 @@ export function useFormations() {
         id: uuidv4(),
         goalsFor: values.goalsFor,
         goalsAgainst: values.goalsAgainst,
+        shotsOnGoal: values.shotsOnGoal || 0,
         date: new Date().toISOString(),
       };
       await updateDoc(formationRef, {

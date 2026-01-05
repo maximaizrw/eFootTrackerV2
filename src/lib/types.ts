@@ -258,6 +258,7 @@ export type MatchResult = {
   id: string;
   goalsFor: number;
   goalsAgainst: number;
+  shotsOnGoal?: number;
   date: string; // ISO 8601 string
 };
 
@@ -309,6 +310,7 @@ export type AddMatchFormValues = {
   formationId: string;
   goalsFor: number;
   goalsAgainst: number;
+  shotsOnGoal?: number;
 }
 
 // --- Tipos para componentes refactorizados

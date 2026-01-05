@@ -7,7 +7,7 @@ import Link from 'next/link';
 import type { FormationStats, MatchResult } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Trash2, Link as LinkIcon, Trophy, LayoutGrid, List, Pencil, History, Star } from 'lucide-react';
+import { PlusCircle, Trash2, Link as LinkIcon, Trophy, LayoutGrid, List, Pencil, History, Star, Target } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
@@ -36,7 +36,7 @@ type FormationsDisplayProps = {
 const calculateStats = (matches: FormationStats['matches']) => {
   const total = matches.length;
   if (total === 0) {
-    return { wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, effectiveness: 0, total };
+    return { wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, effectiveness: 0, total, shotsOnGoal: 0, shotsPerMatch: 0 };
   }
   const wins = matches.filter(m => m.goalsFor > m.goalsAgainst).length;
   const draws = matches.filter(m => m.goalsFor === m.goalsAgainst).length;
@@ -46,9 +46,12 @@ const calculateStats = (matches: FormationStats['matches']) => {
   const goalsAgainst = matches.reduce((acc, m) => acc + m.goalsAgainst, 0);
   const goalDifference = goalsFor - goalsAgainst;
 
+  const shotsOnGoal = matches.reduce((acc, m) => acc + (m.shotsOnGoal || 0), 0);
+  const shotsPerMatch = shotsOnGoal / total;
+
   const effectiveness = ((wins * 3 + draws) / (total * 3)) * 100;
 
-  return { wins, draws, losses, goalsFor, goalsAgainst, goalDifference, effectiveness, total };
+  return { wins, draws, losses, goalsFor, goalsAgainst, goalDifference, effectiveness, total, shotsOnGoal, shotsPerMatch };
 };
 
 const MatchHistory = ({ matches, formationId, onDeleteMatchResult }: { matches: MatchResult[], formationId: string, onDeleteMatchResult: (formationId: string, matchId: string) => void }) => {
@@ -83,6 +86,7 @@ const MatchHistory = ({ matches, formationId, onDeleteMatchResult }: { matches: 
                   <span>
                     {match.goalsFor} - {match.goalsAgainst}
                   </span>
+                  {match.shotsOnGoal !== undefined && <span className="flex items-center gap-1 text-xs text-muted-foreground">(<Target className="h-3 w-3" /> {match.shotsOnGoal})</span>}
                 </div>
                  <span className="text-xs text-muted-foreground">{new Date(match.date).toLocaleDateString()}</span>
                  <TooltipProvider>
@@ -198,7 +202,7 @@ const FormationCard = ({ formation, onAddMatch, onDeleteFormation, onEdit, onVie
             </div>
           </div>
 
-          <div className="grid grid-cols-4 gap-2 text-center">
+          <div className="grid grid-cols-5 gap-2 text-center">
              <div>
               <p className="text-2xl font-bold">{stats.total}</p>
               <p className="text-xs text-muted-foreground">Partidos</p>
@@ -214,6 +218,13 @@ const FormationCard = ({ formation, onAddMatch, onDeleteFormation, onEdit, onVie
             <div>
               <p className={`text-2xl font-bold ${gdColor}`}>{stats.goalDifference > 0 ? '+' : ''}{stats.goalDifference}</p>
               <p className="text-xs text-muted-foreground">DG</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold flex items-center justify-center gap-1">
+                <Target className="h-5 w-5" />
+                <span>{stats.shotsOnGoal}</span>
+              </p>
+              <p className="text-xs text-muted-foreground">{stats.shotsPerMatch.toFixed(1)} / Partido</p>
             </div>
           </div>
 

@@ -29,6 +29,7 @@ const formSchema = z.object({
   formationId: z.string(),
   goalsFor: z.coerce.number().min(0, "Debe ser un número positivo."),
   goalsAgainst: z.coerce.number().min(0, "Debe ser un número positivo."),
+  shotsOnGoal: z.coerce.number().min(0, "Debe ser un número positivo.").optional(),
 });
 
 export type AddMatchFormValues = z.infer<typeof formSchema>;
@@ -50,6 +51,7 @@ export function AddMatchDialog({ open, onOpenChange, onAddMatch, initialData }: 
       formationId: "",
       goalsFor: 0,
       goalsAgainst: 0,
+      shotsOnGoal: 0,
     },
   });
 
@@ -59,6 +61,7 @@ export function AddMatchDialog({ open, onOpenChange, onAddMatch, initialData }: 
         formationId: initialData.formationId,
         goalsFor: 0,
         goalsAgainst: 0,
+        shotsOnGoal: 0,
       });
     }
   }, [open, initialData, form]);
@@ -70,7 +73,7 @@ export function AddMatchDialog({ open, onOpenChange, onAddMatch, initialData }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Añadir Resultado de Partido</DialogTitle>
           <DialogDescription>
@@ -107,6 +110,19 @@ export function AddMatchDialog({ open, onOpenChange, onAddMatch, initialData }: 
                 )}
               />
             </div>
+             <FormField
+                control={form.control}
+                name="shotsOnGoal"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Remates al Arco</FormLabel>
+                    <FormControl>
+                      <Input type="number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             <DialogFooter>
               <Button type="submit">Guardar Resultado</Button>
             </DialogFooter>
