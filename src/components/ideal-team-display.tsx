@@ -245,7 +245,7 @@ const IdealTeamDisplayMemo = memo(function IdealTeamDisplay({ teamSlots, formati
       <div className="xl:col-span-1">
         <h3 className="text-xl font-semibold mb-4 text-center flex items-center justify-center gap-2"><Users /> Banquillo</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-2">
-          {finalSubstitutes.map((sub, index) => (
+          {finalSubstitutes.slice(0, 12).map((sub, index) => (
              <SubstitutePlayerRow key={sub?.card.id || `sub-${index}`} player={sub} onDiscard={onDiscardPlayer} onViewBuild={onViewBuild}/>
           ))}
         </div>

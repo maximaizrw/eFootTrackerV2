@@ -89,7 +89,7 @@ export function generateIdealTeam(
             stats,
             isHotStreak: stats.matches >= 3 && recentStats.average > stats.average + 0.5,
             isConsistent: stats.matches >= 5 && stats.stdDev < 0.5,
-            isPromising: stats.matches > 0 && stats.matches < 10 && stats.average >= 7.0,
+            isPromising: stats.matches > 0 && stats.matches < 5 && stats.average >= 7.0,
             isVersatile: isVersatile,
         };
         
@@ -224,7 +224,7 @@ export function generateIdealTeam(
     });
   }
   
-  // --- SUBSTITUTE SELECTION (Two-tiered testing) ---
+  // --- SUBSTITUTE SELECTION ---
   finalTeamSlots.forEach((slot, index) => {
     const formationSlot = formation.slots[index];
     const allCandidatesForSlot = getCandidatesForSlot(formationSlot);
@@ -251,6 +251,22 @@ export function generateIdealTeam(
     }
   });
 
+  // --- 12th SUBSTITUTE SELECTION ---
+  const allRemainingCandidates = allPlayerCandidates
+    .filter(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id) && !discardedCardIds.has(p.card.id))
+    .sort(sortFunction);
+    
+  if (allRemainingCandidates.length > 0) {
+      const extraSubCandidate = allRemainingCandidates[0];
+      // The assigned position for the 12th sub doesn't correspond to a specific slot, 
+      // so we use their best-rated position.
+      const assignedPosForExtraSub = extraSubCandidate.position; 
+      finalTeamSlots.push({
+          starter: null, // No starter for this slot
+          substitute: createTeamPlayer(extraSubCandidate, assignedPosForExtraSub),
+      });
+  }
+
 
   // Fill empty slots and manage final list
   const placeholderPerformance: PlayerPerformance = {
@@ -273,7 +289,7 @@ export function generateIdealTeam(
         performance: placeholderPerformance
     };
     
-    const starter = slot.starter || placeholderPlayer;
+    const starter = slot.starter || (index < 11 ? placeholderPlayer : null);
 
     const subPlaceholderPlayer: IdealTeamPlayer = {
       ...placeholderPlayer,
@@ -281,7 +297,7 @@ export function generateIdealTeam(
       card: { ...placeholderPlayer.card, id: `placeholder-card-SUB-${index}`}
     };
     
-    const substitute = slot.substitute || subPlaceholderPlayer;
+    const substitute = slot.substitute || (index < 11 ? subPlaceholderPlayer : null);
 
     return { starter, substitute };
   });
