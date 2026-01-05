@@ -8,6 +8,7 @@ import { Label } from './ui/label';
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
 import { BarChart2, Star, ArrowRightLeft } from 'lucide-react';
 import { Switch } from './ui/switch';
+import { calculateStats } from './formations-display';
 
 type IdealTeamSetupProps = {
   formations: FormationStats[];
@@ -48,6 +49,15 @@ const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({
   const selectedFormation = React.useMemo(() => {
     return formations.find(f => f.id === selectedFormationId);
   }, [formations, selectedFormationId]);
+  
+  const sortedFormations = React.useMemo(() => {
+      return [...formations].sort((a, b) => {
+        const statsA = calculateStats(a.matches);
+        const statsB = calculateStats(b.matches);
+        return statsB.effectiveness - statsA.effectiveness;
+      });
+  }, [formations]);
+
 
   const hasLaterals = React.useMemo(() => {
     return selectedFormation?.slots.some(s => s.position === 'LI' || s.position === 'LD');
@@ -80,9 +90,9 @@ const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({
             <SelectValue placeholder="Elige una formación..." />
           </SelectTrigger>
           <SelectContent>
-            {formations.map(f => (
+            {sortedFormations.map(f => (
               <SelectItem key={f.id} value={f.id}>
-                {f.name} {f.creator && `- ${f.creator}`}
+                {`${calculateStats(f.matches).effectiveness.toFixed(0)}% - ${f.name} ${f.creator ? `- ${f.creator}` : ''}`}
               </SelectItem>
             ))}
           </SelectContent>

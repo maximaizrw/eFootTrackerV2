@@ -288,11 +288,11 @@ const FormationRow = ({ formation, onAddMatch, onEdit, onDeleteFormation, onGene
             </div>
             <div className="hidden sm:flex items-center gap-6 mx-6 flex-shrink-0">
                 <div className="text-center w-20">
-                    <p className="text-xl font-bold">{stats.wins}-{stats.draws}-{stats.losses}</p>
+                    <p className="text-lg font-bold">{stats.wins}-{stats.draws}-{stats.losses}</p>
                     <p className="text-xs text-muted-foreground">V-E-D</p>
                 </div>
                  <div className="text-center w-24">
-                    <p className={cn("text-xl font-bold", effectivenessColor)}>{stats.effectiveness.toFixed(0)}%</p>
+                    <p className={cn("text-lg font-bold", effectivenessColor)}>{stats.effectiveness.toFixed(0)}%</p>
                     <p className="text-xs text-muted-foreground">Efectividad</p>
                 </div>
             </div>
@@ -393,4 +393,4 @@ const FormationsDisplayMemo = memo(function FormationsDisplay({ formations, onAd
   );
 });
 
-export { FormationsDisplayMemo as FormationsDisplay };
+export { FormationsDisplayMemo as FormationsDisplay, calculateStats };
