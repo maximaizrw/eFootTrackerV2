@@ -30,7 +30,7 @@ type SortByType = 'effectiveness' | 'goals' | 'shots';
 const calculateStats = (matches: FormationStats['matches']) => {
   const total = matches.length;
   if (total === 0) {
-    return { wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, effectiveness: 0, total, shotsOnGoal: 0, shotsPerMatch: 0 };
+    return { wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, effectiveness: 0, total, shotsOnGoal: 0, shotsPerMatch: 0, goalsForPerMatch: 0 };
   }
   const wins = matches.filter(m => m.goalsFor > m.goalsAgainst).length;
   const draws = matches.filter(m => m.goalsFor === m.goalsAgainst).length;
@@ -39,13 +39,15 @@ const calculateStats = (matches: FormationStats['matches']) => {
   const goalsFor = matches.reduce((acc, m) => acc + m.goalsFor, 0);
   const goalsAgainst = matches.reduce((acc, m) => acc + m.goalsAgainst, 0);
   const goalDifference = goalsFor - goalsAgainst;
+  
+  const goalsForPerMatch = goalsFor / total;
 
   const shotsOnGoal = matches.reduce((acc, m) => acc + (m.shotsOnGoal || 0), 0);
   const shotsPerMatch = shotsOnGoal / total;
 
   const effectiveness = ((wins * 3 + draws) / (total * 3)) * 100;
 
-  return { wins, draws, losses, goalsFor, goalsAgainst, goalDifference, effectiveness, total, shotsOnGoal, shotsPerMatch };
+  return { wins, draws, losses, goalsFor, goalsAgainst, goalDifference, effectiveness, total, shotsOnGoal, shotsPerMatch, goalsForPerMatch };
 };
 
 const MatchHistory = ({ matches, formationId, onDeleteMatchResult }: { matches: MatchResult[], formationId: string, onDeleteMatchResult: (formationId: string, matchId: string) => void }) => {
@@ -290,11 +292,11 @@ const FormationRow = ({ formation, onAddMatch, onEdit, onDeleteFormation, onGene
                     <p className="text-xs text-muted-foreground">Efect.</p>
                 </div>
                  <div className="text-center w-10">
-                    <p className="text-base font-bold">{stats.goalsFor}</p>
+                    <p className="text-base font-bold">{stats.goalsForPerMatch.toFixed(1)}</p>
                     <p className="text-xs text-muted-foreground">Goles</p>
                 </div>
                 <div className="text-center w-10">
-                    <p className="text-base font-bold">{stats.shotsOnGoal}</p>
+                    <p className="text-base font-bold">{stats.shotsPerMatch.toFixed(1)}</p>
                     <p className="text-xs text-muted-foreground">Tiros</p>
                 </div>
             </div>
@@ -353,9 +355,9 @@ const FormationsDisplayMemo = memo(function FormationsDisplay({ formations, onAd
     return [...formationsWithStats].sort((a, b) => {
         switch (sortBy) {
             case 'goals':
-                return b.stats.goalsFor - a.stats.goalsFor;
+                return b.stats.goalsForPerMatch - a.stats.goalsForPerMatch;
             case 'shots':
-                return b.stats.shotsOnGoal - a.stats.shotsOnGoal;
+                return b.stats.shotsPerMatch - a.stats.shotsPerMatch;
             case 'effectiveness':
             default:
                 return b.stats.effectiveness - a.stats.effectiveness;
