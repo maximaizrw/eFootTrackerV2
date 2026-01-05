@@ -203,7 +203,6 @@ const IdealTeamDisplayMemo = memo(function IdealTeamDisplay({ teamSlots, formati
   }
   
   const starters = teamSlots.slice(0, 11).map(slot => slot.starter);
-  const extraSub = teamSlots.length > 11 ? teamSlots[11].substitute : null;
   
   const regularSubstitutes = teamSlots
     .slice(0, 11)
@@ -219,6 +218,9 @@ const IdealTeamDisplayMemo = memo(function IdealTeamDisplay({ teamSlots, formati
         if(indexB === -1) return -1;
         return indexA - indexB;
     });
+
+  const extraSubSlot = teamSlots.length > 11 ? teamSlots[11] : null;
+  const extraSub = extraSubSlot ? extraSubSlot.substitute : null;
 
   const finalSubstitutes = [...regularSubstitutes];
   if (extraSub && !extraSub.player.id.startsWith('placeholder')) {
@@ -245,9 +247,10 @@ const IdealTeamDisplayMemo = memo(function IdealTeamDisplay({ teamSlots, formati
       <div className="xl:col-span-1">
         <h3 className="text-xl font-semibold mb-4 text-center flex items-center justify-center gap-2"><Users /> Banquillo</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-2">
-          {finalSubstitutes.slice(0, 12).map((sub, index) => (
-             <SubstitutePlayerRow key={sub?.card.id || `sub-${index}`} player={sub} onDiscard={onDiscardPlayer} onViewBuild={onViewBuild}/>
-          ))}
+          {Array.from({ length: 12 }).map((_, index) => {
+              const sub = finalSubstitutes[index];
+              return <SubstitutePlayerRow key={sub?.card.id || `sub-${index}`} player={sub || null} onDiscard={onDiscardPlayer} onViewBuild={onViewBuild}/>
+          })}
         </div>
       </div>
     </div>

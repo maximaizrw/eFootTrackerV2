@@ -105,7 +105,7 @@ export function generateIdealTeam(
         const affinityBreakdown = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills);
         const affinityScore = affinityBreakdown.totalAffinityScore;
         
-        const generalScore = calculateGeneralScore(affinityScore, stats.average, stats.matches);
+        const generalScore = calculateGeneralScore(affinityScore, stats.average);
         
         // Momentum Score Calculation
         let momentumScore = sortBy === 'general' ? generalScore : stats.average;
@@ -252,19 +252,38 @@ export function generateIdealTeam(
   });
 
   // --- 12th SUBSTITUTE SELECTION ---
-  const allRemainingCandidates = allPlayerCandidates
-    .filter(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id) && !discardedCardIds.has(p.card.id))
+  const outfieldFormationPositions = formation.slots.map(s => s.position).filter(p => p !== 'PT');
+  
+  const allRemainingOutfieldCandidates = allPlayerCandidates
+    .filter(p => 
+      !usedPlayerIds.has(p.player.id) && 
+      !usedCardIds.has(p.card.id) && 
+      !discardedCardIds.has(p.card.id) &&
+      outfieldFormationPositions.includes(p.position) // Must be a position in the current formation
+    )
     .sort(sortFunction);
-    
-  if (allRemainingCandidates.length > 0) {
-      const extraSubCandidate = allRemainingCandidates[0];
-      // The assigned position for the 12th sub doesn't correspond to a specific slot, 
-      // so we use their best-rated position.
-      const assignedPosForExtraSub = extraSubCandidate.position; 
-      finalTeamSlots.push({
-          starter: null, // No starter for this slot
-          substitute: createTeamPlayer(extraSubCandidate, assignedPosForExtraSub),
-      });
+  
+  if (allRemainingOutfieldCandidates.length > 0) {
+      // Apply the same tiered "testing" logic for the 12th sub
+      const tier1_12th = allRemainingOutfieldCandidates.filter(p => p.performance.stats.matches < 5);
+      let extraSubCandidate = tier1_12th[0]; // Already sorted, so just take the first
+
+      if (!extraSubCandidate) {
+          const tier2_12th = allRemainingOutfieldCandidates.filter(p => p.performance.stats.matches < 10);
+          extraSubCandidate = tier2_12th[0];
+      }
+
+      if (!extraSubCandidate) {
+          extraSubCandidate = allRemainingOutfieldCandidates[0];
+      }
+      
+      if (extraSubCandidate) {
+          const assignedPosForExtraSub = extraSubCandidate.position; 
+          finalTeamSlots.push({
+              starter: null,
+              substitute: createTeamPlayer(extraSubCandidate, assignedPosForExtraSub),
+          });
+      }
   }
 
 
@@ -297,10 +316,10 @@ export function generateIdealTeam(
       card: { ...placeholderPlayer.card, id: `placeholder-card-SUB-${index}`}
     };
     
-    const substitute = slot.substitute || (index < 11 ? subPlaceholderPlayer : null);
+    const substitute = slot.substitute || (index < 12 ? subPlaceholderPlayer : null); // Changed to 12
 
     return { starter, substitute };
   });
 
-  return finalSlots;
+  return finalSlots.filter(s => s.starter || s.substitute); // Filter out potentially empty 12th slot if no candidate found
 }
