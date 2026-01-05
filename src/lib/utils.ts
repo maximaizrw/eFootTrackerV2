@@ -57,26 +57,13 @@ export function normalizeText(text: string): string {
 }
 
 export function calculateGeneralScore(affinityScore: number, average: number, matches: number): number {
-  const matchAverageOn100 = (average > 0) ? average * 10 : 0;
+  const baseScore = average > 0 ? average * 10 : 0;
   
-  // Confidence factor transitions from 0 (no matches) to ~1 (many matches)
-  // It reaches ~0.9 at 30 matches.
-  const confidenceFactor = 1 - Math.exp(-matches / 15);
+  // Affinity modifier: centered around a neutral affinity of 50
+  // It will add/subtract a maximum of ~12.5 points for affinities of 100 or 0.
+  const affinityModifier = (affinityScore - 50) * 0.25;
 
-  // When confidence is low, rely more on affinity. When high, rely more on match average.
-  const affinityWeight = 1 - (0.6 * confidenceFactor); // Starts at 1.0, drops to 0.4
-  const averageWeight = 0.6 * confidenceFactor;     // Starts at 0, grows to 0.6
-  
-  // This seems reversed, let's correct it.
-  // We want average to be MORE important as matches increase.
-  // Let's define the WEIGHT of the average score based on confidence.
-  const averageFinalWeight = Math.min(0.8, 0.2 + (0.6 * confidenceFactor)); // Starts at 20%, goes up to 80%
-  const affinityFinalWeight = 1 - averageFinalWeight;
-  
-  const weightedAffinity = affinityScore * affinityFinalWeight;
-  const weightedAverage = matchAverageOn100 * averageFinalWeight;
-
-  return weightedAffinity + weightedAverage;
+  return Math.max(0, baseScore + affinityModifier);
 }
 
 export function isSpecialCard(cardName: string): boolean {
@@ -352,7 +339,7 @@ export function calculateAffinityWithBreakdown(
     // Primary Skills
     for (const idealSkill of primarySkills) {
         const hasSkill = playerSkillsSet.has(idealSkill);
-        const score = hasSkill ? 2.0 : 0;
+        const score = hasSkill ? 2.0 : -1.0;
         totalAffinityScore += score;
         skillsBreakdown.push({
             skill: idealSkill,
@@ -365,7 +352,7 @@ export function calculateAffinityWithBreakdown(
     // Secondary Skills
     for (const idealSkill of secondarySkills) {
         const hasSkill = playerSkillsSet.has(idealSkill);
-        const score = hasSkill ? 1.0 : 0;
+        const score = hasSkill ? 1.0 : -0.5;
         totalAffinityScore += score;
         skillsBreakdown.push({
             skill: idealSkill,
@@ -529,3 +516,4 @@ export function calculateProgressionSuggestions(
 
   return build;
 }
+
