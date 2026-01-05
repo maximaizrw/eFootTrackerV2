@@ -223,10 +223,6 @@ export type EditPlayerFormValues = {
     nationality: Nationality;
 };
 
-export type PlayersByPosition = {
-  [key in Position]?: number;
-};
-
 export type Formation = {
   [key in Position]?: number;
 };

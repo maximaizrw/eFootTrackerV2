@@ -203,6 +203,8 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
               imageUrl: '',
               ratingsByPosition: { [position]: [rating] },
               buildsByPosition: { [position]: { manualAffinity: 0 } },
+              attributeStats: {},
+              physicalAttributes: {},
               skills: [],
           };
           newCards.push(card);
@@ -220,6 +222,8 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
               imageUrl: '',
               ratingsByPosition: { [position]: [rating] },
               buildsByPosition: { [position]: { manualAffinity: 0 } },
+              attributeStats: {},
+              physicalAttributes: {},
               skills: [],
           }],
         };

@@ -41,7 +41,7 @@ import { useToast } from "@/hooks/use-toast";
 
 import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerBuild, IdealTeamPlayer, PlayerAttributeStats, IdealBuild } from '@/lib/types';
 import { positions, leagues, nationalities } from '@/lib/types';
-import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Wrench, Dna, RefreshCw, Beaker, Wand2, Sparkles } from 'lucide-react';
+import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Dna, RefreshCw, Beaker, Wand2 } from 'lucide-react';
 import { normalizeText } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -734,5 +734,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
