@@ -1,13 +1,13 @@
 
 "use client";
 
-import { useState, memo } from 'react';
+import { useState, memo, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { FormationStats, MatchResult } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Trash2, Link as LinkIcon, Trophy, LayoutGrid, List, Pencil, History, Star, Target } from 'lucide-react';
+import { PlusCircle, Trash2, Link as LinkIcon, Trophy, LayoutGrid, List, Pencil, History, Star, Target, BarChart, ArrowDownUp } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
@@ -23,15 +23,9 @@ import {
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from '@/lib/utils';
 
-type FormationsDisplayProps = {
-  formations: FormationStats[];
-  onAddMatch: (formationId: string, formationName: string) => void;
-  onDeleteFormation: (formation: FormationStats) => void;
-  onDeleteMatchResult: (formationId: string, matchId: string) => void;
-  onEdit: (formation: FormationStats) => void;
-  onViewImage: (url: string, name: string) => void;
-  onGenerateIdealTeam: (formationId: string) => void;
-};
+type FormationWithStats = FormationStats & { stats: ReturnType<typeof calculateStats> };
+type SortByType = 'effectiveness' | 'goals' | 'shots';
+
 
 const calculateStats = (matches: FormationStats['matches']) => {
   const total = matches.length;
@@ -273,42 +267,58 @@ const FormationCard = ({ formation, onAddMatch, onDeleteFormation, onEdit, onVie
     );
 };
 
-const FormationRow = ({ formation, onAddMatch, onEdit, onDeleteFormation, onGenerateIdealTeam }: Omit<FormationsDisplayProps, 'formations' | 'onViewImage' | 'onDeleteMatchResult' | 'onAddMatch'> & { onAddMatch: (id: string, name: string) => void }) => {
-    const stats = calculateStats(formation.matches);
-     const effectivenessColor = 
+const FormationRow = ({ formation, onAddMatch, onEdit, onDeleteFormation, onGenerateIdealTeam }: Omit<FormationsDisplayProps, 'formations' | 'onViewImage' | 'onDeleteMatchResult' | 'onAddMatch'> & { onAddMatch: (id: string, name: string) => void, formation: FormationWithStats }) => {
+    const { stats } = formation;
+    const effectivenessColor = 
       stats.effectiveness >= 66 ? 'text-green-500' :
       stats.effectiveness >= 33 ? 'text-yellow-500' :
       stats.total > 0 ? 'text-red-500' : 'text-muted-foreground';
 
     return (
-        <div className="flex items-center justify-between p-4 bg-card rounded-lg hover:bg-muted/50 transition-colors border">
+        <div className="flex items-center justify-between p-3 bg-card rounded-lg hover:bg-muted/50 transition-colors border">
             <div className="flex-1 overflow-hidden">
-                <p className="text-lg font-semibold truncate">{formation.name}</p>
-                <p className="text-sm text-muted-foreground truncate">{formation.creator ? `${formation.creator} - ${formation.playStyle}` : formation.playStyle}</p>
+                <p className="text-base font-semibold truncate">{formation.name}</p>
+                <p className="text-xs text-muted-foreground truncate">{formation.creator ? `${formation.creator} - ${formation.playStyle}` : formation.playStyle}</p>
             </div>
-            <div className="hidden sm:flex items-center gap-6 mx-6 flex-shrink-0">
-                <div className="text-center w-20">
-                    <p className="text-lg font-bold">{stats.wins}-{stats.draws}-{stats.losses}</p>
+            <div className="hidden sm:flex items-center gap-4 mx-4 flex-shrink-0">
+                <div className="text-center w-16">
+                    <p className="text-sm font-bold">{stats.wins}-{stats.draws}-{stats.losses}</p>
                     <p className="text-xs text-muted-foreground">V-E-D</p>
                 </div>
-                 <div className="text-center w-24">
-                    <p className={cn("text-lg font-bold", effectivenessColor)}>{stats.effectiveness.toFixed(0)}%</p>
-                    <p className="text-xs text-muted-foreground">Efectividad</p>
+                 <div className="text-center w-12">
+                    <p className={cn("text-base font-bold", effectivenessColor)}>{stats.effectiveness.toFixed(0)}%</p>
+                    <p className="text-xs text-muted-foreground">Efect.</p>
+                </div>
+                 <div className="text-center w-10">
+                    <p className="text-base font-bold">{stats.goalsFor}</p>
+                    <p className="text-xs text-muted-foreground">Goles</p>
+                </div>
+                <div className="text-center w-10">
+                    <p className="text-base font-bold">{stats.shotsOnGoal}</p>
+                    <p className="text-xs text-muted-foreground">Tiros</p>
                 </div>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-                <Button size="sm" variant="secondary" onClick={() => onGenerateIdealTeam(formation.id)}>
-                    <Star className="mr-2 h-4 w-4" />
-                    <span className="hidden md:inline">11 Ideal</span>
-                </Button>
-                <Button size="sm" onClick={() => onAddMatch(formation.id, formation.name)}>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    <span className="hidden md:inline">Partido</span>
-                </Button>
+            <div className="flex items-center gap-1 flex-shrink-0">
                 <TooltipProvider>
                   <Tooltip>
                       <TooltipTrigger asChild>
-                           <Button variant="outline" size="icon" onClick={() => onEdit(formation)}>
+                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => onGenerateIdealTeam(formation.id)}>
+                            <Star className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent><p>Generar 11 Ideal</p></TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => onAddMatch(formation.id, formation.name)}>
+                            <PlusCircle className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent><p>Añadir Partido</p></TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                      <TooltipTrigger asChild>
+                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(formation)}>
                                 <Pencil className="h-4 w-4" />
                             </Button>
                       </TooltipTrigger>
@@ -316,7 +326,7 @@ const FormationRow = ({ formation, onAddMatch, onEdit, onDeleteFormation, onGene
                   </Tooltip>
                   <Tooltip>
                       <TooltipTrigger asChild>
-                          <Button variant="destructive" size="icon" onClick={() => onDeleteFormation(formation)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive/80 hover:text-destructive" onClick={() => onDeleteFormation(formation)}>
                               <Trash2 className="h-4 w-4" />
                           </Button>
                       </TooltipTrigger>
@@ -330,12 +340,28 @@ const FormationRow = ({ formation, onAddMatch, onEdit, onDeleteFormation, onGene
 
 const FormationsDisplayMemo = memo(function FormationsDisplay({ formations, onAddMatch, onDeleteFormation, onEdit, onViewImage, onDeleteMatchResult, onGenerateIdealTeam }: FormationsDisplayProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  const [sortBy, setSortBy] = useState<SortByType>('effectiveness');
 
-  const sortedFormations = [...formations].sort((a, b) => {
-    const statsA = calculateStats(a.matches);
-    const statsB = calculateStats(b.matches);
-    return statsB.effectiveness - statsA.effectiveness;
-  });
+  const formationsWithStats: FormationWithStats[] = useMemo(() => {
+    return formations.map(f => ({
+        ...f,
+        stats: calculateStats(f.matches)
+    }));
+  }, [formations]);
+
+  const sortedFormations = useMemo(() => {
+    return [...formationsWithStats].sort((a, b) => {
+        switch (sortBy) {
+            case 'goals':
+                return b.stats.goalsFor - a.stats.goalsFor;
+            case 'shots':
+                return b.stats.shotsOnGoal - a.stats.shotsOnGoal;
+            case 'effectiveness':
+            default:
+                return b.stats.effectiveness - a.stats.effectiveness;
+        }
+    });
+  }, [formationsWithStats, sortBy]);
 
   if (formations.length === 0) {
     return (
@@ -349,15 +375,33 @@ const FormationsDisplayMemo = memo(function FormationsDisplay({ formations, onAd
 
   return (
     <div>
-        <div className="flex justify-end mb-4">
-            <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as 'grid' | 'list')}>
-                <ToggleGroupItem value="grid" aria-label="Vista de cuadrícula">
-                    <LayoutGrid className="h-4 w-4" />
-                </ToggleGroupItem>
-                <ToggleGroupItem value="list" aria-label="Vista de lista">
-                    <List className="h-4 w-4" />
-                </ToggleGroupItem>
-            </ToggleGroup>
+        <div className="flex justify-between items-center mb-4 gap-4">
+            {viewMode === 'list' && (
+                <div>
+                     <label className="text-sm font-medium mr-2">Ordenar por:</label>
+                    <ToggleGroup type="single" size="sm" value={sortBy} onValueChange={(value: SortByType) => value && setSortBy(value)}>
+                        <ToggleGroupItem value="effectiveness" aria-label="Ordenar por efectividad">
+                            <BarChart className="h-4 w-4 mr-2"/> Efectividad
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="goals" aria-label="Ordenar por goles">
+                            <Trophy className="h-4 w-4 mr-2"/> Goles
+                        </ToggleGroupItem>
+                         <ToggleGroupItem value="shots" aria-label="Ordenar por tiros">
+                            <Target className="h-4 w-4 mr-2"/> Tiros
+                        </ToggleGroupItem>
+                    </ToggleGroup>
+                </div>
+            )}
+            <div className={cn(viewMode === 'list' ? 'flex-shrink-0' : 'w-full flex justify-end')}>
+                <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as 'grid' | 'list')}>
+                    <ToggleGroupItem value="grid" aria-label="Vista de cuadrícula">
+                        <LayoutGrid className="h-4 w-4" />
+                    </ToggleGroupItem>
+                    <ToggleGroupItem value="list" aria-label="Vista de lista">
+                        <List className="h-4 w-4" />
+                    </ToggleGroupItem>
+                </ToggleGroup>
+            </div>
         </div>
         
         {viewMode === 'grid' ? (
@@ -394,3 +438,5 @@ const FormationsDisplayMemo = memo(function FormationsDisplay({ formations, onAd
 });
 
 export { FormationsDisplayMemo as FormationsDisplay, calculateStats };
+
+    
