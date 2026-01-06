@@ -105,6 +105,11 @@ export function generateIdealTeam(
         const affinityBreakdown = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills);
         const affinityScore = affinityBreakdown.totalAffinityScore;
         
+        // --- AFFINITY FILTER ---
+        if (affinityScore < -10) {
+            return null;
+        }
+        
         const generalScore = calculateGeneralScore(affinityScore, stats.average);
         
         // Momentum Score Calculation
@@ -132,14 +137,14 @@ export function generateIdealTeam(
   const finalTeamSlots: IdealTeamSlot[] = [];
   
   const sortFunction = (a: CandidatePlayer, b: CandidatePlayer) => {
-    // 1. Momentum Score (includes hot streak bonus)
+    // 1. Momentum Score (includes hot streak bonus and general score)
     if (Math.abs(a.momentumScore - b.momentumScore) > 0.01) {
         return b.momentumScore - a.momentumScore;
     }
     
-    // 2. Tie-breaker: Consistency Badge
-    if (a.performance.isConsistent !== b.performance.isConsistent) {
-        return a.performance.isConsistent ? -1 : 1;
+    // 2. Tie-breaker: Affinity Score
+    if (Math.abs(a.affinityScore - b.affinityScore) > 0.1) {
+        return b.affinityScore - a.affinityScore;
     }
 
     // 3. Fallback to number of matches
@@ -164,15 +169,7 @@ export function generateIdealTeam(
   const findBestPlayer = (candidates: CandidatePlayer[]): CandidatePlayer | undefined => {
       const availableCandidates = candidates.filter(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id) && !discardedCardIds.has(p.card.id));
       
-      const highAffinityCandidates = availableCandidates.filter(p => p.affinityScore >= -10);
-
-      // Prefer high affinity players if any are available
-      if (highAffinityCandidates.length > 0) {
-          return highAffinityCandidates[0]; // The list is already sorted
-      }
-
-      // If no high affinity players, fall back to any available player (last resort)
-      return availableCandidates[0];
+      return availableCandidates[0]; // The list is already sorted, just take the best available one.
   };
   
   const getCandidatesForSlot = (formationSlot: FormationSlotType): CandidatePlayer[] => {
@@ -266,15 +263,15 @@ export function generateIdealTeam(
   if (allRemainingOutfieldCandidates.length > 0) {
       // Apply the same tiered "testing" logic for the 12th sub
       const tier1_12th = allRemainingOutfieldCandidates.filter(p => p.performance.stats.matches < 5);
-      let extraSubCandidate = tier1_12th[0]; // Already sorted, so just take the first
+      let extraSubCandidate = findBestPlayer(tier1_12th);
 
       if (!extraSubCandidate) {
           const tier2_12th = allRemainingOutfieldCandidates.filter(p => p.performance.stats.matches < 10);
-          extraSubCandidate = tier2_12th[0];
+          extraSubCandidate = findBestPlayer(tier2_12th);
       }
 
       if (!extraSubCandidate) {
-          extraSubCandidate = allRemainingOutfieldCandidates[0];
+          extraSubCandidate = findBestPlayer(allRemainingOutfieldCandidates);
       }
       
       if (extraSubCandidate) {
@@ -316,10 +313,10 @@ export function generateIdealTeam(
       card: { ...placeholderPlayer.card, id: `placeholder-card-SUB-${index}`}
     };
     
-    const substitute = slot.substitute || (index < 12 ? subPlaceholderPlayer : null); // Changed to 12
+    const substitute = slot.substitute || (index < 12 ? subPlaceholderPlayer : null);
 
     return { starter, substitute };
   });
 
-  return finalSlots.filter(s => s.starter || s.substitute); // Filter out potentially empty 12th slot if no candidate found
+  return finalSlots.filter(s => s.starter || s.substitute);
 }
