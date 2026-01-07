@@ -1,5 +1,4 @@
 
-
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position, BuildPosition, PhysicalAttribute, PlayerSkill } from "./types";
@@ -57,14 +56,23 @@ export function normalizeText(text: string): string {
 }
 
 export function calculateGeneralScore(affinityScore: number, average: number, matches: number): number {
-  const baseScore = average > 0 ? average * 10 : 0;
-  
-  // Affinity modifier: centered around a neutral affinity of 50
-  // It will add/subtract a maximum of ~12.5 points for affinities of 100 or 0.
-  const affinityModifier = (affinityScore - 50) * 0.25;
+  const baseRendimiento = average > 0 ? average * 10 : 0;
+  const modificadorAfinidad = (affinityScore - 50) * 0.25;
 
-  return Math.max(0, baseScore + affinityModifier);
+  let factorFiabilidad: number;
+  if (matches < 5) {
+      factorFiabilidad = 0.90;
+  } else if (matches >= 5 && matches <= 15) {
+      factorFiabilidad = 0.95;
+  } else {
+      factorFiabilidad = 1.0;
+  }
+
+  const puntajeGeneral = (baseRendimiento * factorFiabilidad) + modificadorAfinidad;
+
+  return Math.max(0, puntajeGeneral);
 }
+
 
 export function isSpecialCard(cardName: string): boolean {
   if (!cardName) return false;
@@ -516,4 +524,5 @@ export function calculateProgressionSuggestions(
 
   return build;
 }
+
 

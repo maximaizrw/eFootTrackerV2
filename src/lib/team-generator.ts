@@ -110,7 +110,7 @@ export function generateIdealTeam(
             return null;
         }
         
-        const generalScore = calculateGeneralScore(affinityScore, stats.average);
+        const generalScore = calculateGeneralScore(affinityScore, stats.average, stats.matches);
         
         // Momentum Score Calculation
         let momentumScore = sortBy === 'general' ? generalScore : stats.average;
