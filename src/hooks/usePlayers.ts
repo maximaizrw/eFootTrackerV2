@@ -140,7 +140,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
                     const affinityBreakdown = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills);
                     const affinityScore = affinityBreakdown.totalAffinityScore;
                     
-                    const generalScore = calculateGeneralScore(affinityScore, stats.average, stats.matches);
+                    const generalScore = calculateGeneralScore(affinityScore, stats.average);
 
                     return { player, card, ratingsForPos, performance, affinityScore, generalScore, position: ratedPos, affinityBreakdown };
                 }).filter((p): p is FlatPlayer => p !== null);

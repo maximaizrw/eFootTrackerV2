@@ -55,22 +55,13 @@ export function normalizeText(text: string): string {
     .replace(/([A-Z])/g, ' $1');
 }
 
-export function calculateGeneralScore(affinityScore: number, average: number, matches: number): number {
-  const baseRendimiento = average > 0 ? average * 10 : 0;
-  const modificadorAfinidad = (affinityScore - 50) * 0.25;
-
-  let factorFiabilidad: number;
-  if (matches < 5) {
-      factorFiabilidad = 0.90;
-  } else if (matches >= 5 && matches <= 15) {
-      factorFiabilidad = 0.95;
-  } else {
-      factorFiabilidad = 1.0;
-  }
-
-  const puntajeGeneral = (baseRendimiento * factorFiabilidad) + modificadorAfinidad;
-
-  return Math.max(0, puntajeGeneral);
+export function calculateGeneralScore(affinityScore: number, average: number): number {
+  const affinityComponent = affinityScore * 0.6;
+  const performanceComponent = (average * 10) * 0.4;
+  
+  const generalScore = affinityComponent + performanceComponent;
+  
+  return Math.max(0, generalScore);
 }
 
 
@@ -524,5 +515,6 @@ export function calculateProgressionSuggestions(
 
   return build;
 }
+
 
 
