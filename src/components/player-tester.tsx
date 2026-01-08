@@ -16,7 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import type { PlayerAttributeStats, IdealBuild, Position, PlayerStyle, BuildPosition, OutfieldBuild, GoalkeeperBuild, PlayerSkill } from "@/lib/types";
 import { positions, playerStyles, getAvailableStylesForPosition, playerSkillsList } from "@/lib/types";
-import { calculateProgressionStats, getIdealBuildForPlayer, statLabels, calculateProgressionSuggestions, calculateAffinityWithBreakdown, type AffinityBreakdownResult, allStatsKeys } from "@/lib/utils";
+import { calculateProgressionStats, getIdealBuildForPlayer, statLabels, calculateProgressionSuggestions, calculateAffinityWithBreakdown, type AffinityBreakdownResult, allStatsKeys, getAverageColorClass } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { Label } from "./ui/label";
 import { AffinityBreakdown } from "./affinity-breakdown";
@@ -95,7 +95,7 @@ type PlayerTesterProps = {
 
 const PlayerTesterMemo = React.memo(function PlayerTester({ idealBuilds }: PlayerTesterProps) {
   const [pastedText, setPastedText] = React.useState('');
-  const [affinityBreakdown, setAffinityBreakdown] = React.useState<AffinityBreakdownResult>({ totalAffinityScore: 0, breakdown: [] });
+  const [affinityBreakdown, setAffinityBreakdown] = React.useState<AffinityBreakdownResult>({ totalAffinityScore: 0, breakdown: [], skillsBreakdown: [] });
   const [bestBuildStyle, setBestBuildStyle] = React.useState<string | null>(null);
   const [progressionSuggestions, setProgressionSuggestions] = React.useState<Partial<OutfieldBuild & GoalkeeperBuild>>({});
   const [progressionPoints, setProgressionPoints] = React.useState<number | undefined>(undefined);
@@ -152,7 +152,7 @@ const PlayerTesterMemo = React.memo(function PlayerTester({ idealBuilds }: Playe
     } else {
         setFinalPlayerStats({});
         setProgressionSuggestions({});
-        setAffinityBreakdown({ totalAffinityScore: 0, breakdown: [] });
+        setAffinityBreakdown({ totalAffinityScore: 0, breakdown: [], skillsBreakdown: [] });
         setBestBuildStyle(null);
     }
 }, [watchedStats, watchedPosition, watchedStyle, watchedSkills, idealBuilds, getValues, progressionPoints]);
