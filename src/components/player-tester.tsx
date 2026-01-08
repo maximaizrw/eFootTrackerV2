@@ -11,16 +11,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/
 import { Textarea } from "./ui/textarea";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { UploadCloud, Beaker, Star, Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand } from "lucide-react";
+import { UploadCloud, Beaker, Star, Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, Check, ChevronsUpDown } from "lucide-react";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "./ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import type { PlayerAttributeStats, IdealBuild, Position, PlayerStyle, BuildPosition, OutfieldBuild, GoalkeeperBuild } from "@/lib/types";
-import { positions, playerStyles, getAvailableStylesForPosition } from "@/lib/types";
+import type { PlayerAttributeStats, IdealBuild, Position, PlayerStyle, BuildPosition, OutfieldBuild, GoalkeeperBuild, PlayerSkill } from "@/lib/types";
+import { positions, playerStyles, getAvailableStylesForPosition, playerSkillsList } from "@/lib/types";
 import { calculateProgressionStats, getIdealBuildForPlayer, statLabels, calculateProgressionSuggestions, calculateAffinityWithBreakdown, type AffinityBreakdownResult, allStatsKeys } from "@/lib/utils";
-import { cn, getAverageColorClass } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { Label } from "./ui/label";
 import { AffinityBreakdown } from "./affinity-breakdown";
 import { ScrollArea } from "./ui/scroll-area";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "./ui/command";
+import { Badge } from "./ui/badge";
 
 
 const statSchema = z.coerce.number().min(0).max(99).optional();
@@ -28,6 +31,7 @@ const statSchema = z.coerce.number().min(0).max(99).optional();
 const testerSchema = z.object({
   position: z.enum(positions),
   style: z.enum(playerStyles),
+  skills: z.array(z.string()).optional(),
   stats: z.object({
     offensiveAwareness: statSchema, ballControl: statSchema, dribbling: statSchema, tightPossession: statSchema,
     lowPass: statSchema, loftedPass: statSchema, finishing: statSchema, heading: statSchema, placeKicking: statSchema, curl: statSchema,
@@ -96,6 +100,7 @@ const PlayerTesterMemo = React.memo(function PlayerTester({ idealBuilds }: Playe
   const [progressionSuggestions, setProgressionSuggestions] = React.useState<Partial<OutfieldBuild & GoalkeeperBuild>>({});
   const [progressionPoints, setProgressionPoints] = React.useState<number | undefined>(undefined);
   const [finalPlayerStats, setFinalPlayerStats] = React.useState<PlayerAttributeStats>({});
+  const [skillsPopoverOpen, setSkillsPopoverOpen] = React.useState(false);
 
 
   const { toast } = useToast();
@@ -105,6 +110,7 @@ const PlayerTesterMemo = React.memo(function PlayerTester({ idealBuilds }: Playe
     defaultValues: {
       position: "DC",
       style: "Cazagoles",
+      skills: [],
       stats: {},
     },
   });
@@ -113,6 +119,7 @@ const PlayerTesterMemo = React.memo(function PlayerTester({ idealBuilds }: Playe
   const watchedPosition = useWatch({ control, name: "position" });
   const watchedStyle = useWatch({ control, name: "style" });
   const watchedStats = useWatch({ control, name: "stats" });
+  const watchedSkills = useWatch({ control, name: 'skills' }) || [];
 
   const availableStyles = React.useMemo(() => {
     return getAvailableStylesForPosition(watchedPosition, true);
@@ -129,13 +136,14 @@ const PlayerTesterMemo = React.memo(function PlayerTester({ idealBuilds }: Playe
     if (Object.keys(baseStats).length > 0) {
         const position = getValues('position');
         const style = getValues('style');
+        const skills = getValues('skills');
         const isGoalkeeper = position === 'PT';
 
         const { bestBuild, bestStyle } = getIdealBuildForPlayer(style, position, idealBuilds);
         const suggestions = calculateProgressionSuggestions(baseStats, bestBuild, isGoalkeeper, progressionPoints);
         
         const finalStats = calculateProgressionStats(baseStats, suggestions, isGoalkeeper);
-        const breakdown = calculateAffinityWithBreakdown(finalStats, bestBuild);
+        const breakdown = calculateAffinityWithBreakdown(finalStats, bestBuild, undefined, skills as PlayerSkill[]);
         
         setFinalPlayerStats(finalStats);
         setProgressionSuggestions(suggestions);
@@ -147,7 +155,7 @@ const PlayerTesterMemo = React.memo(function PlayerTester({ idealBuilds }: Playe
         setAffinityBreakdown({ totalAffinityScore: 0, breakdown: [] });
         setBestBuildStyle(null);
     }
-}, [watchedStats, watchedPosition, watchedStyle, idealBuilds, getValues, progressionPoints]);
+}, [watchedStats, watchedPosition, watchedStyle, watchedSkills, idealBuilds, getValues, progressionPoints]);
 
 
   const handleParseText = () => {
@@ -200,6 +208,16 @@ const PlayerTesterMemo = React.memo(function PlayerTester({ idealBuilds }: Playe
     }
   };
 
+  const handleSkillToggle = (skillToToggle: string) => {
+    const currentValues = getValues('skills') || [];
+    const isSelected = currentValues.includes(skillToToggle);
+    const newValues = isSelected
+      ? currentValues.filter((s) => s !== skillToToggle)
+      : [...currentValues, skillToToggle];
+    setValue('skills', newValues, { shouldValidate: true });
+  };
+
+
   const affinityScore = affinityBreakdown.totalAffinityScore;
   const hasStats = Object.keys(watchedStats).length > 0;
   const affinityColorClass = affinityScore !== null ? getAverageColorClass(affinityScore / 10) : '';
@@ -235,48 +253,101 @@ const PlayerTesterMemo = React.memo(function PlayerTester({ idealBuilds }: Playe
           </Button>
 
           <Form {...form}>
-            <div className="grid grid-cols-2 gap-4 pt-4">
-              <FormField
-                control={form.control}
-                name="position"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Posición en Campo</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Elige posición" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {positions.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="style"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Estilo de Juego</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Elige estilo" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {availableStyles.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               <div className="col-span-2 space-y-2">
+            <div className="space-y-4 pt-4">
+               <FormField
+                  control={form.control}
+                  name="skills"
+                  render={() => (
+                    <FormItem>
+                      <FormLabel>Habilidades del Jugador</FormLabel>
+                      <Popover open={skillsPopoverOpen} onOpenChange={setSkillsPopoverOpen}>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" role="combobox" className="w-full justify-between h-auto min-h-10">
+                            <div className="flex gap-1 flex-wrap">
+                              {watchedSkills.length > 0 ? (
+                                watchedSkills.map((skill) => (
+                                  <Badge variant="secondary" key={skill} className="mr-1">
+                                    {skill}
+                                  </Badge>
+                                ))
+                              ) : (
+                                <span className="text-muted-foreground">Seleccionar habilidades...</span>
+                              )}
+                            </div>
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                           <Command>
+                              <CommandInput placeholder="Buscar habilidad..." />
+                              <CommandList>
+                                  <CommandEmpty>No se encontró la habilidad.</CommandEmpty>
+                                  {playerSkillsList.map((skill) => (
+                                      <CommandItem
+                                          key={skill}
+                                          value={skill}
+                                          onSelect={() => handleSkillToggle(skill)}
+                                      >
+                                          <Check
+                                              className={cn(
+                                                  "mr-2 h-4 w-4",
+                                                  watchedSkills.includes(skill) ? "opacity-100" : "opacity-0"
+                                              )}
+                                          />
+                                          {skill}
+                                      </CommandItem>
+                                  ))}
+                              </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="position"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Posición en Campo</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Elige posición" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {positions.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="style"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Estilo de Juego</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Elige estilo" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {availableStyles.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="progression-points-tester">Puntos de Progresión Totales (Opcional)</Label>
                 <Input 
                   id="progression-points-tester"

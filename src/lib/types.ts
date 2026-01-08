@@ -46,7 +46,7 @@ export const playerSkillsList = [
     "Patadon en largo (Portero)", "Saque de banda largo", "Saque largo (Portero)",
     "Especialista en penaltis", "Parapenaltis (Portero)", "Picardía", "Marcaje",
     "Delantero atrasado", "Interceptador", "Bloqueador", "Superioridad aérea",
-    "Entrada deslizante", "Despeje acrobático", "Capitanía", "As en la manga",
+    "Entrada deslizante", "Despeje acrobático", "Capitanía", "As en la manga", "Doble toque",
     "Croqueta", "Espíritu de lucha", "Doble toque", "Tijera", "Elastica", "Malicia"
 ] as const;
 
