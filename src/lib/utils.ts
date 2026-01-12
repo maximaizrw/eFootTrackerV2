@@ -55,11 +55,23 @@ export function normalizeText(text: string): string {
     .replace(/([A-Z])/g, ' $1');
 }
 
-export function calculateGeneralScore(affinityScore: number, average: number): number {
-  const affinityComponent = affinityScore * 0.6;
-  const performanceComponent = (average * 10) * 0.4;
+export function calculateGeneralScore(affinityScore: number, average: number, matches: number): number {
+  const scaledAverage = average * 10;
+
+  if (matches >= 100) {
+    return scaledAverage;
+  }
   
-  const generalScore = affinityComponent + performanceComponent;
+  if (matches === 0) {
+    // If no matches, the score is purely based on affinity, but scaled down as it's unproven.
+    // We can decide on a specific logic, e.g., 75% of its affinity score.
+    return affinityScore * 0.75;
+  }
+
+  const averageWeight = matches / 100;
+  const affinityWeight = 1 - averageWeight;
+  
+  const generalScore = (scaledAverage * averageWeight) + (affinityScore * affinityWeight);
   
   return Math.max(0, generalScore);
 }
@@ -515,6 +527,3 @@ export function calculateProgressionSuggestions(
 
   return build;
 }
-
-
-
