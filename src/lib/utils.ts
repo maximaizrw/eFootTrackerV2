@@ -56,22 +56,14 @@ export function normalizeText(text: string): string {
 }
 
 export function calculateGeneralScore(affinityScore: number, average: number, matches: number): number {
-  const scaledAverage = average * 10;
-
   if (matches >= 100) {
-    return scaledAverage;
+    return average * 10;
   }
   
-  if (matches === 0) {
-    // If no matches, the score is purely based on affinity, but scaled down as it's unproven.
-    // We can decide on a specific logic, e.g., 75% of its affinity score.
-    return affinityScore * 0.75;
-  }
-
   const averageWeight = matches / 100;
   const affinityWeight = 1 - averageWeight;
   
-  const generalScore = (scaledAverage * averageWeight) + (affinityScore * affinityWeight);
+  const generalScore = ((average * 10) * averageWeight) + (affinityScore * affinityWeight);
   
   return Math.max(0, generalScore);
 }
@@ -228,6 +220,12 @@ export function getIdealBuildForPlayer(
         return { bestBuild: null, bestStyle: null };
     }
     
+    // Fallback: Check for a "Ninguno" style build for the exact position
+    const anystleBuild = validBuildsForPosition.find(b => b.position === position && b.style === 'Ninguno');
+    if (anystleBuild) {
+      return { bestBuild: anystleBuild, bestStyle: 'Ninguno' };
+    }
+    
     // Fallback: just return the first valid build if no better logic is defined
     const bestFlexBuild = validBuildsForPosition[0];
 
@@ -293,7 +291,7 @@ export function calculateAffinityWithBreakdown(
 ): AffinityBreakdownResult {
     if (!idealBuild) return { totalAffinityScore: 0, breakdown: [], skillsBreakdown: [] };
 
-    let totalAffinityScore = 0;
+    let totalAffinityScore = 100;
     const breakdown: AffinityBreakdownResult['breakdown'] = [];
     const skillsBreakdown: AffinityBreakdownResult['skillsBreakdown'] = [];
     const { build: idealBuildStats, primarySkills = [], secondarySkills = [] } = idealBuild;
