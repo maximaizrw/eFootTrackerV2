@@ -56,14 +56,16 @@ export function normalizeText(text: string): string {
 }
 
 export function calculateGeneralScore(affinityScore: number, average: number, matches: number): number {
+  const averageScorePart = (average * 10) + 50;
+
   if (matches >= 100) {
-    return average * 10;
+    return averageScorePart;
   }
-  
+
   const averageWeight = matches / 100;
   const affinityWeight = 1 - averageWeight;
   
-  const generalScore = ((average * 10) * averageWeight) + (affinityScore * affinityWeight);
+  const generalScore = (averageScorePart * averageWeight) + (affinityScore * affinityWeight);
   
   return Math.max(0, generalScore);
 }
@@ -221,9 +223,9 @@ export function getIdealBuildForPlayer(
     }
     
     // Fallback: Check for a "Ninguno" style build for the exact position
-    const anystleBuild = validBuildsForPosition.find(b => b.position === position && b.style === 'Ninguno');
-    if (anystleBuild) {
-      return { bestBuild: anystleBuild, bestStyle: 'Ninguno' };
+    const anystyleBuild = validBuildsForPosition.find(b => (b.position === position || b.position === archetype) && b.style === 'Ninguno');
+    if (anystyleBuild) {
+      return { bestBuild: anystyleBuild, bestStyle: 'Ninguno' };
     }
     
     // Fallback: just return the first valid build if no better logic is defined
