@@ -55,6 +55,17 @@ export function normalizeText(text: string): string {
     .replace(/([A-Z])/g, ' $1');
 }
 
+export const BADGE_BONUSES = {
+  HOT_STREAK: 3,
+  CONSISTENT: 2,
+  VERSATILE: 1,
+  PROMISING: 1,
+  GAME_CHANGER: 2,
+  STALWART: 2,
+  SPECIALIST: 3,
+};
+
+
 export function calculateGeneralScore(
   affinityScore: number, 
   average: number, 
@@ -75,19 +86,14 @@ export function calculateGeneralScore(
   let generalScore = (avgComponent * avgWeight) + (affinityScore * affinityWeight);
 
   // Apply badge bonuses
-  if (performance.isHotStreak) {
-    generalScore += 3;
-  }
-  if (performance.isConsistent) {
-    generalScore += 2;
-  }
-  if (performance.isVersatile) {
-    generalScore += 1;
-  }
-  if (performance.isPromising) {
-    generalScore += 1;
-  }
-
+  if (performance.isHotStreak) generalScore += BADGE_BONUSES.HOT_STREAK;
+  if (performance.isConsistent) generalScore += BADGE_BONUSES.CONSISTENT;
+  if (performance.isVersatile) generalScore += BADGE_BONUSES.VERSATILE;
+  if (performance.isPromising) generalScore += BADGE_BONUSES.PROMISING;
+  if (performance.isGameChanger) generalScore += BADGE_BONUSES.GAME_CHANGER;
+  if (performance.isStalwart) generalScore += BADGE_BONUSES.STALWART;
+  if (performance.isSpecialist) generalScore += BADGE_BONUSES.SPECIALIST;
+  
   return Math.max(0, generalScore);
 }
 
@@ -238,21 +244,26 @@ export function getIdealBuildForPlayer(
     }
     
     const validBuildsForPosition = idealBuilds.filter(b => compatiblePositions.includes(b.position));
-
-    if (validBuildsForPosition.length === 0) {
-        return { bestBuild: null, bestStyle: null };
+    
+    // 3a. Fallback: Check for a "Ninguno" style build for the exact position
+    const anystyleBuildExact = validBuildsForPosition.find(b => b.position === position && b.style === 'Ninguno');
+    if (anystyleBuildExact) {
+      return { bestBuild: anystyleBuildExact, bestStyle: 'Ninguno' };
     }
     
-    // Fallback: Check for a "Ninguno" style build for the exact position or archetype
-    const anystyleBuild = validBuildsForPosition.find(b => (b.position === position || b.position === archetype) && b.style === 'Ninguno');
-    if (anystyleBuild) {
-      return { bestBuild: anystyleBuild, bestStyle: 'Ninguno' };
+    // 3b. Fallback: Check for a "Ninguno" style build for the archetype position
+    const anystyleBuildArchetype = validBuildsForPosition.find(b => b.position === archetype && b.style === 'Ninguno');
+     if (anystyleBuildArchetype) {
+      return { bestBuild: anystyleBuildArchetype, bestStyle: 'Ninguno' };
     }
-    
-    // Fallback: just return the first valid build if no better logic is defined
-    const bestFlexBuild = validBuildsForPosition[0];
 
-    return { bestBuild: bestFlexBuild, bestStyle: bestFlexBuild?.style || null };
+    // 4. Last resort: just return the first valid build if no better logic is defined
+    if (validBuildsForPosition.length > 0) {
+        const bestFlexBuild = validBuildsForPosition[0];
+        return { bestBuild: bestFlexBuild, bestStyle: bestFlexBuild?.style || null };
+    }
+
+    return { bestBuild: null, bestStyle: null };
 }
 
 

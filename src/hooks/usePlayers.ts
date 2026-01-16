@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -101,6 +102,16 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
         const allFlatPlayers = players.flatMap(player => 
             (player.cards || []).flatMap(card => {
                 const playerPositions = Object.keys(card.ratingsByPosition || {}) as Position[];
+                
+                // For 'isSpecialist' calculation
+                const averagesByPosition = new Map<Position, number>();
+                playerPositions.forEach(p => {
+                    const ratings = card.ratingsByPosition?.[p];
+                    if (ratings && ratings.length > 0) {
+                        averagesByPosition.set(p, calculateStats(ratings).average);
+                    }
+                });
+
                 return playerPositions.map(ratedPos => {
                     const ratingsForPos = card.ratingsByPosition?.[ratedPos] || [];
                     if (ratingsForPos.length === 0) return null;
@@ -110,21 +121,35 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
                     const recentStats = calculateStats(recentRatings);
 
                     const highPerfPositions = new Set<Position>();
-                    for (const p in card.ratingsByPosition) {
-                        const positionKey = p as Position;
-                        const posRatings = card.ratingsByPosition[positionKey];
-                        if (posRatings && posRatings.length > 0) {
-                           const posAvg = calculateStats(posRatings).average;
-                           if (posAvg >= 7.0) highPerfPositions.add(positionKey);
+                    for (const [p, avg] of averagesByPosition.entries()) {
+                        if (avg >= 7.0) highPerfPositions.add(p);
+                    }
+
+                    // Specialist logic
+                    let isSpecialist = false;
+                    const currentAvg = averagesByPosition.get(ratedPos);
+                    if (currentAvg && currentAvg >= 8.5 && averagesByPosition.size > 1) {
+                        let otherPositionsWeaker = true;
+                        for (const [p, avg] of averagesByPosition.entries()) {
+                            if (p !== ratedPos) {
+                                if (avg >= currentAvg - 1.5) {
+                                    otherPositionsWeaker = false;
+                                    break;
+                                }
+                            }
                         }
+                        isSpecialist = otherPositionsWeaker;
                     }
                     
                     const performance: PlayerPerformance = {
                         stats,
                         isHotStreak: stats.matches >= 3 && recentStats.average > stats.average + 0.5,
                         isConsistent: stats.matches >= 5 && stats.stdDev < 0.5,
-                        isPromising: stats.matches > 0 && stats.matches < 10 && stats.average >= 7.0,
+                        isPromising: stats.matches > 0 && stats.matches < 5 && stats.average >= 7.0, // Updated logic
                         isVersatile: highPerfPositions.size >= 3,
+                        isGameChanger: stats.matches >= 5 && stats.stdDev > 1.0 && stats.average >= 7.5, // New
+                        isStalwart: stats.matches > 25 && stats.average >= 6.8, // New
+                        isSpecialist: isSpecialist, // New
                     };
                     
                     const isGoalkeeper = ratedPos === 'PT';

@@ -46,8 +46,7 @@ export const playerSkillsList = [
     "Patadon en largo (Portero)", "Saque de banda largo", "Saque largo (Portero)",
     "Especialista en penaltis", "Parapenaltis (Portero)", "Picardía", "Marcaje",
     "Delantero atrasado", "Interceptador", "Bloqueador", "Superioridad aérea",
-    "Entrada deslizante", "Despeje acrobático", "Capitanía", "As en la manga", "Doble toque",
-    "Croqueta", "Espíritu de lucha", "Doble toque", "Tijera", "Elastica", "Malicia"
+    "Entrada deslizante", "Despeje acrobático", "Capitanía", "As en la manga", "Doble toque", "Croqueta", "Tijera", "Malicia"
 ] as const;
 
 export type PlayerSkill = typeof playerSkillsList[number];
@@ -325,9 +324,11 @@ export type PlayerPerformance = {
     stats: PlayerRatingStats;
     isHotStreak: boolean;
     isConsistent: boolean;
-
     isPromising: boolean;
     isVersatile: boolean;
+    isGameChanger?: boolean;
+    isStalwart?: boolean;
+    isSpecialist?: boolean;
 };
 
 export type FlatPlayer = {
