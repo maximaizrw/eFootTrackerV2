@@ -145,11 +145,11 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
                         stats,
                         isHotStreak: stats.matches >= 3 && recentStats.average > stats.average + 0.5,
                         isConsistent: stats.matches >= 5 && stats.stdDev < 0.5,
-                        isPromising: stats.matches > 0 && stats.matches < 5 && stats.average >= 7.0, // Updated logic
+                        isPromising: stats.matches > 0 && stats.matches < 5 && stats.average >= 7.0,
                         isVersatile: highPerfPositions.size >= 3,
-                        isGameChanger: stats.matches >= 5 && stats.stdDev > 1.0 && stats.average >= 7.5, // New
-                        isStalwart: stats.matches > 25 && stats.average >= 6.8, // New
-                        isSpecialist: isSpecialist, // New
+                        isGameChanger: stats.matches >= 5 && stats.stdDev > 1.0 && stats.average >= 7.5,
+                        isStalwart: stats.matches >= 100 && stats.average >= 7.0,
+                        isSpecialist: isSpecialist,
                     };
                     
                     const isGoalkeeper = ratedPos === 'PT';

@@ -73,10 +73,6 @@ export function calculateGeneralScore(
   performance: PlayerPerformance
 ): number {
   
-  if (matches >= 100) {
-    return (average * 10) + 50;
-  }
-
   const weight = Math.min(100, matches) / 100;
   const avgWeight = weight;
   const affinityWeight = 1 - weight;
