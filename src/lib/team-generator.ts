@@ -105,15 +105,10 @@ export function generateIdealTeam(
         const affinityBreakdown = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills);
         const affinityScore = affinityBreakdown.totalAffinityScore;
         
-        // --- AFFINITY FILTER ---
-        if (affinityScore < -10) {
-            return null;
-        }
-        
         const generalScore = calculateGeneralScore(affinityScore, stats.average, stats.matches);
         
         // Momentum Score Calculation
-        let momentumScore = sortBy === 'general' ? generalScore : stats.average;
+        let momentumScore = generalScore;
         if (performance.isHotStreak) {
             momentumScore *= 1.05; // Apply a 5% bonus for being on a hot streak
         }
@@ -172,17 +167,20 @@ export function generateIdealTeam(
       return availableCandidates[0]; // The list is already sorted, just take the best available one.
   };
   
-  const getCandidatesForSlot = (formationSlot: FormationSlotType): CandidatePlayer[] => {
+  const getCandidatesForSlot = (formationSlot: FormationSlotType, applyFlexibility: boolean = true): CandidatePlayer[] => {
     const slotStyles = formationSlot.styles || [];
     const hasStylePreference = slotStyles.length > 0;
     const targetPosition = formationSlot.position;
 
     let targetPositions: Position[] = [targetPosition];
-    if (isFlexibleLaterals && (targetPosition === 'LI' || targetPosition === 'LD')) {
-      targetPositions = ['LI', 'LD'];
-    }
-    if (isFlexibleWingers && (targetPosition === 'EXI' || targetPosition === 'EXD')) {
-      targetPositions = ['EXI', 'EXD'];
+    
+    if (applyFlexibility) {
+      if (isFlexibleLaterals && (targetPosition === 'LI' || targetPosition === 'LD')) {
+        targetPositions = ['LI', 'LD'];
+      }
+      if (isFlexibleWingers && (targetPosition === 'EXI' || targetPosition === 'EXD')) {
+        targetPositions = ['EXI', 'EXD'];
+      }
     }
 
 
@@ -207,7 +205,7 @@ export function generateIdealTeam(
 
   // --- STARTER SELECTION ---
   for (const formationSlot of formation.slots) {
-    const candidates = getCandidatesForSlot(formationSlot);
+    const candidates = getCandidatesForSlot(formationSlot, true); // Flexibility enabled for starters
     const starterCandidate = findBestPlayer(candidates);
     
     if (starterCandidate) {
@@ -223,8 +221,19 @@ export function generateIdealTeam(
   
   // --- SUBSTITUTE SELECTION ---
   finalTeamSlots.forEach((slot, index) => {
-    const formationSlot = formation.slots[index];
-    const allCandidatesForSlot = getCandidatesForSlot(formationSlot);
+    const originalFormationSlot = formation.slots[index];
+    
+    // Default to original slot, but override if starter is flexible
+    const subSearchSlot: FormationSlotType = { ...originalFormationSlot };
+
+    if (slot.starter && slot.starter.position !== originalFormationSlot.position) {
+      // The starter is playing in a flexible role (e.g., an LI in an LD slot).
+      // The substitute must match the starter's natural position (LI).
+      subSearchSlot.position = slot.starter.position;
+    }
+    
+    // For subs, we always search for a specific position, so flexibility is false.
+    const allCandidatesForSlot = getCandidatesForSlot(subSearchSlot, false);
 
     // Tier 1: Prioritize players with < 5 matches
     const tier1Candidates = allCandidatesForSlot.filter(p => p.performance.stats.matches < 5);
@@ -244,7 +253,8 @@ export function generateIdealTeam(
     if (substituteCandidate) {
       usedPlayerIds.add(substituteCandidate.player.id);
       usedCardIds.add(substituteCandidate.card.id);
-      slot.substitute = createTeamPlayer(substituteCandidate, formationSlot.position);
+      // The assigned position is still the original slot in the formation
+      slot.substitute = createTeamPlayer(substituteCandidate, originalFormationSlot.position);
     }
   });
 
