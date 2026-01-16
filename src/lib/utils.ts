@@ -1,7 +1,7 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position, BuildPosition, PhysicalAttribute, PlayerSkill } from "./types";
+import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position, BuildPosition, PhysicalAttribute, PlayerSkill, PlayerPerformance } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -55,18 +55,39 @@ export function normalizeText(text: string): string {
     .replace(/([A-Z])/g, ' $1');
 }
 
-export function calculateGeneralScore(affinityScore: number, average: number, matches: number): number {
-  const averageScorePart = (average * 10) + 50;
-
+export function calculateGeneralScore(
+  affinityScore: number, 
+  average: number, 
+  matches: number,
+  performance: PlayerPerformance
+): number {
+  
   if (matches >= 100) {
-    return averageScorePart;
+    return (average * 10) + 50;
   }
 
-  const averageWeight = matches / 100;
-  const affinityWeight = 1 - averageWeight;
+  const weight = Math.min(100, matches) / 100;
+  const avgWeight = weight;
+  const affinityWeight = 1 - weight;
+
+  const avgComponent = ((average * 10) + 50);
   
-  const generalScore = (averageScorePart * averageWeight) + (affinityScore * affinityWeight);
-  
+  let generalScore = (avgComponent * avgWeight) + (affinityScore * affinityWeight);
+
+  // Apply badge bonuses
+  if (performance.isHotStreak) {
+    generalScore += 3;
+  }
+  if (performance.isConsistent) {
+    generalScore += 2;
+  }
+  if (performance.isVersatile) {
+    generalScore += 1;
+  }
+  if (performance.isPromising) {
+    generalScore += 1;
+  }
+
   return Math.max(0, generalScore);
 }
 
@@ -222,7 +243,7 @@ export function getIdealBuildForPlayer(
         return { bestBuild: null, bestStyle: null };
     }
     
-    // Fallback: Check for a "Ninguno" style build for the exact position
+    // Fallback: Check for a "Ninguno" style build for the exact position or archetype
     const anystyleBuild = validBuildsForPosition.find(b => (b.position === position || b.position === archetype) && b.style === 'Ninguno');
     if (anystyleBuild) {
       return { bestBuild: anystyleBuild, bestStyle: 'Ninguno' };

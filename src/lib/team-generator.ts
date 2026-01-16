@@ -1,5 +1,4 @@
 
-
 import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, FormationSlot as FormationSlotType, IdealBuild } from './types';
 import { getAvailableStylesForPosition } from './types';
 import { calculateStats, calculateGeneralScore, getIdealBuildForPlayer, calculateProgressionStats, isSpecialCard, calculateAffinityWithBreakdown } from './utils';
@@ -12,7 +11,6 @@ type CandidatePlayer = {
   generalScore: number;
   position: Position;
   performance: PlayerPerformance;
-  momentumScore: number;
 };
 
 
@@ -105,14 +103,8 @@ export function generateIdealTeam(
         const affinityBreakdown = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills);
         const affinityScore = affinityBreakdown.totalAffinityScore;
         
-        const generalScore = calculateGeneralScore(affinityScore, stats.average, stats.matches);
+        const generalScore = calculateGeneralScore(affinityScore, stats.average, stats.matches, performance);
         
-        // Momentum Score Calculation
-        let momentumScore = generalScore;
-        if (performance.isHotStreak) {
-            momentumScore *= 1.05; // Apply a 5% bonus for being on a hot streak
-        }
-
         return {
           player,
           card,
@@ -121,7 +113,6 @@ export function generateIdealTeam(
           affinityScore,
           generalScore: generalScore,
           performance: performance,
-          momentumScore: momentumScore,
         };
       }).filter((p): p is CandidatePlayer => p !== null);
     })
@@ -132,9 +123,9 @@ export function generateIdealTeam(
   const finalTeamSlots: IdealTeamSlot[] = [];
   
   const sortFunction = (a: CandidatePlayer, b: CandidatePlayer) => {
-    // 1. Momentum Score (includes hot streak bonus and general score)
-    if (Math.abs(a.momentumScore - b.momentumScore) > 0.01) {
-        return b.momentumScore - a.momentumScore;
+    // 1. General Score (now includes badge bonuses)
+    if (Math.abs(a.generalScore - b.generalScore) > 0.01) {
+        return b.generalScore - a.generalScore;
     }
     
     // 2. Tie-breaker: Affinity Score
