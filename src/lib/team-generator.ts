@@ -55,14 +55,18 @@ export function generateIdealTeam(
         return [];
       }
 
-      const highPerfPositions = new Set<Position>();
+      const averagesByPosition = new Map<Position, number>();
       for (const p in card.ratingsByPosition) {
           const positionKey = p as Position;
           const posRatings = card.ratingsByPosition[positionKey];
           if (posRatings && posRatings.length > 0) {
-              const posAvg = calculateStats(posRatings).average;
-              if (posAvg >= 7.0) highPerfPositions.add(positionKey);
+              averagesByPosition.set(positionKey, calculateStats(posRatings).average);
           }
+      }
+      
+      const highPerfPositions = new Set<Position>();
+      for (const [p, avg] of averagesByPosition.entries()) {
+          if (avg >= 7.0) highPerfPositions.add(p);
       }
       const isVersatile = highPerfPositions.size >= 3;
       
@@ -83,12 +87,30 @@ export function generateIdealTeam(
         const recentRatings = ratings.slice(-3);
         const recentStats = calculateStats(recentRatings);
         
+        let isSpecialist = false;
+        const currentAvg = averagesByPosition.get(pos);
+        if (currentAvg && currentAvg >= 8.5 && averagesByPosition.size > 1) {
+            let otherPositionsWeaker = true;
+            for (const [p, avg] of averagesByPosition.entries()) {
+                if (p !== pos) {
+                    if (avg >= currentAvg - 1.5) {
+                        otherPositionsWeaker = false;
+                        break;
+                    }
+                }
+            }
+            isSpecialist = otherPositionsWeaker;
+        }
+        
         const performance: PlayerPerformance = {
             stats,
             isHotStreak: stats.matches >= 3 && recentStats.average > stats.average + 0.5,
             isConsistent: stats.matches >= 5 && stats.stdDev < 0.5,
             isPromising: stats.matches > 0 && stats.matches < 5 && stats.average >= 7.0,
             isVersatile: isVersatile,
+            isGameChanger: stats.matches >= 5 && stats.stdDev > 1.0 && stats.average >= 7.5,
+            isStalwart: stats.matches >= 100 && stats.average >= 7.0,
+            isSpecialist: isSpecialist,
         };
         
         // Live affinity calculation
@@ -103,7 +125,7 @@ export function generateIdealTeam(
         const affinityBreakdown = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills);
         const affinityScore = affinityBreakdown.totalAffinityScore;
         
-        const generalScore = calculateGeneralScore(affinityScore, stats.average, stats.matches, performance);
+        const generalScore = calculateGeneralScore(affinityScore, stats.average, stats.matches, performance, player.liveUpdateRating);
         
         return {
           player,
@@ -123,18 +145,29 @@ export function generateIdealTeam(
   const finalTeamSlots: IdealTeamSlot[] = [];
   
   const sortFunction = (a: CandidatePlayer, b: CandidatePlayer) => {
-    // 1. General Score (now includes badge bonuses)
-    if (Math.abs(a.generalScore - b.generalScore) > 0.01) {
+    if (sortBy === 'general') {
+      // 1. General Score
+      if (Math.abs(a.generalScore - b.generalScore) > 0.01) {
         return b.generalScore - a.generalScore;
-    }
-    
-    // 2. Tie-breaker: Affinity Score
-    if (Math.abs(a.affinityScore - b.affinityScore) > 0.1) {
+      }
+      // 2. Tie-breaker: Affinity Score
+      if (Math.abs(a.affinityScore - b.affinityScore) > 0.1) {
         return b.affinityScore - a.affinityScore;
+      }
+      // 3. Fallback to matches
+      return b.performance.stats.matches - a.performance.stats.matches;
+    } else { // sortBy === 'average'
+      // 1. Average rating
+      if (Math.abs(a.average - b.average) > 0.01) {
+        return b.average - a.average;
+      }
+      // 2. Tie-breaker: General Score (still useful to break ties)
+      if (Math.abs(a.generalScore - b.generalScore) > 0.01) {
+        return b.generalScore - a.generalScore;
+      }
+      // 3. Fallback to matches
+      return b.performance.stats.matches - a.performance.stats.matches;
     }
-
-    // 3. Fallback to number of matches
-    return b.performance.stats.matches - a.performance.stats.matches;
   };
 
 
@@ -288,7 +321,8 @@ export function generateIdealTeam(
   // Fill empty slots and manage final list
   const placeholderPerformance: PlayerPerformance = {
         stats: { average: 0, matches: 0, stdDev: 0 },
-        isHotStreak: false, isConsistent: false, isPromising: false, isVersatile: false
+        isHotStreak: false, isConsistent: false, isPromising: false, isVersatile: false,
+        isGameChanger: false, isStalwart: false, isSpecialist: false,
   };
   
   const finalSlots = finalTeamSlots.map((slot, index) => {
@@ -296,7 +330,7 @@ export function generateIdealTeam(
     const assignedPosition = formationSlot?.position || (slot.substitute?.position || 'DFC');
 
     const placeholderPlayer: IdealTeamPlayer = {
-        player: { id: `placeholder-S-${index}`, name: `Vacante`, cards: [], nationality: 'Sin Nacionalidad' as Nationality },
+        player: { id: `placeholder-S-${index}`, name: `Vacante`, cards: [], nationality: 'Sin Nacionalidad' as Nationality, permanentLiveUpdateRating: false },
         card: { id: `placeholder-card-S-${index}`, name: 'N/A', style: 'Ninguno', ratingsByPosition: {} },
         position: assignedPosition,
         assignedPosition: assignedPosition,
