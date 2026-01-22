@@ -12,10 +12,11 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Trash2, X, Wrench, Pencil, NotebookPen, Search, Star, SlidersHorizontal } from 'lucide-react';
 import { cn, formatAverage, getAverageColorClass, isSpecialCard } from '@/lib/utils';
-import type { Player, PlayerCard, Position, FlatPlayer, PhysicalAttribute } from '@/lib/types';
+import type { Player, PlayerCard, Position, FlatPlayer, PhysicalAttribute, LiveUpdateRating } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import { PerformanceBadges } from './performance-badges';
 import { AffinityStatusIndicator } from './affinity-status-indicator';
+import { LiveUpdateRatingSelector } from './live-update-rating-selector';
 
 type PlayerTableProps = {
   players: FlatPlayer[];
@@ -28,6 +29,7 @@ type PlayerTableProps = {
   onViewImage: (url: string, name: string) => void;
   onDeletePositionRatings: (playerId: string, cardId: string, position: Position) => void;
   onDeleteRating: (playerId: string, cardId: string, position: Position, ratingIndex: number) => void;
+  onUpdateLiveUpdateRating: (playerId: string, rating: LiveUpdateRating | null) => void;
 };
 
 type FilterProps = {
@@ -133,6 +135,7 @@ const PlayerTableMemo = memo(function PlayerTable({
   onViewImage,
   onDeletePositionRatings,
   onDeleteRating,
+  onUpdateLiveUpdateRating,
 }: PlayerTableProps) {
   
   if (flatPlayers.length === 0) {
@@ -208,6 +211,10 @@ const PlayerTableMemo = memo(function PlayerTable({
                       )}
                       <div>
                         <div className="flex items-center gap-2">
+                            <LiveUpdateRatingSelector
+                                value={player.liveUpdateRating}
+                                onValueChange={(newValue) => onUpdateLiveUpdateRating(player.id, newValue)}
+                            />
                             <button 
                                 onClick={(e) => { e.stopPropagation(); onOpenPlayerDetail(flatPlayer); }}
                                 className={cn("font-medium text-sm md:text-base hover:underline text-left", nameColorClass)}

@@ -1,7 +1,7 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position, BuildPosition, PhysicalAttribute, PlayerSkill, PlayerPerformance } from "./types";
+import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position, BuildPosition, PhysicalAttribute, PlayerSkill, PlayerPerformance, LiveUpdateRating } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -65,12 +65,21 @@ export const BADGE_BONUSES = {
   SPECIALIST: 3,
 };
 
+export const LIVE_UPDATE_BONUSES: Record<LiveUpdateRating, number> = {
+  A: 5,
+  B: 2,
+  C: 0,
+  D: -5,
+  E: -10,
+};
+
 
 export function calculateGeneralScore(
   affinityScore: number, 
   average: number, 
   matches: number,
-  performance: PlayerPerformance
+  performance: PlayerPerformance,
+  liveUpdateRating?: LiveUpdateRating | null
 ): number {
   
   const weight = Math.min(100, matches) / 100;
@@ -90,6 +99,11 @@ export function calculateGeneralScore(
   if (performance.isStalwart) generalScore += BADGE_BONUSES.STALWART;
   if (performance.isSpecialist) generalScore += BADGE_BONUSES.SPECIALIST;
   
+  // Apply live update bonus
+  if (liveUpdateRating && LIVE_UPDATE_BONUSES[liveUpdateRating]) {
+    generalScore += LIVE_UPDATE_BONUSES[liveUpdateRating];
+  }
+
   return Math.max(0, generalScore);
 }
 

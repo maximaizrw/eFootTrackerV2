@@ -7,7 +7,7 @@ import { db } from '@/lib/firebase-config';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, query, where, setDoc } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import { v4 as uuidv4 } from 'uuid';
-import type { Player, PlayerCard, Position, AddRatingFormValues, EditCardFormValues, EditPlayerFormValues, PlayerBuild, League, Nationality, PlayerAttributeStats, IdealBuild, PhysicalAttribute, FlatPlayer, PlayerPerformance, PlayerSkill } from '@/lib/types';
+import type { Player, PlayerCard, Position, AddRatingFormValues, EditCardFormValues, EditPlayerFormValues, PlayerBuild, League, Nationality, PlayerAttributeStats, IdealBuild, PhysicalAttribute, FlatPlayer, PlayerPerformance, PlayerSkill, LiveUpdateRating } from '@/lib/types';
 import { getAvailableStylesForPosition } from '@/lib/types';
 import { normalizeText, calculateProgressionStats, getIdealBuildForPlayer, isSpecialCard, calculateProgressionSuggestions, calculateAffinityWithBreakdown, calculateStats, calculateGeneralScore } from '@/lib/utils';
 
@@ -62,6 +62,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
                     name: playerName,
                     nationality: data.nationality || 'Sin Nacionalidad',
                     cards: newCards,
+                    liveUpdateRating: data.liveUpdateRating || null,
                 } as Player);
             }
         });
@@ -164,7 +165,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
                     const affinityBreakdown = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills);
                     const affinityScore = affinityBreakdown.totalAffinityScore;
                     
-                    const generalScore = calculateGeneralScore(affinityScore, stats.average, stats.matches, performance);
+                    const generalScore = calculateGeneralScore(affinityScore, stats.average, stats.matches, performance, player.liveUpdateRating);
 
                     return { player, card, ratingsForPos, performance, affinityScore, generalScore, position: ratedPos, affinityBreakdown };
                 }).filter((p): p is FlatPlayer => p !== null);
@@ -235,9 +236,10 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
         }
         await updateDoc(playerRef, { cards: newCards });
       } else {
-        const newPlayer = {
+        const newPlayer: Omit<Player, 'id'> = {
           name: playerName,
           nationality: nationality,
+          liveUpdateRating: null,
           cards: [{ 
               id: uuidv4(), 
               name: cardName, 
@@ -600,5 +602,42 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
     }
   };
 
-  return { players, flatPlayers, loading, error, addRating, editCard, editPlayer, deleteRating, savePlayerBuild, saveAttributeStats, downloadBackup, deletePositionRatings, recalculateAllAffinities, suggestAllBuilds };
+  const updateLiveUpdateRating = async (playerId: string, rating: LiveUpdateRating | null) => {
+    if (!db) return;
+    const playerRef = doc(db, 'players', playerId);
+    try {
+      await updateDoc(playerRef, {
+        liveUpdateRating: rating,
+      });
+    } catch (error) {
+      console.error("Error updating live rating: ", error);
+      toast({
+        variant: "destructive",
+        title: "Error al Actualizar",
+        description: `No se pudo actualizar la letra del jugador.`,
+      });
+    }
+  };
+
+  const resetAllLiveUpdateRatings = async () => {
+    if (!db) return;
+    toast({ title: "Iniciando Reseteo...", description: "Reiniciando las letras de todos los jugadores." });
+    try {
+      const playersSnapshot = await getDocs(collection(db, 'players'));
+      for (const playerDoc of playersSnapshot.docs) {
+        const playerRef = doc(db, 'players', playerDoc.id);
+        await updateDoc(playerRef, { liveUpdateRating: null });
+      }
+      toast({ title: "Reseteo Completado", description: "Se han reiniciado las letras de todos los jugadores." });
+    } catch (error) {
+      console.error("Error resetting all live update ratings:", error);
+      toast({
+        variant: "destructive",
+        title: "Error en el Reseteo",
+        description: `Ocurrió un error al reiniciar las letras.`,
+      });
+    }
+  };
+
+  return { players, flatPlayers, loading, error, addRating, editCard, editPlayer, deleteRating, savePlayerBuild, saveAttributeStats, downloadBackup, deletePositionRatings, recalculateAllAffinities, suggestAllBuilds, updateLiveUpdateRating, resetAllLiveUpdateRatings };
 }

@@ -2,7 +2,7 @@
 
 "use client";
 
-import type { IdealTeamPlayer, IdealTeamSlot, FormationStats, Position, PlayerBuild, PhysicalAttribute } from '@/lib/types';
+import type { IdealTeamPlayer, IdealTeamSlot, FormationStats, Position, PlayerBuild, PhysicalAttribute, LiveUpdateRating } from '@/lib/types';
 import Image from 'next/image';
 import { Users, Shirt, X, Crown } from 'lucide-react';
 import { Button } from './ui/button';
@@ -14,9 +14,9 @@ import { Card } from './ui/card';
 import { AffinityStatusIndicator } from './affinity-status-indicator';
 import { isSpecialCard } from '@/lib/utils';
 import { memo } from 'react';
+import { LiveUpdateRatingSelector } from './live-update-rating-selector';
 
-
-const PlayerToken = ({ player, style, onDiscard, onViewBuild }: { player: IdealTeamPlayer | null, style: React.CSSProperties, onDiscard: (cardId: string) => void, onViewBuild: (player: IdealTeamPlayer) => void }) => {
+const PlayerToken = ({ player, style, onDiscard, onViewBuild, onUpdateLiveUpdateRating }: { player: IdealTeamPlayer | null, style: React.CSSProperties, onDiscard: (cardId: string) => void, onViewBuild: (player: IdealTeamPlayer) => void, onUpdateLiveUpdateRating: (playerId: string, rating: LiveUpdateRating | null) => void; }) => {
   if (!player || player.player.id.startsWith('placeholder')) {
     return (
       <div 
@@ -92,19 +92,25 @@ const PlayerToken = ({ player, style, onDiscard, onViewBuild }: { player: IdealT
             <p className="font-bold text-sm leading-tight text-primary">
               {displayPosition} {isFlex && <span className="text-xs font-normal">({originalPosition})</span>}
             </p>
-            <button className="flex items-center justify-center gap-1 group/name" onClick={() => onViewBuild(player)}>
-                <AffinityStatusIndicator player={player} />
-                <p className={cn("font-semibold text-xs truncate group-hover/name:underline", nameColorClass)} title={player.player.name}>
-                    {player.player.name}
-                </p>
-            </button>
+            <div className="flex items-center justify-center gap-1">
+              <LiveUpdateRatingSelector
+                value={player.player.liveUpdateRating}
+                onValueChange={(newValue) => onUpdateLiveUpdateRating(player.player.id, newValue)}
+              />
+              <button className="flex items-center justify-center gap-1 group/name" onClick={() => onViewBuild(player)}>
+                  <AffinityStatusIndicator player={player} />
+                  <p className={cn("font-semibold text-xs truncate group-hover/name:underline", nameColorClass)} title={player.player.name}>
+                      {player.player.name}
+                  </p>
+              </button>
+            </div>
         </div>
       </div>
     </div>
   );
 };
 
-const SubstitutePlayerRow = ({ player, onDiscard, onViewBuild }: { player: IdealTeamPlayer | null, onDiscard: (cardId: string) => void, onViewBuild: (player: IdealTeamPlayer) => void }) => {
+const SubstitutePlayerRow = ({ player, onDiscard, onViewBuild, onUpdateLiveUpdateRating }: { player: IdealTeamPlayer | null, onDiscard: (cardId: string) => void, onViewBuild: (player: IdealTeamPlayer) => void, onUpdateLiveUpdateRating: (playerId: string, rating: LiveUpdateRating | null) => void; }) => {
   if (!player || player.player.id.startsWith('placeholder')) {
     return (
       <Card className="flex items-center gap-3 p-2 rounded-lg bg-background/50 border-2 border-dashed border-foreground/30 h-20">
@@ -152,12 +158,18 @@ const SubstitutePlayerRow = ({ player, onDiscard, onViewBuild }: { player: Ideal
         )}
       </div>
       <div className="flex-grow overflow-hidden">
-        <button className="flex items-center gap-2 group/name" onClick={() => onViewBuild(player)}>
-            <AffinityStatusIndicator player={player} />
-            <p className={cn("font-semibold text-base text-foreground truncate group-hover/name:underline", nameColorClass)} title={player.player.name}>
-                {player.player.name}
-            </p>
-        </button>
+        <div className="flex items-center gap-2">
+            <LiveUpdateRatingSelector
+                value={player.player.liveUpdateRating}
+                onValueChange={(newValue) => onUpdateLiveUpdateRating(player.player.id, newValue)}
+            />
+            <button className="flex items-center gap-2 group/name" onClick={() => onViewBuild(player)}>
+                <AffinityStatusIndicator player={player} />
+                <p className={cn("font-semibold text-base text-foreground truncate group-hover/name:underline", nameColorClass)} title={player.player.name}>
+                    {player.player.name}
+                </p>
+            </button>
+        </div>
         <PerformanceBadges performance={player.performance} className="mt-1" />
       </div>
       <TooltipProvider>
@@ -186,6 +198,7 @@ type IdealTeamDisplayProps = {
   formation: FormationStats | undefined;
   onDiscardPlayer: (cardId: string) => void;
   onViewBuild: (player: IdealTeamPlayer) => void;
+  onUpdateLiveUpdateRating: (playerId: string, rating: LiveUpdateRating | null) => void;
 };
 
 
@@ -193,7 +206,7 @@ const substituteOrder: Position[] = [
     'PT', 'DFC', 'LI', 'LD', 'MCD', 'MC', 'MDI', 'MDD', 'MO', 'EXI', 'EXD', 'SD', 'DC'
 ];
 
-const IdealTeamDisplayMemo = memo(function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onViewBuild }: IdealTeamDisplayProps) {
+const IdealTeamDisplayMemo = memo(function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onViewBuild, onUpdateLiveUpdateRating }: IdealTeamDisplayProps) {
   if (teamSlots.length === 0 || !formation) {
     return (
       <div className="mt-8 text-center text-muted-foreground p-8 bg-card rounded-lg border border-dashed">
@@ -239,7 +252,7 @@ const IdealTeamDisplayMemo = memo(function IdealTeamDisplay({ teamSlots, formati
                 top: `${formationSlot?.top || 50}%`,
                 left: `${formationSlot?.left || 50}%`,
              };
-             return <PlayerToken key={starter?.card.id || `starter-${index}`} player={starter} style={style} onDiscard={onDiscardPlayer} onViewBuild={onViewBuild} />;
+             return <PlayerToken key={starter?.card.id || `starter-${index}`} player={starter} style={style} onDiscard={onDiscardPlayer} onViewBuild={onViewBuild} onUpdateLiveUpdateRating={onUpdateLiveUpdateRating} />;
           })}
         </FootballPitch>
       </div>
@@ -249,7 +262,7 @@ const IdealTeamDisplayMemo = memo(function IdealTeamDisplay({ teamSlots, formati
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-2">
           {Array.from({ length: 12 }).map((_, index) => {
               const sub = finalSubstitutes[index];
-              return <SubstitutePlayerRow key={sub?.card.id || `sub-${index}`} player={sub || null} onDiscard={onDiscardPlayer} onViewBuild={onViewBuild}/>
+              return <SubstitutePlayerRow key={sub?.card.id || `sub-${index}`} player={sub || null} onDiscard={onDiscardPlayer} onViewBuild={onViewBuild} onUpdateLiveUpdateRating={onUpdateLiveUpdateRating} />
           })}
         </div>
       </div>

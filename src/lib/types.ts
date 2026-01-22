@@ -50,6 +50,9 @@ export const playerSkillsList = [
 
 export type PlayerSkill = typeof playerSkillsList[number];
 
+export const liveUpdateRatings = ['A', 'B', 'C', 'D', 'E'] as const;
+export type LiveUpdateRating = typeof liveUpdateRatings[number];
+
 
 export type OutfieldBuild = {
   shooting?: number; // 0-20
@@ -193,6 +196,7 @@ export type Player = {
   name: string;
   nationality: Nationality;
   cards: PlayerCard[];
+  liveUpdateRating?: LiveUpdateRating;
 };
 
 export type AddRatingFormValues = {

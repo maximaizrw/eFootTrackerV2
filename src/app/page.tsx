@@ -72,6 +72,8 @@ export default function Home() {
     deletePositionRatings,
     recalculateAllAffinities,
     suggestAllBuilds,
+    updateLiveUpdateRating,
+    resetAllLiveUpdateRatings,
   } = usePlayers(idealBuilds);
 
   const {
@@ -611,6 +613,7 @@ export default function Home() {
                       onViewImage={handleViewImage}
                       onDeletePositionRatings={deletePositionRatings}
                       onDeleteRating={deleteRating}
+                      onUpdateLiveUpdateRating={updateLiveUpdateRating}
                     />
                     <PlayerTable.Pagination
                       currentPage={currentPage}
@@ -678,6 +681,13 @@ export default function Home() {
                         <Wand2 className="mr-2 h-4 w-4" />
                         Sugerir Todas las Builds
                     </Button>
+                     <Button
+                        onClick={() => resetAllLiveUpdateRatings()}
+                        variant="outline"
+                        >
+                        <RotateCcw className="mr-2 h-4 w-4" />
+                        Resetear Letras
+                    </Button>
                   </div>
                </CardContent>
              </Card>
@@ -686,6 +696,7 @@ export default function Home() {
                 formation={selectedFormation} 
                 onDiscardPlayer={handleDiscardPlayer}
                 onViewBuild={handleViewPlayerBuild}
+                onUpdateLiveUpdateRating={updateLiveUpdateRating}
             />
           </TabsContent>
           
