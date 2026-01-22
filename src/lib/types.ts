@@ -196,7 +196,7 @@ export type Player = {
   name: string;
   nationality: Nationality;
   cards: PlayerCard[];
-  liveUpdateRating?: LiveUpdateRating;
+  liveUpdateRating?: LiveUpdateRating | null;
 };
 
 export type AddRatingFormValues = {
