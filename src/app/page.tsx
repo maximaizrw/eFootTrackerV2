@@ -204,6 +204,7 @@ export default function Home() {
       playerId: player.id,
       currentPlayerName: player.name,
       nationality: player.nationality || 'Sin Nacionalidad',
+      permanentLiveUpdateRating: player.permanentLiveUpdateRating,
     });
     setEditPlayerDialogOpen(true);
   }, []);

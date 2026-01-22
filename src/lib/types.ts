@@ -197,6 +197,7 @@ export type Player = {
   nationality: Nationality;
   cards: PlayerCard[];
   liveUpdateRating?: LiveUpdateRating | null;
+  permanentLiveUpdateRating?: boolean;
 };
 
 export type AddRatingFormValues = {
@@ -223,6 +224,7 @@ export type EditPlayerFormValues = {
     playerId: string;
     currentPlayerName: string;
     nationality: Nationality;
+    permanentLiveUpdateRating?: boolean;
 };
 
 export type Formation = {

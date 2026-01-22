@@ -63,6 +63,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
                     nationality: data.nationality || 'Sin Nacionalidad',
                     cards: newCards,
                     liveUpdateRating: data.liveUpdateRating || null,
+                    permanentLiveUpdateRating: data.permanentLiveUpdateRating || false,
                 } as Player);
             }
         });
@@ -294,6 +295,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
       await updateDoc(doc(db, 'players', values.playerId), { 
         name: values.currentPlayerName,
         nationality: values.nationality,
+        permanentLiveUpdateRating: values.permanentLiveUpdateRating || false,
       });
       toast({ title: "Jugador Actualizado", description: "Los datos del jugador se han actualizado." });
     } catch (error) {
@@ -625,10 +627,14 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
     try {
       const playersSnapshot = await getDocs(collection(db, 'players'));
       for (const playerDoc of playersSnapshot.docs) {
+        const playerData = playerDoc.data();
+        if (playerData.permanentLiveUpdateRating) {
+            continue;
+        }
         const playerRef = doc(db, 'players', playerDoc.id);
         await updateDoc(playerRef, { liveUpdateRating: null });
       }
-      toast({ title: "Reseteo Completado", description: "Se han reiniciado las letras de todos los jugadores." });
+      toast({ title: "Reseteo Completado", description: "Se han reiniciado las letras de los jugadores no permanentes." });
     } catch (error) {
       console.error("Error resetting all live update ratings:", error);
       toast({

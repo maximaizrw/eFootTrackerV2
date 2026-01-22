@@ -22,15 +22,18 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { nationalities } from "@/lib/types";
+import { Switch } from "./ui/switch";
 
 const formSchema = z.object({
   playerId: z.string().min(1, "Se requiere el ID del jugador."),
   currentPlayerName: z.string().min(2, "El nombre del jugador debe tener al menos 2 caracteres."),
   nationality: z.enum(nationalities),
+  permanentLiveUpdateRating: z.boolean().optional(),
 });
 
 export type FormValues = z.infer<typeof formSchema>;
@@ -49,6 +52,7 @@ export function EditPlayerDialog({ open, onOpenChange, onEditPlayer, initialData
         playerId: '',
         currentPlayerName: '',
         nationality: 'Sin Nacionalidad',
+        permanentLiveUpdateRating: false,
     }
   });
 
@@ -59,6 +63,7 @@ export function EditPlayerDialog({ open, onOpenChange, onEditPlayer, initialData
         playerId: initialData.playerId || '',
         currentPlayerName: initialData.currentPlayerName || '',
         nationality: initialData.nationality || 'Sin Nacionalidad',
+        permanentLiveUpdateRating: initialData.permanentLiveUpdateRating || false,
       });
     }
   }, [open, initialData, form]);
@@ -111,6 +116,26 @@ export function EditPlayerDialog({ open, onOpenChange, onEditPlayer, initialData
                     </SelectContent>
                   </Select>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="permanentLiveUpdateRating"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                  <div className="space-y-0.5">
+                    <FormLabel>Letra Permanente</FormLabel>
+                    <FormDescription>
+                      Si se activa, la letra de este jugador no se reiniciará.
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
                 </FormItem>
               )}
             />
