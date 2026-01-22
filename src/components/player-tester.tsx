@@ -32,6 +32,7 @@ const testerSchema = z.object({
   position: z.enum(positions),
   style: z.enum(playerStyles),
   skills: z.array(z.string()).optional(),
+  legLength: z.coerce.number().min(0).optional(),
   stats: z.object({
     offensiveAwareness: statSchema, ballControl: statSchema, dribbling: statSchema, tightPossession: statSchema,
     lowPass: statSchema, loftedPass: statSchema, finishing: statSchema, heading: statSchema, placeKicking: statSchema, curl: statSchema,
@@ -111,6 +112,7 @@ const PlayerTesterMemo = React.memo(function PlayerTester({ idealBuilds }: Playe
       position: "DC",
       style: "Cazagoles",
       skills: [],
+      legLength: undefined,
       stats: {},
     },
   });
@@ -120,6 +122,8 @@ const PlayerTesterMemo = React.memo(function PlayerTester({ idealBuilds }: Playe
   const watchedStyle = useWatch({ control, name: "style" });
   const watchedStats = useWatch({ control, name: "stats" });
   const watchedSkills = useWatch({ control, name: 'skills' }) || [];
+  const watchedLegLength = useWatch({ control, name: "legLength" });
+
 
   const availableStyles = React.useMemo(() => {
     return getAvailableStylesForPosition(watchedPosition, true);
@@ -137,13 +141,19 @@ const PlayerTesterMemo = React.memo(function PlayerTester({ idealBuilds }: Playe
         const position = getValues('position');
         const style = getValues('style');
         const skills = getValues('skills');
+        const legLength = getValues('legLength');
         const isGoalkeeper = position === 'PT';
 
         const { bestBuild, bestStyle } = getIdealBuildForPlayer(style, position, idealBuilds);
         const suggestions = calculateProgressionSuggestions(baseStats, bestBuild, isGoalkeeper, progressionPoints);
         
         const finalStats = calculateProgressionStats(baseStats, suggestions, isGoalkeeper);
-        const breakdown = calculateAffinityWithBreakdown(finalStats, bestBuild, undefined, skills as PlayerSkill[]);
+        const breakdown = calculateAffinityWithBreakdown(
+            finalStats,
+            bestBuild,
+            { legLength },
+            skills as PlayerSkill[]
+        );
         
         setFinalPlayerStats(finalStats);
         setProgressionSuggestions(suggestions);
@@ -155,7 +165,7 @@ const PlayerTesterMemo = React.memo(function PlayerTester({ idealBuilds }: Playe
         setAffinityBreakdown({ totalAffinityScore: 0, breakdown: [], skillsBreakdown: [] });
         setBestBuildStyle(null);
     }
-}, [watchedStats, watchedPosition, watchedStyle, watchedSkills, idealBuilds, getValues, progressionPoints]);
+}, [watchedStats, watchedPosition, watchedStyle, watchedSkills, watchedLegLength, idealBuilds, getValues, progressionPoints]);
 
 
   const handleParseText = () => {
@@ -254,6 +264,69 @@ const PlayerTesterMemo = React.memo(function PlayerTester({ idealBuilds }: Playe
 
           <Form {...form}>
             <div className="space-y-4 pt-4">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="position"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Posición en Campo</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Elige posición" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {positions.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="style"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Estilo de Juego</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Elige estilo" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {availableStyles.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+               <FormField
+                    control={form.control}
+                    name="legLength"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Largo de Piernas</FormLabel>
+                            <FormControl>
+                                <Input
+                                    type="number"
+                                    placeholder="Ej: 85"
+                                    {...field}
+                                    value={field.value ?? ''}
+                                    onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)}
+                                />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
                <FormField
                   control={form.control}
                   name="skills"
@@ -305,48 +378,7 @@ const PlayerTesterMemo = React.memo(function PlayerTester({ idealBuilds }: Playe
                     </FormItem>
                   )}
                 />
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="position"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Posición en Campo</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Elige posición" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {positions.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="style"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Estilo de Juego</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Elige estilo" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {availableStyles.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              
               <div className="space-y-2">
                 <Label htmlFor="progression-points-tester">Puntos de Progresión Totales (Opcional)</Label>
                 <Input 
@@ -430,3 +462,5 @@ const PlayerTesterMemo = React.memo(function PlayerTester({ idealBuilds }: Playe
 });
 
 export { PlayerTesterMemo as PlayerTester };
+
+    
