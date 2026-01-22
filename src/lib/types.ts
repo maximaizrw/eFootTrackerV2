@@ -1,9 +1,8 @@
 
-
 import * as z from "zod";
 import type { AffinityBreakdownResult } from "./utils";
 
-export const playerStyles = ['Ninguno', 'Cazagoles', 'Hombre de área', 'Señuelo', 'Hombre objetivo', 'Creador de juego', 'Creador de jugadas', 'El destructor', 'Portero defensivo', 'Portero ofensivo', 'Atacante extra', 'Lateral defensivo', 'Lateral ofensivo', 'Lateral finalizador', 'Omnipresente', 'Medio escudo', 'Organizador', 'Jugador de huecos', 'Especialista en centros', 'Extremo móvil', 'Extremo prolífico', 'Diez Clasico', 'Segundo delantero'] as const;
+export const playerStyles = ['Ninguno', 'Cazagoles', 'Hombre de área', 'Señuelo', 'Hombre objetivo', 'Creador de juego', 'Creador de jugadas', 'El destructor', 'Portero defensivo', 'Portero ofensivo', 'Atacante extra', 'Lateral defensivo', 'Lateral ofensivo', 'Lateral finalizador', 'Especialista en centros', 'Omnipresente', 'Medio escudo', 'Organizador', 'Jugador de huecos', 'Extremo móvil', 'Extremo prolífico', 'Diez Clasico', 'Segundo delantero'] as const;
 export type PlayerStyle = typeof playerStyles[number];
 
 export const positions = ['PT', 'DFC', 'LI', 'LD', 'MCD', 'MC', 'MDI', 'MDD', 'MO', 'EXI', 'EXD', 'SD', 'DC'] as const;
@@ -46,7 +45,7 @@ export const playerSkillsList = [
     "Patadon en largo (Portero)", "Saque de banda largo", "Saque largo (Portero)",
     "Especialista en penaltis", "Parapenaltis (Portero)", "Picardía", "Marcaje",
     "Delantero atrasado", "Interceptador", "Bloqueador", "Superioridad aérea",
-    "Entrada deslizante", "Despeje acrobático", "Capitanía", "As en la manga", "Doble toque", "Croqueta", "Tijera", "Malicia"
+    "Entrada deslizante", "Despeje acrobático", "Capitanía", "Espíritu de lucha", "As en la manga", "Doble toque", "Croqueta", "Tijera", "Malicia"
 ] as const;
 
 export type PlayerSkill = typeof playerSkillsList[number];
