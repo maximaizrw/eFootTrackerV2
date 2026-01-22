@@ -38,6 +38,7 @@ export function LiveUpdateRatingSelector({ value, onValueChange }: LiveUpdateRat
 
   const handleSelect = (e: Event, rating: LiveUpdateRating | null) => {
     e.preventDefault();
+    e.stopPropagation();
     onValueChange(rating);
   }
 
@@ -54,7 +55,6 @@ export function LiveUpdateRatingSelector({ value, onValueChange }: LiveUpdateRat
                   "h-6 w-6 font-bold text-base flex-shrink-0",
                   currentStyle.color
                 )}
-                onClick={(e) => e.stopPropagation()}
               >
                 {currentLabel}
               </Button>
