@@ -14,15 +14,23 @@ type LiveUpdateRatingSelectorProps = {
   onValueChange: (value: LiveUpdateRating | null) => void;
 };
 
-const ratingStyles: Record<LiveUpdateRating, { color: string, label: string }> = {
-  A: { color: 'bg-sky-400 text-primary-foreground', label: 'Forma Excelente (+5)' },
-  B: { color: 'bg-green-500 text-primary-foreground', label: 'Buena Forma (+2)' },
-  C: { color: 'bg-yellow-400 text-black', label: 'Forma Normal (0)' },
-  D: { color: 'bg-orange-500 text-primary-foreground', label: 'Mala Forma (-5)' },
-  E: { color: 'bg-red-600 text-primary-foreground', label: 'Pésima Forma (-10)' },
+const ratingStyles: Record<LiveUpdateRating, { color: string; label: string }> = {
+    A: { color: 'text-sky-400', label: 'Forma Excelente (+5)' },
+    B: { color: 'text-green-500', label: 'Buena Forma (+2)' },
+    C: { color: 'text-yellow-400', label: 'Forma Normal (0)' },
+    D: { color: 'text-orange-500', label: 'Mala Forma (-5)' },
+    E: { color: 'text-red-600', label: 'Pésima Forma (-10)' },
 };
 
-const defaultStyle = { color: 'bg-muted/30 text-muted-foreground', label: 'Sin actualización de forma' };
+const ratingBgColors: Record<LiveUpdateRating, string> = {
+    A: 'bg-sky-400',
+    B: 'bg-green-500',
+    C: 'bg-yellow-400',
+    D: 'bg-orange-500',
+    E: 'bg-red-600',
+};
+
+const defaultStyle = { color: 'text-muted-foreground', label: 'Sin actualización de forma' };
 
 export function LiveUpdateRatingSelector({ value, onValueChange }: LiveUpdateRatingSelectorProps) {
   const currentStyle = value ? ratingStyles[value] : defaultStyle;
@@ -40,12 +48,11 @@ export function LiveUpdateRatingSelector({ value, onValueChange }: LiveUpdateRat
           <TooltipTrigger asChild>
             <DropdownMenuTrigger asChild>
               <Button 
-                variant="outline" 
-                size="icon" 
+                variant="ghost"
+                size="icon"
                 className={cn(
-                  "h-6 w-6 rounded-full font-bold text-xs border-2 flex-shrink-0",
-                  currentStyle.color,
-                  value ? `border-${currentStyle.color.split('-')[1]}-600` : 'border-muted-foreground/30'
+                  "h-6 w-6 font-bold text-base flex-shrink-0",
+                  currentStyle.color
                 )}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -60,8 +67,9 @@ export function LiveUpdateRatingSelector({ value, onValueChange }: LiveUpdateRat
         <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
           {liveUpdateRatings.map(rating => (
             <DropdownMenuItem key={rating} onSelect={(e) => handleSelect(e, rating)}>
-              <div className={cn("w-3 h-3 rounded-full mr-2", ratingStyles[rating].color)} />
-              <span>{ratingStyles[rating].label}</span>
+              <div className={cn("w-3 h-3 rounded-full mr-2", ratingBgColors[rating])} />
+              <span className={cn(ratingStyles[rating].color, 'font-bold w-4')}>{rating}</span>
+              <span className="ml-2">{ratingStyles[rating].label}</span>
             </DropdownMenuItem>
           ))}
           <DropdownMenuSeparator />
