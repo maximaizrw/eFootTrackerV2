@@ -15,8 +15,8 @@ type LiveUpdateRatingSelectorProps = {
 };
 
 const ratingStyles: Record<LiveUpdateRating, { color: string; label: string }> = {
-    A: { color: 'text-sky-400', label: 'Forma Excelente (+5)' },
-    B: { color: 'text-green-500', label: 'Buena Forma (+2)' },
+    A: { color: 'text-sky-400', label: 'Forma Excelente (+8)' },
+    B: { color: 'text-green-500', label: 'Buena Forma (+4)' },
     C: { color: 'text-yellow-400', label: 'Forma Normal (0)' },
     D: { color: 'text-orange-500', label: 'Mala Forma (-5)' },
     E: { color: 'text-red-600', label: 'Pésima Forma (-10)' },
@@ -50,9 +50,8 @@ export function LiveUpdateRatingSelector({ value, onValueChange }: LiveUpdateRat
             <DropdownMenuTrigger asChild>
               <Button 
                 variant="ghost"
-                size="icon"
                 className={cn(
-                  "h-6 w-6 font-bold text-base flex-shrink-0",
+                  "h-auto w-auto p-0 text-base font-bold flex-shrink-0",
                   currentStyle.color
                 )}
               >

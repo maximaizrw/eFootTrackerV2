@@ -66,8 +66,8 @@ export const BADGE_BONUSES = {
 };
 
 export const LIVE_UPDATE_BONUSES: Record<LiveUpdateRating, number> = {
-  A: 5,
-  B: 2,
+  A: 8,
+  B: 4,
   C: 0,
   D: -5,
   E: -10,
