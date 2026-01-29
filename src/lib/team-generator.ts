@@ -186,7 +186,24 @@ export function generateIdealTeam(
   }
 
   const findBestPlayer = (candidates: CandidatePlayer[]): CandidatePlayer | undefined => {
-      const availableCandidates = candidates.filter(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id) && !discardedCardIds.has(p.card.id));
+      const availableCandidates = candidates.filter(p => {
+        if (usedPlayerIds.has(p.player.id) || usedCardIds.has(p.card.id) || discardedCardIds.has(p.card.id)) {
+            return false;
+        }
+        
+        // Only apply restrictive rules if not filtering by league or nation
+        if (league === 'all' && nationality === 'all') {
+            const rating = p.player.liveUpdateRating;
+            if (rating === 'D' || rating === 'E') {
+                return false;
+            }
+            if (p.generalScore < 90) {
+                return false;
+            }
+        }
+        
+        return true;
+      });
       
       return availableCandidates[0]; // The list is already sorted, just take the best available one.
   };
