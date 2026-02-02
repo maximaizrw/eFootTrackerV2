@@ -16,17 +16,6 @@ type CandidatePlayer = {
 
 /**
  * Generates the ideal team (starters and substitutes) based on a given formation.
- * 
- * @param players - The list of all available players.
- * @param formation - The selected formation with defined slots.
- * @param idealBuilds - The list of all ideal builds.
- * @param discardedCardIds - A set of card IDs to exclude from the selection.
- * @param league - The league to filter by.
- * @param nationality - The nationality to filter by.
- * @param sortBy - The metric to sort players by ('average' or 'general').
- * @param isFlexibleLaterals - Whether to allow LIs to play as LD and vice versa.
- * @param isFlexibleWingers - Whether to allow EXIs to play as EXD and vice versa.
- * @returns An array of slots, each with a starter and a substitute.
  */
 export function generateIdealTeam(
   players: Player[],
@@ -208,9 +197,9 @@ export function generateIdealTeam(
       return availableCandidates[0]; // The list is already sorted, just take the best available one.
   };
   
-  const getCandidatesForSlot = (formationSlot: FormationSlotType, applyFlexibility: boolean = true): CandidatePlayer[] => {
+  const getCandidatesForSlot = (formationSlot: FormationSlotType, applyFlexibility: boolean = true, ignoreStyle: boolean = false): CandidatePlayer[] => {
     const slotStyles = formationSlot.styles || [];
-    const hasStylePreference = slotStyles.length > 0;
+    const hasStylePreference = !ignoreStyle && slotStyles.length > 0;
     const targetPosition = formationSlot.position;
 
     let targetPositions: Position[] = [targetPosition];
@@ -235,10 +224,7 @@ export function generateIdealTeam(
             positionCandidates = positionCandidates.filter(p => !activeStylesForPos.includes(p.card.style));
         } else {
             // Standard filtering: find players that have one of the required styles.
-            const styleCandidates = positionCandidates.filter(p => slotStyles.includes(p.card.style));
-            if (styleCandidates.length > 0) {
-                positionCandidates = styleCandidates;
-            }
+            positionCandidates = positionCandidates.filter(p => slotStyles.includes(p.card.style));
         }
     }
     return positionCandidates.sort(sortFunction);
@@ -246,8 +232,15 @@ export function generateIdealTeam(
 
   // --- STARTER SELECTION ---
   for (const formationSlot of formation.slots) {
-    const candidates = getCandidatesForSlot(formationSlot, true); // Flexibility enabled for starters
-    const starterCandidate = findBestPlayer(candidates);
+    // 1. Try with preferred role
+    let candidates = getCandidatesForSlot(formationSlot, true, false);
+    let starterCandidate = findBestPlayer(candidates);
+    
+    // 2. Fallback to position only if no role match found
+    if (!starterCandidate && formationSlot.styles && formationSlot.styles.length > 0) {
+        candidates = getCandidatesForSlot(formationSlot, true, true);
+        starterCandidate = findBestPlayer(candidates);
+    }
     
     if (starterCandidate) {
       usedPlayerIds.add(starterCandidate.player.id);
@@ -273,22 +266,29 @@ export function generateIdealTeam(
       subSearchSlot.position = slot.starter.position;
     }
     
-    // For subs, we always search for a specific position, so flexibility is false.
-    const allCandidatesForSlot = getCandidatesForSlot(subSearchSlot, false);
+    const getBestSub = (ignoreStyle: boolean) => {
+        const candidates = getCandidatesForSlot(subSearchSlot, false, ignoreStyle);
+        
+        // Tier 1: Prioritize players with < 5 matches
+        const tier1 = candidates.filter(p => p.performance.stats.matches < 5);
+        let found = findBestPlayer(tier1);
+        if (found) return found;
 
-    // Tier 1: Prioritize players with < 5 matches
-    const tier1Candidates = allCandidatesForSlot.filter(p => p.performance.stats.matches < 5);
-    let substituteCandidate = findBestPlayer(tier1Candidates);
+        // Tier 2: If no Tier 1 players, prioritize players with < 10 matches
+        const tier2 = candidates.filter(p => p.performance.stats.matches < 10);
+        found = findBestPlayer(tier2);
+        if (found) return found;
 
-    // Tier 2: If no Tier 1 players, prioritize players with < 10 matches
-    if (!substituteCandidate) {
-        const tier2Candidates = allCandidatesForSlot.filter(p => p.performance.stats.matches < 10);
-        substituteCandidate = findBestPlayer(tier2Candidates);
-    }
-    
-    // Tier 3: If still no one, find the best available player regardless of matches
-    if (!substituteCandidate) {
-        substituteCandidate = findBestPlayer(allCandidatesForSlot);
+        // Tier 3: If still no one, find the best available player regardless of matches
+        return findBestPlayer(candidates);
+    };
+
+    // 1. Try with preferred role
+    let substituteCandidate = getBestSub(false);
+
+    // 2. Fallback to position only if no role match found (and a role was specified)
+    if (!substituteCandidate && subSearchSlot.styles && subSearchSlot.styles.length > 0) {
+        substituteCandidate = getBestSub(true);
     }
     
     if (substituteCandidate) {
