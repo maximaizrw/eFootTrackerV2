@@ -1,4 +1,3 @@
-
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position, BuildPosition, PhysicalAttribute, PlayerSkill, PlayerPerformance, LiveUpdateRating } from "./types";
@@ -108,7 +107,7 @@ export function calculateGeneralScore(
 
   // Apply "As en la manga" bonus ONLY for substitutes
   if (isSubstitute && skills.includes('As en la manga')) {
-    generalScore += 5;
+    generalScore += 1;
   }
 
   return Math.max(0, generalScore);
