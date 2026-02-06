@@ -9,6 +9,7 @@ type CandidatePlayer = {
   average: number;
   affinityScore: number;
   generalScore: number;
+  substituteScore: number;
   position: Position;
   performance: PlayerPerformance;
 };
@@ -114,8 +115,12 @@ export function generateIdealTeam(
         const affinityBreakdown = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills);
         const affinityScore = affinityBreakdown.totalAffinityScore;
         
-        const generalScore = calculateGeneralScore(affinityScore, stats.average, stats.matches, performance, player.liveUpdateRating);
+        // Scoring for starters (no super-sub bonus)
+        const generalScore = calculateGeneralScore(affinityScore, stats.average, stats.matches, performance, player.liveUpdateRating, card.skills, false);
         
+        // Scoring for substitutes (includes super-sub bonus)
+        const substituteScore = calculateGeneralScore(affinityScore, stats.average, stats.matches, performance, player.liveUpdateRating, card.skills, true);
+
         return {
           player,
           card,
@@ -123,6 +128,7 @@ export function generateIdealTeam(
           average: stats.average,
           affinityScore,
           generalScore: generalScore,
+          substituteScore: substituteScore,
           performance: performance,
         };
       }).filter((p): p is CandidatePlayer => p !== null);
@@ -133,34 +139,31 @@ export function generateIdealTeam(
   const usedCardIds = new Set<string>();
   const finalTeamSlots: IdealTeamSlot[] = [];
   
-  const sortFunction = (a: CandidatePlayer, b: CandidatePlayer) => {
+  const sortFunction = (a: CandidatePlayer, b: CandidatePlayer, useSubScore: boolean = false) => {
+    const scoreA = useSubScore ? a.substituteScore : a.generalScore;
+    const scoreB = useSubScore ? b.substituteScore : b.generalScore;
+
     if (sortBy === 'general') {
-      // 1. General Score
-      if (Math.abs(a.generalScore - b.generalScore) > 0.01) {
-        return b.generalScore - a.generalScore;
+      if (Math.abs(scoreA - scoreB) > 0.01) {
+        return scoreB - scoreA;
       }
-      // 2. Tie-breaker: Affinity Score
       if (Math.abs(a.affinityScore - b.affinityScore) > 0.1) {
         return b.affinityScore - a.affinityScore;
       }
-      // 3. Fallback to matches
       return b.performance.stats.matches - a.performance.stats.matches;
-    } else { // sortBy === 'average'
-      // 1. Average rating
+    } else {
       if (Math.abs(a.average - b.average) > 0.01) {
         return b.average - a.average;
       }
-      // 2. Tie-breaker: General Score (still useful to break ties)
-      if (Math.abs(a.generalScore - b.generalScore) > 0.01) {
-        return b.generalScore - a.generalScore;
+      if (Math.abs(scoreA - scoreB) > 0.01) {
+        return scoreB - scoreA;
       }
-      // 3. Fallback to matches
       return b.performance.stats.matches - a.performance.stats.matches;
     }
   };
 
 
-  const createTeamPlayer = (candidate: CandidatePlayer | undefined, assignedPosition: Position): IdealTeamPlayer | null => {
+  const createTeamPlayer = (candidate: CandidatePlayer | undefined, assignedPosition: Position, isSub: boolean): IdealTeamPlayer | null => {
       if (!candidate) return null;
       return {
           player: candidate.player,
@@ -168,25 +171,26 @@ export function generateIdealTeam(
           position: candidate.position,
           assignedPosition: assignedPosition,
           affinityScore: candidate.affinityScore,
-          generalScore: candidate.generalScore,
+          generalScore: isSub ? candidate.substituteScore : candidate.generalScore,
           average: candidate.average,
           performance: candidate.performance,
       }
   }
 
-  const findBestPlayer = (candidates: CandidatePlayer[]): CandidatePlayer | undefined => {
+  const findBestPlayer = (candidates: CandidatePlayer[], isSubSelection: boolean = false): CandidatePlayer | undefined => {
       const availableCandidates = candidates.filter(p => {
         if (usedPlayerIds.has(p.player.id) || usedCardIds.has(p.card.id) || discardedCardIds.has(p.card.id)) {
             return false;
         }
         
-        // Only apply restrictive rules if not filtering by league or nation
+        const scoreToFilter = isSubSelection ? p.substituteScore : p.generalScore;
+
         if (league === 'all' && nationality === 'all') {
             const rating = p.player.liveUpdateRating;
             if (rating === 'D' || rating === 'E') {
                 return false;
             }
-            if (p.generalScore < 90) {
+            if (scoreToFilter < 90) {
                 return false;
             }
         }
@@ -194,10 +198,10 @@ export function generateIdealTeam(
         return true;
       });
       
-      return availableCandidates[0]; // The list is already sorted, just take the best available one.
+      return availableCandidates[0];
   };
   
-  const getCandidatesForSlot = (formationSlot: FormationSlotType, applyFlexibility: boolean = true, ignoreStyle: boolean = false): CandidatePlayer[] => {
+  const getCandidatesForSlot = (formationSlot: FormationSlotType, applyFlexibility: boolean = true, ignoreStyle: boolean = false, isSub: boolean = false): CandidatePlayer[] => {
     const slotStyles = formationSlot.styles || [];
     const hasStylePreference = !ignoreStyle && slotStyles.length > 0;
     const targetPosition = formationSlot.position;
@@ -218,28 +222,24 @@ export function generateIdealTeam(
         .filter(p => targetPositions.includes(p.position));
         
     if (hasStylePreference) {
-        // Special case for "Ninguno": find players with deactivated playstyles for the target position.
         if (slotStyles.length === 1 && slotStyles[0] === 'Ninguno') {
             const activeStylesForPos = getAvailableStylesForPosition(targetPosition);
             positionCandidates = positionCandidates.filter(p => !activeStylesForPos.includes(p.card.style));
         } else {
-            // Standard filtering: find players that have one of the required styles.
             positionCandidates = positionCandidates.filter(p => slotStyles.includes(p.card.style));
         }
     }
-    return positionCandidates.sort(sortFunction);
+    return positionCandidates.sort((a, b) => sortFunction(a, b, isSub));
   }
 
   // --- STARTER SELECTION ---
   for (const formationSlot of formation.slots) {
-    // 1. Try with preferred role
-    let candidates = getCandidatesForSlot(formationSlot, true, false);
-    let starterCandidate = findBestPlayer(candidates);
+    let candidates = getCandidatesForSlot(formationSlot, true, false, false);
+    let starterCandidate = findBestPlayer(candidates, false);
     
-    // 2. Fallback to position only if no role match found
     if (!starterCandidate && formationSlot.styles && formationSlot.styles.length > 0) {
-        candidates = getCandidatesForSlot(formationSlot, true, true);
-        starterCandidate = findBestPlayer(candidates);
+        candidates = getCandidatesForSlot(formationSlot, true, true, false);
+        starterCandidate = findBestPlayer(candidates, false);
     }
     
     if (starterCandidate) {
@@ -248,7 +248,7 @@ export function generateIdealTeam(
     }
     
     finalTeamSlots.push({
-      starter: createTeamPlayer(starterCandidate, formationSlot.position),
+      starter: createTeamPlayer(starterCandidate, formationSlot.position, false),
       substitute: null,
     });
   }
@@ -256,37 +256,28 @@ export function generateIdealTeam(
   // --- SUBSTITUTE SELECTION ---
   finalTeamSlots.forEach((slot, index) => {
     const originalFormationSlot = formation.slots[index];
-    
-    // Default to original slot, but override if starter is flexible
     const subSearchSlot: FormationSlotType = { ...originalFormationSlot };
 
     if (slot.starter && slot.starter.position !== originalFormationSlot.position) {
-      // The starter is playing in a flexible role (e.g., an LI in an LD slot).
-      // The substitute must match the starter's natural position (LI).
       subSearchSlot.position = slot.starter.position;
     }
     
     const getBestSub = (ignoreStyle: boolean) => {
-        const candidates = getCandidatesForSlot(subSearchSlot, false, ignoreStyle);
+        const candidates = getCandidatesForSlot(subSearchSlot, false, ignoreStyle, true);
         
-        // Tier 1: Prioritize players with < 5 matches
         const tier1 = candidates.filter(p => p.performance.stats.matches < 5);
-        let found = findBestPlayer(tier1);
+        let found = findBestPlayer(tier1, true);
         if (found) return found;
 
-        // Tier 2: If no Tier 1 players, prioritize players with < 10 matches
         const tier2 = candidates.filter(p => p.performance.stats.matches < 10);
-        found = findBestPlayer(tier2);
+        found = findBestPlayer(tier2, true);
         if (found) return found;
 
-        // Tier 3: If still no one, find the best available player regardless of matches
-        return findBestPlayer(candidates);
+        return findBestPlayer(candidates, true);
     };
 
-    // 1. Try with preferred role
     let substituteCandidate = getBestSub(false);
 
-    // 2. Fallback to position only if no role match found (and a role was specified)
     if (!substituteCandidate && subSearchSlot.styles && subSearchSlot.styles.length > 0) {
         substituteCandidate = getBestSub(true);
     }
@@ -294,8 +285,7 @@ export function generateIdealTeam(
     if (substituteCandidate) {
       usedPlayerIds.add(substituteCandidate.player.id);
       usedCardIds.add(substituteCandidate.card.id);
-      // The assigned position is still the original slot in the formation
-      slot.substitute = createTeamPlayer(substituteCandidate, originalFormationSlot.position);
+      slot.substitute = createTeamPlayer(substituteCandidate, originalFormationSlot.position, true);
     }
   });
 
@@ -307,35 +297,33 @@ export function generateIdealTeam(
       !usedPlayerIds.has(p.player.id) && 
       !usedCardIds.has(p.card.id) && 
       !discardedCardIds.has(p.card.id) &&
-      outfieldFormationPositions.includes(p.position) // Must be a position in the current formation
+      outfieldFormationPositions.includes(p.position)
     )
-    .sort(sortFunction);
+    .sort((a, b) => sortFunction(a, b, true));
   
   if (allRemainingOutfieldCandidates.length > 0) {
-      // Apply the same tiered "testing" logic for the 12th sub
       const tier1_12th = allRemainingOutfieldCandidates.filter(p => p.performance.stats.matches < 5);
-      let extraSubCandidate = findBestPlayer(tier1_12th);
+      let extraSubCandidate = findBestPlayer(tier1_12th, true);
 
       if (!extraSubCandidate) {
           const tier2_12th = allRemainingOutfieldCandidates.filter(p => p.performance.stats.matches < 10);
-          extraSubCandidate = findBestPlayer(tier2_12th);
+          extraSubCandidate = findBestPlayer(tier2_12th, true);
       }
 
       if (!extraSubCandidate) {
-          extraSubCandidate = findBestPlayer(allRemainingOutfieldCandidates);
+          extraSubCandidate = findBestPlayer(allRemainingOutfieldCandidates, true);
       }
       
       if (extraSubCandidate) {
           const assignedPosForExtraSub = extraSubCandidate.position; 
           finalTeamSlots.push({
               starter: null,
-              substitute: createTeamPlayer(extraSubCandidate, assignedPosForExtraSub),
+              substitute: createTeamPlayer(extraSubCandidate, assignedPosForExtraSub, true),
           });
       }
   }
 
 
-  // Fill empty slots and manage final list
   const placeholderPerformance: PlayerPerformance = {
         stats: { average: 0, matches: 0, stdDev: 0 },
         isHotStreak: false, isConsistent: false, isPromising: false, isVersatile: false,

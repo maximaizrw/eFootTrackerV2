@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -166,7 +165,8 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
                     const affinityBreakdown = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills);
                     const affinityScore = affinityBreakdown.totalAffinityScore;
                     
-                    const generalScore = calculateGeneralScore(affinityScore, stats.average, stats.matches, performance, player.liveUpdateRating);
+                    // Always show "Starter" score in main list
+                    const generalScore = calculateGeneralScore(affinityScore, stats.average, stats.matches, performance, player.liveUpdateRating, card.skills, false);
 
                     return { player, card, ratingsForPos, performance, affinityScore, generalScore, position: ratedPos, affinityBreakdown };
                 }).filter((p): p is FlatPlayer => p !== null);

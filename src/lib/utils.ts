@@ -79,7 +79,9 @@ export function calculateGeneralScore(
   average: number, 
   matches: number,
   performance: PlayerPerformance,
-  liveUpdateRating?: LiveUpdateRating | null
+  liveUpdateRating?: LiveUpdateRating | null,
+  skills: PlayerSkill[] = [],
+  isSubstitute: boolean = false
 ): number {
   
   const weight = Math.min(100, matches) / 100;
@@ -102,6 +104,11 @@ export function calculateGeneralScore(
   // Apply live update bonus
   if (liveUpdateRating && LIVE_UPDATE_BONUSES[liveUpdateRating]) {
     generalScore += LIVE_UPDATE_BONUSES[liveUpdateRating];
+  }
+
+  // Apply "As en la manga" bonus ONLY for substitutes
+  if (isSubstitute && skills.includes('As en la manga')) {
+    generalScore += 5;
   }
 
   return Math.max(0, generalScore);
