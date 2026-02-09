@@ -73,16 +73,12 @@ export function useIdealBuilds() {
             const newCards = JSON.parse(JSON.stringify(player.cards)) as PlayerCard[];
 
             newCards.forEach(card => {
-                // If the card matches the style, we might need to update based on the current active ideal type
-                // But since we can't know the user's active UI selection here easily, 
-                // we'll update the build's stored manualAffinity if the style matches.
                 if (card.style === updatedBuild.style) {
                     if (card.buildsByPosition && card.buildsByPosition[updatedBuild.position]) {
                         const currentBuild = card.buildsByPosition[updatedBuild.position]!
                         const isGoalkeeper = updatedBuild.position === 'PT';
                         const finalStats = calculateProgressionStats(card.attributeStats || {}, currentBuild, isGoalkeeper);
 
-                        // Use the updated build specifically for this recalculation
                         const { totalAffinityScore } = calculateAffinityWithBreakdown(finalStats, updatedBuild, card.physicalAttributes, card.skills);
                         
                         currentBuild.manualAffinity = totalAffinityScore;
@@ -104,7 +100,6 @@ export function useIdealBuilds() {
   const saveIdealBuild = async (build: IdealBuild) => {
     if (!db) return;
     
-    // Construct unique ID based on type, position and style
     const buildId = `${build.playStyle}-${build.position}-${build.style}`;
     
     try {
@@ -137,17 +132,18 @@ export function useIdealBuilds() {
             finalIdealBuild = { ...build, build: finalBuildData };
         }
         
-        const dataToSave: Partial<IdealBuild> = {
+        const dataToSave: any = {
           playStyle: finalIdealBuild.playStyle,
           position: finalIdealBuild.position,
           style: finalIdealBuild.style,
           build: finalIdealBuild.build,
         };
 
-        if (finalIdealBuild.legLength && (finalIdealBuild.legLength.min !== undefined || finalIdealBuild.legLength.max !== undefined)) {
-          dataToSave.legLength = {};
-          if (finalIdealBuild.legLength.min !== undefined) dataToSave.legLength.min = finalIdealBuild.legLength.min;
-          if (finalIdealBuild.legLength.max !== undefined) dataToSave.legLength.max = finalIdealBuild.legLength.max;
+        if (finalIdealBuild.height && (finalIdealBuild.height.min !== undefined || finalIdealBuild.height.max !== undefined)) {
+          dataToSave.height = finalIdealBuild.height;
+        }
+        if (finalIdealBuild.weight && (finalIdealBuild.weight.min !== undefined || finalIdealBuild.weight.max !== undefined)) {
+          dataToSave.weight = finalIdealBuild.weight;
         }
         
         if (finalIdealBuild.primarySkills && finalIdealBuild.primarySkills.length > 0) dataToSave.primarySkills = finalIdealBuild.primarySkills;

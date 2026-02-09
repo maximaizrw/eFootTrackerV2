@@ -68,14 +68,12 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
 
   const baseStats = React.useMemo(() => card?.attributeStats || {}, [card?.attributeStats]);
   
-  // 1. Find the best build based on the active Tactic (idealBuildType)
   const { bestBuild, bestBuildStyle } = React.useMemo(() => {
     if (!card || !position) return { bestBuild: null, bestBuildStyle: null };
     const result = getIdealBuildForPlayer(card.style, position, idealBuilds, idealBuildType);
     return { bestBuild: result.bestBuild, bestBuildStyle: result.bestStyle };
   }, [card?.style, position, idealBuilds, idealBuildType]);
 
-  // 2. Initialize build and points when dialog opens
   React.useEffect(() => {
     if (open && flatPlayer && position && card) {
       const initialBuild = card.buildsByPosition?.[position];
@@ -87,13 +85,11 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
     }
   }, [open, flatPlayer, card, position]);
 
-  // 3. Calculate final stats reactively based on local build state
   const finalStats = React.useMemo(() => {
     if (!card || !position) return {};
     return specialCard ? baseStats : calculateProgressionStats(baseStats, build, isGoalkeeper);
   }, [build, baseStats, card, position, specialCard, isGoalkeeper]);
 
-  // 4. Calculate local breakdown reactively based on active tactic and current stats
   const localAffinityResult = React.useMemo<AffinityBreakdownResult>(() => {
     if (!card || !bestBuild) return { totalAffinityScore: 0, breakdown: [] };
     return calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills);
@@ -101,7 +97,6 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
 
   const handleSave = () => {
     if (player && card && position) {
-      // We pass the local calculated affinity to be saved
       const buildToSave = { ...build, manualAffinity: localAffinityResult.totalAffinityScore, updatedAt: new Date().toISOString() };
       onSavePlayerBuild(player.id, card.id, position, buildToSave, totalProgressionPoints);
       onOpenChange(false);
@@ -327,7 +322,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
           </TabsContent>
           <TabsContent value="affinity" className="flex-grow overflow-hidden mt-4">
               <ScrollArea className="h-full pr-4 -mr-4">
-                <AffinityBreakdown breakdownResult={localAffinityResult} />
+                <AffinityBreakdown breakdownResult={localAffinityResult} tacticName={idealBuildType} />
               </ScrollArea>
           </TabsContent>
         </Tabs>

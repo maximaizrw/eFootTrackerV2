@@ -10,6 +10,7 @@ import type { PhysicalAttribute, PlayerSkill } from "@/lib/types";
 
 type AffinityBreakdownProps = {
   breakdownResult: AffinityBreakdownResult;
+  tacticName?: string;
 };
 
 const physicalAttributeKeys: (keyof PhysicalAttribute)[] = [
@@ -17,7 +18,7 @@ const physicalAttributeKeys: (keyof PhysicalAttribute)[] = [
 ];
 
 
-export function AffinityBreakdown({ breakdownResult }: AffinityBreakdownProps) {
+export function AffinityBreakdown({ breakdownResult, tacticName }: AffinityBreakdownProps) {
   const { totalAffinityScore, breakdown, skillsBreakdown } = breakdownResult;
 
   const relevantStats = breakdown.filter(item => {
@@ -45,7 +46,10 @@ export function AffinityBreakdown({ breakdownResult }: AffinityBreakdownProps) {
     <Card>
       <CardHeader>
         <CardTitle className="flex justify-between items-center">
-            <span>Desglose de Afinidad</span>
+            <div className="flex flex-col">
+                <span>Desglose de Afinidad</span>
+                {tacticName && <span className="text-xs font-normal text-muted-foreground">Táctica: {tacticName}</span>}
+            </div>
             <span className="text-primary">{totalAffinityScore.toFixed(2)}</span>
         </CardTitle>
       </CardHeader>

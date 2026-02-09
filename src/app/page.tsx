@@ -319,9 +319,19 @@ export default function Home() {
   }, []);
 
   const handleOpenIdealBuildEditor = useCallback((build?: IdealBuild) => {
-    setEditingIdealBuild(build);
+    // If it's a new build, default to the current active tactic
+    if (!build) {
+        setEditingIdealBuild({
+            playStyle: idealBuildType,
+            position: 'DC',
+            style: 'Cazagoles',
+            build: {},
+        } as IdealBuild);
+    } else {
+        setEditingIdealBuild(build);
+    }
     setIsIdealBuildEditorOpen(true);
-  }, []);
+  }, [idealBuildType]);
 
   const handleCopyIdealBuild = useCallback((build: IdealBuild) => {
     const json = JSON.stringify(build.build, null, 2);
