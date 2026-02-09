@@ -28,10 +28,14 @@ export function useIdealBuilds() {
       try {
         const buildsData = snapshot.docs.map(doc => {
             const data = doc.data();
+            // Normalize old style name "Señuelo" to "Segundo delantero"
+            const normalizedStyle = data.style === 'Señuelo' ? 'Segundo delantero' : data.style;
+            
             return {
                 id: doc.id,
                 ...data,
-                playStyle: data.playStyle || 'General', // Fallback for old data
+                style: normalizedStyle,
+                playStyle: data.playStyle || 'General',
             } as IdealBuild;
         });
         
@@ -100,7 +104,9 @@ export function useIdealBuilds() {
   const saveIdealBuild = async (build: IdealBuild) => {
     if (!db) return;
     
-    const buildId = `${build.playStyle}-${build.position}-${build.style}`;
+    // Ensure we save with the correct style name
+    const styleToSave = build.style === 'Señuelo' ? 'Segundo delantero' : build.style;
+    const buildId = `${build.playStyle}-${build.position}-${styleToSave}`;
     
     try {
         const buildRef = doc(db, 'idealBuilds', buildId);
@@ -123,13 +129,13 @@ export function useIdealBuilds() {
                   finalBuildData[statKey] = existingValue > 0 ? Math.round((existingValue + newValue) / 2) : newValue;
                 }
             }
-            toastMessage = `La build para [${build.playStyle}] ${build.position} - ${build.style} ha sido promediada.`;
-            finalIdealBuild = { ...build, build: finalBuildData };
+            toastMessage = `La build para [${build.playStyle}] ${build.position} - ${styleToSave} ha sido promediada.`;
+            finalIdealBuild = { ...build, style: styleToSave, build: finalBuildData };
 
         } else {
             finalBuildData = build.build;
-            toastMessage = `La build para [${build.playStyle}] ${build.position} - ${build.style} se ha creado.`;
-            finalIdealBuild = { ...build, build: finalBuildData };
+            toastMessage = `La build para [${build.playStyle}] ${build.position} - ${styleToSave} se ha creado.`;
+            finalIdealBuild = { ...build, style: styleToSave, build: finalBuildData };
         }
         
         const dataToSave: any = {

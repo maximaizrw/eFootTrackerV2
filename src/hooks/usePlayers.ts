@@ -35,18 +35,23 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
             const playerName = data.name;
             const normalizedName = normalizeText(playerName);
 
-            const newCards: PlayerCard[] = (data.cards || []).map((card: any) => ({
-                ...card,
-                id: card.id || uuidv4(),
-                style: card.style || 'Ninguno',
-                league: card.league || 'Sin Liga',
-                imageUrl: card.imageUrl || '',
-                ratingsByPosition: card.ratingsByPosition || {},
-                buildsByPosition: card.buildsByPosition || {},
-                attributeStats: card.attributeStats || {},
-                physicalAttributes: card.physicalAttributes || {},
-                skills: card.skills || [],
-            }));
+            const newCards: PlayerCard[] = (data.cards || []).map((card: any) => {
+                // Normalize old style name "Señuelo" to "Segundo delantero"
+                const normalizedStyle = card.style === 'Señuelo' ? 'Segundo delantero' : (card.style || 'Ninguno');
+                
+                return {
+                    ...card,
+                    id: card.id || uuidv4(),
+                    style: normalizedStyle,
+                    league: card.league || 'Sin Liga',
+                    imageUrl: card.imageUrl || '',
+                    ratingsByPosition: card.ratingsByPosition || {},
+                    buildsByPosition: card.buildsByPosition || {},
+                    attributeStats: card.attributeStats || {},
+                    physicalAttributes: card.physicalAttributes || {},
+                    skills: card.skills || [],
+                };
+            });
 
             if (playerMap.has(normalizedName)) {
                 const existingPlayer = playerMap.get(normalizedName)!;
@@ -165,6 +170,9 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
     let { playerName, cardName, position, rating, style, league, nationality, playerId } = values;
     if (!db) return;
     
+    // Normalize style
+    if (style === 'Señuelo') style = 'Segundo delantero';
+    
     const validStylesForPosition = getAvailableStylesForPosition(position, true);
     if (!validStylesForPosition.includes(style)) style = 'Ninguno';
 
@@ -247,7 +255,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
 
       if (cardToUpdate) {
           cardToUpdate.name = values.currentCardName;
-          cardToUpdate.style = values.currentStyle;
+          cardToUpdate.style = values.currentStyle === 'Señuelo' ? 'Segundo delantero' : values.currentStyle;
           cardToUpdate.league = values.league || 'Sin Liga';
           cardToUpdate.imageUrl = values.imageUrl || '';
           await updateDoc(playerRef, { cards: newCards });
