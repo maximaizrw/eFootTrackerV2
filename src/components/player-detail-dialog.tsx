@@ -162,12 +162,25 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
       return baseStats[baseStat] !== undefined ? baseStats[baseStat] : baseStats[stat];
   }
 
+  const needsPhysicalAttrs = !card?.physicalAttributes || card.physicalAttributes.height === undefined || card.physicalAttributes.weight === undefined;
+  const hasNoStats = !card?.attributeStats || Object.keys(card.attributeStats).length === 0;
+  const needsProgressionPoints = !specialCard && !card?.totalProgressionPoints;
+  const needsSkills = !card?.skills || card.skills.length === 0;
+  
+  const isMissingCriticalData = hasNoStats || needsProgressionPoints || needsPhysicalAttrs;
+  let titleColorClass = "";
+  if (isMissingCriticalData) {
+      titleColorClass = "text-red-500";
+  } else if (needsSkills) {
+      titleColorClass = "text-blue-400";
+  }
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl h-[85vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
-          <DialogTitle>Build para {player?.name} ({card?.name}) en <span className="text-primary">{position}</span></DialogTitle>
+          <DialogTitle className={cn(titleColorClass)}>Build para {player?.name} ({card?.name}) en <span className="text-primary">{position}</span></DialogTitle>
           <DialogDescription>
             Configura los puntos de progresión. Estás comparando contra la táctica <span className="font-bold text-foreground">[{idealBuildType}]</span>.
           </DialogDescription>

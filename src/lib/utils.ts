@@ -299,16 +299,19 @@ function calculatePhysicalAttributeAffinity(
     }
 
     const val = Number(playerValue);
+    const min = idealRange.min !== undefined ? Number(idealRange.min) : undefined;
+    const max = idealRange.max !== undefined ? Number(idealRange.max) : undefined;
+
     if (
-        (idealRange.min === undefined || val >= Number(idealRange.min)) &&
-        (idealRange.max === undefined || val <= Number(idealRange.max))
+        (min === undefined || val >= min) &&
+        (max === undefined || val <= max)
     ) {
         return 2.5; // Bonus for being within the ideal range
-    } else if (idealRange.min !== undefined && val < Number(idealRange.min)) {
-        const diff = Number(idealRange.min) - val;
+    } else if (min !== undefined && val < min) {
+        const diff = min - val;
         return -(diff * 0.5); // Penalty for being below min
-    } else if (idealRange.max !== undefined && val > Number(idealRange.max)) {
-        const diff = val - Number(idealRange.max);
+    } else if (max !== undefined && val > max) {
+        const diff = val - max;
         return -(diff * 0.25); // Smaller penalty for being above max
     }
     return 0;
@@ -389,13 +392,15 @@ export function calculateAffinityWithBreakdown(
     // Physical attributes breakdown
     const physicalAttrKeys: (keyof PhysicalAttribute)[] = ['height', 'weight'];
     physicalAttrKeys.forEach(key => {
-        const score = calculatePhysicalAttributeAffinity(physicalAttributes?.[key], idealBuild[key]);
+        const playerVal = physicalAttributes?.[key];
+        const idealRange = idealBuild[key];
+        const score = calculatePhysicalAttributeAffinity(playerVal, idealRange);
         totalAffinityScore += score;
         breakdown.push({
             stat: key,
             label: statLabels[key],
-            playerValue: physicalAttributes?.[key],
-            idealValue: idealBuild[key],
+            playerValue: playerVal,
+            idealValue: idealRange,
             score,
         });
     });

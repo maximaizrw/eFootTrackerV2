@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import type { IdealTeamPlayer, IdealTeamSlot, FormationStats, Position, PlayerBuild, PhysicalAttribute, LiveUpdateRating } from '@/lib/types';
@@ -37,7 +36,7 @@ const PlayerToken = ({ player, style, onDiscard, onViewBuild, onUpdateLiveUpdate
   const specialCard = isSpecialCard(player.card.name);
   const hasNoStats = !player.card.attributeStats || Object.keys(player.card.attributeStats).length === 0;
   const needsProgressionPoints = !specialCard && !player.card.totalProgressionPoints;
-  const needsPhysicalAttrs = !player.card.physicalAttributes || player.card.physicalAttributes.legLength === undefined;
+  const needsPhysicalAttrs = !player.card.physicalAttributes || player.card.physicalAttributes.height === undefined || player.card.physicalAttributes.weight === undefined;
   const needsSkills = !player.card.skills || player.card.skills.length === 0;
 
   const isMissingCriticalData = hasNoStats || needsProgressionPoints || needsPhysicalAttrs;
@@ -129,7 +128,7 @@ const SubstitutePlayerRow = ({ player, onDiscard, onViewBuild, onUpdateLiveUpdat
   const specialCard = isSpecialCard(player.card.name);
   const hasNoStats = !player.card.attributeStats || Object.keys(player.card.attributeStats).length === 0;
   const needsProgressionPoints = !specialCard && !player.card.totalProgressionPoints;
-  const needsPhysicalAttrs = !player.card.physicalAttributes || player.card.physicalAttributes.legLength === undefined;
+  const needsPhysicalAttrs = !player.card.physicalAttributes || player.card.physicalAttributes.height === undefined || player.card.physicalAttributes.weight === undefined;
   const needsSkills = !player.card.skills || player.card.skills.length === 0;
 
   const isMissingCriticalData = hasNoStats || needsProgressionPoints || needsPhysicalAttrs;

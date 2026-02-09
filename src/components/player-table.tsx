@@ -198,7 +198,7 @@ const PlayerTableMemo = memo(function PlayerTable({
             const specialCard = isSpecialCard(card.name);
             const hasNoStats = !card.attributeStats || Object.keys(card.attributeStats).length === 0;
             const needsProgressionPoints = !specialCard && !card.totalProgressionPoints;
-            const needsPhysicalAttrs = !card.physicalAttributes || card.physicalAttributes.legLength === undefined;
+            const needsPhysicalAttrs = !card.physicalAttributes || card.physicalAttributes.height === undefined || card.physicalAttributes.weight === undefined;
             const needsSkills = !card.skills || card.skills.length === 0;
 
             const isMissingCriticalData = hasNoStats || needsProgressionPoints || needsPhysicalAttrs;
