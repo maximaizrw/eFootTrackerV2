@@ -41,7 +41,7 @@ import { useToast } from "@/hooks/use-toast";
 
 import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerBuild, IdealTeamPlayer, PlayerAttributeStats, IdealBuild, IdealBuildType } from '@/lib/types';
 import { positions, leagues, nationalities, formationPlayStyles } from '@/lib/types';
-import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Dna, RefreshCw, Beaker, Wand2 } from 'lucide-react';
+import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Dna, RefreshCw, Beaker, Wand2, Copy } from 'lucide-react';
 import { normalizeText } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -322,6 +322,23 @@ export default function Home() {
     setEditingIdealBuild(build);
     setIsIdealBuildEditorOpen(true);
   }, []);
+
+  const handleCopyIdealBuild = useCallback((build: IdealBuild) => {
+    const json = JSON.stringify(build.build, null, 2);
+    navigator.clipboard.writeText(json).then(() => {
+      toast({
+        title: "Copiado al portapapeles",
+        description: `Las estadísticas de ${build.position} - ${build.style} se han copiado como JSON.`,
+      });
+    }).catch(err => {
+      console.error('Error al copiar: ', err);
+      toast({
+        variant: "destructive",
+        title: "Error al copiar",
+        description: "No se pudo copiar al portapapeles.",
+      });
+    });
+  }, [toast]);
 
 
   const getHeaderButtons = () => {
@@ -732,6 +749,10 @@ export default function Home() {
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => handleCopyIdealBuild(build)}>
+                          <Copy className="h-4 w-4 mr-2" />
+                          JSON
+                        </Button>
                         <Button variant="outline" size="sm" onClick={() => handleOpenIdealBuildEditor(build)}>Editar</Button>
                         <Button variant="destructive" size="sm" onClick={() => deleteIdealBuild(build.id!)}>Eliminar</Button>
                       </div>
