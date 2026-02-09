@@ -15,12 +15,7 @@ type AffinityStatusIndicatorProps = {
 export function AffinityStatusIndicator({ player, currentTactic = 'General' }: AffinityStatusIndicatorProps) {
   const { card, position } = player;
   
-  // Try to find build for current tactic first
-  let build = card.buildsByTactic?.[currentTactic]?.[position];
-  if (!build && currentTactic !== 'General') {
-      build = card.buildsByPosition?.[position];
-  }
-  
+  const build = card.buildsByPosition?.[position];
   const updatedAt = build?.updatedAt;
 
   if (!updatedAt) {
@@ -30,7 +25,7 @@ export function AffinityStatusIndicator({ player, currentTactic = 'General' }: A
                 <TooltipTrigger asChild>
                     <div className="w-2.5 h-2.5 bg-violet-500 rounded-full flex-shrink-0" />
                 </TooltipTrigger>
-                <TooltipContent><p>Afinidad nunca actualizada para [{currentTactic}]</p></TooltipContent>
+                <TooltipContent><p>Build nunca actualizada</p></TooltipContent>
             </Tooltip>
         </TooltipProvider>
     );

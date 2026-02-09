@@ -72,11 +72,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
   
   React.useEffect(() => {
     if (open && flatPlayer && position && card) {
-      // Style-aware build loading
-      let initialBuild = card.buildsByTactic?.[idealBuildType]?.[position];
-      if (!initialBuild && idealBuildType !== 'General') {
-          initialBuild = card.buildsByPosition?.[position];
-      }
+      const initialBuild = card.buildsByPosition?.[position];
       
       setBuild(initialBuild || { manualAffinity: 0 });
       setTotalProgressionPoints(card.totalProgressionPoints);
@@ -171,7 +167,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
         <DialogHeader className="flex-shrink-0">
           <DialogTitle>Build para {player?.name} ({card?.name}) en <span className="text-primary">{position}</span></DialogTitle>
           <DialogDescription>
-            Definiendo build para táctica <span className="font-bold text-foreground">[{idealBuildType}]</span>. Últ. act: <span className="font-semibold text-foreground">{formattedDate}</span>
+            Configura los puntos de progresión del jugador. La afinidad se calcula comparando con la táctica <span className="font-bold text-foreground">[{idealBuildType}]</span>.
           </DialogDescription>
         </DialogHeader>
         
@@ -198,6 +194,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
                                   <RefreshCw className="h-4 w-4" />
                               </Button>
                           </div>
+                          <p className="text-xs text-muted-foreground text-center">Últ. act build: <span className="font-semibold text-foreground">{formattedDate}</span></p>
                           <p className="text-xs text-muted-foreground text-center">Build Ideal usada: <span className="font-semibold text-primary">{bestBuildStyle || 'N/A'}</span></p>
                       </div>
                       
@@ -325,7 +322,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
         </Tabs>
 
         <DialogFooter className="pt-4 border-t mt-4 flex-shrink-0">
-          <Button onClick={handleSave}>Guardar Build en [${idealBuildType}]</Button>
+          <Button onClick={handleSave}>Guardar Build</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

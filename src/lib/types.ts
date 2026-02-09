@@ -197,8 +197,7 @@ export type PlayerCard = {
   league?: League;
   imageUrl?: string;
   ratingsByPosition: { [key in Position]?: number[] };
-  buildsByPosition?: { [key in Position]?: PlayerBuild }; // Legado / General
-  buildsByTactic?: { [key in IdealBuildType]?: { [key in Position]?: PlayerBuild } };
+  buildsByPosition?: { [key in Position]?: PlayerBuild };
   attributeStats?: PlayerAttributeStats;
   physicalAttributes?: PhysicalAttribute;
   totalProgressionPoints?: number;

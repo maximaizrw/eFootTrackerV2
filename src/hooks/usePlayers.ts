@@ -43,7 +43,6 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
                 imageUrl: card.imageUrl || '',
                 ratingsByPosition: card.ratingsByPosition || {},
                 buildsByPosition: card.buildsByPosition || {},
-                buildsByTactic: card.buildsByTactic || {},
                 attributeStats: card.attributeStats || {},
                 physicalAttributes: card.physicalAttributes || {},
                 skills: card.skills || [],
@@ -141,11 +140,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
                     const isGoalkeeper = ratedPos === 'PT';
                     const specialCard = isSpecialCard(card.name);
                     
-                    // Style-aware build selection
-                    let currentBuild = card.buildsByTactic?.[targetIdealType]?.[ratedPos];
-                    if (!currentBuild && targetIdealType !== 'General') {
-                        currentBuild = card.buildsByPosition?.[ratedPos];
-                    }
+                    const currentBuild = card.buildsByPosition?.[ratedPos];
                     
                     const finalStats = specialCard || !currentBuild
                         ? (card.attributeStats || {})
@@ -205,7 +200,6 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
               imageUrl: '',
               ratingsByPosition: { [position]: [rating] },
               buildsByPosition: { [position]: { manualAffinity: 0 } },
-              buildsByTactic: { General: { [position]: { manualAffinity: 0 } } },
               attributeStats: {},
               physicalAttributes: {},
               skills: [],
@@ -226,7 +220,6 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
               imageUrl: '',
               ratingsByPosition: { [position]: [rating] },
               buildsByPosition: { [position]: { manualAffinity: 0 } },
-              buildsByTactic: { General: { [position]: { manualAffinity: 0 } } },
               attributeStats: {},
               physicalAttributes: {},
               skills: [],
@@ -346,9 +339,6 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
         const cardToUpdate = newCards.find(c => c.id === cardId);
 
         if (cardToUpdate) {
-            if (!cardToUpdate.buildsByTactic) cardToUpdate.buildsByTactic = {};
-            if (!cardToUpdate.buildsByTactic[targetIdealType]) cardToUpdate.buildsByTactic[targetIdealType] = {};
-            
             if (totalProgressionPoints !== undefined && !isSpecialCard(cardToUpdate.name)) cardToUpdate.totalProgressionPoints = totalProgressionPoints;
             
             const isGoalkeeper = position === 'PT';
@@ -360,17 +350,11 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
             
             const updatedBuild: PlayerBuild = { ...build, manualAffinity: affinity, updatedAt: new Date().toISOString() };
             
-            // Save to current tactic
-            cardToUpdate.buildsByTactic[targetIdealType]![position] = updatedBuild;
-            
-            // Backwards compatibility for General
-            if (targetIdealType === 'General') {
-                if (!cardToUpdate.buildsByPosition) cardToUpdate.buildsByPosition = {};
-                cardToUpdate.buildsByPosition[position] = updatedBuild;
-            }
+            if (!cardToUpdate.buildsByPosition) cardToUpdate.buildsByPosition = {};
+            cardToUpdate.buildsByPosition[position] = updatedBuild;
 
             await updateDoc(playerRef, { cards: newCards });
-            toast({ title: "Build Guardada", description: `Build para ${position} en [${targetIdealType}] actualizada.` });
+            toast({ title: "Build Guardada", description: `Build para ${position} actualizada.` });
         }
     } catch (error) {
         toast({ variant: "destructive", title: "Error al Guardar", description: "No se pudo guardar la build." });
@@ -393,30 +377,6 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
           cardToUpdate.skills = skills;
           cardToUpdate.attributeStats = { ...stats };
           
-          // Recalculate all affinities for this card across all tactics
-          if (cardToUpdate.buildsByTactic) {
-              for (const tacticKey in cardToUpdate.buildsByTactic) {
-                  const tactic = tacticKey as IdealBuildType;
-                  const tacticBuilds = cardToUpdate.buildsByTactic[tactic];
-                  if (tacticBuilds) {
-                      for (const posKey in tacticBuilds) {
-                          const pos = posKey as Position;
-                          const bld = tacticBuilds[pos];
-                          if (bld) {
-                              const isGK = pos === 'PT';
-                              const special = isSpecialCard(cardToUpdate.name);
-                              const final = special ? cardToUpdate.attributeStats : calculateProgressionStats(cardToUpdate.attributeStats || {}, bld, isGK);
-                              const { bestBuild } = getIdealBuildForPlayer(cardToUpdate.style, pos, idealBuilds, tactic);
-                              const newAffinity = calculateAffinityWithBreakdown(final, bestBuild, physical, skills).totalAffinityScore;
-                              bld.manualAffinity = newAffinity;
-                              bld.updatedAt = new Date().toISOString();
-                          }
-                      }
-                  }
-              }
-          }
-          
-          // Legacy check
           if(cardToUpdate.buildsByPosition) {
               for (const posKey in cardToUpdate.buildsByPosition) {
                   const pos = posKey as Position;
@@ -425,7 +385,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
                       const isGK = pos === 'PT';
                       const special = isSpecialCard(cardToUpdate.name);
                       const final = special ? cardToUpdate.attributeStats : calculateProgressionStats(cardToUpdate.attributeStats || {}, bld, isGK);
-                      const { bestBuild } = getIdealBuildForPlayer(cardToUpdate.style, pos, idealBuilds, 'General');
+                      const { bestBuild } = getIdealBuildForPlayer(cardToUpdate.style, pos, idealBuilds, targetIdealType);
                       const newAffinity = calculateAffinityWithBreakdown(final, bestBuild, physical, skills).totalAffinityScore;
                       bld.manualAffinity = newAffinity;
                       bld.updatedAt = new Date().toISOString();
@@ -464,31 +424,22 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
             const newCards: PlayerCard[] = JSON.parse(JSON.stringify(player.cards || []));
 
             for (const card of newCards) {
-                // Focus on the selected tactic
-                if (!card.buildsByTactic) card.buildsByTactic = {};
-                if (!card.buildsByTactic[targetIdealType]) card.buildsByTactic[targetIdealType] = {};
-                
-                const tacticBuilds = card.buildsByTactic[targetIdealType]!;
-                
-                // If the tactic is empty, try to seed it from General
-                if (Object.keys(tacticBuilds).length === 0 && targetIdealType !== 'General' && card.buildsByPosition) {
-                    card.buildsByTactic[targetIdealType] = JSON.parse(JSON.stringify(card.buildsByPosition));
-                }
-
-                for (const posKey in card.buildsByTactic[targetIdealType]) {
-                    const pos = posKey as Position;
-                    const build = card.buildsByTactic[targetIdealType]![pos];
-                    if (build && card.attributeStats) {
-                       const isGK = pos === 'PT';
-                       const special = isSpecialCard(card.name);
-                       const final = special ? card.attributeStats : calculateProgressionStats(card.attributeStats, build, isGK);
-                       const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds, targetIdealType);
-                       const newAffinity = calculateAffinityWithBreakdown(final, bestBuild, card.physicalAttributes, card.skills).totalAffinityScore;
-                       if (Math.abs(build.manualAffinity - newAffinity) > 0.01) {
-                            build.manualAffinity = newAffinity;
-                            build.updatedAt = new Date().toISOString();
-                            playerWasUpdated = true;
-                       }
+                if (card.buildsByPosition) {
+                    for (const posKey in card.buildsByPosition) {
+                        const pos = posKey as Position;
+                        const build = card.buildsByPosition[pos];
+                        if (build && card.attributeStats) {
+                           const isGK = pos === 'PT';
+                           const special = isSpecialCard(card.name);
+                           const final = special ? card.attributeStats : calculateProgressionStats(card.attributeStats, build, isGK);
+                           const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds, targetIdealType);
+                           const newAffinity = calculateAffinityWithBreakdown(final, bestBuild, card.physicalAttributes, card.skills).totalAffinityScore;
+                           if (Math.abs(build.manualAffinity - newAffinity) > 0.01) {
+                                build.manualAffinity = newAffinity;
+                                build.updatedAt = new Date().toISOString();
+                                playerWasUpdated = true;
+                           }
+                        }
                     }
                 }
             }
@@ -515,34 +466,19 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
         const newCards: PlayerCard[] = JSON.parse(JSON.stringify(player.cards || []));
 
         for (const card of newCards) {
-          if (!isSpecialCard(card.name) && card.totalProgressionPoints) {
-            // Ensure buildsByTactic exists
-            if (!card.buildsByTactic) card.buildsByTactic = {};
-            if (!card.buildsByTactic[targetIdealType]) {
-                // If no builds exist for this tactic, we'll initialize them from current ratings
-                const ratedPositions = Object.keys(card.ratingsByPosition || {}) as Position[];
-                card.buildsByTactic[targetIdealType] = {};
-                ratedPositions.forEach(p => card.buildsByTactic![targetIdealType]![p] = { manualAffinity: 0 });
-            }
-
-            for (const posKey in card.buildsByTactic[targetIdealType]) {
+          if (!isSpecialCard(card.name) && card.totalProgressionPoints && card.buildsByPosition) {
+            for (const posKey in card.buildsByPosition) {
               const pos = posKey as Position;
               const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds, targetIdealType);
               if (bestBuild) {
                 const suggested = calculateProgressionSuggestions(card.attributeStats || {}, bestBuild, pos === 'PT', card.totalProgressionPoints);
-                const currentBuild = card.buildsByTactic[targetIdealType]![pos] || {};
+                const currentBuild = card.buildsByPosition[pos] || {};
                 const newBuild: PlayerBuild = { ...currentBuild, ...suggested };
                 const newFinal = calculateProgressionStats(card.attributeStats || {}, newBuild, pos === 'PT');
                 const newAffinity = calculateAffinityWithBreakdown(newFinal, bestBuild, card.physicalAttributes, card.skills).totalAffinityScore;
                 newBuild.manualAffinity = newAffinity;
                 newBuild.updatedAt = new Date().toISOString();
-                card.buildsByTactic[targetIdealType]![pos] = newBuild;
-                
-                if (targetIdealType === 'General') {
-                    if (!card.buildsByPosition) card.buildsByPosition = {};
-                    card.buildsByPosition[pos] = newBuild;
-                }
-                
+                card.buildsByPosition[pos] = newBuild;
                 playerWasUpdated = true;
               }
             }
