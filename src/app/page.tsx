@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -620,6 +621,8 @@ export default function Home() {
                           onCardFilterChange={setCardFilter}
                           uniqueStyles={uniqueStyles}
                           uniqueCardNames={uniqueCardNames}
+                          idealBuildType={idealBuildType}
+                          onIdealBuildTypeChange={setIdealBuildType}
                         />
                     </CardHeader>
                     <PlayerTable

@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import Image from 'next/image';
@@ -10,9 +9,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, X, Wrench, Pencil, NotebookPen, Search, Star, SlidersHorizontal } from 'lucide-react';
+import { PlusCircle, Trash2, X, Wrench, Pencil, NotebookPen, Search, Star, SlidersHorizontal, Dna } from 'lucide-react';
 import { cn, formatAverage, getAverageColorClass, isSpecialCard } from '@/lib/utils';
-import type { Player, PlayerCard, Position, FlatPlayer, PhysicalAttribute, LiveUpdateRating } from '@/lib/types';
+import type { Player, PlayerCard, Position, FlatPlayer, PhysicalAttribute, LiveUpdateRating, IdealBuildType } from '@/lib/types';
+import { idealBuildTypes } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import { PerformanceBadges } from './performance-badges';
 import { AffinityStatusIndicator } from './affinity-status-indicator';
@@ -41,6 +41,8 @@ type FilterProps = {
   onCardFilterChange: (value: string) => void;
   uniqueStyles: string[];
   uniqueCardNames: string[];
+  idealBuildType: IdealBuildType;
+  onIdealBuildTypeChange: (value: IdealBuildType) => void;
 };
 
 const Filters = memo(({
@@ -52,6 +54,8 @@ const Filters = memo(({
   onCardFilterChange,
   uniqueStyles,
   uniqueCardNames,
+  idealBuildType,
+  onIdealBuildTypeChange,
 }: FilterProps) => (
   <div className="flex flex-col md:flex-row gap-2">
     <div className="relative flex-grow">
@@ -63,26 +67,39 @@ const Filters = memo(({
         className="pl-10 w-full"
       />
     </div>
-    <Select value={styleFilter} onValueChange={onStyleFilterChange}>
-      <SelectTrigger className="w-full md:w-[180px]">
-        <SelectValue placeholder="Filtrar por estilo" />
-      </SelectTrigger>
-      <SelectContent>
-        {uniqueStyles.map(style => (
-          <SelectItem key={style} value={style}>{style === 'all' ? 'Todos los Estilos' : style}</SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-    <Select value={cardFilter} onValueChange={onCardFilterChange}>
-      <SelectTrigger className="w-full md:w-[180px]">
-        <SelectValue placeholder="Filtrar por carta" />
-      </SelectTrigger>
-      <SelectContent>
-        {uniqueCardNames.map(name => (
-          <SelectItem key={name} value={name}>{name === 'all' ? 'Todas las Cartas' : name}</SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className="flex gap-2 flex-wrap md:flex-nowrap">
+        <Select value={idealBuildType} onValueChange={(v) => onIdealBuildTypeChange(v as IdealBuildType)}>
+            <SelectTrigger className="w-full md:w-[180px] border-primary/50">
+                <div className="flex items-center gap-2 truncate">
+                    <Dna className="h-4 w-4 text-primary shrink-0" />
+                    <SelectValue placeholder="Táctica" />
+                </div>
+            </SelectTrigger>
+            <SelectContent>
+                {idealBuildTypes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+            </SelectContent>
+        </Select>
+        <Select value={styleFilter} onValueChange={onStyleFilterChange}>
+        <SelectTrigger className="w-full md:w-[180px]">
+            <SelectValue placeholder="Filtrar por estilo" />
+        </SelectTrigger>
+        <SelectContent>
+            {uniqueStyles.map(style => (
+            <SelectItem key={style} value={style}>{style === 'all' ? 'Todos los Estilos' : style}</SelectItem>
+            ))}
+        </SelectContent>
+        </Select>
+        <Select value={cardFilter} onValueChange={onCardFilterChange}>
+        <SelectTrigger className="w-full md:w-[180px]">
+            <SelectValue placeholder="Filtrar por carta" />
+        </SelectTrigger>
+        <SelectContent>
+            {uniqueCardNames.map(name => (
+            <SelectItem key={name} value={name}>{name === 'all' ? 'Todas las Cartas' : name}</SelectItem>
+            ))}
+        </SelectContent>
+        </Select>
+    </div>
   </div>
 ));
 Filters.displayName = 'Filters';
