@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -23,7 +22,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from "./ui/scroll-area";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
-import { UploadCloud } from "lucide-react";
+import { UploadCloud, Copy, ArrowDownToLine } from "lucide-react";
 import { buildPositions, playerStyles, getAvailableStylesForPosition, positionLabels } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "./ui/command";
@@ -175,6 +174,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
 
   const { watch, reset, setValue, getValues } = form;
   const watchedPosition = watch("position");
+  const watchedStyle = watch("style");
   const watchedPlayStyle = watch("playStyle");
   const watchedPrimarySkills = watch("primarySkills") || [];
   const watchedSecondarySkills = watch("secondarySkills") || [];
@@ -222,10 +222,38 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
   }, [watchedPosition]);
 
   React.useEffect(() => {
-      if (!availableStyles.includes(watch('style'))) {
+      if (!isEditing && !availableStyles.includes(watch('style'))) {
           setValue('style', availableStyles[0]);
       }
-  }, [availableStyles, watch, setValue]);
+  }, [availableStyles, watch, setValue, isEditing]);
+
+  const generalBuild = React.useMemo(() => {
+    if (watchedPlayStyle === 'General') return null;
+    return existingBuilds.find(b => b.playStyle === 'General' && b.position === watchedPosition && b.style === watchedStyle);
+  }, [existingBuilds, watchedPlayStyle, watchedPosition, watchedStyle]);
+
+  const handleCopyFromGeneral = () => {
+    if (!generalBuild) return;
+
+    // Build stats
+    const stats: Record<string, any> = {};
+    statFields.forEach(cat => cat.fields.forEach(f => {
+        stats[f.name] = generalBuild.build[f.name as keyof PlayerAttributeStats] ?? '';
+    }));
+    
+    setValue('build', stats as any);
+    setValue('primarySkills', generalBuild.primarySkills || []);
+    setValue('secondarySkills', generalBuild.secondarySkills || []);
+    setValue('legLength', { 
+        min: generalBuild.legLength?.min, 
+        max: generalBuild.legLength?.max 
+    });
+
+    toast({
+        title: "Copiado de General",
+        description: `Se han importado los datos de la build General para ${watchedPosition} - ${watchedStyle}.`
+    });
+  };
 
   const handleSubmit = (values: IdealBuildFormValues) => {
     const finalBuild: IdealBuild = {
@@ -346,7 +374,10 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Editar' : 'Añadir'} Build Ideal</DialogTitle>
           <DialogDescription>
-            Define los atributos ideales para una combinación de posición, estilo de jugador y táctica.
+            {isEditing 
+                ? `Editando build para [${watchedPlayStyle}] ${watchedPosition} - ${watchedStyle}.`
+                : "Define los atributos ideales para una combinación de posición, estilo de jugador y táctica."
+            }
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -416,17 +447,31 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
                   />
                 </div>
 
-                <div className="space-y-2">
-                    <Textarea
-                        placeholder="Pega aquí las estadísticas para cargarlas automáticamente..."
-                        value={pastedText}
-                        onChange={(e) => setPastedText(e.target.value)}
-                        className="min-h-[60px]"
-                    />
-                    <Button type="button" onClick={handleParseText} disabled={!pastedText} size="sm">
-                        <UploadCloud className="mr-2 h-4 w-4" />
-                        Cargar desde Texto
-                    </Button>
+                <div className="flex flex-wrap gap-2">
+                    {!isEditing && watchedPlayStyle !== 'General' && (
+                        <Button 
+                            type="button" 
+                            variant="secondary" 
+                            onClick={handleCopyFromGeneral}
+                            disabled={!generalBuild}
+                            className="flex-grow md:flex-grow-0"
+                        >
+                            <ArrowDownToLine className="mr-2 h-4 w-4" />
+                            Copiar de General
+                        </Button>
+                    )}
+                    <div className="flex gap-2 flex-grow md:flex-grow-0">
+                        <Textarea
+                            placeholder="Pega aquí las estadísticas..."
+                            value={pastedText}
+                            onChange={(e) => setPastedText(e.target.value)}
+                            className="min-h-[40px] h-10 flex-grow"
+                        />
+                        <Button type="button" onClick={handleParseText} disabled={!pastedText} size="sm">
+                            <UploadCloud className="mr-2 h-4 w-4" />
+                            Cargar
+                        </Button>
+                    </div>
                 </div>
                 
                  <div className="p-4 rounded-lg border bg-background/50 space-y-4">
