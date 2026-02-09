@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { cn } from "@/lib/utils";
-import type { PhysicalAttribute, PlayerSkill } from "@/lib/types";
+import type { PhysicalAttribute } from "@/lib/types";
 
 type AffinityBreakdownProps = {
   breakdownResult: AffinityBreakdownResult;
@@ -21,28 +21,18 @@ const physicalAttributeKeys: (keyof PhysicalAttribute)[] = [
 export function AffinityBreakdown({ breakdownResult, tacticName }: AffinityBreakdownProps) {
   const { totalAffinityScore, breakdown, skillsBreakdown } = breakdownResult;
 
-  const relevantStats = breakdown.filter(item => {
-    if (physicalAttributeKeys.includes(item.stat as any)) {
-      const idealRange = item.idealValue as { min?: number, max?: number } | undefined;
-      return idealRange !== undefined && (idealRange.min !== undefined || idealRange.max !== undefined);
-    }
-    return item.idealValue !== undefined && typeof item.idealValue === 'number' && item.idealValue >= 70;
-  });
+  const physicalStats = breakdown.filter(item => physicalAttributeKeys.includes(item.stat as any));
+  const technicalStats = breakdown.filter(item => !physicalAttributeKeys.includes(item.stat as any) && item.idealValue !== undefined && typeof item.idealValue === 'number' && item.idealValue >= 70);
 
-
-  const hasRelevantStats = relevantStats.length > 0;
   const hasSkillsBreakdown = skillsBreakdown && skillsBreakdown.length > 0;
 
-  if (!hasRelevantStats && !hasSkillsBreakdown) {
+  if (technicalStats.length === 0 && physicalStats.length === 0 && !hasSkillsBreakdown) {
     return (
         <div className="text-center text-muted-foreground p-8">
-            No se ha definido una Build Ideal para este arquetipo o sus estadísticas y habilidades son irrelevantes.
+            No se ha definido una Build Ideal completa para este arquetipo o sus estadísticas y habilidades son irrelevantes.
         </div>
     );
   }
-
-  const physicalStats = relevantStats.filter(item => physicalAttributeKeys.includes(item.stat as any));
-  const technicalStats = relevantStats.filter(item => !physicalAttributeKeys.includes(item.stat as any));
 
   return (
     <div className="space-y-6">
@@ -51,57 +41,60 @@ export function AffinityBreakdown({ breakdownResult, tacticName }: AffinityBreak
         <CardTitle className="flex justify-between items-center">
             <div className="flex flex-col">
                 <span>Desglose de Afinidad</span>
-                {tacticName && <span className="text-xs font-normal text-muted-foreground">Táctica: {tacticName}</span>}
+                {tacticName && <span className="text-xs font-normal text-muted-foreground">Contexto Táctico: <span className="text-primary font-bold">{tacticName}</span></span>}
             </div>
-            <span className="text-primary">{totalAffinityScore.toFixed(2)}</span>
+            <span className="text-primary font-bold text-2xl">{totalAffinityScore.toFixed(2)}</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
           {technicalStats.length > 0 && (
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Atributo Técnico</TableHead>
-                        <TableHead className="text-center">Ideal</TableHead>
-                        <TableHead className="text-center">Jugador</TableHead>
-                        <TableHead className="text-right">Puntaje</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {technicalStats.map(item => {
-                        const scoreColor = item.score > 0 ? "text-green-400" : item.score < 0 ? "text-red-400" : "text-muted-foreground";
-                        const diff = (item.playerValue || 0) - (item.idealValue as number || 0);
-                        const playerColor = diff > 0 ? "text-primary" : diff < 0 ? "text-orange-400" : "";
+            <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Atributos Técnicos</h4>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Atributo</TableHead>
+                            <TableHead className="text-center">Ideal</TableHead>
+                            <TableHead className="text-center">Jugador</TableHead>
+                            <TableHead className="text-right">Puntaje</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {technicalStats.map(item => {
+                            const scoreColor = item.score > 0 ? "text-green-400" : item.score < 0 ? "text-red-400" : "text-muted-foreground";
+                            const diff = (item.playerValue || 0) - (item.idealValue as number || 0);
+                            const playerColor = diff > 0 ? "text-primary" : diff < 0 ? "text-orange-400" : "";
 
-                        return (
-                            <TableRow key={item.stat}>
-                                <TableCell className="font-medium">{item.label}</TableCell>
-                                <TableCell className="text-center">{String(item.idealValue || '-')}</TableCell>
-                                <TableCell className="text-center font-semibold">
-                                    <TooltipProvider>
-                                        <Tooltip>
-                                            <TooltipTrigger>
-                                                <span className={cn(playerColor)}>
-                                                    {item.playerValue ?? '-'}
-                                                </span>
-                                            </TooltipTrigger>
-                                            {diff !== 0 && <TooltipContent><p>Diferencia: {diff > 0 ? `+${diff}` : diff}</p></TooltipContent>}
-                                        </Tooltip>
-                                    </TooltipProvider>
-                                </TableCell>
-                                <TableCell className={cn("text-right font-bold", scoreColor)}>
-                                    {item.score.toFixed(2)}
-                                </TableCell>
-                            </TableRow>
-                        )
-                    })}
-                </TableBody>
-            </Table>
+                            return (
+                                <TableRow key={item.stat}>
+                                    <TableCell className="font-medium">{item.label}</TableCell>
+                                    <TableCell className="text-center">{String(item.idealValue || '-')}</TableCell>
+                                    <TableCell className="text-center font-semibold">
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger>
+                                                    <span className={cn(playerColor)}>
+                                                        {item.playerValue ?? '-'}
+                                                    </span>
+                                                </TooltipTrigger>
+                                                {diff !== 0 && <TooltipContent><p>Diferencia: {diff > 0 ? `+${diff}` : diff}</p></TooltipContent>}
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    </TableCell>
+                                    <TableCell className={cn("text-right font-bold", scoreColor)}>
+                                        {item.score.toFixed(2)}
+                                    </TableCell>
+                                </TableRow>
+                            )
+                        })}
+                    </TableBody>
+                </Table>
+            </div>
           )}
 
           {physicalStats.length > 0 && (
               <div className="space-y-3 pt-2">
-                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Atributos Físicos</h4>
+                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider border-t pt-4">Requisitos Físicos</h4>
                   <Table>
                     <TableHeader>
                         <TableRow>
@@ -116,7 +109,9 @@ export function AffinityBreakdown({ breakdownResult, tacticName }: AffinityBreak
                             const scoreColor = item.score > 0 ? "text-green-400" : item.score < 0 ? "text-red-400" : "text-muted-foreground";
                             const idealRange = item.idealValue as { min?: number, max?: number } | undefined;
                             
-                            let idealDisplay = '-';
+                            let idealDisplay = 'Cualquiera';
+                            const hasIdeal = idealRange && (idealRange.min !== undefined || idealRange.max !== undefined);
+
                             if (idealRange?.min !== undefined && idealRange?.max !== undefined) {
                                 idealDisplay = `${idealRange.min}-${idealRange.max}`;
                             } else if (idealRange?.min !== undefined) {
@@ -132,7 +127,7 @@ export function AffinityBreakdown({ breakdownResult, tacticName }: AffinityBreak
                             let playerColor = "";
                             let diffDesc = "";
 
-                            if (item.playerValue !== undefined) {
+                            if (item.playerValue !== undefined && hasIdeal) {
                                 if ((min !== undefined && val < min) || (max !== undefined && val > max)) {
                                     playerColor = "text-orange-400";
                                     diffDesc = min !== undefined && val < min ? `Faltan ${min - val} unidades` : `Excedido por ${val - (max || 0)} unidades`;
@@ -145,7 +140,7 @@ export function AffinityBreakdown({ breakdownResult, tacticName }: AffinityBreak
                             return (
                                 <TableRow key={item.stat}>
                                     <TableCell className="font-medium">{item.label}</TableCell>
-                                    <TableCell className="text-center">{idealDisplay}</TableCell>
+                                    <TableCell className="text-center text-xs">{idealDisplay}</TableCell>
                                     <TableCell className="text-center font-semibold">
                                         <TooltipProvider>
                                             <Tooltip>
@@ -173,7 +168,7 @@ export function AffinityBreakdown({ breakdownResult, tacticName }: AffinityBreak
     {hasSkillsBreakdown && (
         <Card>
             <CardHeader>
-                <CardTitle>Afinidad de Habilidades</CardTitle>
+                <CardTitle className="text-lg">Afinidad de Habilidades</CardTitle>
             </CardHeader>
             <CardContent>
                 <Table>
@@ -181,7 +176,7 @@ export function AffinityBreakdown({ breakdownResult, tacticName }: AffinityBreak
                         <TableRow>
                             <TableHead>Habilidad Ideal</TableHead>
                             <TableHead>Tipo</TableHead>
-                            <TableHead className="text-center">El Jugador la Tiene</TableHead>
+                            <TableHead className="text-center">Estado</TableHead>
                             <TableHead className="text-right">Puntaje</TableHead>
                         </TableRow>
                     </TableHeader>
