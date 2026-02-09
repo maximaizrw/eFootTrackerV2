@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase-config';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, query, getDoc, getDocs } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import type { IdealBuild, PlayerAttributeStats, Player, PlayerCard, PlayerSkill, IdealBuildType } from '@/lib/types';
-import { calculateProgressionStats, getIdealBuildForPlayer, calculateAffinityWithBreakdown } from '@/lib/utils';
+import { calculateProgressionStats, getIdealBuildForPlayer, calculateAffinityWithBreakdown, normalizeStyleName } from '@/lib/utils';
 
 export function useIdealBuilds() {
   const [idealBuilds, setIdealBuilds] = useState<IdealBuild[]>([]);
@@ -28,13 +28,11 @@ export function useIdealBuilds() {
       try {
         const buildsData = snapshot.docs.map(doc => {
             const data = doc.data();
-            // Normalize old style name "Señuelo" to "Segundo delantero"
-            const normalizedStyle = data.style === 'Señuelo' ? 'Segundo delantero' : data.style;
             
             return {
                 id: doc.id,
                 ...data,
-                style: normalizedStyle,
+                style: normalizeStyleName(data.style),
                 playStyle: data.playStyle || 'General',
             } as IdealBuild;
         });
@@ -44,8 +42,10 @@ export function useIdealBuilds() {
           if (a.playStyle > b.playStyle) return 1;
           if (a.position < b.position) return -1;
           if (a.position > b.position) return 1;
-          if (a.style < b.style) return -1;
-          if (a.style > b.style) return 1;
+          const styleA = normalizeStyleName(a.style);
+          const styleB = normalizeStyleName(b.style);
+          if (styleA < styleB) return -1;
+          if (styleA > styleB) return 1;
           return 0;
         });
 
@@ -77,7 +77,7 @@ export function useIdealBuilds() {
             const newCards = JSON.parse(JSON.stringify(player.cards)) as PlayerCard[];
 
             newCards.forEach(card => {
-                if (card.style === updatedBuild.style) {
+                if (normalizeStyleName(card.style) === normalizeStyleName(updatedBuild.style)) {
                     if (card.buildsByPosition && card.buildsByPosition[updatedBuild.position]) {
                         const currentBuild = card.buildsByPosition[updatedBuild.position]!
                         const isGoalkeeper = updatedBuild.position === 'PT';
@@ -104,8 +104,8 @@ export function useIdealBuilds() {
   const saveIdealBuild = async (build: IdealBuild) => {
     if (!db) return;
     
-    // Ensure we save with the correct style name
-    const styleToSave = build.style === 'Señuelo' ? 'Segundo delantero' : build.style;
+    // Ensure we save with the normalized style name
+    const styleToSave = normalizeStyleName(build.style);
     const buildId = `${build.playStyle}-${build.position}-${styleToSave}`;
     
     try {
@@ -130,12 +130,12 @@ export function useIdealBuilds() {
                 }
             }
             toastMessage = `La build para [${build.playStyle}] ${build.position} - ${styleToSave} ha sido promediada.`;
-            finalIdealBuild = { ...build, style: styleToSave, build: finalBuildData };
+            finalIdealBuild = { ...build, style: styleToSave as any, build: finalBuildData };
 
         } else {
             finalBuildData = build.build;
             toastMessage = `La build para [${build.playStyle}] ${build.position} - ${styleToSave} se ha creado.`;
-            finalIdealBuild = { ...build, style: styleToSave, build: finalBuildData };
+            finalIdealBuild = { ...build, style: styleToSave as any, build: finalBuildData };
         }
         
         const dataToSave: any = {

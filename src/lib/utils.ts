@@ -46,13 +46,25 @@ export function getAverageColorClass(average: number): string {
   return 'text-orange-400';
 }
 
+/**
+ * Normalizes text for search and comparison.
+ */
 export function normalizeText(text: string): string {
   if (!text) return '';
   return text
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
-    .replace(/([A-Z])/g, ' $1');
+    .trim();
+}
+
+/**
+ * Normalizes style names to ensure consistency (e.g., Señuelo -> Segundo delantero).
+ */
+export function normalizeStyleName(style: string): string {
+    if (!style) return 'Ninguno';
+    if (style === 'Señuelo') return 'Segundo delantero';
+    return style;
 }
 
 export const BADGE_BONUSES = {
@@ -241,18 +253,21 @@ export function getIdealBuildForPlayer(
     targetType: IdealBuildType = 'General'
 ): { bestBuild: IdealBuild | null; bestStyle: PlayerStyle | null; actualType: IdealBuildType } {
     
+    // Normalize incoming style for search
+    const normalizedPlayerStyle = normalizeStyleName(playerStyle);
+
     const findBuild = (type: IdealBuildType, pos: BuildPosition, style: PlayerStyle) => 
-        idealBuilds.find(b => b.playStyle === type && b.position === pos && b.style === style);
+        idealBuilds.find(b => b.playStyle === type && b.position === pos && normalizeStyleName(b.style) === normalizeStyleName(style));
 
     const getForType = (type: IdealBuildType) => {
         // 1. Strict Search
-        const strict = findBuild(type, position, playerStyle);
+        const strict = findBuild(type, position, normalizedPlayerStyle);
         if (strict) return strict;
 
         // 2. Archetype Search
         const archetype = symmetricalPositionMap[position];
         if (archetype) {
-            const arch = findBuild(type, archetype, playerStyle);
+            const arch = findBuild(type, archetype, normalizedPlayerStyle);
             if (arch) return arch;
         }
 
@@ -279,13 +294,13 @@ export function getIdealBuildForPlayer(
     }
 
     if (build) {
-        return { bestBuild: build, bestStyle: build.style, actualType: finalTypeUsed };
+        return { bestBuild: build, bestStyle: normalizeStyleName(build.style) as PlayerStyle, actualType: finalTypeUsed };
     }
 
     // Last resort: any build for the position
     const anyForPos = idealBuilds.filter(b => b.position === position || b.position === symmetricalPositionMap[position]);
     if (anyForPos.length > 0) {
-        return { bestBuild: anyForPos[0], bestStyle: anyForPos[0].style, actualType: anyForPos[0].playStyle };
+        return { bestBuild: anyForPos[0], bestStyle: normalizeStyleName(anyForPos[0].style) as PlayerStyle, actualType: anyForPos[0].playStyle };
     }
 
     return { bestBuild: null, bestStyle: null, actualType: 'General' };
@@ -361,7 +376,7 @@ export function calculateAffinityWithBreakdown(
     const isGoalkeeper = idealBuild.position === 'PT';
     const relevantKeys = isGoalkeeper ? goalkeeperStatsKeys : allStatsKeys;
 
-    // Stat breakdown
+    // Stat breakdown (HEAVY WEIGHT)
     for (const key of relevantKeys) {
         const playerValue = playerStats[key as keyof PlayerAttributeStats];
         const idealValue = idealBuildStats[key as keyof PlayerAttributeStats];
@@ -371,14 +386,16 @@ export function calculateAffinityWithBreakdown(
              const diff = playerValue - idealValue;
             
             if (diff >= 0) {
-                score = diff * 0.1;
+                // High reward for meeting or exceeding high targets
+                score = diff * 0.25; 
             } else {
-                if (idealValue >= 90) score = diff * 0.35;
-                else if (idealValue >= 80) score = diff * 0.20;
-                else score = diff * 0.15;
+                // Heavy penalty for missing critical high targets
+                if (idealValue >= 90) score = diff * 0.5;
+                else if (idealValue >= 80) score = diff * 0.3;
+                else score = diff * 0.2;
             }
 
-            score = Math.max(-3, score);
+            score = Math.max(-10, score); // Allow stats to really drop the affinity
             totalAffinityScore += score;
         }
         
@@ -407,13 +424,13 @@ export function calculateAffinityWithBreakdown(
         });
     });
 
-    // Skills breakdown
+    // Skills breakdown (LOWER WEIGHT)
     const playerSkillsSet = new Set(playerSkills || []);
     
     // Primary Skills
     for (const idealSkill of primarySkills) {
         const hasSkill = playerSkillsSet.has(idealSkill);
-        const score = hasSkill ? 2.0 : -1.0;
+        const score = hasSkill ? 1.0 : -0.5; // Reduced from 2.0 / -1.0
         totalAffinityScore += score;
         skillsBreakdown.push({
             skill: idealSkill,
@@ -426,7 +443,7 @@ export function calculateAffinityWithBreakdown(
     // Secondary Skills
     for (const idealSkill of secondarySkills) {
         const hasSkill = playerSkillsSet.has(idealSkill);
-        const score = hasSkill ? 1.0 : -0.5;
+        const score = hasSkill ? 0.5 : -0.25; // Reduced from 1.0 / -0.5
         totalAffinityScore += score;
         skillsBreakdown.push({
             skill: idealSkill,

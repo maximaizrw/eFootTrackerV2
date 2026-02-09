@@ -8,7 +8,7 @@ import { useToast } from './use-toast';
 import { v4 as uuidv4 } from 'uuid';
 import type { Player, PlayerCard, Position, AddRatingFormValues, EditCardFormValues, EditPlayerFormValues, PlayerBuild, League, Nationality, PlayerAttributeStats, IdealBuild, PhysicalAttribute, FlatPlayer, PlayerPerformance, PlayerSkill, LiveUpdateRating, IdealBuildType } from '@/lib/types';
 import { getAvailableStylesForPosition } from '@/lib/types';
-import { normalizeText, calculateProgressionStats, getIdealBuildForPlayer, isSpecialCard, calculateProgressionSuggestions, calculateAffinityWithBreakdown, calculateStats, calculateGeneralScore } from '@/lib/utils';
+import { normalizeText, normalizeStyleName, calculateProgressionStats, getIdealBuildForPlayer, isSpecialCard, calculateProgressionSuggestions, calculateAffinityWithBreakdown, calculateStats, calculateGeneralScore } from '@/lib/utils';
 
 
 export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: IdealBuildType = 'General') {
@@ -36,13 +36,10 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
             const normalizedName = normalizeText(playerName);
 
             const newCards: PlayerCard[] = (data.cards || []).map((card: any) => {
-                // Normalize old style name "Señuelo" to "Segundo delantero"
-                const normalizedStyle = card.style === 'Señuelo' ? 'Segundo delantero' : (card.style || 'Ninguno');
-                
                 return {
                     ...card,
                     id: card.id || uuidv4(),
-                    style: normalizedStyle,
+                    style: normalizeStyleName(card.style),
                     league: card.league || 'Sin Liga',
                     imageUrl: card.imageUrl || '',
                     ratingsByPosition: card.ratingsByPosition || {},
@@ -171,7 +168,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
     if (!db) return;
     
     // Normalize style
-    if (style === 'Señuelo') style = 'Segundo delantero';
+    style = normalizeStyleName(style) as any;
     
     const validStylesForPosition = getAvailableStylesForPosition(position, true);
     if (!validStylesForPosition.includes(style)) style = 'Ninguno';
@@ -255,7 +252,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
 
       if (cardToUpdate) {
           cardToUpdate.name = values.currentCardName;
-          cardToUpdate.style = values.currentStyle === 'Señuelo' ? 'Segundo delantero' : values.currentStyle;
+          cardToUpdate.style = normalizeStyleName(values.currentStyle) as any;
           cardToUpdate.league = values.league || 'Sin Liga';
           cardToUpdate.imageUrl = values.imageUrl || '';
           await updateDoc(playerRef, { cards: newCards });
@@ -343,7 +340,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
         if (!playerDoc.exists()) throw new Error("Player not found");
 
         const playerData = playerDoc.data() as Player;
-        const newCards = JSON.parse(JSON.stringify(playerData.cards || [])) as PlayerCard[];
+        const newCards: PlayerCard[] = JSON.parse(JSON.stringify(playerData.cards || []));
         const cardToUpdate = newCards.find(c => c.id === cardId);
 
         if (cardToUpdate) {
@@ -368,7 +365,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
         if (!playerDoc.exists()) throw new Error("Player not found");
 
         const playerData = playerDoc.data() as Player;
-        const newCards = JSON.parse(JSON.stringify(playerData.cards || [])) as PlayerCard[];
+        const newCards: PlayerCard[] = JSON.parse(JSON.stringify(playerData.cards || []));
         const cardToUpdate = newCards.find(c => c.id === cardId);
 
         if (cardToUpdate) {
