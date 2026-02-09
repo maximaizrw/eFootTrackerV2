@@ -56,9 +56,7 @@ const goalkeeperCategories: { key: keyof GoalkeeperBuild; label: string, icon: R
 
 export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlayerBuild, idealBuilds, idealBuildType = 'General' }: PlayerDetailDialogProps) {
   const [build, setBuild] = React.useState<PlayerBuild>({ manualAffinity: 0 });
-  const [finalStats, setFinalStats] = React.useState<PlayerAttributeStats>({});
   const [totalProgressionPoints, setTotalProgressionPoints] = React.useState<number | undefined>(undefined);
-  const [bestBuildStyle, setBestBuildStyle] = React.useState<string | null>(null);
 
   const { toast } = useToast();
   
@@ -70,55 +68,59 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
 
   const baseStats = React.useMemo(() => card?.attributeStats || {}, [card?.attributeStats]);
   
+  // 1. Find the best build based on the active Tactic (idealBuildType)
+  const { bestBuild, bestBuildStyle } = React.useMemo(() => {
+    if (!card || !position) return { bestBuild: null, bestBuildStyle: null };
+    const result = getIdealBuildForPlayer(card.style, position, idealBuilds, idealBuildType);
+    return { bestBuild: result.bestBuild, bestBuildStyle: result.bestStyle };
+  }, [card?.style, position, idealBuilds, idealBuildType]);
+
+  // 2. Initialize build and points when dialog opens
   React.useEffect(() => {
     if (open && flatPlayer && position && card) {
       const initialBuild = card.buildsByPosition?.[position];
-      
       setBuild(initialBuild || { manualAffinity: 0 });
       setTotalProgressionPoints(card.totalProgressionPoints);
-      
-      const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, idealBuildType);
-      setBestBuildStyle(bestBuild?.style || null);
-
     } else {
       setBuild({ manualAffinity: 0 });
-      setFinalStats({});
       setTotalProgressionPoints(undefined);
-      setBestBuildStyle(null);
     }
-  }, [open, flatPlayer, card, position, idealBuilds, isGoalkeeper, idealBuildType]);
+  }, [open, flatPlayer, card, position]);
 
+  // 3. Calculate final stats reactively based on local build state
+  const finalStats = React.useMemo(() => {
+    if (!card || !position) return {};
+    return specialCard ? baseStats : calculateProgressionStats(baseStats, build, isGoalkeeper);
+  }, [build, baseStats, card, position, specialCard, isGoalkeeper]);
 
-  React.useEffect(() => {
-    if(open && card && position){
-        const specialCard = isSpecialCard(card.name);
-        const newFinalStats = specialCard ? baseStats : calculateProgressionStats(baseStats, build, isGoalkeeper);
-        setFinalStats(newFinalStats);
-    }
-  }, [build, baseStats, open, card, position, isGoalkeeper]);
+  // 4. Calculate local breakdown reactively based on active tactic and current stats
+  const localAffinityResult = React.useMemo<AffinityBreakdownResult>(() => {
+    if (!card || !bestBuild) return { totalAffinityScore: 0, breakdown: [] };
+    return calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills);
+  }, [finalStats, bestBuild, card]);
 
   const handleSave = () => {
     if (player && card && position) {
-      onSavePlayerBuild(player.id, card.id, position, build, totalProgressionPoints);
+      // We pass the local calculated affinity to be saved
+      const buildToSave = { ...build, manualAffinity: localAffinityResult.totalAffinityScore, updatedAt: new Date().toISOString() };
+      onSavePlayerBuild(player.id, card.id, position, buildToSave, totalProgressionPoints);
       onOpenChange(false);
     }
   };
   
   const handleUpdateAffinity = () => {
     if (player && card && position) {
-      onSavePlayerBuild(player.id, card.id, position, build, totalProgressionPoints);
+      const buildToSave = { ...build, manualAffinity: localAffinityResult.totalAffinityScore, updatedAt: new Date().toISOString() };
+      onSavePlayerBuild(player.id, card.id, position, buildToSave, totalProgressionPoints);
     }
   };
 
   const handleSuggestBuild = () => {
-    if (!card || !position) return;
-    
-    const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, idealBuildType);
-    if (!bestBuild) {
+    if (!card || !position || !bestBuild) {
         toast({
             variant: "destructive",
             title: "No se encontró Build Ideal",
-            description: `No hay una build ideal definida para ${position} con estilo ${card.style}.`,
+            description: `No hay una build ideal definida para ${position} con estilo ${card?.style || ''}.`,
         });
         return;
     }
@@ -127,7 +129,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
     const suggestions = calculateProgressionSuggestions(baseStats, bestBuild, isGoalkeeper, pointsToUse);
     
     setBuild(prev => ({ ...prev, ...suggestions }));
-    toast({ title: "Sugerencias Cargadas", description: `Se han distribuido ${pointsToUse} puntos basados en [${idealBuildType}].` });
+    toast({ title: "Sugerencias Cargadas", description: `Se han distribuido ${pointsToUse} puntos basados en la táctica [${idealBuildType}].` });
   };
 
   const updatedAt = build?.updatedAt;
@@ -167,14 +169,14 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
         <DialogHeader className="flex-shrink-0">
           <DialogTitle>Build para {player?.name} ({card?.name}) en <span className="text-primary">{position}</span></DialogTitle>
           <DialogDescription>
-            Configura los puntos de progresión del jugador. La afinidad se calcula comparando con la táctica <span className="font-bold text-foreground">[{idealBuildType}]</span>.
+            Configura los puntos de progresión. Estás comparando contra la táctica <span className="font-bold text-foreground">[{idealBuildType}]</span>.
           </DialogDescription>
         </DialogHeader>
         
         <Tabs defaultValue="build" className="flex-grow overflow-hidden flex flex-col">
           <TabsList className="grid w-full grid-cols-2 flex-shrink-0">
             <TabsTrigger value="build">Build</TabsTrigger>
-            <TabsTrigger value="affinity">Affinity Breakdown</TabsTrigger>
+            <TabsTrigger value="affinity">Desglose de Afinidad</TabsTrigger>
           </TabsList>
           
           <TabsContent value="build" className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-8 overflow-hidden mt-4">
@@ -183,13 +185,9 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
                       <div className="space-y-2">
                           <Label htmlFor="manualAffinity">Afinidad Calculada</Label>
                           <div className="flex items-center gap-2">
-                              <input
-                              id="manualAffinity"
-                              type="number"
-                              value={flatPlayer?.affinityScore.toFixed(2) ?? ''}
-                              readOnly
-                              className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-base ring-offset-background md:text-sm text-foreground/80 font-bold"
-                              />
+                              <div className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-base md:text-sm text-foreground/80 font-bold items-center">
+                                  {localAffinityResult.totalAffinityScore.toFixed(2)}
+                              </div>
                               <Button variant="outline" size="icon" onClick={handleUpdateAffinity}>
                                   <RefreshCw className="h-4 w-4" />
                               </Button>
@@ -222,7 +220,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
                                 </div>
                                 <Button variant="outline" onClick={handleSuggestBuild} disabled={specialCard}>
                                     <BrainCircuit className="mr-2 h-4 w-4" />
-                                    Sugerir
+                                    Sugerir ({idealBuildType})
                                 </Button>
                               </div>
 
@@ -316,13 +314,13 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
           </TabsContent>
           <TabsContent value="affinity" className="flex-grow overflow-hidden mt-4">
               <ScrollArea className="h-full pr-4 -mr-4">
-                <AffinityBreakdown breakdownResult={flatPlayer?.affinityBreakdown || { totalAffinityScore: 0, breakdown: [] }} />
+                <AffinityBreakdown breakdownResult={localAffinityResult} />
               </ScrollArea>
           </TabsContent>
         </Tabs>
 
         <DialogFooter className="pt-4 border-t mt-4 flex-shrink-0">
-          <Button onClick={handleSave}>Guardar Build</Button>
+          <Button onClick={handleSave}>Guardar Build y Afinidad</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

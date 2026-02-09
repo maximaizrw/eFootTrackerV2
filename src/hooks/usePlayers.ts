@@ -341,20 +341,11 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
         if (cardToUpdate) {
             if (totalProgressionPoints !== undefined && !isSpecialCard(cardToUpdate.name)) cardToUpdate.totalProgressionPoints = totalProgressionPoints;
             
-            const isGoalkeeper = position === 'PT';
-            const specialCard = isSpecialCard(cardToUpdate.name);
-            const playerFinalStats = specialCard ? cardToUpdate.attributeStats || {} : calculateProgressionStats(cardToUpdate.attributeStats || {}, build, isGoalkeeper);
-
-            const { bestBuild } = getIdealBuildForPlayer(cardToUpdate.style, position, idealBuilds, targetIdealType);
-            const affinity = calculateAffinityWithBreakdown(playerFinalStats, bestBuild, cardToUpdate.physicalAttributes, cardToUpdate.skills).totalAffinityScore;
-            
-            const updatedBuild: PlayerBuild = { ...build, manualAffinity: affinity, updatedAt: new Date().toISOString() };
-            
             if (!cardToUpdate.buildsByPosition) cardToUpdate.buildsByPosition = {};
-            cardToUpdate.buildsByPosition[position] = updatedBuild;
+            cardToUpdate.buildsByPosition[position] = { ...build, updatedAt: new Date().toISOString() };
 
             await updateDoc(playerRef, { cards: newCards });
-            toast({ title: "Build Guardada", description: `Build para ${position} actualizada.` });
+            toast({ title: "Build Guardada", description: `Build y afinidad para ${position} actualizadas.` });
         }
     } catch (error) {
         toast({ variant: "destructive", title: "Error al Guardar", description: "No se pudo guardar la build." });
@@ -393,7 +384,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
               }
            }
           await setDoc(playerRef, { ...playerData, cards: newCards });
-          toast({ title: "Atributos Guardados", description: `Atributos y afinidades recalculados.` });
+          toast({ title: "Atributos Guardados", description: `Atributos y afinidades recalculados basándose en [${targetIdealType}].` });
         }
     } catch (error) {
       toast({ variant: "destructive", title: "Error al Guardar", description: "No se pudieron guardar los atributos." });
@@ -448,7 +439,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
                 updatedCount++;
             }
         }
-        toast({ title: "Recálculo Completado", description: `Se actualizaron ${updatedCount} jugadores para [${targetIdealType}].` });
+        toast({ title: "Recálculo Completado", description: `Se actualizaron ${updatedCount} jugadores para la táctica [${targetIdealType}].` });
     } catch (recalcError) {
         toast({ variant: "destructive", title: "Error en el Recálculo", description: `Ocurrió un error.` });
     }
@@ -456,7 +447,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
 
   const suggestAllBuilds = async () => {
     if (!db) return;
-    toast({ title: "Iniciando Sugerencias Masivas...", description: `Optimizando builds para la táctica [${targetIdealType}].` });
+    toast({ title: "Iniciando Sugerencias Masivas...", description: `Optimizando builds basándose en [${targetIdealType}].` });
     let updatedPlayers = 0;
     try {
       const playersSnapshot = await getDocs(collection(db, 'players'));
