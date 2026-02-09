@@ -137,6 +137,7 @@ export function isSpecialCard(cardName: string): boolean {
 // --- New Progression System ---
 
 const MAX_STAT_VALUE = 99;
+const MAX_CATEGORY_LEVEL = 16;
 
 const outfieldStatsKeys: (keyof PlayerAttributeStats)[] = [
     'offensiveAwareness', 'ballControl', 'dribbling', 'tightPossession', 'lowPass', 'loftedPass', 'finishing', 'heading', 'placeKicking', 'curl',
@@ -529,6 +530,10 @@ export function calculateProgressionSuggestions(
 
     for (const category of categories) {
       const currentLevel = build[category]!;
+      
+      // Limit to 16 levels per category
+      if (currentLevel >= MAX_CATEGORY_LEVEL) continue;
+
       const costForNextLevel = calculatePointsForLevel(currentLevel + 1) - calculatePointsForLevel(currentLevel);
       
       // If we can't afford the next level, skip this category for this iteration
@@ -588,6 +593,10 @@ export function calculateProgressionSuggestions(
 
     for (const category of categories) {
       const currentLevel = build[category]!;
+      
+      // Respect max level cap
+      if (currentLevel >= MAX_CATEGORY_LEVEL) continue;
+
       const cost = calculatePointsForLevel(currentLevel + 1) - calculatePointsForLevel(currentLevel);
 
       if ((pointsSpent + cost) <= totalProgressionPoints && cost < minCost) {

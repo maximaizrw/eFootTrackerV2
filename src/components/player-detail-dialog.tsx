@@ -242,7 +242,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
                                       <Slider 
                                           value={[(build as any)[key] || 0]}
                                           onValueChange={(v) => handleSliderChange(key as any, v[0])}
-                                          max={20}
+                                          max={16}
                                           step={1}
                                           disabled={specialCard}
                                       />
