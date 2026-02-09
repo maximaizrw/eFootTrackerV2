@@ -298,16 +298,17 @@ function calculatePhysicalAttributeAffinity(
         return 0;
     }
 
+    const val = Number(playerValue);
     if (
-        (idealRange.min === undefined || playerValue >= idealRange.min) &&
-        (idealRange.max === undefined || playerValue <= idealRange.max)
+        (idealRange.min === undefined || val >= Number(idealRange.min)) &&
+        (idealRange.max === undefined || val <= Number(idealRange.max))
     ) {
         return 2.5; // Bonus for being within the ideal range
-    } else if (idealRange.min !== undefined && playerValue < idealRange.min) {
-        const diff = idealRange.min - playerValue;
+    } else if (idealRange.min !== undefined && val < Number(idealRange.min)) {
+        const diff = Number(idealRange.min) - val;
         return -(diff * 0.5); // Penalty for being below min
-    } else if (idealRange.max !== undefined && playerValue > idealRange.max) {
-        const diff = playerValue - idealRange.max;
+    } else if (idealRange.max !== undefined && val > Number(idealRange.max)) {
+        const diff = val - Number(idealRange.max);
         return -(diff * 0.25); // Smaller penalty for being above max
     }
     return 0;
@@ -337,7 +338,7 @@ export const statLabels: Record<keyof PlayerAttributeStats | keyof PhysicalAttri
     goalkeeping: 'Act. Portero', gkCatching: 'Atajar', gkParrying: 'Despejar', gkReflexes: 'Reflejos', gkReach: 'Alcance',
     speed: 'Velocidad', acceleration: 'Aceleración', kickingPower: 'Potencia de Tiro', jump: 'Salto', physicalContact: 'Contacto Físico',
     balance: 'Equilibrio', stamina: 'Resistencia',
-    legLength: 'Largo de Piernas',
+    height: 'Altura', weight: 'Peso',
 };
 
 export function calculateAffinityWithBreakdown(
@@ -386,7 +387,7 @@ export function calculateAffinityWithBreakdown(
     }
 
     // Physical attributes breakdown
-    const physicalAttrKeys: (keyof PhysicalAttribute)[] = ['legLength'];
+    const physicalAttrKeys: (keyof PhysicalAttribute)[] = ['height', 'weight'];
     physicalAttrKeys.forEach(key => {
         const score = calculatePhysicalAttributeAffinity(physicalAttributes?.[key], idealBuild[key]);
         totalAffinityScore += score;

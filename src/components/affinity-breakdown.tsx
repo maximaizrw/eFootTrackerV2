@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import type { AffinityBreakdownResult } from "@/lib/utils";
@@ -14,7 +13,7 @@ type AffinityBreakdownProps = {
 };
 
 const physicalAttributeKeys: (keyof PhysicalAttribute)[] = [
-    'legLength'
+    'height', 'weight'
 ];
 
 
@@ -82,11 +81,15 @@ export function AffinityBreakdown({ breakdownResult }: AffinityBreakdownProps) {
                           }
 
                           if (item.playerValue !== undefined) {
-                              if (idealRange?.min !== undefined && item.playerValue < idealRange.min) {
-                                  diff = item.playerValue - idealRange.min;
+                              const val = Number(item.playerValue);
+                              const min = idealRange?.min !== undefined ? Number(idealRange.min) : undefined;
+                              const max = idealRange?.max !== undefined ? Number(idealRange.max) : undefined;
+
+                              if (min !== undefined && val < min) {
+                                  diff = val - min;
                                   playerColor = "text-orange-400";
-                              } else if (idealRange?.max !== undefined && item.playerValue > idealRange.max) {
-                                  diff = item.playerValue - idealRange.max;
+                              } else if (max !== undefined && val > max) {
+                                  diff = val - max;
                                   playerColor = "text-orange-400";
                               } else {
                                   diff = 0; // Inside range

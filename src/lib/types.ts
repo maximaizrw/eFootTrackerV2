@@ -98,7 +98,8 @@ export type IdealBuild = {
   position: BuildPosition;
   style: PlayerStyle;
   build: PlayerAttributeStats;
-  legLength?: MinMaxRange;
+  height?: MinMaxRange;
+  weight?: MinMaxRange;
   primarySkills?: PlayerSkill[];
   secondarySkills?: PlayerSkill[];
 };
@@ -187,7 +188,8 @@ export const positionLabels: Record<BuildPosition, string> = {
 export type PositionLabel = typeof positionLabels[Position];
 
 export type PhysicalAttribute = {
-  legLength?: number;
+  height?: number;
+  weight?: number;
 }
 
 export type PlayerCard = {

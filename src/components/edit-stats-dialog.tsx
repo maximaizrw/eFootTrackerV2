@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import * as React from "react";
@@ -36,7 +35,8 @@ const statSchema = z.coerce.number().min(0).max(99).optional();
 const physicalSchema = z.coerce.number().min(0).optional();
 
 const formSchema = z.object({
-    legLength: physicalSchema,
+    height: physicalSchema,
+    weight: physicalSchema,
     skills: z.array(z.string()).optional(),
     // Attacking
     offensiveAwareness: statSchema,
@@ -159,7 +159,8 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
   React.useEffect(() => {
     if (open) {
       const defaultValues: Record<string, any> = {
-        legLength: initialData?.card?.physicalAttributes?.legLength ?? '',
+        height: initialData?.card?.physicalAttributes?.height ?? '',
+        weight: initialData?.card?.physicalAttributes?.weight ?? '',
         skills: initialData?.card?.skills || [],
       };
       statFields.forEach(cat => cat.fields.forEach(f => defaultValues[f.name] = initialData?.card?.attributeStats?.[f.name] ?? ''));
@@ -170,8 +171,8 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
 
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
     if (initialData) {
-        const { legLength, skills, ...stats } = values;
-        const physical: PhysicalAttribute = { legLength };
+        const { height, weight, skills, ...stats } = values;
+        const physical: PhysicalAttribute = { height, weight };
 
         const cleanedStats: PlayerAttributeStats = {};
         for (const key in stats) {
@@ -183,8 +184,11 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
         }
         
         const cleanedPhysical: PhysicalAttribute = {};
-        if (physical.legLength !== '' && physical.legLength !== null && physical.legLength !== undefined && !isNaN(Number(physical.legLength))) {
-            cleanedPhysical.legLength = Number(physical.legLength);
+        if (physical.height !== '' && physical.height !== null && physical.height !== undefined && !isNaN(Number(physical.height))) {
+            cleanedPhysical.height = Number(physical.height);
+        }
+        if (physical.weight !== '' && physical.weight !== null && physical.weight !== undefined && !isNaN(Number(physical.weight))) {
+            cleanedPhysical.weight = Number(physical.weight);
         }
 
       onSaveStats(initialData.player.id, initialData.card.id, cleanedStats, cleanedPhysical, skills || []);
@@ -198,7 +202,8 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
     
     // Preserve current physical attributes and skills
     const currentPhysical = {
-      legLength: form.getValues('legLength'),
+      height: form.getValues('height'),
+      weight: form.getValues('weight'),
     };
     const currentSkills = form.getValues('skills');
     
@@ -241,7 +246,8 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
     }
     
     // Restore physical attributes and skills
-    form.setValue('legLength', currentPhysical.legLength);
+    form.setValue('height', currentPhysical.height);
+    form.setValue('weight', currentPhysical.weight);
     form.setValue('skills', currentSkills);
 
     if (parsedCount > 0) {
@@ -297,14 +303,31 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
             <ScrollArea className="flex-grow pr-4 -mr-4">
               <div className="space-y-6">
                  <div className="p-4 rounded-lg border bg-background/50">
-                    <h3 className="text-lg font-semibold mb-3 text-primary">Atributos</h3>
+                    <h3 className="text-lg font-semibold mb-3 text-primary">Atributos Físicos</h3>
                      <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-3">
                        <FormField
                         control={form.control}
-                        name="legLength"
+                        name="height"
                         render={({ field: formField }) => (
                             <FormItem>
-                            <FormLabel className="text-xs">Largo de Piernas</FormLabel>
+                            <FormLabel className="text-xs">Altura (cm)</FormLabel>
+                            <FormControl>
+                                <Input
+                                type="number"
+                                {...formField}
+                                value={formField.value ?? ''}
+                                onChange={e => formField.onChange(e.target.value === '' ? undefined : e.target.value)}
+                                />
+                            </FormControl>
+                            </FormItem>
+                        )}
+                        />
+                        <FormField
+                        control={form.control}
+                        name="weight"
+                        render={({ field: formField }) => (
+                            <FormItem>
+                            <FormLabel className="text-xs">Peso (kg)</FormLabel>
                             <FormControl>
                                 <Input
                                 type="number"

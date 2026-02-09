@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -45,7 +46,8 @@ const buildSchema = z.object({
   style: z.enum(playerStyles),
   primarySkills: z.array(z.string()).optional(),
   secondarySkills: z.array(z.string()).optional(),
-  legLength: minMaxSchema,
+  height: minMaxSchema,
+  weight: minMaxSchema,
   build: z.object({
     // Attacking
     offensiveAwareness: statSchema,
@@ -167,7 +169,8 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
       style: "Cazagoles",
       primarySkills: [],
       secondarySkills: [],
-      legLength: { min: undefined, max: undefined },
+      height: { min: undefined, max: undefined },
+      weight: { min: undefined, max: undefined },
       build: {},
     },
   });
@@ -192,7 +195,8 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
         style: "Cazagoles",
         primarySkills: [],
         secondarySkills: [],
-        legLength: { min: undefined, max: undefined },
+        height: { min: undefined, max: undefined },
+        weight: { min: undefined, max: undefined },
         build: defaultBuild,
       };
 
@@ -207,7 +211,8 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
           style: initialBuild.style,
           primarySkills: initialBuild.primarySkills || [],
           secondarySkills: initialBuild.secondarySkills || [],
-          legLength: { min: initialBuild.legLength?.min || undefined, max: initialBuild.legLength?.max || undefined },
+          height: { min: initialBuild.height?.min || undefined, max: initialBuild.height?.max || undefined },
+          weight: { min: initialBuild.weight?.min || undefined, max: initialBuild.weight?.max || undefined },
           build: initialBuildValues,
         };
         reset(mergedInitial);
@@ -244,10 +249,8 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
     setValue('build', stats as any);
     setValue('primarySkills', generalBuild.primarySkills || []);
     setValue('secondarySkills', generalBuild.secondarySkills || []);
-    setValue('legLength', { 
-        min: generalBuild.legLength?.min, 
-        max: generalBuild.legLength?.max 
-    });
+    setValue('height', { min: generalBuild.height?.min, max: generalBuild.height?.max });
+    setValue('weight', { min: generalBuild.weight?.min, max: generalBuild.weight?.max });
 
     toast({
         title: "Copiado de General",
@@ -262,7 +265,8 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
       style: values.style,
       primarySkills: values.primarySkills || [],
       secondarySkills: values.secondarySkills || [],
-      legLength: { min: values.legLength?.min, max: values.legLength?.max },
+      height: { min: values.height?.min, max: values.height?.max },
+      weight: { min: values.weight?.min, max: values.weight?.max },
       build: {},
     };
 
@@ -284,7 +288,8 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
     const lines = pastedText.split('\n').filter(line => line.trim() !== '');
     let parsedCount = 0;
     
-    const currentLegLength = getValues("legLength");
+    const currentHeight = getValues("height");
+    const currentWeight = getValues("weight");
     const currentPrimarySkills = getValues("primarySkills");
     const currentSecondarySkills = getValues("secondarySkills");
 
@@ -325,7 +330,8 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
         });
     }
 
-    setValue("legLength", currentLegLength);
+    setValue("height", currentHeight);
+    setValue("weight", currentWeight);
     setValue("primarySkills", currentPrimarySkills);
     setValue("secondarySkills", currentSecondarySkills);
 
@@ -476,11 +482,20 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
                 
                  <div className="p-4 rounded-lg border bg-background/50 space-y-4">
                     <h3 className="text-lg font-semibold text-primary">Requisitos Ideales</h3>
-                    <div>
-                        <FormLabel className="text-base mb-2 block">Medidas Físicas</FormLabel>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <FormField control={form.control} name="legLength.min" render={({ field }) => (<FormItem><FormLabel className="text-sm">Piernas (Min)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
-                            <FormField control={form.control} name="legLength.max" render={({ field }) => (<FormItem><FormLabel className="text-sm">Piernas (Max)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
+                    <div className="space-y-4">
+                        <div>
+                            <FormLabel className="text-base mb-2 block">Altura (cm)</FormLabel>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <FormField control={form.control} name="height.min" render={({ field }) => (<FormItem><FormLabel className="text-sm">Mínima</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
+                                <FormField control={form.control} name="height.max" render={({ field }) => (<FormItem><FormLabel className="text-sm">Máxima</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
+                            </div>
+                        </div>
+                        <div>
+                            <FormLabel className="text-base mb-2 block">Peso (kg)</FormLabel>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <FormField control={form.control} name="weight.min" render={({ field }) => (<FormItem><FormLabel className="text-sm">Mínimo</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
+                                <FormField control={form.control} name="weight.max" render={({ field }) => (<FormItem><FormLabel className="text-sm">Máximo</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
+                            </div>
                         </div>
                     </div>
                      <div>

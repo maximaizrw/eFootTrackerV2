@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import * as React from "react";
@@ -32,7 +31,8 @@ const testerSchema = z.object({
   position: z.enum(positions),
   style: z.enum(playerStyles),
   skills: z.array(z.string()).optional(),
-  legLength: z.coerce.number().min(0).optional(),
+  height: z.coerce.number().min(0).optional(),
+  weight: z.coerce.number().min(0).optional(),
   stats: z.object({
     offensiveAwareness: statSchema, ballControl: statSchema, dribbling: statSchema, tightPossession: statSchema,
     lowPass: statSchema, loftedPass: statSchema, finishing: statSchema, heading: statSchema, placeKicking: statSchema, curl: statSchema,
@@ -112,7 +112,8 @@ const PlayerTesterMemo = React.memo(function PlayerTester({ idealBuilds }: Playe
       position: "DC",
       style: "Cazagoles",
       skills: [],
-      legLength: undefined,
+      height: undefined,
+      weight: undefined,
       stats: {},
     },
   });
@@ -122,7 +123,8 @@ const PlayerTesterMemo = React.memo(function PlayerTester({ idealBuilds }: Playe
   const watchedStyle = useWatch({ control, name: "style" });
   const watchedStats = useWatch({ control, name: "stats" });
   const watchedSkills = useWatch({ control, name: 'skills' }) || [];
-  const watchedLegLength = useWatch({ control, name: "legLength" });
+  const watchedHeight = useWatch({ control, name: "height" });
+  const watchedWeight = useWatch({ control, name: "weight" });
 
 
   const availableStyles = React.useMemo(() => {
@@ -141,7 +143,8 @@ const PlayerTesterMemo = React.memo(function PlayerTester({ idealBuilds }: Playe
         const position = getValues('position');
         const style = getValues('style');
         const skills = getValues('skills');
-        const legLength = getValues('legLength');
+        const height = getValues('height');
+        const weight = getValues('weight');
         const isGoalkeeper = position === 'PT';
 
         const { bestBuild, bestStyle } = getIdealBuildForPlayer(style, position, idealBuilds);
@@ -151,7 +154,7 @@ const PlayerTesterMemo = React.memo(function PlayerTester({ idealBuilds }: Playe
         const breakdown = calculateAffinityWithBreakdown(
             finalStats,
             bestBuild,
-            { legLength },
+            { height, weight },
             skills as PlayerSkill[]
         );
         
@@ -165,7 +168,7 @@ const PlayerTesterMemo = React.memo(function PlayerTester({ idealBuilds }: Playe
         setAffinityBreakdown({ totalAffinityScore: 0, breakdown: [], skillsBreakdown: [] });
         setBestBuildStyle(null);
     }
-}, [watchedStats, watchedPosition, watchedStyle, watchedSkills, watchedLegLength, idealBuilds, getValues, progressionPoints]);
+}, [watchedStats, watchedPosition, watchedStyle, watchedSkills, watchedHeight, watchedWeight, idealBuilds, getValues, progressionPoints]);
 
 
   const handleParseText = () => {
@@ -307,25 +310,46 @@ const PlayerTesterMemo = React.memo(function PlayerTester({ idealBuilds }: Playe
                 />
               </div>
 
-               <FormField
-                    control={form.control}
-                    name="legLength"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Largo de Piernas</FormLabel>
-                            <FormControl>
-                                <Input
-                                    type="number"
-                                    placeholder="Ej: 85"
-                                    {...field}
-                                    value={field.value ?? ''}
-                                    onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)}
-                                />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
+               <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                        control={form.control}
+                        name="height"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Altura (cm)</FormLabel>
+                                <FormControl>
+                                    <Input
+                                        type="number"
+                                        placeholder="Ej: 185"
+                                        {...field}
+                                        value={field.value ?? ''}
+                                        onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="weight"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Peso (kg)</FormLabel>
+                                <FormControl>
+                                    <Input
+                                        type="number"
+                                        placeholder="Ej: 80"
+                                        {...field}
+                                        value={field.value ?? ''}
+                                        onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+               </div>
 
                <FormField
                   control={form.control}
@@ -462,5 +486,3 @@ const PlayerTesterMemo = React.memo(function PlayerTester({ idealBuilds }: Playe
 });
 
 export { PlayerTesterMemo as PlayerTester };
-
-    
