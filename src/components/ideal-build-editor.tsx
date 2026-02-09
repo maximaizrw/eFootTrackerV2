@@ -1,14 +1,13 @@
 
-
 "use client";
 
 import * as React from "react";
-import type { BuildPosition, PlayerStyle, IdealBuild, PlayerAttributeStats, PhysicalAttribute, PlayerSkill } from "@/lib/types";
+import type { BuildPosition, PlayerStyle, IdealBuild, PlayerAttributeStats, PhysicalAttribute, PlayerSkill, IdealBuildType } from "@/lib/types";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useToast } from "@/hooks/use-toast";
-import { playerSkillsList } from "@/lib/types";
+import { playerSkillsList, idealBuildTypes } from "@/lib/types";
 
 import {
   Dialog,
@@ -42,6 +41,7 @@ const minMaxSchema = z.object({
 
 
 const buildSchema = z.object({
+  playStyle: z.enum(idealBuildTypes),
   position: z.enum(buildPositions),
   style: z.enum(playerStyles),
   primarySkills: z.array(z.string()).optional(),
@@ -163,6 +163,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
   const form = useForm<IdealBuildFormValues>({
     resolver: zodResolver(buildSchema),
     defaultValues: {
+      playStyle: "General",
       position: "DC",
       style: "Cazagoles",
       primarySkills: [],
@@ -174,6 +175,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
 
   const { watch, reset, setValue, getValues } = form;
   const watchedPosition = watch("position");
+  const watchedPlayStyle = watch("playStyle");
   const watchedPrimarySkills = watch("primarySkills") || [];
   const watchedSecondarySkills = watch("secondarySkills") || [];
   const isEditing = !!initialBuild?.id;
@@ -185,6 +187,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
       statFields.forEach(cat => cat.fields.forEach(f => defaultBuild[f.name] = ''));
 
       const defaultValues: IdealBuildFormValues = {
+        playStyle: "General",
         position: "DC",
         style: "Cazagoles",
         primarySkills: [],
@@ -199,6 +202,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
         
         const mergedInitial: IdealBuildFormValues = {
           ...defaultValues,
+          playStyle: initialBuild.playStyle || "General",
           position: initialBuild.position,
           style: initialBuild.style,
           primarySkills: initialBuild.primarySkills || [],
@@ -224,10 +228,8 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
   }, [availableStyles, watch, setValue]);
 
   const handleSubmit = (values: IdealBuildFormValues) => {
-    const buildId = `${values.position}-${values.style}`;
-    
     const finalBuild: IdealBuild = {
-      id: buildId,
+      playStyle: values.playStyle,
       position: values.position,
       style: values.style,
       primarySkills: values.primarySkills || [],
@@ -309,7 +311,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
        toast({
         variant: "destructive",
         title: "Error al Cargar",
-        description: "No se pudieron encontrar atributos válidos. Revisa el formato del texto.",
+        description: "No se pudieron encontrar atributos válidos.",
       });
     }
   };
@@ -321,7 +323,6 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
     const currentValues = getValues(fieldName) || [];
     const otherValues = getValues(otherFieldName) || [];
 
-    // Prevent adding to one list if it exists in the other
     if (otherValues.includes(skillToToggle)) {
         toast({
             variant: "destructive",
@@ -345,16 +346,34 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Editar' : 'Añadir'} Build Ideal</DialogTitle>
           <DialogDescription>
-            {isEditing 
-                ? 'Añade nuevas stats para promediar o edita las existentes.' 
-                : 'Define las estadísticas finales para un arquetipo. Si ya existe, se promediará automáticamente.'}
+            Define los atributos ideales para una combinación de posición, estilo de jugador y táctica.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="flex-grow overflow-hidden flex flex-col">
             <ScrollArea className="flex-grow pr-4 -mr-4">
               <div className="space-y-6 pb-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="playStyle"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Estilo de Juego</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={isEditing}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecciona táctica" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {idealBuildTypes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <FormField
                     control={form.control}
                     name="position"
@@ -380,7 +399,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
                     name="style"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Estilo de Juego</FormLabel>
+                        <FormLabel>Estilo de Jugador</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value} disabled={isEditing}>
                           <FormControl>
                             <SelectTrigger>
@@ -399,7 +418,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
 
                 <div className="space-y-2">
                     <Textarea
-                        placeholder="Pega aquí las estadísticas del jugador para cargarlas automáticamente..."
+                        placeholder="Pega aquí las estadísticas para cargarlas automáticamente..."
                         value={pastedText}
                         onChange={(e) => setPastedText(e.target.value)}
                         className="min-h-[60px]"
@@ -411,7 +430,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
                 </div>
                 
                  <div className="p-4 rounded-lg border bg-background/50 space-y-4">
-                    <h3 className="text-lg font-semibold text-primary">Atributos Ideales</h3>
+                    <h3 className="text-lg font-semibold text-primary">Requisitos Ideales</h3>
                     <div>
                         <FormLabel className="text-base mb-2 block">Medidas Físicas</FormLabel>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

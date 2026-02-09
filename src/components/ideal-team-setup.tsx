@@ -3,10 +3,11 @@
 
 import * as React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { FormationStats, League, Nationality } from '@/lib/types';
+import type { FormationStats, League, Nationality, IdealBuildType } from '@/lib/types';
+import { idealBuildTypes } from '@/lib/types';
 import { Label } from './ui/label';
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
-import { BarChart2, Star, ArrowRightLeft } from 'lucide-react';
+import { BarChart2, Star, ArrowRightLeft, Dna } from 'lucide-react';
 import { Switch } from './ui/switch';
 import { calculateStats } from './formations-display';
 
@@ -26,6 +27,8 @@ type IdealTeamSetupProps = {
   onFlexibleLateralsChange: (value: boolean) => void;
   isFlexibleWingers: boolean;
   onFlexibleWingersChange: (value: boolean) => void;
+  selectedIdealBuildType: IdealBuildType;
+  onIdealBuildTypeChange: (value: IdealBuildType) => void;
 };
 
 const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({ 
@@ -44,6 +47,8 @@ const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({
     onFlexibleLateralsChange,
     isFlexibleWingers,
     onFlexibleWingersChange,
+    selectedIdealBuildType,
+    onIdealBuildTypeChange,
 }: IdealTeamSetupProps) {
 
   const selectedFormation = React.useMemo(() => {
@@ -94,6 +99,27 @@ const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({
               <SelectItem key={f.id} value={f.id}>
                 {`${calculateStats(f.matches).effectiveness.toFixed(0)}% - ${f.name} ${f.creator ? `- ${f.creator}` : ''}`}
               </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+       <div className="space-y-2">
+        <Label>
+          Build Ideal a Utilizar
+        </Label>
+        <Select
+          value={selectedIdealBuildType}
+          onValueChange={(v) => onIdealBuildTypeChange(v as IdealBuildType)}
+        >
+          <SelectTrigger className="w-full">
+            <div className="flex items-center gap-2">
+                <Dna className="h-4 w-4 text-primary" />
+                <SelectValue />
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            {idealBuildTypes.map(t => (
+              <SelectItem key={t} value={t}>{t}</SelectItem>
             ))}
           </SelectContent>
         </Select>

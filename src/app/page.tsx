@@ -39,8 +39,8 @@ import { useFormations } from '@/hooks/useFormations';
 import { useIdealBuilds } from '@/hooks/useIdealBuilds';
 import { useToast } from "@/hooks/use-toast";
 
-import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerBuild, IdealTeamPlayer, PlayerAttributeStats, IdealBuild } from '@/lib/types';
-import { positions, leagues, nationalities } from '@/lib/types';
+import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerBuild, IdealTeamPlayer, PlayerAttributeStats, IdealBuild, IdealBuildType } from '@/lib/types';
+import { positions, leagues, nationalities, formationPlayStyles } from '@/lib/types';
 import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Dna, RefreshCw, Beaker, Wand2 } from 'lucide-react';
 import { normalizeText } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
@@ -56,6 +56,8 @@ export default function Home() {
     saveIdealBuild,
     deleteIdealBuild,
   } = useIdealBuilds();
+
+  const [idealBuildType, setIdealBuildType] = useState<IdealBuildType>('General');
 
   const { 
     players, 
@@ -74,7 +76,7 @@ export default function Home() {
     suggestAllBuilds,
     updateLiveUpdateRating,
     resetAllLiveUpdateRatings,
-  } = usePlayers(idealBuilds);
+  } = usePlayers(idealBuilds, idealBuildType);
 
   const {
     formations,
@@ -162,7 +164,7 @@ export default function Home() {
       return;
     }
     
-    const newTeam = players.length > 0 ? generateIdealTeam(players, formation, idealBuilds, discardedCardIds, selectedLeague, selectedNationality, sortBy, isFlexibleLaterals, isFlexibleWingers) : [];
+    const newTeam = players.length > 0 ? generateIdealTeam(players, formation, idealBuilds, discardedCardIds, selectedLeague, selectedNationality, sortBy, isFlexibleLaterals, isFlexibleWingers, idealBuildType) : [];
 
     setIdealTeam(newTeam);
     if (document.activeElement instanceof HTMLElement) {
@@ -170,16 +172,16 @@ export default function Home() {
     }
     toast({
       title: "11 Ideal Generado",
-      description: `Se ha generado un equipo para la formación "${formation.name}".`,
+      description: `Se ha generado un equipo para la formación "${formation.name}" usando builds "${idealBuildType}".`,
     });
-  }, [players, selectedFormationId, formations, idealBuilds, discardedCardIds, selectedLeague, selectedNationality, sortBy, isFlexibleLaterals, isFlexibleWingers, toast]);
+  }, [players, selectedFormationId, formations, idealBuilds, discardedCardIds, selectedLeague, selectedNationality, sortBy, isFlexibleLaterals, isFlexibleWingers, idealBuildType, toast]);
 
   useEffect(() => {
     if (idealTeam.length > 0) {
       handleGenerateTeam();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [discardedCardIds]);
+  }, [discardedCardIds, idealBuildType]);
 
 
   const handleOpenAddRating = useCallback((initialData?: Partial<AddRatingFormValues>) => {
@@ -479,6 +481,7 @@ export default function Home() {
         flatPlayer={selectedFlatPlayer}
         onSavePlayerBuild={savePlayerBuild}
         idealBuilds={idealBuilds}
+        idealBuildType={idealBuildType}
       />
       <PlayerBuildViewer
         open={isBuildViewerOpen}
@@ -654,6 +657,8 @@ export default function Home() {
                     onFlexibleLateralsChange={setFlexibleLaterals}
                     isFlexibleWingers={isFlexibleWingers}
                     onFlexibleWingersChange={setFlexibleWingers}
+                    selectedIdealBuildType={idealBuildType}
+                    onIdealBuildTypeChange={setIdealBuildType}
                   />
                   <div className="flex flex-wrap items-center gap-4 mt-6">
                     <Button onClick={handleGenerateTeam} disabled={!selectedFormationId}>
@@ -713,7 +718,7 @@ export default function Home() {
                   Builds Ideales
                 </CardTitle>
                 <CardDescription>
-                  Define la distribución de puntos de progresión ideal para cada arquetipo de jugador (combinación de posición y estilo de juego).
+                  Define la distribución de puntos de progresión ideal para cada arquetipo de jugador por estilo de juego. Las builds específicas de un estilo de juego tomarán los valores de "General" si no han sido definidas.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -721,7 +726,10 @@ export default function Home() {
                   {idealBuilds.map((build) => (
                     <div key={build.id} className="flex items-center justify-between p-3 bg-muted rounded-md">
                       <div>
-                        <p className="font-semibold">{build.position} - <span className="text-primary">{build.style}</span></p>
+                        <p className="font-semibold">
+                            <span className="text-xs text-muted-foreground mr-2">[{build.playStyle}]</span>
+                            {build.position} - <span className="text-primary">{build.style}</span>
+                        </p>
                       </div>
                       <div className="flex items-center gap-2">
                         <Button variant="outline" size="sm" onClick={() => handleOpenIdealBuildEditor(build)}>Editar</Button>

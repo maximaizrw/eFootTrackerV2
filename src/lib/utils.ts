@@ -1,6 +1,7 @@
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position, BuildPosition, PhysicalAttribute, PlayerSkill, PlayerPerformance, LiveUpdateRating } from "./types";
+import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position, BuildPosition, PhysicalAttribute, PlayerSkill, PlayerPerformance, LiveUpdateRating, IdealBuildType } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -236,47 +237,53 @@ const symmetricalPositionMap: Record<Position, BuildPosition | undefined> = {
 export function getIdealBuildForPlayer(
     playerStyle: PlayerStyle,
     position: Position,
-    idealBuilds: IdealBuild[]
+    idealBuilds: IdealBuild[],
+    targetType: IdealBuildType = 'General'
 ): { bestBuild: IdealBuild | null; bestStyle: PlayerStyle | null } {
-    // 1. Strict Search: Exact Position + Player Style
-    const strictBuild = idealBuilds.find(b => b.position === position && b.style === playerStyle);
-    if (strictBuild) {
-        return { bestBuild: strictBuild, bestStyle: playerStyle };
-    }
+    
+    const findBuild = (type: IdealBuildType, pos: BuildPosition, style: PlayerStyle) => 
+        idealBuilds.find(b => b.playStyle === type && b.position === pos && b.style === style);
 
-    // 2. Archetype Search: Symmetrical Position Archetype + Player Style
-    const archetype = symmetricalPositionMap[position];
-    if (archetype) {
-        const archetypeBuild = idealBuilds.find(b => b.position === archetype && b.style === playerStyle);
-        if (archetypeBuild) {
-            return { bestBuild: archetypeBuild, bestStyle: playerStyle };
+    const getForType = (type: IdealBuildType) => {
+        // 1. Strict Search
+        const strict = findBuild(type, position, playerStyle);
+        if (strict) return strict;
+
+        // 2. Archetype Search
+        const archetype = symmetricalPositionMap[position];
+        if (archetype) {
+            const arch = findBuild(type, archetype, playerStyle);
+            if (arch) return arch;
         }
-    }
+
+        // 3. Fallback to Ninguno
+        const fallbackStrict = findBuild(type, position, 'Ninguno');
+        if (fallbackStrict) return fallbackStrict;
+
+        if (archetype) {
+            const fallbackArch = findBuild(type, archetype, 'Ninguno');
+            if (fallbackArch) return fallbackArch;
+        }
+
+        return null;
+    };
+
+    // Attempt target type first
+    let build = getForType(targetType);
     
-    // 3. Flexible Search: Find the best alternative build for the position
-    const compatiblePositions: BuildPosition[] = [position];
-    if (archetype) {
-        compatiblePositions.push(archetype);
-    }
-    
-    const validBuildsForPosition = idealBuilds.filter(b => compatiblePositions.includes(b.position));
-    
-    // 3a. Fallback: Check for a "Ninguno" style build for the exact position
-    const anystyleBuildExact = validBuildsForPosition.find(b => b.position === position && b.style === 'Ninguno');
-    if (anystyleBuildExact) {
-      return { bestBuild: anystyleBuildExact, bestStyle: 'Ninguno' };
-    }
-    
-    // 3b. Fallback: Check for a "Ninguno" style build for the archetype position
-    const anystyleBuildArchetype = validBuildsForPosition.find(b => b.position === archetype && b.style === 'Ninguno');
-     if (anystyleBuildArchetype) {
-      return { bestBuild: anystyleBuildArchetype, bestStyle: 'Ninguno' };
+    // If not found and target wasn't General, fallback to General
+    if (!build && targetType !== 'General') {
+        build = getForType('General');
     }
 
-    // 4. Last resort: just return the first valid build if no better logic is defined
-    if (validBuildsForPosition.length > 0) {
-        const bestFlexBuild = validBuildsForPosition[0];
-        return { bestBuild: bestFlexBuild, bestStyle: bestFlexBuild?.style || null };
+    if (build) {
+        return { bestBuild: build, bestStyle: build.style };
+    }
+
+    // Last resort: any build for the position
+    const anyForPos = idealBuilds.filter(b => b.position === position || b.position === symmetricalPositionMap[position]);
+    if (anyForPos.length > 0) {
+        return { bestBuild: anyForPos[0], bestStyle: anyForPos[0].style };
     }
 
     return { bestBuild: null, bestStyle: null };

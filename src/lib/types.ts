@@ -80,8 +80,21 @@ type MinMaxRange = {
     max?: number;
 };
 
+export const formationPlayStyles = [
+  'Contraataque rápido', 
+  'Contraataque largo', 
+  'Por las bandas', 
+  'Balones largos', 
+  'Posesión'
+] as const;
+export type FormationPlayStyle = typeof formationPlayStyles[number];
+
+export const idealBuildTypes = ['General', ...formationPlayStyles] as const;
+export type IdealBuildType = typeof idealBuildTypes[number];
+
 export type IdealBuild = {
-  id?: string; // composite key of position-style
+  id?: string;
+  playStyle: IdealBuildType;
   position: BuildPosition;
   style: PlayerStyle;
   build: PlayerAttributeStats;
@@ -248,15 +261,6 @@ export type IdealTeamSlot = {
 }
 
 // --- Tipos para Formaciones ---
-
-export const formationPlayStyles = [
-  'Contraataque rápido', 
-  'Contraataque largo', 
-  'Por las bandas', 
-  'Balones largos', 
-  'Posesión'
-] as const;
-export type FormationPlayStyle = typeof formationPlayStyles[number];
 
 export type MatchResult = {
   id: string;

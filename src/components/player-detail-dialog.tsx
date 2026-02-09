@@ -1,9 +1,8 @@
 
-
 "use client";
 
 import * as React from "react";
-import type { Position, FlatPlayer, PlayerBuild, OutfieldBuild, GoalkeeperBuild, PlayerAttributeStats, IdealBuild } from "@/lib/types";
+import type { Position, FlatPlayer, PlayerBuild, OutfieldBuild, GoalkeeperBuild, PlayerAttributeStats, IdealBuild, IdealBuildType } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -35,6 +34,7 @@ type PlayerDetailDialogProps = {
   flatPlayer: FlatPlayer | null;
   onSavePlayerBuild: (playerId: string, cardId: string, position: Position, build: PlayerBuild, totalProgressionPoints?: number) => void;
   idealBuilds: IdealBuild[];
+  idealBuildType?: IdealBuildType;
 };
 
 const outfieldCategories: { key: keyof OutfieldBuild; label: string, icon: React.ElementType }[] = [
@@ -54,7 +54,7 @@ const goalkeeperCategories: { key: keyof GoalkeeperBuild; label: string, icon: R
 ];
 
 
-export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlayerBuild, idealBuilds }: PlayerDetailDialogProps) {
+export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlayerBuild, idealBuilds, idealBuildType = 'General' }: PlayerDetailDialogProps) {
   const [build, setBuild] = React.useState<PlayerBuild>({ manualAffinity: 0 });
   const [finalStats, setFinalStats] = React.useState<PlayerAttributeStats>({});
   const [totalProgressionPoints, setTotalProgressionPoints] = React.useState<number | undefined>(undefined);
@@ -79,7 +79,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
       setBuild(initialBuild);
       setTotalProgressionPoints(card.totalProgressionPoints);
       
-      const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, card.attributeStats, isGoalkeeper, card.physicalAttributes);
+      const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, idealBuildType);
       setBestBuildStyle(bestBuild?.style || null);
 
     } else {
@@ -88,7 +88,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
       setTotalProgressionPoints(undefined);
       setBestBuildStyle(null);
     }
-  }, [open, flatPlayer, card, position, idealBuilds, isGoalkeeper]);
+  }, [open, flatPlayer, card, position, idealBuilds, isGoalkeeper, idealBuildType]);
 
 
   React.useEffect(() => {
@@ -115,28 +115,21 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
   const handleSuggestBuild = () => {
     if (!card || !position) return;
     
-    const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, card.attributeStats, isGoalkeeper, card.physicalAttributes);
+    const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, idealBuildType);
     if (!bestBuild) {
         toast({
             variant: "destructive",
             title: "No se encontró Build Ideal",
-            description: `No hay una build ideal definida para ${position} con estilo ${card.style} o un arquetipo compatible.`,
+            description: `No hay una build ideal definida para ${position} con estilo ${card.style}.`,
         });
         return;
     }
     
-    const pointsToUse = totalProgressionPoints || 50; // Use default if not provided
+    const pointsToUse = totalProgressionPoints || 50; 
     const suggestions = calculateProgressionSuggestions(baseStats, bestBuild, isGoalkeeper, pointsToUse);
     
-    setBuild(prev => ({
-        ...prev,
-        ...suggestions
-    }));
-
-    toast({
-        title: "Sugerencias Cargadas",
-        description: `Se han distribuido ${pointsToUse} puntos de progresión.`,
-    });
+    setBuild(prev => ({ ...prev, ...suggestions }));
+    toast({ title: "Sugerencias Cargadas", description: `Se han distribuido ${pointsToUse} puntos.` });
   };
 
   const formattedDate = updatedAt 
@@ -149,7 +142,6 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
 
   const StatDisplay = ({ label, value, baseValue }: { label: string; value?: number; baseValue?: number }) => {
     const hasIncreased = value !== undefined && baseValue !== undefined && value > baseValue;
-
     if (value === undefined || value === 0) return null;
     return (
         <div className="flex items-center justify-between text-sm">
@@ -176,7 +168,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
         <DialogHeader className="flex-shrink-0">
           <DialogTitle>Build para {player?.name} ({card?.name}) en <span className="text-primary">{position}</span></DialogTitle>
           <DialogDescription>
-            Define los puntos de progresión y la afinidad para esta posición. Últ. act: <span className="font-semibold text-foreground">{formattedDate}</span>
+            Definiendo build usando ideal <span className="font-bold text-foreground">[{idealBuildType}]</span>. Últ. act: <span className="font-semibold text-foreground">{formattedDate}</span>
           </DialogDescription>
         </DialogHeader>
         
@@ -197,7 +189,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
                               type="number"
                               value={flatPlayer?.affinityScore.toFixed(2) ?? ''}
                               readOnly
-                              className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm text-foreground/80 font-bold"
+                              className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-base ring-offset-background md:text-sm text-foreground/80 font-bold"
                               />
                               <Button variant="outline" size="icon" onClick={handleUpdateAffinity}>
                                   <RefreshCw className="h-4 w-4" />
@@ -211,7 +203,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
                               <Info className="h-4 w-4" />
                               <AlertTitle>Carta Especial</AlertTitle>
                               <AlertDescription>
-                                  Las cartas especiales (POTW, POTS, etc.) no tienen puntos de progresión. Sus estadísticas son fijas.
+                                  Las cartas especiales no tienen puntos de progresión ajustables.
                               </AlertDescription>
                           </Alert>
                       ) : (
@@ -330,14 +322,9 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
         </Tabs>
 
         <DialogFooter className="pt-4 border-t mt-4 flex-shrink-0">
-          <Button onClick={handleSave}>Guardar Build de {position}</Button>
+          <Button onClick={handleSave}>Guardar Build</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
-
-
-
-    
-    

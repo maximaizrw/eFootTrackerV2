@@ -6,12 +6,12 @@ import { db } from '@/lib/firebase-config';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, query, where, setDoc } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import { v4 as uuidv4 } from 'uuid';
-import type { Player, PlayerCard, Position, AddRatingFormValues, EditCardFormValues, EditPlayerFormValues, PlayerBuild, League, Nationality, PlayerAttributeStats, IdealBuild, PhysicalAttribute, FlatPlayer, PlayerPerformance, PlayerSkill, LiveUpdateRating } from '@/lib/types';
+import type { Player, PlayerCard, Position, AddRatingFormValues, EditCardFormValues, EditPlayerFormValues, PlayerBuild, League, Nationality, PlayerAttributeStats, IdealBuild, PhysicalAttribute, FlatPlayer, PlayerPerformance, PlayerSkill, LiveUpdateRating, IdealBuildType } from '@/lib/types';
 import { getAvailableStylesForPosition } from '@/lib/types';
 import { normalizeText, calculateProgressionStats, getIdealBuildForPlayer, isSpecialCard, calculateProgressionSuggestions, calculateAffinityWithBreakdown, calculateStats, calculateGeneralScore } from '@/lib/utils';
 
 
-export function usePlayers(idealBuilds: IdealBuild[] = []) {
+export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: IdealBuildType = 'General') {
   const [players, setPlayers] = useState<Player[]>([]);
   const [flatPlayers, setFlatPlayers] = useState<FlatPlayer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,7 +20,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
 
   useEffect(() => {
     if (!db) {
-      const errorMessage = "La configuración de Firebase no está completa. Revisa que las variables de entorno se hayan añadido correctamente.";
+      const errorMessage = "La configuración de Firebase no está completa.";
       setError(errorMessage);
       setLoading(false);
       return;
@@ -73,39 +73,26 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
       } catch (err) {
           console.error("Error processing players snapshot: ", err);
           setError("No se pudieron procesar los datos de los jugadores.");
-          toast({
-              variant: "destructive",
-              title: "Error de Datos",
-              description: "No se pudieron procesar los datos de los jugadores.",
-          });
       } finally {
         setLoading(false);
       }
     }, (err) => {
         console.error("Error fetching players from Firestore: ", err);
-        setError("No se pudo conectar a la base de datos para leer jugadores.");
+        setError("No se pudo conectar a la base de datos.");
         setPlayers([]);
         setLoading(false);
-        toast({
-            variant: "destructive",
-            title: "Error de Conexión",
-            description: "No se pudo conectar a la base de datos para leer jugadores."
-        });
     });
 
-    return () => {
-      unsubPlayers();
-    };
-  }, [toast]);
+    return () => unsubPlayers();
+  }, []);
 
   useEffect(() => {
     if (players.length > 0 && idealBuilds) {
         const allFlatPlayers = players.flatMap(player => 
             (player.cards || []).flatMap(card => {
                 const playerPositions = Object.keys(card.ratingsByPosition || {}) as Position[];
-                
-                // For 'isSpecialist' calculation
                 const averagesByPosition = new Map<Position, number>();
+                
                 playerPositions.forEach(p => {
                     const ratings = card.ratingsByPosition?.[p];
                     if (ratings && ratings.length > 0) {
@@ -132,11 +119,9 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
                     if (currentAvg && currentAvg >= 8.5 && averagesByPosition.size > 1) {
                         let otherPositionsWeaker = true;
                         for (const [p, avg] of averagesByPosition.entries()) {
-                            if (p !== ratedPos) {
-                                if (avg >= currentAvg - 1.5) {
-                                    otherPositionsWeaker = false;
-                                    break;
-                                }
+                            if (p !== ratedPos && avg >= currentAvg - 1.5) {
+                                otherPositionsWeaker = false;
+                                break;
                             }
                         }
                         isSpecialist = otherPositionsWeaker;
@@ -161,11 +146,10 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
                         ? (card.attributeStats || {})
                         : calculateProgressionStats(card.attributeStats || {}, buildForPos, isGoalkeeper);
 
-                    const { bestBuild } = getIdealBuildForPlayer(card.style, ratedPos, idealBuilds);
+                    const { bestBuild } = getIdealBuildForPlayer(card.style, ratedPos, idealBuilds, targetIdealType);
                     const affinityBreakdown = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills);
                     const affinityScore = affinityBreakdown.totalAffinityScore;
                     
-                    // Always show "Starter" score in main list
                     const generalScore = calculateGeneralScore(affinityScore, stats.average, stats.matches, performance, player.liveUpdateRating, card.skills, false);
 
                     return { player, card, ratingsForPos, performance, affinityScore, generalScore, position: ratedPos, affinityBreakdown };
@@ -174,30 +158,21 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
         );
         setFlatPlayers(allFlatPlayers);
     }
-  }, [players, idealBuilds]);
+  }, [players, idealBuilds, targetIdealType]);
 
 
   const addRating = async (values: AddRatingFormValues) => {
     let { playerName, cardName, position, rating, style, league, nationality, playerId } = values;
-
-    if (!db) {
-        toast({ variant: "destructive", title: "Error de Conexión", description: "No se puede conectar a la base de datos." });
-        return;
-    }
+    if (!db) return;
     
     const validStylesForPosition = getAvailableStylesForPosition(position, true);
-    if (!validStylesForPosition.includes(style)) {
-        style = 'Ninguno';
-    }
-
+    if (!validStylesForPosition.includes(style)) style = 'Ninguno';
 
     try {
       if (!playerId) {
         const normalizedPlayerName = normalizeText(playerName);
         const existingPlayer = players.find(p => normalizeText(p.name) === normalizedPlayerName);
-        if (existingPlayer) {
-          playerId = existingPlayer.id;
-        }
+        if (existingPlayer) playerId = existingPlayer.id;
       }
 
       if (playerId) {
@@ -214,12 +189,8 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
           if (!card.ratingsByPosition[position]) card.ratingsByPosition[position] = [];
           card.ratingsByPosition[position]!.push(rating);
           card.league = league || card.league || 'Sin Liga';
-          
           if (!card.buildsByPosition) card.buildsByPosition = {};
-          if (!card.buildsByPosition[position]) {
-            card.buildsByPosition[position] = { manualAffinity: 0 };
-          }
-          
+          if (!card.buildsByPosition[position]) card.buildsByPosition[position] = { manualAffinity: 0 };
         } else {
           card = { 
               id: uuidv4(), 
@@ -279,7 +250,6 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
           cardToUpdate.style = values.currentStyle;
           cardToUpdate.league = values.league || 'Sin Liga';
           cardToUpdate.imageUrl = values.imageUrl || '';
-          
           await updateDoc(playerRef, { cards: newCards });
           toast({ title: "Carta Actualizada", description: "Los datos de la carta se han actualizado." });
       }
@@ -300,7 +270,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
       toast({ title: "Jugador Actualizado", description: "Los datos del jugador se han actualizado." });
     } catch (error) {
       console.error("Error updating player: ", error);
-      toast({ variant: "destructive", title: "Error al Actualizar", description: "No se pudo guardar el cambio de nombre." });
+      toast({ variant: "destructive", title: "Error al Actualizar", description: "No se pudo guardar el cambio." });
     }
   };
 
@@ -316,25 +286,21 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
       const cardToUpdate = newCards.find(c => c.id === cardId);
 
       if (!cardToUpdate?.ratingsByPosition?.[position]) {
-          toast({ variant: "destructive", title: "Error", description: "No se encontraron valoraciones para esta posición." });
+          toast({ variant: "destructive", title: "Error", description: "No se encontraron valoraciones." });
           return;
       }
       
       delete cardToUpdate.ratingsByPosition[position];
-
       const hasRatingsLeft = Object.keys(cardToUpdate.ratingsByPosition).length > 0;
-      
       const finalCards = hasRatingsLeft ? newCards.map(c => c.id === cardId ? cardToUpdate : c) : newCards.filter(c => c.id !== cardId);
 
       if (finalCards.length === 0 && playerData.cards.length === 1) {
           await deleteDoc(playerRef);
-          toast({ title: "Jugador Eliminado", description: `Se eliminaron las valoraciones y la carta de ${playerData.name}, y como no tenía más cartas, fue eliminado.` });
       } else {
           await updateDoc(playerRef, { cards: finalCards });
-          toast({ title: "Acción Completada", description: `Se eliminaron todas las valoraciones de ${playerData.name} para la posición ${position}.` });
       }
+      toast({ title: "Acción Completada", description: `Se eliminaron las valoraciones de ${position}.` });
     } catch (error) {
-        console.error("Error deleting position ratings: ", error);
         toast({ variant: "destructive", title: "Error al Eliminar", description: "No se pudo completar la acción." });
     }
   };
@@ -352,14 +318,11 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
       
       if(card?.ratingsByPosition?.[position]) {
           card.ratingsByPosition[position]!.splice(ratingIndex, 1);
-          if (card.ratingsByPosition[position]!.length === 0) {
-              delete card.ratingsByPosition[position];
-          }
+          if (card.ratingsByPosition[position]!.length === 0) delete card.ratingsByPosition[position];
           await updateDoc(playerRef, { cards: newCards });
           toast({ title: "Valoración Eliminada", description: "La valoración ha sido eliminada." });
       }
     } catch (error) {
-        console.error("Error deleting rating: ", error);
         toast({ variant: "destructive", title: "Error al Eliminar", description: "No se pudo eliminar la valoración." });
     }
   };
@@ -369,46 +332,29 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
     const playerRef = doc(db, 'players', playerId);
     try {
         const playerDoc = await getDoc(playerRef);
-        if (!playerDoc.exists()) {
-            throw new Error("Player document not found!");
-        }
+        if (!playerDoc.exists()) throw new Error("Player not found");
 
         const playerData = playerDoc.data() as Player;
         const newCards = JSON.parse(JSON.stringify(playerData.cards || [])) as PlayerCard[];
         const cardToUpdate = newCards.find(c => c.id === cardId);
 
         if (cardToUpdate) {
-            if (!cardToUpdate.buildsByPosition) {
-              cardToUpdate.buildsByPosition = {};
-            }
-            if (totalProgressionPoints !== undefined && !isSpecialCard(cardToUpdate.name)) {
-              cardToUpdate.totalProgressionPoints = totalProgressionPoints;
-            }
+            if (!cardToUpdate.buildsByPosition) cardToUpdate.buildsByPosition = {};
+            if (totalProgressionPoints !== undefined && !isSpecialCard(cardToUpdate.name)) cardToUpdate.totalProgressionPoints = totalProgressionPoints;
             
             const isGoalkeeper = position === 'PT';
             const specialCard = isSpecialCard(cardToUpdate.name);
-            const playerFinalStats = specialCard
-                ? cardToUpdate.attributeStats || {}
-                : calculateProgressionStats(cardToUpdate.attributeStats || {}, build, isGoalkeeper);
+            const playerFinalStats = specialCard ? cardToUpdate.attributeStats || {} : calculateProgressionStats(cardToUpdate.attributeStats || {}, build, isGoalkeeper);
 
-            const { bestBuild, bestStyle } = getIdealBuildForPlayer(cardToUpdate.style, position, idealBuilds);
+            const { bestBuild } = getIdealBuildForPlayer(cardToUpdate.style, position, idealBuilds, targetIdealType);
             const affinity = calculateAffinityWithBreakdown(playerFinalStats, bestBuild, cardToUpdate.physicalAttributes, cardToUpdate.skills).totalAffinityScore;
             
-            const updatedBuild: PlayerBuild = {
-              ...build,
-              manualAffinity: affinity,
-              updatedAt: new Date().toISOString(),
-            };
-
+            const updatedBuild: PlayerBuild = { ...build, manualAffinity: affinity, updatedAt: new Date().toISOString() };
             cardToUpdate.buildsByPosition[position] = updatedBuild;
-            
             await updateDoc(playerRef, { cards: newCards });
-            toast({ title: "Build Guardada", description: `La build del jugador para ${position} se ha actualizado con afinidad ${affinity.toFixed(2)} (estilo ideal: ${bestStyle || 'N/A'}).` });
-        } else {
-            throw new Error("Card not found in player data!");
+            toast({ title: "Build Guardada", description: `Build para ${position} actualizada.` });
         }
     } catch (error) {
-        console.error("Error saving player build: ", error);
         toast({ variant: "destructive", title: "Error al Guardar", description: "No se pudo guardar la build." });
     }
   };
@@ -418,60 +364,36 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
     const playerRef = doc(db, 'players', playerId);
     try {
         const playerDoc = await getDoc(playerRef);
-        if (!playerDoc.exists()) {
-            throw new Error("Player document not found!");
-        }
+        if (!playerDoc.exists()) throw new Error("Player not found");
 
         const playerData = playerDoc.data() as Player;
         const newCards = JSON.parse(JSON.stringify(playerData.cards || [])) as PlayerCard[];
         const cardToUpdate = newCards.find(c => c.id === cardId);
 
         if (cardToUpdate) {
-          if (!cardToUpdate.attributeStats) cardToUpdate.attributeStats = {};
-          
           cardToUpdate.physicalAttributes = physical;
           cardToUpdate.skills = skills;
-
-          const baseStats: PlayerAttributeStats = {
-            ...stats,
-            baseOffensiveAwareness: stats.offensiveAwareness, baseBallControl: stats.ballControl, baseDribbling: stats.dribbling,
-            baseTightPossession: stats.tightPossession, baseLowPass: stats.lowPass, baseLoftedPass: stats.loftedPass,
-            baseFinishing: stats.finishing, baseHeading: stats.heading, basePlaceKicking: stats.placeKicking, baseCurl: stats.curl,
-            baseDefensiveAwareness: stats.defensiveAwareness, baseDefensiveEngagement: stats.defensiveEngagement, baseTackling: stats.tackling,
-            baseAggression: stats.aggression, baseGoalkeeping: stats.goalkeeping, baseGkCatching: stats.gkCatching,
-            baseGkParrying: stats.gkParrying, baseGkReflexes: stats.gkReflexes, baseGkReach: stats.gkReach,
-            baseSpeed: stats.speed, baseAcceleration: stats.acceleration, baseKickingPower: stats.kickingPower,
-            baseJump: stats.jump, basePhysicalContact: stats.physicalContact, baseBalance: stats.balance, baseStamina: stats.stamina,
-          };
+          cardToUpdate.attributeStats = { ...stats };
           
-          cardToUpdate.attributeStats = baseStats;
-          
-          // Recalculate affinity for all positions on this card
            if(cardToUpdate.buildsByPosition) {
               for (const posKey in cardToUpdate.buildsByPosition) {
-                  const position = posKey as Position;
-                  const build = cardToUpdate.buildsByPosition[position];
-                  if(build) {
-                      const isGoalkeeper = position === 'PT';
-                      const specialCard = isSpecialCard(cardToUpdate.name);
-                      const finalStats = specialCard ? baseStats : calculateProgressionStats(baseStats, build, isGoalkeeper);
-                      const { bestBuild } = getIdealBuildForPlayer(cardToUpdate.style, position, idealBuilds);
-                      const newAffinity = calculateAffinityWithBreakdown(finalStats, bestBuild, cardToUpdate.physicalAttributes, cardToUpdate.skills).totalAffinityScore;
-
-                      build.manualAffinity = newAffinity;
-                      build.updatedAt = new Date().toISOString();
+                  const pos = posKey as Position;
+                  const bld = cardToUpdate.buildsByPosition[pos];
+                  if(bld) {
+                      const isGK = pos === 'PT';
+                      const special = isSpecialCard(cardToUpdate.name);
+                      const final = special ? cardToUpdate.attributeStats : calculateProgressionStats(cardToUpdate.attributeStats || {}, bld, isGK);
+                      const { bestBuild } = getIdealBuildForPlayer(cardToUpdate.style, pos, idealBuilds, targetIdealType);
+                      const newAffinity = calculateAffinityWithBreakdown(final, bestBuild, physical, skills).totalAffinityScore;
+                      bld.manualAffinity = newAffinity;
+                      bld.updatedAt = new Date().toISOString();
                   }
               }
            }
-
           await setDoc(playerRef, { ...playerData, cards: newCards });
-          toast({ title: "Atributos Guardados", description: `Los atributos de la carta y las afinidades se han recalculado.` });
-        } else {
-           throw new Error("Card not found!");
+          toast({ title: "Atributos Guardados", description: `Atributos y afinidades recalculados.` });
         }
-
     } catch (error) {
-      console.error("Error saving attribute stats: ", error);
       toast({ variant: "destructive", title: "Error al Guardar", description: "No se pudieron guardar los atributos." });
     }
   };
@@ -482,12 +404,8 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
     try {
       const playersCollection = collection(db, 'players');
       const playerSnapshot = await getDocs(playersCollection);
-      return playerSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      return playerSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
-      console.error("Error fetching players for backup: ", error);
       return null;
     }
   };
@@ -498,25 +416,22 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
     let updatedCount = 0;
     try {
         const playersSnapshot = await getDocs(collection(db, 'players'));
-        const allPlayers = playersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Player));
-
-        for (const player of allPlayers) {
+        for (const playerDoc of playersSnapshot.docs) {
+            const player = { id: playerDoc.id, ...playerDoc.data() } as Player;
             let playerWasUpdated = false;
             const newCards: PlayerCard[] = JSON.parse(JSON.stringify(player.cards || []));
 
             for (const card of newCards) {
-                if (card.buildsByPosition && Object.keys(card.buildsByPosition).length > 0) {
+                if (card.buildsByPosition) {
                     for (const posKey in card.buildsByPosition) {
-                        const position = posKey as Position;
-                        const build = card.buildsByPosition[position];
-                        
+                        const pos = posKey as Position;
+                        const build = card.buildsByPosition[pos];
                         if (build && card.attributeStats) {
-                           const isGoalkeeper = position === 'PT';
-                           const specialCard = isSpecialCard(card.name);
-                           const finalStats = specialCard ? card.attributeStats : calculateProgressionStats(card.attributeStats, build, isGoalkeeper);
-                           const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds);
-                           const newAffinity = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills).totalAffinityScore;
-
+                           const isGK = pos === 'PT';
+                           const special = isSpecialCard(card.name);
+                           const final = special ? card.attributeStats : calculateProgressionStats(card.attributeStats, build, isGK);
+                           const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds, targetIdealType);
+                           const newAffinity = calculateAffinityWithBreakdown(final, bestBuild, card.physicalAttributes, card.skills).totalAffinityScore;
                            if (build.manualAffinity !== newAffinity) {
                                 build.manualAffinity = newAffinity;
                                 build.updatedAt = new Date().toISOString();
@@ -531,15 +446,9 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
                 updatedCount++;
             }
         }
-        toast({ title: "Recálculo Completado", description: `Se actualizaron las afinidades de ${updatedCount} jugadores.` });
-
+        toast({ title: "Recálculo Completado", description: `Se actualizaron ${updatedCount} jugadores.` });
     } catch (recalcError) {
-        console.error("Error recalculating all affinities:", recalcError);
-        toast({
-            variant: "destructive",
-            title: "Error en el Recálculo",
-            description: `Ocurrió un error al actualizar las afinidades.`,
-        });
+        toast({ variant: "destructive", title: "Error en el Recálculo", description: `Ocurrió un error.` });
     }
   };
 
@@ -547,101 +456,66 @@ export function usePlayers(idealBuilds: IdealBuild[] = []) {
     if (!db) return;
     toast({ title: "Iniciando Sugerencias Masivas...", description: "Calculando y aplicando builds óptimas." });
     let updatedPlayers = 0;
-
     try {
       const playersSnapshot = await getDocs(collection(db, 'players'));
-      const allPlayers = playersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Player));
-
-      for (const player of allPlayers) {
+      for (const playerDoc of playersSnapshot.docs) {
+        const player = { id: playerDoc.id, ...playerDoc.data() } as Player;
         let playerWasUpdated = false;
         const newCards: PlayerCard[] = JSON.parse(JSON.stringify(player.cards || []));
 
         for (const card of newCards) {
-          const isEligible = !isSpecialCard(card.name) && card.totalProgressionPoints && card.totalProgressionPoints > 0;
-          
-          if (isEligible && card.buildsByPosition && Object.keys(card.buildsByPosition).length > 0) {
+          if (!isSpecialCard(card.name) && card.totalProgressionPoints && card.buildsByPosition) {
             for (const posKey in card.buildsByPosition) {
-              const position = posKey as Position;
-              const isGoalkeeper = position === 'PT';
-
-              const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds);
+              const pos = posKey as Position;
+              const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds, targetIdealType);
               if (bestBuild) {
-                const suggestedProgression = calculateProgressionSuggestions(card.attributeStats || {}, bestBuild, isGoalkeeper, card.totalProgressionPoints);
-                const currentBuild = card.buildsByPosition[position] || {};
-
-                // Apply new suggestions
-                const newBuild: PlayerBuild = { ...currentBuild, ...suggestedProgression };
-                
-                // Recalculate affinity with the new build
-                const newFinalStats = calculateProgressionStats(card.attributeStats || {}, newBuild, isGoalkeeper);
-                const { bestBuild: newBestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds);
-                const newAffinity = calculateAffinityWithBreakdown(newFinalStats, newBestBuild, card.physicalAttributes, card.skills).totalAffinityScore;
-                
+                const suggested = calculateProgressionSuggestions(card.attributeStats || {}, bestBuild, pos === 'PT', card.totalProgressionPoints);
+                const currentBuild = card.buildsByPosition[pos] || {};
+                const newBuild: PlayerBuild = { ...currentBuild, ...suggested };
+                const newFinal = calculateProgressionStats(card.attributeStats || {}, newBuild, pos === 'PT');
+                const newAffinity = calculateAffinityWithBreakdown(newFinal, bestBuild, card.physicalAttributes, card.skills).totalAffinityScore;
                 newBuild.manualAffinity = newAffinity;
                 newBuild.updatedAt = new Date().toISOString();
-                
-                card.buildsByPosition[position] = newBuild;
+                card.buildsByPosition[pos] = newBuild;
                 playerWasUpdated = true;
               }
             }
           }
         }
-
         if (playerWasUpdated) {
           await setDoc(doc(db, 'players', player.id), { ...player, cards: newCards });
           updatedPlayers++;
         }
       }
-
       toast({ title: "Proceso Completado", description: `Se optimizaron las builds de ${updatedPlayers} jugadores.` });
     } catch (error) {
-      console.error("Error suggesting all builds:", error);
-      toast({
-        variant: "destructive",
-        title: "Error en la Sugerencia Masiva",
-        description: "Ocurrió un error al optimizar las builds.",
-      });
+      toast({ variant: "destructive", title: "Error en la Sugerencia Masiva", description: "Ocurrió un error." });
     }
   };
 
   const updateLiveUpdateRating = async (playerId: string, rating: LiveUpdateRating | null) => {
     if (!db) return;
-    const playerRef = doc(db, 'players', playerId);
     try {
-      await updateDoc(playerRef, {
-        liveUpdateRating: rating,
-      });
+      await updateDoc(doc(db, 'players', playerId), { liveUpdateRating: rating });
     } catch (error) {
-      console.error("Error updating live rating: ", error);
-      toast({
-        variant: "destructive",
-        title: "Error al Actualizar",
-        description: `No se pudo actualizar la letra del jugador.`,
-      });
+      toast({ variant: "destructive", title: "Error al Actualizar", description: `No se pudo actualizar la letra.` });
     }
   };
 
   const resetAllLiveUpdateRatings = async () => {
     if (!db) return;
-    toast({ title: "Iniciando Reseteo...", description: "Reiniciando las letras de todos los jugadores." });
+    toast({ title: "Iniciando Reseteo...", description: "Reiniciando las letras." });
     try {
       const playersSnapshot = await getDocs(collection(db, 'players'));
       for (const playerDoc of playersSnapshot.docs) {
         const playerData = playerDoc.data();
-        if (playerData.permanentLiveUpdateRating) {
-            continue;
+        if (!playerData.permanentLiveUpdateRating) {
+            await updateDoc(doc(db, 'players', playerDoc.id), { liveUpdateRating: null });
         }
-        const playerRef = doc(db, 'players', playerDoc.id);
-        await updateDoc(playerRef, { liveUpdateRating: null });
       }
-      toast({ title: "Reseteo Completado", description: "Se han reiniciado las letras de los jugadores no permanentes." });
+      toast({ title: "Reseteo Completado", description: "Se han reiniciado las letras." });
     } catch (error) {
-      console.error("Error resetting all live update ratings:", error);
-      toast({
-        variant: "destructive",
-        title: "Error en el Reseteo",
-        description: `Ocurrió un error al reiniciar las letras.`,
-      });
+      toast({ variant: "destructive", title: "Error en el Reseteo", description: `Ocurrió un error.` });
     }
   };
 
