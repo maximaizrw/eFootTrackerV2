@@ -41,6 +41,9 @@ export function AffinityBreakdown({ breakdownResult, tacticName }: AffinityBreak
     );
   }
 
+  const physicalStats = relevantStats.filter(item => physicalAttributeKeys.includes(item.stat as any));
+  const technicalStats = relevantStats.filter(item => !physicalAttributeKeys.includes(item.stat as any));
+
   return (
     <div className="space-y-6">
     <Card>
@@ -53,91 +56,119 @@ export function AffinityBreakdown({ breakdownResult, tacticName }: AffinityBreak
             <span className="text-primary">{totalAffinityScore.toFixed(2)}</span>
         </CardTitle>
       </CardHeader>
-      {hasRelevantStats && (
-        <CardContent>
-          <Table>
-              <TableHeader>
-                  <TableRow>
-                      <TableHead>Atributo</TableHead>
-                      <TableHead className="text-center">Ideal</TableHead>
-                      <TableHead className="text-center">Jugador</TableHead>
-                      <TableHead className="text-right">Puntaje</TableHead>
-                  </TableRow>
-              </TableHeader>
-              <TableBody>
-                  {relevantStats.map(item => {
-                       const scoreColor = item.score > 0 ? "text-green-400" : item.score < 0 ? "text-red-400" : "text-muted-foreground";
-                       
-                       let idealDisplay = '-';
-                       let playerValueDisplay: React.ReactNode = item.playerValue ?? '-';
-                       let diff: number | null = null;
-                       let diffDisplay = '';
-                       let playerColor = '';
+      <CardContent className="space-y-6">
+          {technicalStats.length > 0 && (
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Atributo Técnico</TableHead>
+                        <TableHead className="text-center">Ideal</TableHead>
+                        <TableHead className="text-center">Jugador</TableHead>
+                        <TableHead className="text-right">Puntaje</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {technicalStats.map(item => {
+                        const scoreColor = item.score > 0 ? "text-green-400" : item.score < 0 ? "text-red-400" : "text-muted-foreground";
+                        const diff = (item.playerValue || 0) - (item.idealValue as number || 0);
+                        const playerColor = diff > 0 ? "text-primary" : diff < 0 ? "text-orange-400" : "";
 
-                       if (physicalAttributeKeys.includes(item.stat as any)) {
-                          const idealRange = item.idealValue as { min?: number, max?: number } | undefined;
-                          if (idealRange?.min !== undefined && idealRange?.max !== undefined) {
-                              idealDisplay = `${idealRange.min}-${idealRange.max}`;
-                          } else if (idealRange?.min !== undefined) {
-                              idealDisplay = `>= ${idealRange.min}`;
-                          } else if (idealRange?.max !== undefined) {
-                              idealDisplay = `<= ${idealRange.max}`;
-                          }
+                        return (
+                            <TableRow key={item.stat}>
+                                <TableCell className="font-medium">{item.label}</TableCell>
+                                <TableCell className="text-center">{String(item.idealValue || '-')}</TableCell>
+                                <TableCell className="text-center font-semibold">
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger>
+                                                <span className={cn(playerColor)}>
+                                                    {item.playerValue ?? '-'}
+                                                </span>
+                                            </TooltipTrigger>
+                                            {diff !== 0 && <TooltipContent><p>Diferencia: {diff > 0 ? `+${diff}` : diff}</p></TooltipContent>}
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                </TableCell>
+                                <TableCell className={cn("text-right font-bold", scoreColor)}>
+                                    {item.score.toFixed(2)}
+                                </TableCell>
+                            </TableRow>
+                        )
+                    })}
+                </TableBody>
+            </Table>
+          )}
 
-                          if (item.playerValue !== undefined) {
-                              const val = Number(item.playerValue);
-                              const min = idealRange?.min !== undefined ? Number(idealRange.min) : undefined;
-                              const max = idealRange?.max !== undefined ? Number(idealRange.max) : undefined;
+          {physicalStats.length > 0 && (
+              <div className="space-y-3 pt-2">
+                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Atributos Físicos</h4>
+                  <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Atributo</TableHead>
+                            <TableHead className="text-center">Rango Ideal</TableHead>
+                            <TableHead className="text-center">Jugador</TableHead>
+                            <TableHead className="text-right">Puntaje</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {physicalStats.map(item => {
+                            const scoreColor = item.score > 0 ? "text-green-400" : item.score < 0 ? "text-red-400" : "text-muted-foreground";
+                            const idealRange = item.idealValue as { min?: number, max?: number } | undefined;
+                            
+                            let idealDisplay = '-';
+                            if (idealRange?.min !== undefined && idealRange?.max !== undefined) {
+                                idealDisplay = `${idealRange.min}-${idealRange.max}`;
+                            } else if (idealRange?.min !== undefined) {
+                                idealDisplay = `>= ${idealRange.min}`;
+                            } else if (idealRange?.max !== undefined) {
+                                idealDisplay = `<= ${idealRange.max}`;
+                            }
 
-                              if (min !== undefined && val < min) {
-                                  diff = val - min;
-                                  playerColor = "text-orange-400";
-                              } else if (max !== undefined && val > max) {
-                                  diff = val - max;
-                                  playerColor = "text-orange-400";
-                              } else {
-                                  diff = 0; // Inside range
-                                  playerColor = "text-primary";
-                              }
-                          }
-                       } else {
-                          idealDisplay = String(item.idealValue || '-');
-                          if (item.playerValue !== undefined && item.idealValue !== undefined) {
-                              diff = item.playerValue - (item.idealValue as number);
-                              playerColor = diff > 0 ? "text-primary" : diff < 0 ? "text-orange-400" : "";
-                          }
-                       }
+                            const val = Number(item.playerValue);
+                            const min = idealRange?.min !== undefined ? Number(idealRange.min) : undefined;
+                            const max = idealRange?.max !== undefined ? Number(idealRange.max) : undefined;
+                            
+                            let playerColor = "";
+                            let diffDesc = "";
 
-                      if (diff !== null) {
-                          diffDisplay = `Diferencia: ${diff > 0 ? `+${diff}` : diff}`;
-                      }
+                            if (item.playerValue !== undefined) {
+                                if ((min !== undefined && val < min) || (max !== undefined && val > max)) {
+                                    playerColor = "text-orange-400";
+                                    diffDesc = min !== undefined && val < min ? `Faltan ${min - val} unidades` : `Excedido por ${val - (max || 0)} unidades`;
+                                } else {
+                                    playerColor = "text-primary";
+                                    diffDesc = "Dentro del rango ideal";
+                                }
+                            }
 
-                      return (
-                          <TableRow key={item.stat}>
-                              <TableCell className="font-medium">{item.label}</TableCell>
-                              <TableCell className="text-center">{idealDisplay}</TableCell>
-                              <TableCell className="text-center font-semibold">
-                                  <TooltipProvider>
-                                      <Tooltip>
-                                          <TooltipTrigger>
-                                              <span className={cn(playerColor)}>
-                                                  {playerValueDisplay}
-                                              </span>
-                                          </TooltipTrigger>
-                                          {diffDisplay && <TooltipContent><p>{diffDisplay}</p></TooltipContent>}
-                                      </Tooltip>
-                                  </TooltipProvider>
-                              </TableCell>
-                              <TableCell className={cn("text-right font-bold", scoreColor)}>
-                                  {item.score.toFixed(2)}
-                              </TableCell>
-                          </TableRow>
-                      )
-                  })}
-              </TableBody>
-          </Table>
-        </CardContent>
-      )}
+                            return (
+                                <TableRow key={item.stat}>
+                                    <TableCell className="font-medium">{item.label}</TableCell>
+                                    <TableCell className="text-center">{idealDisplay}</TableCell>
+                                    <TableCell className="text-center font-semibold">
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger>
+                                                    <span className={cn(playerColor)}>
+                                                        {item.playerValue ?? '-'}
+                                                    </span>
+                                                </TooltipTrigger>
+                                                {diffDesc && <TooltipContent><p>{diffDesc}</p></TooltipContent>}
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    </TableCell>
+                                    <TableCell className={cn("text-right font-bold", scoreColor)}>
+                                        {item.score.toFixed(2)}
+                                    </TableCell>
+                                </TableRow>
+                            );
+                        })}
+                    </TableBody>
+                  </Table>
+              </div>
+          )}
+      </CardContent>
     </Card>
     {hasSkillsBreakdown && (
         <Card>

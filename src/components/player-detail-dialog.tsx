@@ -18,11 +18,10 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Slider } from "./ui/slider";
 import { ScrollArea } from "./ui/scroll-area";
-import { Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, BrainCircuit, RefreshCw } from "lucide-react";
+import { Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, BrainCircuit, RefreshCw, Info } from "lucide-react";
 import { calculateProgressionStats, getIdealBuildForPlayer, calculateAffinityWithBreakdown, type AffinityBreakdownResult, statLabels, calculateProgressionSuggestions, isSpecialCard } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
-import { Info } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { AffinityBreakdown } from "./affinity-breakdown";
 import { useToast } from "@/hooks/use-toast";
@@ -68,10 +67,10 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
 
   const baseStats = React.useMemo(() => card?.attributeStats || {}, [card?.attributeStats]);
   
-  const { bestBuild, bestBuildStyle } = React.useMemo(() => {
-    if (!card || !position) return { bestBuild: null, bestBuildStyle: null };
+  const { bestBuild, bestBuildStyle, actualTypeUsed } = React.useMemo(() => {
+    if (!card || !position) return { bestBuild: null, bestBuildStyle: null, actualTypeUsed: 'General' };
     const result = getIdealBuildForPlayer(card.style, position, idealBuilds, idealBuildType);
-    return { bestBuild: result.bestBuild, bestBuildStyle: result.bestStyle };
+    return { bestBuild: result.bestBuild, bestBuildStyle: result.bestStyle, actualTypeUsed: result.actualType };
   }, [card?.style, position, idealBuilds, idealBuildType]);
 
   React.useEffect(() => {
@@ -176,9 +175,14 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
       <DialogContent className="max-w-4xl h-[85vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className={cn(titleColorClass)}>Build para {player?.name} ({card?.name}) en <span className="text-primary">{position}</span></DialogTitle>
-          <DialogDescription>
-            Configura los puntos de progresión. Estás comparando contra la táctica <span className="font-bold text-foreground">[{idealBuildType}]</span>.
-          </DialogDescription>
+          <div className="flex flex-wrap items-center gap-2 mt-1">
+              <span className="text-sm text-muted-foreground">Táctica Solicitada: <span className="font-bold text-foreground">[{idealBuildType}]</span></span>
+              {actualTypeUsed !== idealBuildType && (
+                  <span className="text-xs bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-full border border-amber-500/20">
+                      Usando fallback: {actualTypeUsed}
+                  </span>
+              )}
+          </div>
         </DialogHeader>
         
         <Tabs defaultValue="build" className="flex-grow overflow-hidden flex flex-col">

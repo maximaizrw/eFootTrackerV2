@@ -239,7 +239,7 @@ export function getIdealBuildForPlayer(
     position: Position,
     idealBuilds: IdealBuild[],
     targetType: IdealBuildType = 'General'
-): { bestBuild: IdealBuild | null; bestStyle: PlayerStyle | null } {
+): { bestBuild: IdealBuild | null; bestStyle: PlayerStyle | null; actualType: IdealBuildType } {
     
     const findBuild = (type: IdealBuildType, pos: BuildPosition, style: PlayerStyle) => 
         idealBuilds.find(b => b.playStyle === type && b.position === pos && b.style === style);
@@ -270,23 +270,25 @@ export function getIdealBuildForPlayer(
 
     // Attempt target type first
     let build = getForType(targetType);
+    let finalTypeUsed = targetType;
     
     // If not found and target wasn't General, fallback to General
     if (!build && targetType !== 'General') {
         build = getForType('General');
+        finalTypeUsed = 'General';
     }
 
     if (build) {
-        return { bestBuild: build, bestStyle: build.style };
+        return { bestBuild: build, bestStyle: build.style, actualType: finalTypeUsed };
     }
 
     // Last resort: any build for the position
     const anyForPos = idealBuilds.filter(b => b.position === position || b.position === symmetricalPositionMap[position]);
     if (anyForPos.length > 0) {
-        return { bestBuild: anyForPos[0], bestStyle: anyForPos[0].style };
+        return { bestBuild: anyForPos[0], bestStyle: anyForPos[0].style, actualType: anyForPos[0].playStyle };
     }
 
-    return { bestBuild: null, bestStyle: null };
+    return { bestBuild: null, bestStyle: null, actualType: 'General' };
 }
 
 
