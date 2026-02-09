@@ -192,12 +192,13 @@ export type PhysicalAttribute = {
 
 export type PlayerCard = {
   id: string;
-  name: string; // e.g., "Highlight", "Player of the Week"
+  name: string;
   style: PlayerStyle;
   league?: League;
   imageUrl?: string;
   ratingsByPosition: { [key in Position]?: number[] };
-  buildsByPosition?: { [key in Position]?: PlayerBuild };
+  buildsByPosition?: { [key in Position]?: PlayerBuild }; // Legado / General
+  buildsByTactic?: { [key in IdealBuildType]?: { [key in Position]?: PlayerBuild } };
   attributeStats?: PlayerAttributeStats;
   physicalAttributes?: PhysicalAttribute;
   totalProgressionPoints?: number;
@@ -247,8 +248,8 @@ export type Formation = {
 export type IdealTeamPlayer = {
   player: Player;
   card: PlayerCard;
-  position: Position; // The actual position of the player's rating
-  assignedPosition: Position; // The slot they were assigned to in the formation
+  position: Position;
+  assignedPosition: Position;
   average: number;
   affinityScore: number;
   generalScore: number;
@@ -260,14 +261,12 @@ export type IdealTeamSlot = {
   substitute: IdealTeamPlayer | null;
 }
 
-// --- Tipos para Formaciones ---
-
 export type MatchResult = {
   id: string;
   goalsFor: number;
   goalsAgainst: number;
   shotsOnGoal?: number;
-  date: string; // ISO 8601 string
+  date: string;
 };
 
 export const FormationSlotSchema = z.object({
@@ -320,8 +319,6 @@ export type AddMatchFormValues = {
   goalsAgainst: number;
   shotsOnGoal?: number;
 }
-
-// --- Tipos para componentes refactorizados
 
 export type PlayerRatingStats = {
     average: number;

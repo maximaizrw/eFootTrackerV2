@@ -637,6 +637,7 @@ export default function Home() {
                       onDeletePositionRatings={deletePositionRatings}
                       onDeleteRating={deleteRating}
                       onUpdateLiveUpdateRating={updateLiveUpdateRating}
+                      currentIdealBuildType={idealBuildType}
                     />
                     <PlayerTable.Pagination
                       currentPage={currentPage}

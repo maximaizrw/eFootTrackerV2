@@ -70,13 +70,15 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
 
   const baseStats = React.useMemo(() => card?.attributeStats || {}, [card?.attributeStats]);
   
-  const buildForPosition = position && card?.buildsByPosition?.[position];
-  const updatedAt = buildForPosition?.updatedAt;
-
   React.useEffect(() => {
     if (open && flatPlayer && position && card) {
-      const initialBuild = card?.buildsByPosition?.[position] || { manualAffinity: 0 };
-      setBuild(initialBuild);
+      // Style-aware build loading
+      let initialBuild = card.buildsByTactic?.[idealBuildType]?.[position];
+      if (!initialBuild && idealBuildType !== 'General') {
+          initialBuild = card.buildsByPosition?.[position];
+      }
+      
+      setBuild(initialBuild || { manualAffinity: 0 });
       setTotalProgressionPoints(card.totalProgressionPoints);
       
       const { bestBuild } = getIdealBuildForPlayer(card.style, position, idealBuilds, idealBuildType);
@@ -129,9 +131,10 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
     const suggestions = calculateProgressionSuggestions(baseStats, bestBuild, isGoalkeeper, pointsToUse);
     
     setBuild(prev => ({ ...prev, ...suggestions }));
-    toast({ title: "Sugerencias Cargadas", description: `Se han distribuido ${pointsToUse} puntos.` });
+    toast({ title: "Sugerencias Cargadas", description: `Se han distribuido ${pointsToUse} puntos basados en [${idealBuildType}].` });
   };
 
+  const updatedAt = build?.updatedAt;
   const formattedDate = updatedAt 
     ? format(new Date(updatedAt), "d 'de' MMMM 'de' yyyy 'a las' HH:mm", { locale: es }) 
     : 'N/A';
@@ -168,7 +171,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
         <DialogHeader className="flex-shrink-0">
           <DialogTitle>Build para {player?.name} ({card?.name}) en <span className="text-primary">{position}</span></DialogTitle>
           <DialogDescription>
-            Definiendo build usando ideal <span className="font-bold text-foreground">[{idealBuildType}]</span>. Últ. act: <span className="font-semibold text-foreground">{formattedDate}</span>
+            Definiendo build para táctica <span className="font-bold text-foreground">[{idealBuildType}]</span>. Últ. act: <span className="font-semibold text-foreground">{formattedDate}</span>
           </DialogDescription>
         </DialogHeader>
         
@@ -182,7 +185,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
               <ScrollArea className="flex-grow pr-4 -mr-4">
                   <div className="space-y-4">
                       <div className="space-y-2">
-                          <Label htmlFor="manualAffinity">Afinidad Automática</Label>
+                          <Label htmlFor="manualAffinity">Afinidad Calculada</Label>
                           <div className="flex items-center gap-2">
                               <input
                               id="manualAffinity"
@@ -322,7 +325,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
         </Tabs>
 
         <DialogFooter className="pt-4 border-t mt-4 flex-shrink-0">
-          <Button onClick={handleSave}>Guardar Build</Button>
+          <Button onClick={handleSave}>Guardar Build en [${idealBuildType}]</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

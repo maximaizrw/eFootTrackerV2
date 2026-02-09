@@ -5,15 +5,23 @@ import * as React from 'react';
 import { differenceInCalendarDays, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import type { FlatPlayer, IdealTeamPlayer } from '@/lib/types';
+import type { FlatPlayer, IdealTeamPlayer, IdealBuildType } from '@/lib/types';
 
 type AffinityStatusIndicatorProps = {
   player: FlatPlayer | IdealTeamPlayer;
+  currentTactic?: IdealBuildType;
 };
 
-export function AffinityStatusIndicator({ player }: AffinityStatusIndicatorProps) {
+export function AffinityStatusIndicator({ player, currentTactic = 'General' }: AffinityStatusIndicatorProps) {
   const { card, position } = player;
-  const updatedAt = card.buildsByPosition?.[position]?.updatedAt;
+  
+  // Try to find build for current tactic first
+  let build = card.buildsByTactic?.[currentTactic]?.[position];
+  if (!build && currentTactic !== 'General') {
+      build = card.buildsByPosition?.[position];
+  }
+  
+  const updatedAt = build?.updatedAt;
 
   if (!updatedAt) {
     return (
@@ -22,7 +30,7 @@ export function AffinityStatusIndicator({ player }: AffinityStatusIndicatorProps
                 <TooltipTrigger asChild>
                     <div className="w-2.5 h-2.5 bg-violet-500 rounded-full flex-shrink-0" />
                 </TooltipTrigger>
-                <TooltipContent><p>Afinidad nunca actualizada</p></TooltipContent>
+                <TooltipContent><p>Afinidad nunca actualizada para [{currentTactic}]</p></TooltipContent>
             </Tooltip>
         </TooltipProvider>
     );

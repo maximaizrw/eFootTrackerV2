@@ -30,6 +30,7 @@ type PlayerTableProps = {
   onDeletePositionRatings: (playerId: string, cardId: string, position: Position) => void;
   onDeleteRating: (playerId: string, cardId: string, position: Position, ratingIndex: number) => void;
   onUpdateLiveUpdateRating: (playerId: string, rating: LiveUpdateRating | null) => void;
+  currentIdealBuildType: IdealBuildType;
 };
 
 type FilterProps = {
@@ -153,6 +154,7 @@ const PlayerTableMemo = memo(function PlayerTable({
   onDeletePositionRatings,
   onDeleteRating,
   onUpdateLiveUpdateRating,
+  currentIdealBuildType,
 }: PlayerTableProps) {
   
   if (flatPlayers.length === 0) {
@@ -238,7 +240,7 @@ const PlayerTableMemo = memo(function PlayerTable({
                             >
                                 {player.name}
                             </button>
-                            <AffinityStatusIndicator player={flatPlayer} />
+                            <AffinityStatusIndicator player={flatPlayer} currentTactic={currentIdealBuildType} />
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
