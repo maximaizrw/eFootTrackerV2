@@ -174,6 +174,12 @@ export function generateIdealTeam(
       const availableCandidates = candidates.filter(p => {
         if (usedPlayerIds.has(p.player.id) || usedCardIds.has(p.card.id) || discardedCardIds.has(p.card.id)) return false;
         
+        // RESTRICTION: Only A or B if sorting by average
+        if (sortBy === 'average') {
+            const rating = p.player.liveUpdateRating;
+            if (rating !== 'A' && rating !== 'B') return false;
+        }
+
         const scoreToFilter = isSubSelection ? p.substituteScore : p.generalScore;
         if (league === 'all' && nationality === 'all') {
             const rating = p.player.liveUpdateRating;
