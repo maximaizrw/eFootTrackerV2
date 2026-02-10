@@ -11,7 +11,7 @@ import { getAvailableStylesForPosition } from '@/lib/types';
 import { normalizeText, normalizeStyleName, calculateProgressionStats, getIdealBuildForPlayer, isSpecialCard, calculateProgressionSuggestions, calculateAffinityWithBreakdown, calculateStats, calculateGeneralScore } from '@/lib/utils';
 
 
-export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: IdealBuildType = 'Contraataque largo') {
+export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: IdealBuildType = 'Contraataque largo', sortByContext: 'average' | 'general' = 'general') {
   const [players, setPlayers] = useState<Player[]>([]);
   const [flatPlayers, setFlatPlayers] = useState<FlatPlayer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,6 +44,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
                     imageUrl: card.imageUrl || '',
                     ratingsByPosition: card.ratingsByPosition || {},
                     buildsByPosition: card.buildsByPosition || {},
+                    averageBuildsByPosition: card.averageBuildsByPosition || {},
                     attributeStats: card.attributeStats || {},
                     physicalAttributes: card.physicalAttributes || {},
                     skills: card.skills || [],
@@ -142,7 +143,10 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
                     const isGoalkeeper = ratedPos === 'PT';
                     const specialCard = isSpecialCard(card.name);
                     
-                    const currentBuild = card.buildsByPosition?.[ratedPos];
+                    // Select build based on sorting context
+                    const currentBuild = sortByContext === 'average' 
+                        ? card.averageBuildsByPosition?.[ratedPos] || card.buildsByPosition?.[ratedPos]
+                        : card.buildsByPosition?.[ratedPos];
                     
                     const finalStats = specialCard || !currentBuild
                         ? (card.attributeStats || {})
@@ -160,7 +164,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
         );
         setFlatPlayers(allFlatPlayers);
     }
-  }, [players, idealBuilds]);
+  }, [players, idealBuilds, sortByContext]);
 
 
   const addRating = async (values: AddRatingFormValues) => {
@@ -205,6 +209,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
               imageUrl: '',
               ratingsByPosition: { [position]: [rating] },
               buildsByPosition: { [position]: { manualAffinity: 0 } },
+              averageBuildsByPosition: { [position]: { manualAffinity: 0 } },
               attributeStats: {},
               physicalAttributes: {},
               skills: [],
@@ -225,6 +230,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
               imageUrl: '',
               ratingsByPosition: { [position]: [rating] },
               buildsByPosition: { [position]: { manualAffinity: 0 } },
+              averageBuildsByPosition: { [position]: { manualAffinity: 0 } },
               attributeStats: {},
               physicalAttributes: {},
               skills: [],
@@ -332,7 +338,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
     }
   };
   
-  const savePlayerBuild = async (playerId: string, cardId: string, position: Position, build: PlayerBuild, totalProgressionPoints?: number) => {
+  const savePlayerBuild = async (playerId: string, cardId: string, position: Position, build: PlayerBuild, totalProgressionPoints?: number, buildType: 'tactical' | 'average' = 'tactical') => {
     if (!db) return;
     const playerRef = doc(db, 'players', playerId);
     try {
@@ -346,11 +352,13 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
         if (cardToUpdate) {
             if (totalProgressionPoints !== undefined && !isSpecialCard(cardToUpdate.name)) cardToUpdate.totalProgressionPoints = totalProgressionPoints;
             
-            if (!cardToUpdate.buildsByPosition) cardToUpdate.buildsByPosition = {};
-            cardToUpdate.buildsByPosition[position] = { ...build, updatedAt: new Date().toISOString() };
+            const fieldName = buildType === 'tactical' ? 'buildsByPosition' : 'averageBuildsByPosition';
+            
+            if (!cardToUpdate[fieldName]) (cardToUpdate as any)[fieldName] = {};
+            (cardToUpdate as any)[fieldName][position] = { ...build, updatedAt: new Date().toISOString() };
 
             await updateDoc(playerRef, { cards: newCards });
-            toast({ title: "Build Guardada", description: `Build y afinidad para ${position} actualizadas.` });
+            toast({ title: "Build Guardada", description: `Build ${buildType === 'tactical' ? 'Táctica' : 'Promedio'} para ${position} actualizada.` });
         }
     } catch (error) {
         toast({ variant: "destructive", title: "Error al Guardar", description: "No se pudo guardar la build." });
@@ -373,6 +381,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
           cardToUpdate.skills = skills;
           cardToUpdate.attributeStats = { ...stats };
           
+          // Recalculate tactical builds
           if(cardToUpdate.buildsByPosition) {
               for (const posKey in cardToUpdate.buildsByPosition) {
                   const pos = posKey as Position;
@@ -388,8 +397,24 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
                   }
               }
            }
+           // Recalculate average builds
+           if(cardToUpdate.averageBuildsByPosition) {
+              for (const posKey in cardToUpdate.averageBuildsByPosition) {
+                  const pos = posKey as Position;
+                  const bld = cardToUpdate.averageBuildsByPosition[pos];
+                  if(bld) {
+                      const isGK = pos === 'PT';
+                      const special = isSpecialCard(cardToUpdate.name);
+                      const final = special ? cardToUpdate.attributeStats : calculateProgressionStats(cardToUpdate.attributeStats || {}, bld, isGK);
+                      const { bestBuild } = getIdealBuildForPlayer(cardToUpdate.style, pos, idealBuilds, 'Contraataque largo');
+                      const newAffinity = calculateAffinityWithBreakdown(final, bestBuild, physical, skills).totalAffinityScore;
+                      bld.manualAffinity = newAffinity;
+                      bld.updatedAt = new Date().toISOString();
+                  }
+              }
+           }
           await setDoc(playerRef, { ...playerData, cards: newCards });
-          toast({ title: "Atributos Guardados", description: `Atributos y afinidades recalculados para Contraataque largo.` });
+          toast({ title: "Atributos Guardados", description: `Atributos y afinidades recalculados.` });
         }
     } catch (error) {
       toast({ variant: "destructive", title: "Error al Guardar", description: "No se pudieron guardar los atributos." });
@@ -420,10 +445,30 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
             const newCards: PlayerCard[] = JSON.parse(JSON.stringify(player.cards || []));
 
             for (const card of newCards) {
+                // Tactical
                 if (card.buildsByPosition) {
                     for (const posKey in card.buildsByPosition) {
                         const pos = posKey as Position;
                         const build = card.buildsByPosition[pos];
+                        if (build && card.attributeStats) {
+                           const isGK = pos === 'PT';
+                           const special = isSpecialCard(card.name);
+                           const final = special ? card.attributeStats : calculateProgressionStats(card.attributeStats, build, isGK);
+                           const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds, 'Contraataque largo');
+                           const newAffinity = calculateAffinityWithBreakdown(final, bestBuild, card.physicalAttributes, card.skills).totalAffinityScore;
+                           if (Math.abs(build.manualAffinity - newAffinity) > 0.01) {
+                                build.manualAffinity = newAffinity;
+                                build.updatedAt = new Date().toISOString();
+                                playerWasUpdated = true;
+                           }
+                        }
+                    }
+                }
+                // Average
+                if (card.averageBuildsByPosition) {
+                    for (const posKey in card.averageBuildsByPosition) {
+                        const pos = posKey as Position;
+                        const build = card.averageBuildsByPosition[pos];
                         if (build && card.attributeStats) {
                            const isGK = pos === 'PT';
                            const special = isSpecialCard(card.name);

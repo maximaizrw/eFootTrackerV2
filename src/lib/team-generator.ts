@@ -28,7 +28,7 @@ export function generateIdealTeam(
   sortBy: 'average' | 'general' = 'average',
   isFlexibleLaterals: boolean = false,
   isFlexibleWingers: boolean = false,
-  targetIdealType: IdealBuildType = 'General'
+  targetIdealType: IdealBuildType = 'Contraataque largo'
 ): IdealTeamSlot[] {
   
   
@@ -102,8 +102,10 @@ export function generateIdealTeam(
             isSpecialist: isSpecialist,
         };
         
-        // Live affinity calculation
-        const buildForPos = card.buildsByPosition?.[pos];
+        // Select build based on sorting context
+        const buildsMap = sortBy === 'average' ? (card.averageBuildsByPosition || card.buildsByPosition) : card.buildsByPosition;
+        const buildForPos = buildsMap?.[pos];
+        
         const specialCard = isSpecialCard(card.name);
         const isGoalkeeper = pos === 'PT';
         const finalStats = specialCard || !buildForPos

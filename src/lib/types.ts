@@ -54,7 +54,7 @@ export type LiveUpdateRating = typeof liveUpdateRatings[number];
 
 
 export type OutfieldBuild = {
-  shooting?: number; // 0-20
+  shooting?: number; // 0-16
   passing?: number;
   dribbling?: number;
   dexterity?: number;
@@ -64,12 +64,12 @@ export type OutfieldBuild = {
 };
 
 export type GoalkeeperBuild = {
-  gk1?: number; // 0-20
+  gk1?: number; // 0-16
   gk2?: number;
   gk3?: number;
 };
 
-export type PlayerBuild = (OutfieldBuild | GoalkeeperBuild) & {
+export type PlayerBuild = (OutfieldBuild & GoalkeeperBuild) & {
   manualAffinity?: number; // -100 to 100
   updatedAt?: string;
 };
@@ -199,6 +199,7 @@ export type PlayerCard = {
   imageUrl?: string;
   ratingsByPosition: { [key in Position]?: number[] };
   buildsByPosition?: { [key in Position]?: PlayerBuild };
+  averageBuildsByPosition?: { [key in Position]?: PlayerBuild };
   attributeStats?: PlayerAttributeStats;
   physicalAttributes?: PhysicalAttribute;
   totalProgressionPoints?: number;

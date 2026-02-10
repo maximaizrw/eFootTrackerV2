@@ -9,7 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, X, Wrench, Pencil, NotebookPen, Search, Star, SlidersHorizontal, Dna } from 'lucide-react';
+import { PlusCircle, Trash2, X, Wrench, Pencil, NotebookPen, Search, Star, SlidersHorizontal, Dna, BarChart2 } from 'lucide-react';
 import { cn, formatAverage, getAverageColorClass, isSpecialCard, isProfileIncomplete } from '@/lib/utils';
 import type { Player, PlayerCard, Position, FlatPlayer, PhysicalAttribute, LiveUpdateRating, IdealBuildType } from '@/lib/types';
 import { idealBuildTypes } from '@/lib/types';
@@ -28,6 +28,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
 
 type PlayerTableProps = {
   players: FlatPlayer[];
@@ -53,6 +54,8 @@ type FilterProps = {
   onCardFilterChange: (value: string) => void;
   uniqueStyles: string[];
   uniqueCardNames: string[];
+  sortBy: 'average' | 'general';
+  onSortByChange: (val: 'average' | 'general') => void;
 };
 
 const Filters = memo(({
@@ -64,6 +67,8 @@ const Filters = memo(({
   onCardFilterChange,
   uniqueStyles,
   uniqueCardNames,
+  sortBy,
+  onSortByChange,
 }: FilterProps) => (
   <div className="flex flex-col md:flex-row gap-2">
     <div className="relative flex-grow">
@@ -76,13 +81,25 @@ const Filters = memo(({
       />
     </div>
     <div className="flex gap-2 flex-wrap md:flex-nowrap">
-        <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-md border text-sm text-muted-foreground">
-            <Dna className="h-4 w-4 text-primary shrink-0" />
-            <span>Contraataque largo</span>
-        </div>
+        <ToggleGroup 
+            type="single" 
+            value={sortBy} 
+            onValueChange={(value: 'average' | 'general') => value && onSortByChange(value)}
+            className="border rounded-md"
+        >
+          <ToggleGroupItem value="average" aria-label="Build Promedio" className="text-xs px-2 h-9">
+            <BarChart2 className="mr-1 h-3.5 w-3.5" />
+            Promedio
+          </ToggleGroupItem>
+          <ToggleGroupItem value="general" aria-label="Build Táctica" className="text-xs px-2 h-9">
+             <Star className="mr-1 h-3.5 w-3.5" />
+            Táctica
+          </ToggleGroupItem>
+        </ToggleGroup>
+
         <Select value={styleFilter} onValueChange={onStyleFilterChange}>
-        <SelectTrigger className="w-full md:w-[180px]">
-            <SelectValue placeholder="Filtrar por estilo" />
+        <SelectTrigger className="w-full md:w-[150px]">
+            <SelectValue placeholder="Filtrar estilo" />
         </SelectTrigger>
         <SelectContent>
             {uniqueStyles.map(style => (
@@ -91,8 +108,8 @@ const Filters = memo(({
         </SelectContent>
         </Select>
         <Select value={cardFilter} onValueChange={onCardFilterChange}>
-        <SelectTrigger className="w-full md:w-[180px]">
-            <SelectValue placeholder="Filtrar por carta" />
+        <SelectTrigger className="w-full md:w-[150px]">
+            <SelectValue placeholder="Filtrar carta" />
         </SelectTrigger>
         <SelectContent>
             {uniqueCardNames.map(name => (
@@ -230,7 +247,7 @@ const PlayerTableMemo = memo(function PlayerTable({
                             >
                                 {player.name}
                             </button>
-                            <AffinityStatusIndicator player={flatPlayer} currentTactic={currentIdealBuildType} />
+                            <AffinityStatusIndicator player={flatPlayer} />
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>

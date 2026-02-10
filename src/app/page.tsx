@@ -63,6 +63,8 @@ export default function Home() {
   // ONLY Contraataque largo is supported as the base tactic
   const idealBuildType: IdealBuildType = 'Contraataque largo';
 
+  const [sortBy, setSortBy] = useState<'average' | 'general'>('general');
+
   const { 
     players, 
     flatPlayers,
@@ -80,7 +82,7 @@ export default function Home() {
     suggestAllBuilds,
     updateLiveUpdateRating,
     resetAllLiveUpdateRatings,
-  } = usePlayers(idealBuilds, idealBuildType);
+  } = usePlayers(idealBuilds, idealBuildType, sortBy);
 
   const {
     formations,
@@ -128,7 +130,6 @@ export default function Home() {
   const [selectedNationality, setSelectedNationality] = useState<Nationality | 'all'>('all');
   const [idealTeam, setIdealTeam] = useState<IdealTeamSlot[]>([]);
   const [discardedCardIds, setDiscardedCardIds] = useState<Set<string>>(new Set());
-  const [sortBy, setSortBy] = useState<'average' | 'general'>('general');
   const [isFlexibleLaterals, setFlexibleLaterals] = useState(false);
   const [isFlexibleWingers, setFlexibleWingers] = useState(false);
   
@@ -306,7 +307,7 @@ export default function Home() {
 
     toast({
       title: "Descarga Iniciada",
-      description: "El backup de la base de datos se está descargando.",
+      description: "El backup de la base de datos se está degradando.",
     });
   }, [downloadPlayersBackup, downloadFormationsBackup, toast]);
 
@@ -512,6 +513,7 @@ export default function Home() {
         onSavePlayerBuild={savePlayerBuild}
         idealBuilds={idealBuilds}
         idealBuildType={idealBuildType}
+        initialSortBy={sortBy}
       />
       <PlayerBuildViewer
         open={isBuildViewerOpen}
@@ -634,6 +636,8 @@ export default function Home() {
                           onCardFilterChange={setCardFilter}
                           uniqueStyles={uniqueStyles}
                           uniqueCardNames={uniqueCardNames}
+                          sortBy={sortBy}
+                          onSortByChange={setSortBy}
                         />
                     </CardHeader>
                     <PlayerTable
