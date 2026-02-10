@@ -141,16 +141,19 @@ export function generateIdealTeam(
   const finalTeamSlots: IdealTeamSlot[] = [];
   
   const sortFunction = (a: CandidatePlayer, b: CandidatePlayer, useSubScore: boolean = false) => {
-    const scoreA = useSubScore ? a.substituteScore : a.generalScore;
-    const scoreB = useSubScore ? b.substituteScore : b.generalScore;
-
-    if (sortBy === 'general') {
+    if (sortBy === 'average') {
+      // ABSOLUTE priority to average
+      if (Math.abs(a.average - b.average) > 0.01) return b.average - a.average;
+      
+      const scoreA = useSubScore ? a.substituteScore : a.generalScore;
+      const scoreB = useSubScore ? b.substituteScore : b.generalScore;
       if (Math.abs(scoreA - scoreB) > 0.01) return scoreB - scoreA;
-      if (Math.abs(a.affinityScore - b.affinityScore) > 0.1) return b.affinityScore - a.affinityScore;
       return b.performance.stats.matches - a.performance.stats.matches;
     } else {
-      if (Math.abs(a.average - b.average) > 0.01) return b.average - a.average;
+      const scoreA = useSubScore ? a.substituteScore : a.generalScore;
+      const scoreB = useSubScore ? b.substituteScore : b.generalScore;
       if (Math.abs(scoreA - scoreB) > 0.01) return scoreB - scoreA;
+      if (Math.abs(a.affinityScore - b.affinityScore) > 0.1) return b.affinityScore - a.affinityScore;
       return b.performance.stats.matches - a.performance.stats.matches;
     }
   };
@@ -174,18 +177,18 @@ export function generateIdealTeam(
       const availableCandidates = candidates.filter(p => {
         if (usedPlayerIds.has(p.player.id) || usedCardIds.has(p.card.id) || discardedCardIds.has(p.card.id)) return false;
         
-        // RESTRICTION: Only A or B if sorting by average
+        const rating = p.player.liveUpdateRating;
+
+        // Mode-specific form filtering
         if (sortBy === 'average') {
-            const rating = p.player.liveUpdateRating;
+            // STRICT restriction: Only A or B for average mode
             if (rating !== 'A' && rating !== 'B') return false;
+        } else {
+            // General mode: Just avoid bad form
+            if (rating === 'D' || rating === 'E') return false;
         }
 
-        const scoreToFilter = isSubSelection ? p.substituteScore : p.generalScore;
-        if (league === 'all' && nationality === 'all') {
-            const rating = p.player.liveUpdateRating;
-            if (rating === 'D' || rating === 'E') return false;
-            if (scoreToFilter < 90) return false;
-        }
+        // We removed the score < 90 threshold because it was too restrictive for high-average/low-affinity players
         return true;
       });
       return availableCandidates[0];
@@ -219,10 +222,13 @@ export function generateIdealTeam(
   for (const formationSlot of formation.slots) {
     let candidates = getCandidatesForSlot(formationSlot, true, false, false);
     let starterCandidate = findBestPlayer(candidates, false);
+    
+    // If no candidate found with style preference, try ignoring it
     if (!starterCandidate && formationSlot.styles && formationSlot.styles.length > 0) {
         candidates = getCandidatesForSlot(formationSlot, true, true, false);
         starterCandidate = findBestPlayer(candidates, false);
     }
+    
     if (starterCandidate) {
       usedPlayerIds.add(starterCandidate.player.id);
       usedCardIds.add(starterCandidate.card.id);
@@ -238,17 +244,22 @@ export function generateIdealTeam(
     
     const getBestSub = (ignoreStyle: boolean) => {
         const candidates = getCandidatesForSlot(subSearchSlot, false, ignoreStyle, true);
+        
+        // Prioritize players with fewer matches for the bench (growing talent)
         const tier1 = candidates.filter(p => p.performance.stats.matches < 5);
         let found = findBestPlayer(tier1, true);
         if (found) return found;
+        
         const tier2 = candidates.filter(p => p.performance.stats.matches < 10);
         found = findBestPlayer(tier2, true);
         if (found) return found;
+        
         return findBestPlayer(candidates, true);
     };
 
     let substituteCandidate = getBestSub(false);
     if (!substituteCandidate && subSearchSlot.styles && subSearchSlot.styles.length > 0) substituteCandidate = getBestSub(true);
+    
     if (substituteCandidate) {
       usedPlayerIds.add(substituteCandidate.player.id);
       usedCardIds.add(substituteCandidate.card.id);
@@ -256,7 +267,7 @@ export function generateIdealTeam(
     }
   });
 
-  // 12th SUB
+  // 12th SUB (Wildcard)
   const outfieldFormationPositions = formation.slots.map(s => s.position).filter(p => p !== 'PT');
   const allRemainingOutfieldCandidates = allPlayerCandidates
     .filter(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id) && !discardedCardIds.has(p.card.id) && outfieldFormationPositions.includes(p.position))
@@ -270,6 +281,7 @@ export function generateIdealTeam(
           extraSubCandidate = findBestPlayer(tier2_12th, true);
       }
       if (!extraSubCandidate) extraSubCandidate = findBestPlayer(allRemainingOutfieldCandidates, true);
+      
       if (extraSubCandidate) {
           finalTeamSlots.push({ starter: null, substitute: createTeamPlayer(extraSubCandidate, extraSubCandidate.position, true) });
       }
@@ -284,14 +296,17 @@ export function generateIdealTeam(
   const finalSlots = finalTeamSlots.map((slot, index) => {
     const formationSlot = index < formation.slots.length ? formation.slots[index] : null;
     const assignedPosition = formationSlot?.position || (slot.substitute?.position || 'DFC');
+    
     const placeholderPlayer: IdealTeamPlayer = {
         player: { id: `placeholder-S-${index}`, name: `Vacante`, cards: [], nationality: 'Sin Nacionalidad' as Nationality, permanentLiveUpdateRating: false },
         card: { id: `placeholder-card-S-${index}`, name: 'N/A', style: 'Ninguno', ratingsByPosition: {} },
         position: assignedPosition, assignedPosition: assignedPosition, average: 0, affinityScore: 0, generalScore: 0, performance: placeholderPerformance
     };
+    
     const starter = slot.starter || (index < 11 ? placeholderPlayer : null);
     const subPlaceholderPlayer: IdealTeamPlayer = { ...placeholderPlayer, player: { ...placeholderPlayer.player, id: `placeholder-SUB-${index}`}, card: { ...placeholderPlayer.card, id: `placeholder-card-SUB-${index}`} };
     const substitute = slot.substitute || (index < 12 ? subPlaceholderPlayer : null);
+    
     return { starter, substitute };
   });
 
