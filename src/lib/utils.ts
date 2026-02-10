@@ -1,7 +1,7 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position, BuildPosition, PhysicalAttribute, PlayerSkill, PlayerPerformance, LiveUpdateRating, IdealBuildType } from "./types";
+import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position, BuildPosition, PhysicalAttribute, PlayerSkill, PlayerPerformance, LiveUpdateRating, IdealBuildType, PlayerCard } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -131,6 +131,20 @@ export function isSpecialCard(cardName: string): boolean {
   if (!cardName) return false;
   const lowerCaseCardName = cardName.toLowerCase();
   return lowerCaseCardName.includes('potw') || lowerCaseCardName.includes('pots') || lowerCaseCardName.includes('potm');
+}
+
+/**
+ * Checks if a player card profile is incomplete.
+ */
+export function isProfileIncomplete(card: PlayerCard): boolean {
+  if (!card) return true;
+  const special = isSpecialCard(card.name);
+  const hasStats = card.attributeStats && Object.keys(card.attributeStats).length > 0;
+  const hasPhysical = card.physicalAttributes && card.physicalAttributes.height !== undefined && card.physicalAttributes.weight !== undefined;
+  const hasSkills = card.skills && card.skills.length > 0;
+  const hasProgression = special || (card.totalProgressionPoints !== undefined && card.totalProgressionPoints > 0);
+
+  return !hasStats || !hasPhysical || !hasSkills || !hasProgression;
 }
 
 

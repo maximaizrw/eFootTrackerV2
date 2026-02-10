@@ -22,6 +22,17 @@ import {
 } from "@/components/ui/tooltip";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from '@/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type FormationWithStats = FormationStats & { stats: ReturnType<typeof calculateStats> };
 type SortByType = 'effectiveness' | 'goals' | 'shots';
@@ -85,21 +96,29 @@ const MatchHistory = ({ matches, formationId, onDeleteMatchResult }: { matches: 
                   {match.shotsOnGoal !== undefined && <span className="flex items-center gap-1 text-xs text-muted-foreground">(<Target className="h-3 w-3" /> {match.shotsOnGoal})</span>}
                 </div>
                  <span className="text-xs text-muted-foreground">{new Date(match.date).toLocaleDateString()}</span>
-                 <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                           <Button
+                 <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6"
-                            onClick={() => onDeleteMatchResult(formationId, match.id)}
-                            >
-                                <Trash2 className="h-3 w-3 text-destructive" />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="left"><p>Eliminar resultado</p></TooltipContent>
-                    </Tooltip>
-                 </TooltipProvider>
+                        >
+                            <Trash2 className="h-3 w-3 text-destructive" />
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>¿Eliminar resultado?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Esta acción borrará permanentemente este marcador del historial de la formación.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => onDeleteMatchResult(formationId, match.id)}>Eliminar</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                 </AlertDialog>
               </div>
             ))}
           </div>
@@ -254,14 +273,25 @@ const FormationCard = ({ formation, onAddMatch, onDeleteFormation, onEdit, onVie
                         </TooltipTrigger>
                         <TooltipContent><p>Editar Formación</p></TooltipContent>
                     </Tooltip>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button variant="destructive" size="icon" onClick={() => onDeleteFormation(formation)}>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive" size="icon">
                                 <Trash2 className="h-4 w-4" />
                             </Button>
-                        </TooltipTrigger>
-                        <TooltipContent><p>Eliminar Formación</p></TooltipContent>
-                    </Tooltip>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>¿Eliminar formación?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Esta acción eliminará la formación "{formation.name}" y todas sus estadísticas de partidos permanentemente.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => onDeleteFormation(formation)}>Eliminar</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 </TooltipProvider>
             </div>
         </CardFooter>
@@ -326,14 +356,25 @@ const FormationRow = ({ formation, onAddMatch, onEdit, onDeleteFormation, onGene
                       </TooltipTrigger>
                       <TooltipContent><p>Editar Formación</p></TooltipContent>
                   </Tooltip>
-                  <Tooltip>
-                      <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive/80 hover:text-destructive" onClick={() => onDeleteFormation(formation)}>
-                              <Trash2 className="h-4 w-4" />
-                          </Button>
-                      </TooltipTrigger>
-                      <TooltipContent><p>Eliminar Formación</p></TooltipContent>
-                  </Tooltip>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive/80 hover:text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>¿Eliminar formación?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                ¿Estás seguro de que quieres eliminar la formación "{formation.name}"?
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => onDeleteFormation(formation)}>Eliminar</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </TooltipProvider>
             </div>
         </div>
@@ -440,5 +481,3 @@ const FormationsDisplayMemo = memo(function FormationsDisplay({ formations, onAd
 });
 
 export { FormationsDisplayMemo as FormationsDisplay, calculateStats };
-
-    

@@ -10,13 +10,24 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Trash2, X, Wrench, Pencil, NotebookPen, Search, Star, SlidersHorizontal, Dna } from 'lucide-react';
-import { cn, formatAverage, getAverageColorClass, isSpecialCard } from '@/lib/utils';
+import { cn, formatAverage, getAverageColorClass, isSpecialCard, isProfileIncomplete } from '@/lib/utils';
 import type { Player, PlayerCard, Position, FlatPlayer, PhysicalAttribute, LiveUpdateRating, IdealBuildType } from '@/lib/types';
 import { idealBuildTypes } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import { PerformanceBadges } from './performance-badges';
 import { AffinityStatusIndicator } from './affinity-status-indicator';
 import { LiveUpdateRatingSelector } from './live-update-rating-selector';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type PlayerTableProps = {
   players: FlatPlayer[];
@@ -195,19 +206,8 @@ const PlayerTableMemo = memo(function PlayerTable({
             
             const rowId = `${player.id}-${card.id}-${position}`;
             
-            const specialCard = isSpecialCard(card.name);
-            const hasNoStats = !card.attributeStats || Object.keys(card.attributeStats).length === 0;
-            const needsProgressionPoints = !specialCard && !card.totalProgressionPoints;
-            const needsSkills = !card.skills || card.skills.length === 0;
-
-            const isMissingCriticalData = hasNoStats || (needsProgressionPoints && !specialCard);
-            let nameColorClass = "";
-            if (isMissingCriticalData) {
-                nameColorClass = "text-red-500";
-            } else if (needsSkills) {
-                nameColorClass = "text-blue-400";
-            }
-
+            const incomplete = isProfileIncomplete(card);
+            const nameColorClass = incomplete ? "text-red-500" : "";
 
             return (
               <React.Fragment key={rowId}>
@@ -229,10 +229,12 @@ const PlayerTableMemo = memo(function PlayerTable({
                       )}
                       <div>
                         <div className="flex items-center gap-2">
-                            <LiveUpdateRatingSelector
-                                value={player.liveUpdateRating}
-                                onValueChange={(newValue) => onUpdateLiveUpdateRating(player.id, newValue)}
-                            />
+                            <div className={cn(incomplete && "text-red-500")}>
+                                <LiveUpdateRatingSelector
+                                    value={player.liveUpdateRating}
+                                    onValueChange={(newValue) => onUpdateLiveUpdateRating(player.id, newValue)}
+                                />
+                            </div>
                             <button 
                                 onClick={(e) => { e.stopPropagation(); onOpenPlayerDetail(flatPlayer); }}
                                 className={cn("font-medium text-sm md:text-base hover:underline text-left", nameColorClass)}
@@ -286,14 +288,29 @@ const PlayerTableMemo = memo(function PlayerTable({
                               <Badge variant="default" className="text-sm">
                                 {rating.toFixed(1)}
                               </Badge>
-                              <Button
-                                size="icon" variant="destructive"
-                                className="absolute -top-2 -right-2 h-4 w-4 rounded-full opacity-0 group-hover/rating:opacity-100 transition-opacity z-10"
-                                onClick={(e) => { e.stopPropagation(); onDeleteRating(player.id, card.id, position, originalIndex); }}
-                                aria-label={`Eliminar valoración ${rating}`}
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button
+                                        size="icon" variant="destructive"
+                                        className="absolute -top-2 -right-2 h-4 w-4 rounded-full opacity-0 group-hover/rating:opacity-100 transition-opacity z-10"
+                                        aria-label={`Eliminar valoración ${rating}`}
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Esta acción eliminará permanentemente la valoración de {rating.toFixed(1)} para este jugador.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => onDeleteRating(player.id, card.id, position, originalIndex)}>Eliminar</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
                             </div>
                           );
                         })}
@@ -364,17 +381,28 @@ const PlayerTableMemo = memo(function PlayerTable({
                               </TooltipTrigger>
                               <TooltipContent><p>Editar atributos de la carta</p></TooltipContent>
                           </Tooltip>
-                          <Tooltip>
-                              <TooltipTrigger asChild>
-                              <Button
-                                  variant="ghost" size="icon" className="h-8 w-8 rounded-full"
-                                  aria-label={`Eliminar valoraciones de ${card.name} (${player.name}) para la posición ${position}`}
-                                  onClick={(e) => { e.stopPropagation(); onDeletePositionRatings(player.id, card.id, position); }}>
-                                  <Trash2 className="h-4 w-4 text-destructive/80 hover:text-destructive" />
-                              </Button>
-                              </TooltipTrigger>
-                              <TooltipContent><p>Eliminar todas las valoraciones para esta posición</p></TooltipContent>
-                          </Tooltip>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button
+                                    variant="ghost" size="icon" className="h-8 w-8 rounded-full"
+                                    aria-label={`Eliminar valoraciones de ${card.name} (${player.name}) para la posición ${position}`}
+                                >
+                                    <Trash2 className="h-4 w-4 text-destructive/80 hover:text-destructive" />
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>¿Eliminar posición?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Se borrarán todas las valoraciones registradas para {player.name} en la posición {position}. Esta acción no se puede deshacer.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => onDeletePositionRatings(player.id, card.id, position)}>Eliminar Todo</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </TooltipProvider>
                     </div>

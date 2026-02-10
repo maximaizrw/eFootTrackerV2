@@ -8,7 +8,7 @@ import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { PerformanceBadges } from './performance-badges';
 import { FootballPitch } from './football-pitch';
-import { cn } from '@/lib/utils';
+import { cn, isProfileIncomplete } from '@/lib/utils';
 import { Card } from './ui/card';
 import { AffinityStatusIndicator } from './affinity-status-indicator';
 import { isSpecialCard } from '@/lib/utils';
@@ -33,18 +33,8 @@ const PlayerToken = ({ player, style, onDiscard, onViewBuild, onUpdateLiveUpdate
   const originalPosition = player.position;
   const isFlex = displayPosition !== originalPosition;
 
-  const specialCard = isSpecialCard(player.card.name);
-  const hasNoStats = !player.card.attributeStats || Object.keys(player.card.attributeStats).length === 0;
-  const needsProgressionPoints = !specialCard && !player.card.totalProgressionPoints;
-  const needsSkills = !player.card.skills || player.card.skills.length === 0;
-
-  const isMissingCriticalData = hasNoStats || (needsProgressionPoints && !specialCard);
-  let nameColorClass = "";
-  if (isMissingCriticalData) {
-      nameColorClass = "text-red-500";
-  } else if (needsSkills) {
-      nameColorClass = "text-blue-400";
-  }
+  const incomplete = isProfileIncomplete(player.card);
+  const nameColorClass = incomplete ? "text-red-500" : "";
 
 
   return (
@@ -91,10 +81,12 @@ const PlayerToken = ({ player, style, onDiscard, onViewBuild, onUpdateLiveUpdate
               {displayPosition} {isFlex && <span className="text-xs font-normal">({originalPosition})</span>}
             </p>
             <div className="flex items-center justify-center gap-1">
-              <LiveUpdateRatingSelector
-                value={player.player.liveUpdateRating}
-                onValueChange={(newValue) => onUpdateLiveUpdateRating(player.player.id, newValue)}
-              />
+              <div className={cn(incomplete && "text-red-500")}>
+                <LiveUpdateRatingSelector
+                    value={player.player.liveUpdateRating}
+                    onValueChange={(newValue) => onUpdateLiveUpdateRating(player.player.id, newValue)}
+                />
+              </div>
               <button className="flex items-center justify-center gap-1 group/name" onClick={() => onViewBuild(player)}>
                   <AffinityStatusIndicator player={player} />
                   <p className={cn("font-semibold text-xs truncate group-hover/name:underline", nameColorClass)} title={player.player.name}>
@@ -124,18 +116,8 @@ const SubstitutePlayerRow = ({ player, onDiscard, onViewBuild, onUpdateLiveUpdat
   const originalPosition = player.position;
   const isFlex = displayPosition !== originalPosition;
 
-  const specialCard = isSpecialCard(player.card.name);
-  const hasNoStats = !player.card.attributeStats || Object.keys(player.card.attributeStats).length === 0;
-  const needsProgressionPoints = !specialCard && !player.card.totalProgressionPoints;
-  const needsSkills = !player.card.skills || player.card.skills.length === 0;
-
-  const isMissingCriticalData = hasNoStats || (needsProgressionPoints && !specialCard);
-  let nameColorClass = "";
-  if (isMissingCriticalData) {
-      nameColorClass = "text-red-500";
-  } else if (needsSkills) {
-      nameColorClass = "text-blue-400";
-  }
+  const incomplete = isProfileIncomplete(player.card);
+  const nameColorClass = incomplete ? "text-red-500" : "";
 
 
   return (
@@ -156,10 +138,12 @@ const SubstitutePlayerRow = ({ player, onDiscard, onViewBuild, onUpdateLiveUpdat
       </div>
       <div className="flex-grow overflow-hidden">
         <div className="flex items-center gap-2">
-            <LiveUpdateRatingSelector
-                value={player.player.liveUpdateRating}
-                onValueChange={(newValue) => onUpdateLiveUpdateRating(player.player.id, newValue)}
-            />
+            <div className={cn(incomplete && "text-red-500")}>
+                <LiveUpdateRatingSelector
+                    value={player.player.liveUpdateRating}
+                    onValueChange={(newValue) => onUpdateLiveUpdateRating(player.player.id, newValue)}
+                />
+            </div>
             <button className="flex items-center gap-2 group/name" onClick={() => onViewBuild(player)}>
                 <AffinityStatusIndicator player={player} />
                 <p className={cn("font-semibold text-base text-foreground truncate group-hover/name:underline", nameColorClass)} title={player.player.name}>

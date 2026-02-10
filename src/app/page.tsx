@@ -11,7 +11,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogFooter,
-  AlertDialogCancel
+  AlertDialogCancel,
+  AlertDialogAction,
+  AlertDialogDescription,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 
@@ -41,7 +44,7 @@ import { useToast } from "@/hooks/use-toast";
 
 import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerBuild, IdealTeamPlayer, PlayerAttributeStats, IdealBuild, IdealBuildType } from '@/lib/types';
 import { positions, leagues, nationalities, formationPlayStyles } from '@/lib/types';
-import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Dna, RefreshCw, Beaker, Wand2, Copy } from 'lucide-react';
+import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Dna, RefreshCw, Beaker, Wand2, Copy, Trash2 } from 'lucide-react';
 import { normalizeText } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -767,7 +770,23 @@ export default function Home() {
                           JSON
                         </Button>
                         <Button variant="outline" size="sm" onClick={() => handleOpenIdealBuildEditor(build)}>Editar</Button>
-                        <Button variant="destructive" size="sm" onClick={() => deleteIdealBuild(build.id!)}>Eliminar</Button>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" size="sm">Eliminar</Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>¿Eliminar Build Ideal?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Esta acción eliminará permanentemente la configuración ideal para {build.position} - {build.style} en la táctica {build.playStyle}.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => deleteIdealBuild(build.id!)}>Eliminar</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </div>
                   ))}

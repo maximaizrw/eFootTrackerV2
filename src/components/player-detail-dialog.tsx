@@ -19,7 +19,7 @@ import { es } from 'date-fns/locale';
 import { Slider } from "./ui/slider";
 import { ScrollArea } from "./ui/scroll-area";
 import { Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, BrainCircuit, RefreshCw, Info } from "lucide-react";
-import { calculateProgressionStats, getIdealBuildForPlayer, calculateAffinityWithBreakdown, type AffinityBreakdownResult, statLabels, calculateProgressionSuggestions, isSpecialCard } from "@/lib/utils";
+import { calculateProgressionStats, getIdealBuildForPlayer, calculateAffinityWithBreakdown, type AffinityBreakdownResult, statLabels, calculateProgressionSuggestions, isSpecialCard, isProfileIncomplete } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
@@ -156,18 +156,8 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
       return baseStats[baseStat] !== undefined ? baseStats[baseStat] : baseStats[stat];
   }
 
-  const needsPhysicalAttrs = !card?.physicalAttributes || card.physicalAttributes.height === undefined || card.physicalAttributes.weight === undefined;
-  const hasNoStats = !card?.attributeStats || Object.keys(card.attributeStats).length === 0;
-  const needsProgressionPoints = !specialCard && !card?.totalProgressionPoints;
-  const needsSkills = !card?.skills || card.skills.length === 0;
-  
-  const isMissingCriticalData = hasNoStats || needsProgressionPoints || needsPhysicalAttrs;
-  let titleColorClass = "";
-  if (isMissingCriticalData) {
-      titleColorClass = "text-red-500";
-  } else if (needsSkills) {
-      titleColorClass = "text-blue-400";
-  }
+  const incomplete = card ? isProfileIncomplete(card) : false;
+  const titleColorClass = incomplete ? "text-red-500" : "";
 
 
   return (
