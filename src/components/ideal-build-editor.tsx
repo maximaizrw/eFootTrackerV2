@@ -223,7 +223,8 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
   }, [open, initialBuild, reset]);
   
   const availableStyles = React.useMemo(() => {
-    return getAvailableStylesForPosition(watchedPosition, false);
+    // ALWAYS allow "Ninguno" in the Ideal Build Editor
+    return getAvailableStylesForPosition(watchedPosition, true);
   }, [watchedPosition]);
 
   React.useEffect(() => {

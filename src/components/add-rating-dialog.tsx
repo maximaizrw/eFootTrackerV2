@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Check, ChevronsUpDown } from 'lucide-react';
+import { Check, ChevronsUpDown, AlertCircle } from 'lucide-react';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -48,6 +48,7 @@ import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 import type { Player, Position, PlayerStyle, League, Nationality } from "@/lib/types";
 import { positions, playerStyles, leagues, nationalities, getAvailableStylesForPosition } from "@/lib/types";
+import { Alert, AlertDescription } from "./ui/alert";
 
 const formSchema = z.object({
   playerId: z.string().optional(),
@@ -75,6 +76,7 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, players, init
   const [cardPopoverOpen, setCardPopoverOpen] = useState(false);
   const [cardNames, setCardNames] = useState<string[]>([]);
   const [isStyleDisabled, setIsStyleDisabled] = useState(false);
+  const [styleDeactivated, setStyleDeactivated] = useState(false);
 
 
   const form = useForm<FormValues>({
@@ -95,6 +97,7 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, players, init
   const playerNameValue = form.watch('playerName');
   const cardNameValue = form.watch('cardName');
   const positionValue = form.watch('position');
+  const styleValue = form.watch('style');
 
   useEffect(() => {
     if (open) {
@@ -133,7 +136,7 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, players, init
     }
 
     const card = selectedPlayer?.cards.find(c => c.name.toLowerCase() === cardNameValue?.toLowerCase());
-    const availableStyles = getAvailableStylesForPosition(positionValue);
+    const availableStyles = getAvailableStylesForPosition(positionValue, true);
 
     if (card) {
       const isStyleValidForPosition = availableStyles.includes(card.style);
@@ -141,10 +144,12 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, players, init
       if (isStyleValidForPosition) {
         form.setValue('style', card.style, { shouldValidate: true });
         setIsStyleDisabled(true);
+        setStyleDeactivated(false);
       } else {
-        // The card's style is invalid for the new position, so we reset it to "Ninguno".
+        // STYLE DEACTIVATION LOGIC
         form.setValue('style', 'Ninguno', { shouldValidate: true });
-        setIsStyleDisabled(false); // Let user pick a valid one for this new position rating
+        setIsStyleDisabled(false); 
+        setStyleDeactivated(true);
       }
       if (card.league) {
         form.setValue('league', card.league);
@@ -152,6 +157,7 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, players, init
     } else {
       // It's a new card, so style is editable.
       setIsStyleDisabled(false);
+      setStyleDeactivated(false);
       const currentStyle = form.getValues('style');
       if (!availableStyles.includes(currentStyle)) {
         form.setValue('style', 'Ninguno');
@@ -167,7 +173,7 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, players, init
 
   function onSubmit(values: FormValues) {
     const finalValues = { ...values };
-    const stylesForPosition = getAvailableStylesForPosition(finalValues.position);
+    const stylesForPosition = getAvailableStylesForPosition(finalValues.position, true);
     if (!stylesForPosition.includes(finalValues.style)) {
       finalValues.style = 'Ninguno';
     }
@@ -405,6 +411,14 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, players, init
                 </FormItem>
               )}
             />
+            {styleDeactivated && (
+                <Alert variant="destructive" className="py-2 px-3">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription className="text-xs">
+                        El estilo de la carta no se activa en {positionValue}. Se usará "Ninguno".
+                    </AlertDescription>
+                </Alert>
+            )}
              <FormField
               control={form.control}
               name="rating"

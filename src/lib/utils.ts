@@ -1,7 +1,7 @@
-
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position, BuildPosition, PhysicalAttribute, PlayerSkill, PlayerPerformance, LiveUpdateRating, IdealBuildType, PlayerCard } from "./types";
+import { getAvailableStylesForPosition } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -269,20 +269,26 @@ export function getIdealBuildForPlayer(
 ): { bestBuild: IdealBuild | null; bestStyle: PlayerStyle | null; actualType: IdealBuildType } {
     
     // Normalize incoming style for search
-    const normalizedPlayerStyle = normalizeStyleName(playerStyle);
+    let normalizedPlayerStyle = normalizeStyleName(playerStyle);
+
+    // DEACTIVATION LOGIC: Check if style is active for this position
+    const activeStyles = getAvailableStylesForPosition(position, true);
+    if (!activeStyles.includes(normalizedPlayerStyle as any)) {
+        normalizedPlayerStyle = 'Ninguno';
+    }
 
     const findBuild = (type: IdealBuildType, pos: BuildPosition, style: PlayerStyle) => 
         idealBuilds.find(b => b.playStyle === type && b.position === pos && normalizeStyleName(b.style) === normalizeStyleName(style));
 
     const getForType = (type: IdealBuildType) => {
         // 1. Strict Search
-        const strict = findBuild(type, position, normalizedPlayerStyle);
+        const strict = findBuild(type, position, normalizedPlayerStyle as any);
         if (strict) return strict;
 
         // 2. Archetype Search
         const archetype = symmetricalPositionMap[position];
         if (archetype) {
-            const arch = findBuild(type, archetype, normalizedPlayerStyle);
+            const arch = findBuild(type, archetype, normalizedPlayerStyle as any);
             if (arch) return arch;
         }
 
