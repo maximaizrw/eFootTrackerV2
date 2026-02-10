@@ -164,7 +164,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
   const form = useForm<IdealBuildFormValues>({
     resolver: zodResolver(buildSchema),
     defaultValues: {
-      playStyle: "General",
+      playStyle: "Contraataque largo",
       position: "DC",
       style: "Cazagoles",
       primarySkills: [],
@@ -190,7 +190,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
       statFields.forEach(cat => cat.fields.forEach(f => defaultBuild[f.name] = ''));
 
       const defaultValues: IdealBuildFormValues = {
-        playStyle: "General",
+        playStyle: "Contraataque largo",
         position: "DC",
         style: "Cazagoles",
         primarySkills: [],
@@ -206,7 +206,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
         
         const mergedInitial: IdealBuildFormValues = {
           ...defaultValues,
-          playStyle: initialBuild.playStyle || "General",
+          playStyle: "Contraataque largo",
           position: initialBuild.position,
           style: initialBuild.style,
           primarySkills: initialBuild.primarySkills || [],
@@ -223,7 +223,6 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
   }, [open, initialBuild, reset]);
   
   const availableStyles = React.useMemo(() => {
-    // ALWAYS allow "Ninguno" in the Ideal Build Editor
     return getAvailableStylesForPosition(watchedPosition, true);
   }, [watchedPosition]);
 
@@ -233,35 +232,9 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
       }
   }, [availableStyles, watch, setValue, isEditing]);
 
-  const generalBuild = React.useMemo(() => {
-    if (watchedPlayStyle === 'General') return null;
-    return existingBuilds.find(b => b.playStyle === 'General' && b.position === watchedPosition && b.style === watchedStyle);
-  }, [existingBuilds, watchedPlayStyle, watchedPosition, watchedStyle]);
-
-  const handleCopyFromGeneral = () => {
-    if (!generalBuild) return;
-
-    // Build stats
-    const stats: Record<string, any> = {};
-    statFields.forEach(cat => cat.fields.forEach(f => {
-        stats[f.name] = generalBuild.build[f.name as keyof PlayerAttributeStats] ?? '';
-    }));
-    
-    setValue('build', stats as any);
-    setValue('primarySkills', generalBuild.primarySkills || []);
-    setValue('secondarySkills', generalBuild.secondarySkills || []);
-    setValue('height', { min: generalBuild.height?.min, max: generalBuild.height?.max });
-    setValue('weight', { min: generalBuild.weight?.min, max: generalBuild.weight?.max });
-
-    toast({
-        title: "Copiado de General",
-        description: `Se han importado los datos de la build General para ${watchedPosition} - ${watchedStyle}.`
-    });
-  };
-
   const handleSubmit = (values: IdealBuildFormValues) => {
     const finalBuild: IdealBuild = {
-      playStyle: values.playStyle,
+      playStyle: "Contraataque largo",
       position: values.position,
       style: values.style,
       primarySkills: values.primarySkills || [],
@@ -382,8 +355,8 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
           <DialogTitle>{isEditing ? 'Editar' : 'Añadir'} Build Ideal</DialogTitle>
           <DialogDescription>
             {isEditing 
-                ? `Editando build para [${watchedPlayStyle}] ${watchedPosition} - ${watchedStyle}.`
-                : "Define los atributos ideales para una combinación de posición, estilo de jugador y táctica."
+                ? `Editando build para Contraataque largo: ${watchedPosition} - ${watchedStyle}.`
+                : "Define los atributos ideales para una combinación de posición y estilo de jugador en Contraataque largo."
             }
           </DialogDescription>
         </DialogHeader>
@@ -391,27 +364,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
           <form onSubmit={form.handleSubmit(handleSubmit)} className="flex-grow overflow-hidden flex flex-col">
             <ScrollArea className="flex-grow pr-4 -mr-4">
               <div className="space-y-6 pb-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="playStyle"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Estilo de Juego</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value} disabled={isEditing}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecciona táctica" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {idealBuildTypes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="position"
@@ -455,19 +408,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                    {!isEditing && watchedPlayStyle !== 'General' && (
-                        <Button 
-                            type="button" 
-                            variant="secondary" 
-                            onClick={handleCopyFromGeneral}
-                            disabled={!generalBuild}
-                            className="flex-grow md:flex-grow-0"
-                        >
-                            <ArrowDownToLine className="mr-2 h-4 w-4" />
-                            Copiar de General
-                        </Button>
-                    )}
-                    <div className="flex gap-2 flex-grow md:flex-grow-0">
+                    <div className="flex gap-2 flex-grow">
                         <Textarea
                             placeholder="Pega aquí las estadísticas..."
                             value={pastedText}

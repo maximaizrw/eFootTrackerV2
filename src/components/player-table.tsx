@@ -53,8 +53,6 @@ type FilterProps = {
   onCardFilterChange: (value: string) => void;
   uniqueStyles: string[];
   uniqueCardNames: string[];
-  idealBuildType: IdealBuildType;
-  onIdealBuildTypeChange: (value: IdealBuildType) => void;
 };
 
 const Filters = memo(({
@@ -66,8 +64,6 @@ const Filters = memo(({
   onCardFilterChange,
   uniqueStyles,
   uniqueCardNames,
-  idealBuildType,
-  onIdealBuildTypeChange,
 }: FilterProps) => (
   <div className="flex flex-col md:flex-row gap-2">
     <div className="relative flex-grow">
@@ -80,17 +76,10 @@ const Filters = memo(({
       />
     </div>
     <div className="flex gap-2 flex-wrap md:flex-nowrap">
-        <Select value={idealBuildType} onValueChange={(v) => onIdealBuildTypeChange(v as IdealBuildType)}>
-            <SelectTrigger className="w-full md:w-[180px] border-primary/50">
-                <div className="flex items-center gap-2 truncate">
-                    <Dna className="h-4 w-4 text-primary shrink-0" />
-                    <SelectValue placeholder="Táctica" />
-                </div>
-            </SelectTrigger>
-            <SelectContent>
-                {idealBuildTypes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-            </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-md border text-sm text-muted-foreground">
+            <Dna className="h-4 w-4 text-primary shrink-0" />
+            <span>Contraataque largo</span>
+        </div>
         <Select value={styleFilter} onValueChange={onStyleFilterChange}>
         <SelectTrigger className="w-full md:w-[180px]">
             <SelectValue placeholder="Filtrar por estilo" />

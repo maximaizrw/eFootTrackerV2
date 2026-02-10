@@ -60,7 +60,8 @@ export default function Home() {
     deleteIdealBuild,
   } = useIdealBuilds();
 
-  const [idealBuildType, setIdealBuildType] = useState<IdealBuildType>('General');
+  // ONLY Contraataque largo is supported as the base tactic
+  const idealBuildType: IdealBuildType = 'Contraataque largo';
 
   const { 
     players, 
@@ -175,7 +176,7 @@ export default function Home() {
     }
     toast({
       title: "11 Ideal Generado",
-      description: `Se ha generado un equipo para la formación "${formation.name}" usando builds "${idealBuildType}".`,
+      description: `Se ha generado un equipo para la formación "${formation.name}" usando la build de "${idealBuildType}".`,
     });
   }, [players, selectedFormationId, formations, idealBuilds, discardedCardIds, selectedLeague, selectedNationality, sortBy, isFlexibleLaterals, isFlexibleWingers, idealBuildType, toast]);
 
@@ -184,7 +185,7 @@ export default function Home() {
       handleGenerateTeam();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [discardedCardIds, idealBuildType]);
+  }, [discardedCardIds]);
 
 
   const handleOpenAddRating = useCallback((initialData?: Partial<AddRatingFormValues>) => {
@@ -322,7 +323,6 @@ export default function Home() {
   }, []);
 
   const handleOpenIdealBuildEditor = useCallback((build?: IdealBuild) => {
-    // If it's a new build, default to the current active tactic
     if (!build) {
         setEditingIdealBuild({
             playStyle: idealBuildType,
@@ -634,8 +634,6 @@ export default function Home() {
                           onCardFilterChange={setCardFilter}
                           uniqueStyles={uniqueStyles}
                           uniqueCardNames={uniqueCardNames}
-                          idealBuildType={idealBuildType}
-                          onIdealBuildTypeChange={setIdealBuildType}
                         />
                     </CardHeader>
                     <PlayerTable
@@ -690,8 +688,6 @@ export default function Home() {
                     onFlexibleLateralsChange={setFlexibleLaterals}
                     isFlexibleWingers={isFlexibleWingers}
                     onFlexibleWingersChange={setFlexibleWingers}
-                    selectedIdealBuildType={idealBuildType}
-                    onIdealBuildTypeChange={setIdealBuildType}
                   />
                   <div className="flex flex-wrap items-center gap-4 mt-6">
                     <Button onClick={handleGenerateTeam} disabled={!selectedFormationId}>
@@ -751,7 +747,7 @@ export default function Home() {
                   Builds Ideales
                 </CardTitle>
                 <CardDescription>
-                  Define la distribución de puntos de progresión ideal para cada arquetipo de jugador por estilo de juego. Las builds específicas de un estilo de juego tomarán los valores de "General" si no han sido definidas.
+                  Define la distribución de puntos de progresión ideal para cada arquetipo de jugador en la táctica de Contraataque largo.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -760,7 +756,6 @@ export default function Home() {
                     <div key={build.id} className="flex items-center justify-between p-3 bg-muted rounded-md">
                       <div>
                         <p className="font-semibold">
-                            <span className="text-xs text-muted-foreground mr-2">[{build.playStyle}]</span>
                             {build.position} - <span className="text-primary">{build.style}</span>
                         </p>
                       </div>
@@ -778,7 +773,7 @@ export default function Home() {
                                 <AlertDialogHeader>
                                     <AlertDialogTitle>¿Eliminar Build Ideal?</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                        Esta acción eliminará permanentemente la configuración ideal para {build.position} - {build.style} en la táctica {build.playStyle}.
+                                        Esta acción eliminará permanentemente la configuración ideal para {build.position} - {build.style}.
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>

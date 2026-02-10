@@ -33,13 +33,11 @@ export function useIdealBuilds() {
                 id: doc.id,
                 ...data,
                 style: normalizeStyleName(data.style),
-                playStyle: data.playStyle || 'General',
+                playStyle: 'Contraataque largo',
             } as IdealBuild;
         });
         
         buildsData.sort((a, b) => {
-          if (a.playStyle < b.playStyle) return -1;
-          if (a.playStyle > b.playStyle) return 1;
           if (a.position < b.position) return -1;
           if (a.position > b.position) return 1;
           const styleA = normalizeStyleName(a.style);
@@ -104,9 +102,9 @@ export function useIdealBuilds() {
   const saveIdealBuild = async (build: IdealBuild) => {
     if (!db) return;
     
-    // Ensure we save with the normalized style name
+    // Use Contraataque largo as the fixed prefix
     const styleToSave = normalizeStyleName(build.style);
-    const buildId = `${build.playStyle}-${build.position}-${styleToSave}`;
+    const buildId = `Contraataque largo-${build.position}-${styleToSave}`;
     
     try {
         const buildRef = doc(db, 'idealBuilds', buildId);
@@ -129,17 +127,17 @@ export function useIdealBuilds() {
                   finalBuildData[statKey] = existingValue > 0 ? Math.round((existingValue + newValue) / 2) : newValue;
                 }
             }
-            toastMessage = `La build para [${build.playStyle}] ${build.position} - ${styleToSave} ha sido promediada.`;
-            finalIdealBuild = { ...build, style: styleToSave as any, build: finalBuildData };
+            toastMessage = `La build para ${build.position} - ${styleToSave} ha sido promediada.`;
+            finalIdealBuild = { ...build, style: styleToSave as any, build: finalBuildData, playStyle: 'Contraataque largo' };
 
         } else {
             finalBuildData = build.build;
-            toastMessage = `La build para [${build.playStyle}] ${build.position} - ${styleToSave} se ha creado.`;
-            finalIdealBuild = { ...build, style: styleToSave as any, build: finalBuildData };
+            toastMessage = `La build para ${build.position} - ${styleToSave} se ha creado.`;
+            finalIdealBuild = { ...build, style: styleToSave as any, build: finalBuildData, playStyle: 'Contraataque largo' };
         }
         
         const dataToSave: any = {
-          playStyle: finalIdealBuild.playStyle,
+          playStyle: 'Contraataque largo',
           position: finalIdealBuild.position,
           style: finalIdealBuild.style,
           build: finalIdealBuild.build,

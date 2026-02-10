@@ -1,3 +1,4 @@
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position, BuildPosition, PhysicalAttribute, PlayerSkill, PlayerPerformance, LiveUpdateRating, IdealBuildType, PlayerCard } from "./types";
@@ -265,7 +266,7 @@ export function getIdealBuildForPlayer(
     playerStyle: PlayerStyle,
     position: Position,
     idealBuilds: IdealBuild[],
-    targetType: IdealBuildType = 'General'
+    targetType: IdealBuildType = 'Contraataque largo'
 ): { bestBuild: IdealBuild | null; bestStyle: PlayerStyle | null; actualType: IdealBuildType } {
     
     // Normalize incoming style for search
@@ -277,54 +278,36 @@ export function getIdealBuildForPlayer(
         normalizedPlayerStyle = 'Ninguno';
     }
 
-    const findBuild = (type: IdealBuildType, pos: BuildPosition, style: PlayerStyle) => 
-        idealBuilds.find(b => b.playStyle === type && b.position === pos && normalizeStyleName(b.style) === normalizeStyleName(style));
+    const findBuild = (pos: BuildPosition, style: PlayerStyle) => 
+        idealBuilds.find(b => b.position === pos && normalizeStyleName(b.style) === normalizeStyleName(style));
 
-    const getForType = (type: IdealBuildType) => {
-        // 1. Strict Search
-        const strict = findBuild(type, position, normalizedPlayerStyle as any);
-        if (strict) return strict;
+    // 1. Strict Search in Contraataque largo
+    let build = findBuild(position, normalizedPlayerStyle as any);
+    if (build) return { bestBuild: build, bestStyle: normalizeStyleName(build.style) as PlayerStyle, actualType: 'Contraataque largo' };
 
-        // 2. Archetype Search
-        const archetype = symmetricalPositionMap[position];
-        if (archetype) {
-            const arch = findBuild(type, archetype, normalizedPlayerStyle as any);
-            if (arch) return arch;
-        }
-
-        // 3. Fallback to Ninguno
-        const fallbackStrict = findBuild(type, position, 'Ninguno');
-        if (fallbackStrict) return fallbackStrict;
-
-        if (archetype) {
-            const fallbackArch = findBuild(type, archetype, 'Ninguno');
-            if (fallbackArch) return fallbackArch;
-        }
-
-        return null;
-    };
-
-    // Attempt target type first
-    let build = getForType(targetType);
-    let finalTypeUsed = targetType;
-    
-    // If not found and target wasn't General, fallback to General
-    if (!build && targetType !== 'General') {
-        build = getForType('General');
-        finalTypeUsed = 'General';
+    // 2. Archetype Search
+    const archetype = symmetricalPositionMap[position];
+    if (archetype) {
+        build = findBuild(archetype, normalizedPlayerStyle as any);
+        if (build) return { bestBuild: build, bestStyle: normalizeStyleName(build.style) as PlayerStyle, actualType: 'Contraataque largo' };
     }
 
-    if (build) {
-        return { bestBuild: build, bestStyle: normalizeStyleName(build.style) as PlayerStyle, actualType: finalTypeUsed };
+    // 3. Fallback to Ninguno
+    build = findBuild(position, 'Ninguno');
+    if (build) return { bestBuild: build, bestStyle: normalizeStyleName(build.style) as PlayerStyle, actualType: 'Contraataque largo' };
+
+    if (archetype) {
+        build = findBuild(archetype, 'Ninguno');
+        if (build) return { bestBuild: build, bestStyle: normalizeStyleName(build.style) as PlayerStyle, actualType: 'Contraataque largo' };
     }
 
     // Last resort: any build for the position
     const anyForPos = idealBuilds.filter(b => b.position === position || b.position === symmetricalPositionMap[position]);
     if (anyForPos.length > 0) {
-        return { bestBuild: anyForPos[0], bestStyle: normalizeStyleName(anyForPos[0].style) as PlayerStyle, actualType: anyForPos[0].playStyle };
+        return { bestBuild: anyForPos[0], bestStyle: normalizeStyleName(anyForPos[0].style) as PlayerStyle, actualType: 'Contraataque largo' };
     }
 
-    return { bestBuild: null, bestStyle: null, actualType: 'General' };
+    return { bestBuild: null, bestStyle: null, actualType: 'Contraataque largo' };
 }
 
 

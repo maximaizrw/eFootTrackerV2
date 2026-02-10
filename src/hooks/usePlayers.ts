@@ -11,7 +11,7 @@ import { getAvailableStylesForPosition } from '@/lib/types';
 import { normalizeText, normalizeStyleName, calculateProgressionStats, getIdealBuildForPlayer, isSpecialCard, calculateProgressionSuggestions, calculateAffinityWithBreakdown, calculateStats, calculateGeneralScore } from '@/lib/utils';
 
 
-export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: IdealBuildType = 'General') {
+export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: IdealBuildType = 'Contraataque largo') {
   const [players, setPlayers] = useState<Player[]>([]);
   const [flatPlayers, setFlatPlayers] = useState<FlatPlayer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -148,7 +148,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
                         ? (card.attributeStats || {})
                         : calculateProgressionStats(card.attributeStats || {}, currentBuild, isGoalkeeper);
 
-                    const { bestBuild } = getIdealBuildForPlayer(card.style, ratedPos, idealBuilds, targetIdealType);
+                    const { bestBuild } = getIdealBuildForPlayer(card.style, ratedPos, idealBuilds, 'Contraataque largo');
                     const affinityBreakdown = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills);
                     const affinityScore = affinityBreakdown.totalAffinityScore;
                     
@@ -160,7 +160,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
         );
         setFlatPlayers(allFlatPlayers);
     }
-  }, [players, idealBuilds, targetIdealType]);
+  }, [players, idealBuilds]);
 
 
   const addRating = async (values: AddRatingFormValues) => {
@@ -381,7 +381,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
                       const isGK = pos === 'PT';
                       const special = isSpecialCard(cardToUpdate.name);
                       const final = special ? cardToUpdate.attributeStats : calculateProgressionStats(cardToUpdate.attributeStats || {}, bld, isGK);
-                      const { bestBuild } = getIdealBuildForPlayer(cardToUpdate.style, pos, idealBuilds, targetIdealType);
+                      const { bestBuild } = getIdealBuildForPlayer(cardToUpdate.style, pos, idealBuilds, 'Contraataque largo');
                       const newAffinity = calculateAffinityWithBreakdown(final, bestBuild, physical, skills).totalAffinityScore;
                       bld.manualAffinity = newAffinity;
                       bld.updatedAt = new Date().toISOString();
@@ -389,7 +389,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
               }
            }
           await setDoc(playerRef, { ...playerData, cards: newCards });
-          toast({ title: "Atributos Guardados", description: `Atributos y afinidades recalculados basándose en [${targetIdealType}].` });
+          toast({ title: "Atributos Guardados", description: `Atributos y afinidades recalculados para Contraataque largo.` });
         }
     } catch (error) {
       toast({ variant: "destructive", title: "Error al Guardar", description: "No se pudieron guardar los atributos." });
@@ -410,7 +410,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
 
   const recalculateAllAffinities = async () => {
     if (!db) return;
-    toast({ title: "Iniciando Recálculo...", description: `Actualizando afinidades para la táctica [${targetIdealType}].` });
+    toast({ title: "Iniciando Recálculo...", description: `Actualizando afinidades para Contraataque largo.` });
     let updatedCount = 0;
     try {
         const playersSnapshot = await getDocs(collection(db, 'players'));
@@ -428,7 +428,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
                            const isGK = pos === 'PT';
                            const special = isSpecialCard(card.name);
                            const final = special ? card.attributeStats : calculateProgressionStats(card.attributeStats, build, isGK);
-                           const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds, targetIdealType);
+                           const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds, 'Contraataque largo');
                            const newAffinity = calculateAffinityWithBreakdown(final, bestBuild, card.physicalAttributes, card.skills).totalAffinityScore;
                            if (Math.abs(build.manualAffinity - newAffinity) > 0.01) {
                                 build.manualAffinity = newAffinity;
@@ -444,7 +444,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
                 updatedCount++;
             }
         }
-        toast({ title: "Recálculo Completado", description: `Se actualizaron ${updatedCount} jugadores para la táctica [${targetIdealType}].` });
+        toast({ title: "Recálculo Completado", description: `Se actualizaron ${updatedCount} jugadores.` });
     } catch (recalcError) {
         toast({ variant: "destructive", title: "Error en el Recálculo", description: `Ocurrió un error.` });
     }
@@ -452,7 +452,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
 
   const suggestAllBuilds = async () => {
     if (!db) return;
-    toast({ title: "Iniciando Sugerencias Masivas...", description: `Optimizando builds basándose en [${targetIdealType}].` });
+    toast({ title: "Iniciando Sugerencias Masivas...", description: `Optimizando builds para Contraataque largo.` });
     let updatedPlayers = 0;
     try {
       const playersSnapshot = await getDocs(collection(db, 'players'));
@@ -465,7 +465,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
           if (!isSpecialCard(card.name) && card.totalProgressionPoints && card.buildsByPosition) {
             for (const posKey in card.buildsByPosition) {
               const pos = posKey as Position;
-              const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds, targetIdealType);
+              const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds, 'Contraataque largo');
               if (bestBuild) {
                 const suggested = calculateProgressionSuggestions(card.attributeStats || {}, bestBuild, pos === 'PT', card.totalProgressionPoints);
                 const currentBuild = card.buildsByPosition[pos] || {};
@@ -485,7 +485,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
           updatedPlayers++;
         }
       }
-      toast({ title: "Proceso Completado", description: `Se optimizaron las builds de ${updatedPlayers} jugadores para [${targetIdealType}].` });
+      toast({ title: "Proceso Completado", description: `Se optimizaron las builds de ${updatedPlayers} jugadores.` });
     } catch (error) {
       toast({ variant: "destructive", title: "Error en la Sugerencia Masiva", description: "Ocurrió un error." });
     }

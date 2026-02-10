@@ -4,7 +4,6 @@
 import * as React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { FormationStats, League, Nationality, IdealBuildType } from '@/lib/types';
-import { idealBuildTypes } from '@/lib/types';
 import { Label } from './ui/label';
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
 import { BarChart2, Star, ArrowRightLeft, Dna } from 'lucide-react';
@@ -27,8 +26,6 @@ type IdealTeamSetupProps = {
   onFlexibleLateralsChange: (value: boolean) => void;
   isFlexibleWingers: boolean;
   onFlexibleWingersChange: (value: boolean) => void;
-  selectedIdealBuildType: IdealBuildType;
-  onIdealBuildTypeChange: (value: IdealBuildType) => void;
 };
 
 const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({ 
@@ -47,8 +44,6 @@ const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({
     onFlexibleLateralsChange,
     isFlexibleWingers,
     onFlexibleWingersChange,
-    selectedIdealBuildType,
-    onIdealBuildTypeChange,
 }: IdealTeamSetupProps) {
 
   const selectedFormation = React.useMemo(() => {
@@ -105,24 +100,12 @@ const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({
       </div>
        <div className="space-y-2">
         <Label>
-          Build Ideal a Utilizar
+          Build Ideal Utilizada
         </Label>
-        <Select
-          value={selectedIdealBuildType}
-          onValueChange={(v) => onIdealBuildTypeChange(v as IdealBuildType)}
-        >
-          <SelectTrigger className="w-full">
-            <div className="flex items-center gap-2">
-                <Dna className="h-4 w-4 text-primary" />
-                <SelectValue />
-            </div>
-          </SelectTrigger>
-          <SelectContent>
-            {idealBuildTypes.map(t => (
-              <SelectItem key={t} value={t}>{t}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-md border text-sm text-muted-foreground">
+            <Dna className="h-4 w-4 text-primary shrink-0" />
+            <span>Contraataque largo</span>
+        </div>
       </div>
        <div className="space-y-2">
         <Label>

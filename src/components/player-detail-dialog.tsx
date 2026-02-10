@@ -18,7 +18,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Slider } from "./ui/slider";
 import { ScrollArea } from "./ui/scroll-area";
-import { Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, BrainCircuit, RefreshCw, Info } from "lucide-react";
+import { Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, BrainCircuit, RefreshCw, Info, Dna } from "lucide-react";
 import { calculateProgressionStats, getIdealBuildForPlayer, calculateAffinityWithBreakdown, type AffinityBreakdownResult, statLabels, calculateProgressionSuggestions, isSpecialCard, isProfileIncomplete } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
@@ -53,7 +53,7 @@ const goalkeeperCategories: { key: keyof GoalkeeperBuild; label: string, icon: R
 ];
 
 
-export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlayerBuild, idealBuilds, idealBuildType = 'General' }: PlayerDetailDialogProps) {
+export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlayerBuild, idealBuilds, idealBuildType = 'Contraataque largo' }: PlayerDetailDialogProps) {
   const [build, setBuild] = React.useState<PlayerBuild>({ manualAffinity: 0 });
   const [totalProgressionPoints, setTotalProgressionPoints] = React.useState<number | undefined>(undefined);
 
@@ -67,11 +67,11 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
 
   const baseStats = React.useMemo(() => card?.attributeStats || {}, [card?.attributeStats]);
   
-  const { bestBuild, bestBuildStyle, actualTypeUsed } = React.useMemo(() => {
-    if (!card || !position) return { bestBuild: null, bestBuildStyle: null, actualTypeUsed: 'General' };
-    const result = getIdealBuildForPlayer(card.style, position, idealBuilds, idealBuildType);
-    return { bestBuild: result.bestBuild, bestBuildStyle: result.bestStyle, actualTypeUsed: result.actualType };
-  }, [card?.style, position, idealBuilds, idealBuildType]);
+  const { bestBuild, bestBuildStyle } = React.useMemo(() => {
+    if (!card || !position) return { bestBuild: null, bestBuildStyle: null };
+    const result = getIdealBuildForPlayer(card.style, position, idealBuilds, 'Contraataque largo');
+    return { bestBuild: result.bestBuild, bestBuildStyle: result.bestStyle };
+  }, [card?.style, position, idealBuilds]);
 
   React.useEffect(() => {
     if (open && flatPlayer && position && card) {
@@ -123,7 +123,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
     const suggestions = calculateProgressionSuggestions(baseStats, bestBuild, isGoalkeeper, pointsToUse);
     
     setBuild(prev => ({ ...prev, ...suggestions }));
-    toast({ title: "Sugerencias Cargadas", description: `Se han distribuido ${pointsToUse} puntos basados en la táctica [${idealBuildType}].` });
+    toast({ title: "Sugerencias Cargadas", description: `Se han distribuido ${pointsToUse} puntos basados en Contraataque largo.` });
   };
 
   const updatedAt = build?.updatedAt;
@@ -165,13 +165,9 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
       <DialogContent className="max-w-4xl h-[85vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className={cn(titleColorClass)}>Build para {player?.name} ({card?.name}) en <span className="text-primary">{position}</span></DialogTitle>
-          <div className="flex flex-wrap items-center gap-2 mt-1">
-              <span className="text-sm text-muted-foreground">Táctica Solicitada: <span className="font-bold text-foreground">[{idealBuildType}]</span></span>
-              {actualTypeUsed !== idealBuildType && (
-                  <span className="text-xs bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-full border border-amber-500/20">
-                      Usando fallback: {actualTypeUsed}
-                  </span>
-              )}
+          <div className="flex items-center gap-2 mt-1 px-3 py-1 bg-muted rounded-full w-fit border text-xs text-muted-foreground">
+              <Dna className="h-3 w-3 text-primary" />
+              <span>Contraataque largo</span>
           </div>
         </DialogHeader>
         
@@ -222,7 +218,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
                                 </div>
                                 <Button variant="outline" onClick={handleSuggestBuild} disabled={specialCard}>
                                     <BrainCircuit className="mr-2 h-4 w-4" />
-                                    Sugerir ({idealBuildType})
+                                    Sugerir
                                 </Button>
                               </div>
 
@@ -316,7 +312,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
           </TabsContent>
           <TabsContent value="affinity" className="flex-grow overflow-hidden mt-4">
               <ScrollArea className="h-full pr-4 -mr-4">
-                <AffinityBreakdown breakdownResult={localAffinityResult} tacticName={idealBuildType} />
+                <AffinityBreakdown breakdownResult={localAffinityResult} tacticName="Contraataque largo" />
               </ScrollArea>
           </TabsContent>
         </Tabs>

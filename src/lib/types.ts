@@ -88,7 +88,7 @@ export const formationPlayStyles = [
 ] as const;
 export type FormationPlayStyle = typeof formationPlayStyles[number];
 
-export const idealBuildTypes = ['General', ...formationPlayStyles] as const;
+export const idealBuildTypes = ['Contraataque largo'] as const;
 export type IdealBuildType = typeof idealBuildTypes[number];
 
 export type IdealBuild = {
