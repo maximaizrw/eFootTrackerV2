@@ -519,6 +519,7 @@ export default function Home() {
         open={isBuildViewerOpen}
         onOpenChange={setIsBuildViewerOpen}
         player={viewingPlayerBuild}
+        buildType={sortBy === 'average' ? 'average' : 'tactical'}
       />
       <IdealBuildEditor
         open={isIdealBuildEditorOpen}

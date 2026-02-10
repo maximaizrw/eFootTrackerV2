@@ -14,11 +14,14 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ScrollArea } from "./ui/scroll-area";
 import { Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, Star } from "lucide-react";
+import { Badge } from "./ui/badge";
+import { cn } from "@/lib/utils";
 
 type PlayerBuildViewerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   player: IdealTeamPlayer | null;
+  buildType?: 'tactical' | 'average';
 };
 
 const outfieldCategories: { key: keyof OutfieldBuild; label: string, icon: React.ElementType }[] = [
@@ -26,7 +29,7 @@ const outfieldCategories: { key: keyof OutfieldBuild; label: string, icon: React
     { key: 'passing', label: 'Pase', icon: Footprints },
     { key: 'dribbling', label: 'Regate', icon: Dribbble },
     { key: 'dexterity', label: 'Destreza', icon: Zap },
-    { key: 'lowerBodyStrength', label: 'Fuerza del tren inferior', icon: Beef },
+    { key: 'lowerBodyStrength', label: 'Fuerza inferior', icon: Beef },
     { key: 'aerialStrength', label: 'Juego aéreo', icon: ChevronsUp },
     { key: 'defending', label: 'Defensa', icon: Shield },
 ];
@@ -38,13 +41,15 @@ const goalkeeperCategories: { key: keyof GoalkeeperBuild; label: string, icon: R
 ];
 
 
-export function PlayerBuildViewer({ open, onOpenChange, player }: PlayerBuildViewerProps) {
+export function PlayerBuildViewer({ open, onOpenChange, player, buildType = 'tactical' }: PlayerBuildViewerProps) {
   if (!player) return null;
 
-  const { player: playerData, card, position, assignedPosition } = player;
+  const { player: playerData, card, position } = player;
   
-  // Use the build from the original rated position, not the assigned one.
-  const build = card?.buildsByPosition?.[position];
+  // Use the build based on the context (tactical or average)
+  const fieldName = buildType === 'tactical' ? 'buildsByPosition' : 'averageBuildsByPosition';
+  const build = (card as any)[fieldName]?.[position];
+  
   const isGoalkeeper = position === 'PT';
 
   const updatedAt = build?.updatedAt;
@@ -58,28 +63,33 @@ export function PlayerBuildViewer({ open, onOpenChange, player }: PlayerBuildVie
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Build de {playerData.name} ({card.name})</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            Build de {playerData.name}
+            {buildType === 'average' && <Badge variant="secondary">Promedio</Badge>}
+            {buildType === 'tactical' && <Badge variant="outline" className="border-primary text-primary">Táctica</Badge>}
+          </DialogTitle>
           <DialogDescription>
-             Build definida para <span className="font-semibold text-foreground">{position}</span>. Últ. act: {formattedDate}
+             Build para <span className="font-semibold text-foreground">{position}</span> ({card.name}).
+             <br />
+             <span className="text-xs">Última actualización: {formattedDate}</span>
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
-             <div className="p-4 bg-muted/50 rounded-lg flex items-center justify-center gap-4">
+             <div className="p-4 bg-muted/50 rounded-lg flex items-center justify-center gap-4 border border-border">
                 <div className="flex items-center gap-2 text-lg font-bold">
                     <Star className="w-5 h-5 text-yellow-400" />
-                    <span>Afinidad Calculada:</span>
+                    <span>Afinidad:</span>
                 </div>
                 <span className="text-2xl font-bold text-primary">{affinity.toFixed(2)}</span>
              </div>
             
-            <p className="font-medium text-sm text-muted-foreground pt-2 text-center">Puntos de Progresión</p>
+            <p className="font-medium text-xs text-muted-foreground pt-2 text-center uppercase tracking-widest">Distribución de Puntos</p>
             
             <div className="grid grid-cols-2 gap-x-6 gap-y-3">
                 {(isGoalkeeper ? goalkeeperCategories : outfieldCategories).map(({key, label, icon: Icon}) => {
                     const value = (build as any)?.[key] || 0;
-                    if (value === 0) return null;
                     return (
-                        <div key={key} className="flex items-center justify-between text-sm">
+                        <div key={key} className={cn("flex items-center justify-between text-sm", value === 0 && "opacity-30")}>
                             <span className="flex items-center gap-2 text-muted-foreground">
                                 <Icon className="w-4 h-4"/>
                                 {label}
