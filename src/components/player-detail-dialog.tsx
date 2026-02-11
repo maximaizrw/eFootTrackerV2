@@ -71,9 +71,9 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
   
   const { bestBuild, bestBuildStyle } = React.useMemo(() => {
     if (!card || !position) return { bestBuild: null, bestBuildStyle: null };
-    const result = getIdealBuildForPlayer(card.style, position, idealBuilds, 'Contraataque largo');
+    const result = getIdealBuildForPlayer(card.style, position, idealBuilds, 'Contraataque largo', card.physicalAttributes?.height);
     return { bestBuild: result.bestBuild, bestBuildStyle: result.bestStyle };
-  }, [card?.style, position, idealBuilds]);
+  }, [card?.style, position, idealBuilds, card?.physicalAttributes?.height]);
 
   React.useEffect(() => {
     if (open && flatPlayer && position && card) {
@@ -174,7 +174,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
           <div className="flex items-center gap-4 mt-2">
               <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-full w-fit border text-xs text-muted-foreground">
                   <Dna className="h-3 w-3 text-primary" />
-                  <span>Contraataque largo</span>
+                  <span>Contraataque largo: <span className="text-foreground font-semibold">{bestBuildStyle}</span></span>
               </div>
               <Tabs value={buildType} onValueChange={(v) => setBuildType(v as any)} className="w-auto">
                   <TabsList className="grid w-full grid-cols-2 h-8 p-0.5">

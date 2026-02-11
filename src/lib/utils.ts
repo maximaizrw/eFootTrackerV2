@@ -1,4 +1,3 @@
-
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position, BuildPosition, PhysicalAttribute, PlayerSkill, PlayerPerformance, LiveUpdateRating, IdealBuildType, PlayerCard } from "./types";
@@ -266,11 +265,21 @@ export function getIdealBuildForPlayer(
     playerStyle: PlayerStyle,
     position: Position,
     idealBuilds: IdealBuild[],
-    targetType: IdealBuildType = 'Contraataque largo'
+    targetType: IdealBuildType = 'Contraataque largo',
+    height?: number
 ): { bestBuild: IdealBuild | null; bestStyle: PlayerStyle | null; actualType: IdealBuildType } {
     
     // Normalize incoming style for search
     let normalizedPlayerStyle = normalizeStyleName(playerStyle);
+
+    // Automatic profile selection for Cazagoles
+    if (normalizedPlayerStyle === 'Cazagoles' && height !== undefined) {
+        if (height >= 187) {
+            normalizedPlayerStyle = 'Cazagoles (Tanque)' as any;
+        } else {
+            normalizedPlayerStyle = 'Cazagoles (Meta)' as any;
+        }
+    }
 
     // DEACTIVATION LOGIC: Check if style is active for this position
     const activeStyles = getAvailableStylesForPosition(position, true);

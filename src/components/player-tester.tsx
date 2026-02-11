@@ -147,7 +147,7 @@ const PlayerTesterMemo = React.memo(function PlayerTester({ idealBuilds }: Playe
         const weight = getValues('weight');
         const isGoalkeeper = position === 'PT';
 
-        const { bestBuild, bestStyle } = getIdealBuildForPlayer(style, position, idealBuilds);
+        const { bestBuild, bestStyle } = getIdealBuildForPlayer(style, position, idealBuilds, 'Contraataque largo', height);
         const suggestions = calculateProgressionSuggestions(baseStats, bestBuild, isGoalkeeper, progressionPoints);
         
         const finalStats = calculateProgressionStats(baseStats, suggestions, isGoalkeeper);

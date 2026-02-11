@@ -112,7 +112,7 @@ export function generateIdealTeam(
             ? (card.attributeStats || {})
             : calculateProgressionStats(card.attributeStats || {}, buildForPos, isGoalkeeper);
 
-        const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds, targetIdealType);
+        const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds, targetIdealType, card.physicalAttributes?.height);
         const affinityBreakdown = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills);
         const affinityScore = affinityBreakdown.totalAffinityScore;
         

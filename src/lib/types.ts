@@ -1,7 +1,7 @@
 import * as z from "zod";
 import type { AffinityBreakdownResult } from "./utils";
 
-export const playerStyles = ['Ninguno', 'Cazagoles', 'Hombre de área', 'Segundo delantero', 'Hombre objetivo', 'Creador de juego', 'Creador de jugadas', 'El destructor', 'Portero defensivo', 'Portero ofensivo', 'Atacante extra', 'Lateral defensivo', 'Lateral ofensivo', 'Lateral finalizador', 'Especialista en centros', 'Omnipresente', 'Medio escudo', 'Organizador', 'Jugador de huecos', 'Extremo móvil', 'Extremo prolífico', 'Diez Clasico'] as const;
+export const playerStyles = ['Ninguno', 'Cazagoles', 'Cazagoles (Meta)', 'Cazagoles (Tanque)', 'Hombre de área', 'Segundo delantero', 'Hombre objetivo', 'Creador de juego', 'Creador de jugadas', 'El destructor', 'Portero defensivo', 'Portero ofensivo', 'Atacante extra', 'Lateral defensivo', 'Lateral ofensivo', 'Lateral finalizador', 'Especialista en centros', 'Omnipresente', 'Medio escudo', 'Organizador', 'Jugador de huecos', 'Extremo móvil', 'Extremo prolífico', 'Diez Clasico'] as const;
 export type PlayerStyle = typeof playerStyles[number];
 
 export const positions = ['PT', 'DFC', 'LI', 'LD', 'MCD', 'MC', 'MDI', 'MDD', 'MO', 'EXI', 'EXD', 'SD', 'DC'] as const;
@@ -376,9 +376,9 @@ export function getAvailableStylesForPosition(position: BuildPosition, includeNo
         case 'EXT':
             return [...baseStyles, 'Extremo móvil', 'Extremo prolífico', 'Especialista en centros', 'Creador de jugadas', 'Jugador de huecos', 'Segundo delantero'];
         case 'SD':
-            return [...baseStyles, 'Cazagoles', 'Jugador de huecos', 'Hombre objetivo', 'Diez Clasico', 'Extremo móvil', 'Creador de jugadas', 'Segundo delantero', 'Creador de juego'];
+            return [...baseStyles, 'Cazagoles', 'Cazagoles (Meta)', 'Cazagoles (Tanque)', 'Jugador de huecos', 'Hombre objetivo', 'Diez Clasico', 'Extremo móvil', 'Creador de jugadas', 'Segundo delantero', 'Creador de juego'];
         case 'DC':
-            return [...baseStyles, 'Cazagoles', 'Hombre de área', 'Hombre objetivo', 'Jugador de huecos', 'Extremo móvil', 'Segundo delantero'];
+            return [...baseStyles, 'Cazagoles', 'Cazagoles (Meta)', 'Cazagoles (Tanque)', 'Hombre de área', 'Hombre objetivo', 'Jugador de huecos', 'Extremo móvil', 'Segundo delantero'];
         default:
             return [...playerStyles];
     }
