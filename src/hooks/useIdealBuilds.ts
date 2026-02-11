@@ -25,26 +25,12 @@ export function useIdealBuilds() {
 
     const unsub = onSnapshot(q, (snapshot) => {
       try {
-        // Deduplicate builds by combination of PlayStyle, Position and Style
-        // Keeping only the first one encountered (the oldest usually)
-        const uniqueBuildsMap = new Map<string, IdealBuild>();
-
-        snapshot.docs.forEach(doc => {
-            const data = doc.data();
-            const normalizedStyle = normalizeStyleName(data.style);
-            const key = `Contraataque largo-${data.position}-${normalizedStyle}`;
-            
-            if (!uniqueBuildsMap.has(key)) {
-                uniqueBuildsMap.set(key, {
-                    id: doc.id,
-                    ...data,
-                    style: normalizedStyle as any,
-                    playStyle: 'Contraataque largo',
-                } as IdealBuild);
-            }
-        });
-        
-        const buildsData = Array.from(uniqueBuildsMap.values());
+        const buildsData = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            style: normalizeStyleName(doc.data().style),
+            playStyle: 'Contraataque largo',
+        } as IdealBuild));
         
         buildsData.sort((a, b) => {
           if (a.position < b.position) return -1;
@@ -111,8 +97,8 @@ export function useIdealBuilds() {
   const saveIdealBuild = async (build: IdealBuild) => {
     if (!db) return;
     
-    // Use Contraataque largo as the fixed prefix
-    const styleToSave = normalizeStyleName(build.style);
+    // We keep the suffixes (Meta/Tanque) in the ID to avoid overwriting each other
+    const styleToSave = build.style; 
     const buildId = `Contraataque largo-${build.position}-${styleToSave}`;
     
     try {

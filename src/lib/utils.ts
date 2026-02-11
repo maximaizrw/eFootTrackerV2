@@ -270,44 +270,49 @@ export function getIdealBuildForPlayer(
 ): { bestBuild: IdealBuild | null; bestStyle: PlayerStyle | null; actualType: IdealBuildType } {
     
     // Normalize incoming style for search
-    let normalizedPlayerStyle = normalizeStyleName(playerStyle);
-
-    // Automatic profile selection for Cazagoles
-    if (normalizedPlayerStyle === 'Cazagoles' && height !== undefined) {
-        if (height >= 187) {
-            normalizedPlayerStyle = 'Cazagoles (Tanque)' as any;
-        } else {
-            normalizedPlayerStyle = 'Cazagoles (Meta)' as any;
-        }
-    }
+    const baseStyle = normalizeStyleName(playerStyle);
+    let searchStyle = baseStyle;
 
     // DEACTIVATION LOGIC: Check if style is active for this position
     const activeStyles = getAvailableStylesForPosition(position, true);
-    if (!activeStyles.includes(normalizedPlayerStyle as any)) {
-        normalizedPlayerStyle = 'Ninguno';
+    if (!activeStyles.includes(baseStyle as any)) {
+        searchStyle = 'Ninguno';
+    } else if (baseStyle === 'Cazagoles' && height !== undefined) {
+        // Automatic profile selection for Cazagoles ONLY if it's active
+        if (height >= 187) {
+            searchStyle = 'Cazagoles (Tanque)' as any;
+        } else {
+            searchStyle = 'Cazagoles (Meta)' as any;
+        }
     }
 
-    const findBuild = (pos: BuildPosition, style: PlayerStyle) => 
+    const findBuild = (pos: BuildPosition, style: string) => 
         idealBuilds.find(b => b.position === pos && normalizeStyleName(b.style) === normalizeStyleName(style));
 
     // 1. Strict Search in Contraataque largo
-    let build = findBuild(position, normalizedPlayerStyle as any);
+    let build = findBuild(position, searchStyle);
     if (build) return { bestBuild: build, bestStyle: normalizeStyleName(build.style) as PlayerStyle, actualType: 'Contraataque largo' };
 
     // 2. Archetype Search
     const archetype = symmetricalPositionMap[position];
     if (archetype) {
-        build = findBuild(archetype, normalizedPlayerStyle as any);
+        build = findBuild(archetype, searchStyle);
         if (build) return { bestBuild: build, bestStyle: normalizeStyleName(build.style) as PlayerStyle, actualType: 'Contraataque largo' };
     }
 
-    // 3. Fallback to Ninguno
+    // 3. Fallback to base 'Cazagoles' if Meta/Tanque not found
+    if (searchStyle.startsWith('Cazagoles (')) {
+        build = findBuild(position, 'Cazagoles');
+        if (build) return { bestBuild: build, bestStyle: 'Cazagoles', actualType: 'Contraataque largo' };
+    }
+
+    // 4. Fallback to Ninguno
     build = findBuild(position, 'Ninguno');
-    if (build) return { bestBuild: build, bestStyle: normalizeStyleName(build.style) as PlayerStyle, actualType: 'Contraataque largo' };
+    if (build) return { bestBuild: build, bestStyle: 'Ninguno', actualType: 'Contraataque largo' };
 
     if (archetype) {
         build = findBuild(archetype, 'Ninguno');
-        if (build) return { bestBuild: build, bestStyle: normalizeStyleName(build.style) as PlayerStyle, actualType: 'Contraataque largo' };
+        if (build) return { bestBuild: build, bestStyle: 'Ninguno', actualType: 'Contraataque largo' };
     }
 
     // Last resort: any build for the position
