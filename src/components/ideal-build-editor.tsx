@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -7,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useToast } from "@/hooks/use-toast";
-import { playerSkillsList, idealBuildTypes } from "@/lib/types";
+import { playerSkillsList, idealBuildTypes, playerStylesUI } from "@/lib/types";
 
 import {
   Dialog,
@@ -30,6 +29,8 @@ import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from ".
 import { Badge } from "./ui/badge";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
+import { Label } from "./ui/label";
 
 const statSchema = z.coerce.number().min(0).max(99).optional();
 const physicalSchema = z.coerce.number().optional();
@@ -44,6 +45,7 @@ const buildSchema = z.object({
   playStyle: z.enum(idealBuildTypes),
   position: z.enum(buildPositions),
   style: z.enum(playerStyles),
+  profile: z.enum(['Meta', 'Tanque']).optional(), // For Cazagoles
   primarySkills: z.array(z.string()).optional(),
   secondarySkills: z.array(z.string()).optional(),
   height: minMaxSchema,
@@ -167,6 +169,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
       playStyle: "Contraataque largo",
       position: "DC",
       style: "Cazagoles",
+      profile: "Meta",
       primarySkills: [],
       secondarySkills: [],
       height: { min: undefined, max: undefined },
@@ -178,7 +181,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
   const { watch, reset, setValue, getValues } = form;
   const watchedPosition = watch("position");
   const watchedStyle = watch("style");
-  const watchedPlayStyle = watch("playStyle");
+  const watchedProfile = watch("profile");
   const watchedPrimarySkills = watch("primarySkills") || [];
   const watchedSecondarySkills = watch("secondarySkills") || [];
   const isEditing = !!initialBuild?.id;
@@ -193,6 +196,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
         playStyle: "Contraataque largo",
         position: "DC",
         style: "Cazagoles",
+        profile: "Meta",
         primarySkills: [],
         secondarySkills: [],
         height: { min: undefined, max: undefined },
@@ -202,13 +206,26 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
 
       if (initialBuild) {
         const initialBuildValues: Record<string, any> = {};
-        statFields.forEach(cat => cat.fields.forEach(f => initialBuildValues[f.name] = initialBuild?.build?.[f.name] ?? ''));
+        statFields.forEach(cat => cat.fields.forEach(f => {
+            initialBuildValues[f.name] = initialBuild?.build?.[f.name] ?? '';
+        }));
         
+        let profile: 'Meta' | 'Tanque' = 'Meta';
+        let style = initialBuild.style;
+        if (style.includes('(Meta)')) {
+            profile = 'Meta';
+            style = 'Cazagoles' as any;
+        } else if (style.includes('(Tanque)')) {
+            profile = 'Tanque';
+            style = 'Cazagoles' as any;
+        }
+
         const mergedInitial: IdealBuildFormValues = {
           ...defaultValues,
           playStyle: "Contraataque largo",
           position: initialBuild.position,
-          style: initialBuild.style,
+          style: style,
+          profile: profile,
           primarySkills: initialBuild.primarySkills || [],
           secondarySkills: initialBuild.secondarySkills || [],
           height: { min: initialBuild.height?.min || undefined, max: initialBuild.height?.max || undefined },
@@ -228,15 +245,20 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
 
   React.useEffect(() => {
       if (!isEditing && !availableStyles.includes(watch('style'))) {
-          setValue('style', availableStyles[0]);
+          setValue('style', availableStyles[0] || 'Ninguno');
       }
   }, [availableStyles, watch, setValue, isEditing]);
 
   const handleSubmit = (values: IdealBuildFormValues) => {
+    let styleToSave = values.style;
+    if (styleToSave === 'Cazagoles') {
+        styleToSave = values.profile === 'Tanque' ? 'Cazagoles (Tanque)' : 'Cazagoles (Meta)' as any;
+    }
+
     const finalBuild: IdealBuild = {
       playStyle: "Contraataque largo",
       position: values.position,
-      style: values.style,
+      style: styleToSave,
       primarySkills: values.primarySkills || [],
       secondarySkills: values.secondarySkills || [],
       height: { min: values.height?.min, max: values.height?.max },
@@ -355,7 +377,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
           <DialogTitle>{isEditing ? 'Editar' : 'Añadir'} Build Ideal</DialogTitle>
           <DialogDescription>
             {isEditing 
-                ? `Editando build para Contraataque largo: ${watchedPosition} - ${watchedStyle}.`
+                ? `Editando build para Contraataque largo: ${watchedPosition} - ${watchedStyle} ${watchedStyle === 'Cazagoles' ? `(${watchedProfile})` : ''}.`
                 : "Define los atributos ideales para una combinación de posición y estilo de jugador en Contraataque largo."
             }
           </DialogDescription>
@@ -406,6 +428,44 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
                     )}
                   />
                 </div>
+
+                {watchedStyle === 'Cazagoles' && (
+                    <FormField
+                        control={form.control}
+                        name="profile"
+                        render={({ field }) => (
+                            <FormItem className="space-y-3 p-4 bg-muted/30 rounded-lg border">
+                                <FormLabel>Perfil de Cazagoles (Detección Automática por Altura)</FormLabel>
+                                <FormControl>
+                                    <RadioGroup
+                                        onValueChange={field.onChange}
+                                        defaultValue={field.value}
+                                        className="flex flex-col space-y-1"
+                                        disabled={isEditing}
+                                    >
+                                        <div className="flex items-center space-x-3 space-y-0">
+                                            <FormControl>
+                                                <RadioGroupItem value="Meta" />
+                                            </FormControl>
+                                            <Label className="font-normal cursor-pointer">
+                                                Meta (Altura menor a 187cm)
+                                            </Label>
+                                        </div>
+                                        <div className="flex items-center space-x-3 space-y-0">
+                                            <FormControl>
+                                                <RadioGroupItem value="Tanque" />
+                                            </FormControl>
+                                            <Label className="font-normal cursor-pointer">
+                                                Tanque (Altura mayor o igual a 187cm)
+                                            </Label>
+                                        </div>
+                                    </RadioGroup>
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                )}
 
                 <div className="flex flex-wrap gap-2">
                     <div className="flex gap-2 flex-grow">

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -26,16 +25,26 @@ export function useIdealBuilds() {
 
     const unsub = onSnapshot(q, (snapshot) => {
       try {
-        const buildsData = snapshot.docs.map(doc => {
+        // Deduplicate builds by combination of PlayStyle, Position and Style
+        // Keeping only the first one encountered (the oldest usually)
+        const uniqueBuildsMap = new Map<string, IdealBuild>();
+
+        snapshot.docs.forEach(doc => {
             const data = doc.data();
+            const normalizedStyle = normalizeStyleName(data.style);
+            const key = `Contraataque largo-${data.position}-${normalizedStyle}`;
             
-            return {
-                id: doc.id,
-                ...data,
-                style: normalizeStyleName(data.style),
-                playStyle: 'Contraataque largo',
-            } as IdealBuild;
+            if (!uniqueBuildsMap.has(key)) {
+                uniqueBuildsMap.set(key, {
+                    id: doc.id,
+                    ...data,
+                    style: normalizedStyle as any,
+                    playStyle: 'Contraataque largo',
+                } as IdealBuild);
+            }
         });
+        
+        const buildsData = Array.from(uniqueBuildsMap.values());
         
         buildsData.sort((a, b) => {
           if (a.position < b.position) return -1;
