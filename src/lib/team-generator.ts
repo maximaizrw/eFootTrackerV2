@@ -177,6 +177,9 @@ export function generateIdealTeam(
       const availableCandidates = candidates.filter(p => {
         if (usedPlayerIds.has(p.player.id) || usedCardIds.has(p.card.id) || discardedCardIds.has(p.card.id)) return false;
         
+        // REGLA CRÍTICA: Afinidad mínima de 80
+        if (p.affinityScore < 80) return false;
+
         const rating = p.player.liveUpdateRating;
 
         // Mode-specific form filtering
@@ -188,7 +191,6 @@ export function generateIdealTeam(
             if (rating === 'D' || rating === 'E') return false;
         }
 
-        // We removed the score < 90 threshold because it was too restrictive for high-average/low-affinity players
         return true;
       });
       return availableCandidates[0];
