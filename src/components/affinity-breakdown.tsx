@@ -1,4 +1,3 @@
-
 "use client";
 
 import type { AffinityBreakdownResult } from "@/lib/utils";
@@ -109,28 +108,27 @@ export function AffinityBreakdown({ breakdownResult, tacticName }: AffinityBreak
                             const scoreColor = item.score > 0 ? "text-green-400" : item.score < 0 ? "text-red-400" : "text-muted-foreground";
                             const idealRange = item.idealValue as { min?: number, max?: number } | undefined;
                             
-                            let idealDisplay = 'Cualquiera';
-                            const hasIdeal = idealRange && (idealRange.min !== undefined || idealRange.max !== undefined);
+                            const minLimit = idealRange?.min && idealRange.min > 0 ? Number(idealRange.min) : undefined;
+                            const maxLimit = idealRange?.max && idealRange.max > 0 ? Number(idealRange.max) : undefined;
+                            const hasIdeal = minLimit !== undefined || maxLimit !== undefined;
 
-                            if (idealRange?.min !== undefined && idealRange?.max !== undefined) {
-                                idealDisplay = `${idealRange.min}-${idealRange.max}`;
-                            } else if (idealRange?.min !== undefined) {
-                                idealDisplay = `>= ${idealRange.min}`;
-                            } else if (idealRange?.max !== undefined) {
-                                idealDisplay = `<= ${idealRange.max}`;
+                            let idealDisplay = 'Cualquiera';
+                            if (minLimit !== undefined && maxLimit !== undefined) {
+                                idealDisplay = `${minLimit}-${maxLimit}`;
+                            } else if (minLimit !== undefined) {
+                                idealDisplay = `>= ${minLimit}`;
+                            } else if (maxLimit !== undefined) {
+                                idealDisplay = `<= ${maxLimit}`;
                             }
 
                             const val = Number(item.playerValue);
-                            const min = idealRange?.min !== undefined ? Number(idealRange.min) : undefined;
-                            const max = idealRange?.max !== undefined ? Number(idealRange.max) : undefined;
-                            
                             let playerColor = "";
                             let diffDesc = "";
 
-                            if (item.playerValue !== undefined && hasIdeal) {
-                                if ((min !== undefined && val < min) || (max !== undefined && val > max)) {
+                            if (item.playerValue !== undefined && item.playerValue > 0 && hasIdeal) {
+                                if ((minLimit !== undefined && val < minLimit) || (maxLimit !== undefined && val > maxLimit)) {
                                     playerColor = "text-orange-400";
-                                    diffDesc = min !== undefined && val < min ? `Faltan ${min - val} unidades` : `Excedido por ${val - (max || 0)} unidades`;
+                                    diffDesc = minLimit !== undefined && val < minLimit ? `Faltan ${minLimit - val} unidades` : `Excedido por ${val - (maxLimit || 0)} unidades`;
                                 } else {
                                     playerColor = "text-primary";
                                     diffDesc = "Dentro del rango ideal";
@@ -146,7 +144,7 @@ export function AffinityBreakdown({ breakdownResult, tacticName }: AffinityBreak
                                             <Tooltip>
                                                 <TooltipTrigger>
                                                     <span className={cn(playerColor)}>
-                                                        {item.playerValue ?? '-'}
+                                                        {item.playerValue && item.playerValue > 0 ? item.playerValue : '-'}
                                                     </span>
                                                 </TooltipTrigger>
                                                 {diffDesc && <TooltipContent><p>{diffDesc}</p></TooltipContent>}

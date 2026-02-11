@@ -324,13 +324,16 @@ function calculatePhysicalAttributeAffinity(
     playerValue: number | undefined,
     idealRange: { min?: number; max?: number } | undefined,
 ): number {
-    if (playerValue === undefined || idealRange === undefined || (idealRange.min === undefined && idealRange.max === undefined)) {
-        return 0;
-    }
+    const min = idealRange?.min && idealRange.min > 0 ? Number(idealRange.min) : undefined;
+    const max = idealRange?.max && idealRange.max > 0 ? Number(idealRange.max) : undefined;
+
+    // If no real limits are provided (both undefined or 0), don't calculate affinity
+    if (min === undefined && max === undefined) return 0;
+
+    // If player has no value but a requirement exists, we can't award bonus (return 0)
+    if (playerValue === undefined || playerValue === 0) return 0;
 
     const val = Number(playerValue);
-    const min = idealRange.min !== undefined ? Number(idealRange.min) : undefined;
-    const max = idealRange.max !== undefined ? Number(idealRange.max) : undefined;
 
     if (
         (min === undefined || val >= min) &&
