@@ -71,7 +71,6 @@ const goalkeeperCategories: { key: keyof GoalkeeperBuild; label: string, icon: R
     { key: 'gk1', label: 'Portero 1', icon: Hand },
     { key: 'gk2', label: 'Portero 2', icon: Hand },
     { key: 'gk3', label: 'Portero 3', icon: Hand },
-    { key: 'defending', label: 'Defensa', icon: Shield },
 ];
 
 const StatDisplay = ({ label, value }: { label: string; value?: number; }) => {

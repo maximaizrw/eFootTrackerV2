@@ -160,9 +160,7 @@ const outfieldStatsKeys: (keyof PlayerAttributeStats)[] = [
 ];
 
 const goalkeeperStatsKeys: (keyof PlayerAttributeStats)[] = [
-    'defensiveAwareness', 'defensiveEngagement', 'tackling', 'aggression',
-    'goalkeeping', 'gkCatching', 'gkParrying', 'gkReflexes', 'gkReach',
-    'speed', 'acceleration', 'kickingPower', 'jump', 'physicalContact', 'balance', 'stamina'
+    'goalkeeping', 'gkCatching', 'gkParrying', 'gkReflexes', 'gkReach'
 ];
 
 
@@ -429,6 +427,22 @@ export function calculateAffinityWithBreakdown(
         });
     }
 
+    // Special Jump Rule for GKs (Small GKs must jump high)
+    if (isGoalkeeper && physicalAttributes?.height && physicalAttributes.height > 0 && physicalAttributes.height < 188) {
+        const jumpValue = playerStats.jump || 0;
+        if (jumpValue <= 85) {
+            const penalty = -10;
+            totalAffinityScore += penalty;
+            breakdown.push({
+                stat: 'jump',
+                label: 'Requisito: Salto > 85 (Altura < 188cm)',
+                playerValue: jumpValue,
+                idealValue: 86,
+                score: penalty
+            });
+        }
+    }
+
     // Physical attributes breakdown
     const physicalAttrKeys: (keyof PhysicalAttribute)[] = ['height', 'weight'];
     physicalAttrKeys.forEach(key => {
@@ -536,7 +550,7 @@ export function calculateProgressionSuggestions(
 
   const idealBuildStats = idealBuild.build;
   const categories: CategoryName[] = isGoalkeeper
-    ? ['gk1', 'gk2', 'gk3', 'defending']
+    ? ['gk1', 'gk2', 'gk3']
     : ['shooting', 'passing', 'dribbling', 'dexterity', 'lowerBodyStrength', 'aerialStrength', 'defending'];
 
   const build: { [key in CategoryName]?: number } = {};
