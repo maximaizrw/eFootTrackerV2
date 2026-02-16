@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -6,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useToast } from "@/hooks/use-toast";
-import { playerSkillsList, idealBuildTypes, playerStylesUI } from "@/lib/types";
+import { playerSkillsList, idealBuildTypes } from "@/lib/types";
 
 import {
   Dialog,
@@ -22,15 +23,13 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from "./ui/scroll-area";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
-import { UploadCloud, Copy, ArrowDownToLine } from "lucide-react";
+import { UploadCloud } from "lucide-react";
 import { buildPositions, playerStyles, getAvailableStylesForPosition, positionLabels } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "./ui/command";
 import { Badge } from "./ui/badge";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
-import { Label } from "./ui/label";
 
 const statSchema = z.coerce.number().min(0).max(99).optional();
 const physicalSchema = z.coerce.number().optional();
@@ -45,13 +44,12 @@ const buildSchema = z.object({
   playStyle: z.enum(idealBuildTypes),
   position: z.enum(buildPositions),
   style: z.enum(playerStyles),
-  profile: z.enum(['Meta', 'Tanque']).optional(),
+  profileName: z.string().optional(),
   primarySkills: z.array(z.string()).optional(),
   secondarySkills: z.array(z.string()).optional(),
   height: minMaxSchema,
   weight: minMaxSchema,
   build: z.object({
-    // Attacking
     offensiveAwareness: statSchema,
     ballControl: statSchema,
     dribbling: statSchema,
@@ -62,18 +60,15 @@ const buildSchema = z.object({
     heading: statSchema,
     placeKicking: statSchema,
     curl: statSchema,
-    // Defending
     defensiveAwareness: statSchema,
     defensiveEngagement: statSchema,
     tackling: statSchema,
     aggression: statSchema,
-    // Goalkeeping
     goalkeeping: statSchema,
     gkCatching: statSchema,
     gkParrying: statSchema,
     gkReflexes: statSchema,
     gkReach: statSchema,
-    // Athleticism
     speed: statSchema,
     acceleration: statSchema,
     kickingPower: statSchema,
@@ -169,7 +164,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
       playStyle: "Contraataque largo",
       position: "DC",
       style: "Cazagoles",
-      profile: "Meta",
+      profileName: "",
       primarySkills: [],
       secondarySkills: [],
       height: { min: undefined, max: undefined },
@@ -180,8 +175,6 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
 
   const { watch, reset, setValue, getValues } = form;
   const watchedPosition = watch("position");
-  const watchedStyle = watch("style");
-  const watchedProfile = watch("profile");
   const watchedPrimarySkills = watch("primarySkills") || [];
   const watchedSecondarySkills = watch("secondarySkills") || [];
   const isEditing = !!initialBuild?.id;
@@ -190,13 +183,17 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
     if (open) {
       setPastedText('');
       const defaultBuild: Record<string, any> = {};
-      statFields.forEach(cat => cat.fields.forEach(f => defaultBuild[f.name] = ''));
+      statFields.forEach(cat => {
+        cat.fields.forEach(f => {
+          defaultBuild[f.name] = '';
+        });
+      });
 
       const defaultValues: IdealBuildFormValues = {
         playStyle: "Contraataque largo",
         position: "DC",
         style: "Cazagoles",
-        profile: "Meta",
+        profileName: "",
         primarySkills: [],
         secondarySkills: [],
         height: { min: undefined, max: undefined },
@@ -206,26 +203,17 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
 
       if (initialBuild) {
         const initialBuildValues: Record<string, any> = {};
-        statFields.forEach(cat => cat.fields.forEach(f => {
+        statFields.forEach(cat => {
+          cat.fields.forEach(f => {
             initialBuildValues[f.name] = initialBuild?.build?.[f.name as keyof PlayerAttributeStats] ?? '';
-        }));
+          });
+        });
         
-        let profile: 'Meta' | 'Tanque' = 'Meta';
-        let style = initialBuild.style;
-        if (style.includes('(Meta)')) {
-            profile = 'Meta';
-            style = style.replace(' (Meta)', '') as any;
-        } else if (style.includes('(Tanque)')) {
-            profile = 'Tanque';
-            style = style.replace(' (Tanque)', '') as any;
-        }
-
         const mergedInitial: IdealBuildFormValues = {
           ...defaultValues,
-          playStyle: "Contraataque largo",
           position: initialBuild.position,
-          style: style,
-          profile: profile,
+          style: initialBuild.style,
+          profileName: initialBuild.profileName || "",
           primarySkills: initialBuild.primarySkills || [],
           secondarySkills: initialBuild.secondarySkills || [],
           height: { min: initialBuild.height?.min || undefined, max: initialBuild.height?.max || undefined },
@@ -250,15 +238,11 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
   }, [availableStyles, watch, setValue, isEditing]);
 
   const handleSubmit = (values: IdealBuildFormValues) => {
-    let styleToSave = values.style;
-    if (styleToSave !== 'Ninguno') {
-        styleToSave = values.profile === 'Tanque' ? `${styleToSave} (Tanque)` : `${styleToSave} (Meta)` as any;
-    }
-
     const finalBuild: IdealBuild = {
       playStyle: "Contraataque largo",
       position: values.position,
-      style: styleToSave,
+      style: values.style,
+      profileName: values.profileName,
       primarySkills: values.primarySkills || [],
       secondarySkills: values.secondarySkills || [],
       height: { min: values.height?.min, max: values.height?.max },
@@ -284,11 +268,6 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
     const lines = pastedText.split('\n').filter(line => line.trim() !== '');
     let parsedCount = 0;
     
-    const currentHeight = getValues("height");
-    const currentWeight = getValues("weight");
-    const currentPrimarySkills = getValues("primarySkills");
-    const currentSecondarySkills = getValues("secondarySkills");
-
     const isNumericOnly = lines.every(line => /^\d+\s*$/.test(line.trim()));
 
     if (isNumericOnly) {
@@ -326,23 +305,12 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
         });
     }
 
-    setValue("height", currentHeight);
-    setValue("weight", currentWeight);
-    setValue("primarySkills", currentPrimarySkills);
-    setValue("secondarySkills", currentSecondarySkills);
-
     if (parsedCount > 0) {
       toast({
         title: "Estadísticas Cargadas",
         description: `Se han cargado ${parsedCount} atributos en el formulario.`,
       });
       setPastedText('');
-    } else {
-       toast({
-        variant: "destructive",
-        title: "Error al Cargar",
-        description: "No se pudieron encontrar atributos válidos.",
-      });
     }
   };
   
@@ -376,17 +344,14 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Editar' : 'Añadir'} Build Ideal</DialogTitle>
           <DialogDescription>
-            {isEditing 
-                ? `Editando build para Contraataque largo: ${watchedPosition} - ${watchedStyle} (${watchedProfile}).`
-                : "Define los atributos ideales para una combinación de posición y estilo de jugador en Contraataque largo."
-            }
+            Define los atributos ideales y los requisitos de activación (altura/peso) para este perfil.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="flex-grow overflow-hidden flex flex-col">
             <ScrollArea className="flex-grow pr-4 -mr-4">
               <div className="space-y-6 pb-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <FormField
                     control={form.control}
                     name="position"
@@ -427,45 +392,20 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
                       </FormItem>
                     )}
                   />
+                  <FormField
+                    control={form.control}
+                    name="profileName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nombre del Perfil (Ej: Meta, Tanque...)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Ej: Veloz, Físico..." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
-
-                {watchedStyle !== 'Ninguno' && (
-                    <FormField
-                        control={form.control}
-                        name="profile"
-                        render={({ field }) => (
-                            <FormItem className="space-y-3 p-4 bg-muted/30 rounded-lg border">
-                                <FormLabel>Perfil de Jugador (Detección Automática por Altura)</FormLabel>
-                                <FormControl>
-                                    <RadioGroup
-                                        onValueChange={field.onChange}
-                                        defaultValue={field.value}
-                                        className="flex flex-col space-y-1"
-                                        disabled={isEditing}
-                                    >
-                                        <div className="flex items-center space-x-3 space-y-0">
-                                            <FormControl>
-                                                <RadioGroupItem value="Meta" />
-                                            </FormControl>
-                                            <Label className="font-normal cursor-pointer">
-                                                Meta (Altura menor a 187cm)
-                                            </Label>
-                                        </div>
-                                        <div className="flex items-center space-x-3 space-y-0">
-                                            <FormControl>
-                                                <RadioGroupItem value="Tanque" />
-                                            </FormControl>
-                                            <Label className="font-normal cursor-pointer">
-                                                Tanque (Altura mayor o igual a 187cm)
-                                            </Label>
-                                        </div>
-                                    </RadioGroup>
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                )}
 
                 <div className="flex flex-wrap gap-2">
                     <div className="flex gap-2 flex-grow">
@@ -483,20 +423,21 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
                 </div>
                 
                  <div className="p-4 rounded-lg border bg-background/50 space-y-4">
-                    <h3 className="text-lg font-semibold text-primary">Requisitos Ideales</h3>
+                    <h3 className="text-lg font-semibold text-primary">Activadores del Perfil (Opcional)</h3>
+                    <p className="text-xs text-muted-foreground">Define los rangos para que este perfil se aplique automáticamente según el físico del jugador.</p>
                     <div className="space-y-4">
                         <div>
-                            <FormLabel className="text-base mb-2 block">Altura (cm)</FormLabel>
+                            <FormLabel className="text-base mb-2 block">Altura Activadora (cm)</FormLabel>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <FormField control={form.control} name="height.min" render={({ field }) => (<FormItem><FormLabel className="text-sm">Mínima</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
-                                <FormField control={form.control} name="height.max" render={({ field }) => (<FormItem><FormLabel className="text-sm">Máxima</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
+                                <FormField control={form.control} name="height.min" render={({ field }) => (<FormItem><FormLabel className="text-sm">Mínima (>=)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
+                                <FormField control={form.control} name="height.max" render={({ field }) => (<FormItem><FormLabel className="text-sm">Máxima (<=)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
                             </div>
                         </div>
                         <div>
-                            <FormLabel className="text-base mb-2 block">Peso (kg)</FormLabel>
+                            <FormLabel className="text-base mb-2 block">Peso Activador (kg)</FormLabel>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <FormField control={form.control} name="weight.min" render={({ field }) => (<FormItem><FormLabel className="text-sm">Mínimo</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
-                                <FormField control={form.control} name="weight.max" render={({ field }) => (<FormItem><FormLabel className="text-sm">Máximo</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
+                                <FormField control={form.control} name="weight.min" render={({ field }) => (<FormItem><FormLabel className="text-sm">Mínimo (>=)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
+                                <FormField control={form.control} name="weight.max" render={({ field }) => (<FormItem><FormLabel className="text-sm">Máximo (<=)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
                             </div>
                         </div>
                     </div>

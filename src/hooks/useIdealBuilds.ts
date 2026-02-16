@@ -39,7 +39,7 @@ export function useIdealBuilds() {
           const styleB = normalizeStyleName(b.style);
           if (styleA < styleB) return -1;
           if (styleA > styleB) return 1;
-          return 0;
+          return (a.profileName || '') < (b.profileName || '') ? -1 : 1;
         });
 
         setIdealBuilds(buildsData);
@@ -97,59 +97,33 @@ export function useIdealBuilds() {
   const saveIdealBuild = async (build: IdealBuild) => {
     if (!db) return;
     
-    // We keep the suffixes (Meta/Tanque) in the ID to avoid overwriting each other
-    const styleToSave = build.style; 
-    const buildId = `Contraataque largo-${build.position}-${styleToSave}`;
+    // Unique ID combining tactica, position, style and custom profile name
+    const profilePart = build.profileName ? `-${build.profileName.trim().replace(/\s+/g, '_')}` : '';
+    const buildId = `Contraataque_largo-${build.position}-${build.style.replace(/\s+/g, '_')}${profilePart}`;
     
     try {
         const buildRef = doc(db, 'idealBuilds', buildId);
-        const docSnap = await getDoc(buildRef);
-
-        let finalBuildData: PlayerAttributeStats = {};
-        let toastMessage = "";
-        let finalIdealBuild: IdealBuild;
-
-        if (docSnap.exists()) {
-            const existingBuild = docSnap.data() as IdealBuild;
-            finalBuildData = { ...existingBuild.build };
-            
-            for (const key in build.build) {
-                const statKey = key as keyof PlayerAttributeStats;
-                const newValue = Number(build.build[statKey]);
-                
-                if(!isNaN(newValue) && newValue > 0) {
-                  const existingValue = Number(existingBuild.build[statKey] || 0);
-                  finalBuildData[statKey] = existingValue > 0 ? Math.round((existingValue + newValue) / 2) : newValue;
-                }
-            }
-            toastMessage = `La build para ${build.position} - ${styleToSave} ha sido promediada.`;
-            finalIdealBuild = { ...build, style: styleToSave as any, build: finalBuildData, playStyle: 'Contraataque largo' };
-
-        } else {
-            finalBuildData = build.build;
-            toastMessage = `La build para ${build.position} - ${styleToSave} se ha creado.`;
-            finalIdealBuild = { ...build, style: styleToSave as any, build: finalBuildData, playStyle: 'Contraataque largo' };
-        }
         
         const dataToSave: any = {
           playStyle: 'Contraataque largo',
-          position: finalIdealBuild.position,
-          style: finalIdealBuild.style,
-          build: finalIdealBuild.build,
+          position: build.position,
+          style: build.style,
+          profileName: build.profileName || "",
+          build: build.build,
         };
 
-        if (finalIdealBuild.height && (finalIdealBuild.height.min !== undefined || finalIdealBuild.height.max !== undefined)) {
-          dataToSave.height = finalIdealBuild.height;
+        if (build.height && (build.height.min !== undefined || build.height.max !== undefined)) {
+          dataToSave.height = build.height;
         }
-        if (finalIdealBuild.weight && (finalIdealBuild.weight.min !== undefined || finalIdealBuild.weight.max !== undefined)) {
-          dataToSave.weight = finalIdealBuild.weight;
+        if (build.weight && (build.weight.min !== undefined || build.weight.max !== undefined)) {
+          dataToSave.weight = build.weight;
         }
         
-        if (finalIdealBuild.primarySkills && finalIdealBuild.primarySkills.length > 0) dataToSave.primarySkills = finalIdealBuild.primarySkills;
-        if (finalIdealBuild.secondarySkills && finalIdealBuild.secondarySkills.length > 0) dataToSave.secondarySkills = finalIdealBuild.secondarySkills;
+        if (build.primarySkills && build.primarySkills.length > 0) dataToSave.primarySkills = build.primarySkills;
+        if (build.secondarySkills && build.secondarySkills.length > 0) dataToSave.secondarySkills = build.secondarySkills;
 
         await setDoc(buildRef, dataToSave, { merge: true });
-        toast({ title: "Build Ideal Guardada", description: toastMessage });
+        toast({ title: "Build Ideal Guardada", description: `La build para ${build.position} - ${build.style}${build.profileName ? ` (${build.profileName})` : ''} se ha guardado.` });
 
         await recalculateAllRelevantAffinities({ ...dataToSave, id: buildId } as IdealBuild);
 

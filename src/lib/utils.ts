@@ -1,3 +1,4 @@
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position, BuildPosition, PhysicalAttribute, PlayerSkill, PlayerPerformance, LiveUpdateRating, IdealBuildType, PlayerCard } from "./types";
@@ -224,7 +225,6 @@ export function calculateProgressionStats(
     newStats.tackling = Math.min(MAX_STAT_VALUE, (getBase('tackling', 'baseTackling')!) + defendingPoints);
     newStats.aggression = Math.min(MAX_STAT_VALUE, (getBase('aggression', 'baseAggression')!) + defendingPoints);
   } else {
-    // For GKs, we need to ensure defending stats are also calculated if defending points are applied
     const defendingPoints = (outfieldBuild as any).defending || 0;
      if (defendingPoints > 0) {
         newStats.defensiveAwareness = Math.min(MAX_STAT_VALUE, (getBase('defensiveAwareness', 'baseDefensiveAwareness')!) + defendingPoints);
@@ -265,72 +265,59 @@ export function getIdealBuildForPlayer(
     idealBuilds: IdealBuild[],
     targetType: IdealBuildType = 'Contraataque largo',
     height?: number
-): { bestBuild: IdealBuild | null; bestStyle: PlayerStyle | null; actualType: IdealBuildType } {
+): { bestBuild: IdealBuild | null; bestStyle: string | null; actualType: IdealBuildType } {
     
-    // Normalize incoming style for search
     const baseStyle = normalizeStyleName(playerStyle);
-    let searchStyle = baseStyle;
-
-    // DEACTIVATION LOGIC: Check if style is active for this position
     const activeStyles = getAvailableStylesForPosition(position, true);
-    if (!activeStyles.includes(baseStyle as any)) {
-        searchStyle = 'Ninguno';
-    } 
+    const effectiveStyle = activeStyles.includes(baseStyle as any) ? baseStyle : 'Ninguno';
 
-    const findBuild = (pos: BuildPosition, styleName: string) => 
-        idealBuilds.find(b => b.position === pos && normalizeStyleName(b.style) === normalizeStyleName(styleName));
+    const archetype = symmetricalPositionMap[position];
+    const candidateBuilds = idealBuilds.filter(b => 
+        (b.position === position || (archetype && b.position === archetype)) && 
+        normalizeStyleName(b.style) === effectiveStyle
+    );
 
-    // Profile detection logic (Universal)
-    let profileSuffix = '';
-    if (height !== undefined) {
-        profileSuffix = height >= 187 ? ' (Tanque)' : ' (Meta)';
+    if (candidateBuilds.length === 0) {
+        const fallbackBuilds = idealBuilds.filter(b => 
+            (b.position === position || (archetype && b.position === archetype)) && 
+            normalizeStyleName(b.style) === 'Ninguno'
+        );
+        if (fallbackBuilds.length > 0) {
+            return findBestBuildInList(fallbackBuilds, height, 'Ninguno');
+        }
+        return { bestBuild: null, bestStyle: effectiveStyle, actualType: 'Contraataque largo' };
     }
 
-    // 1. Try with profile suffix (e.g., "El destructor (Tanque)")
-    if (profileSuffix) {
-        const buildWithProfile = findBuild(position, `${searchStyle}${profileSuffix}`);
-        if (buildWithProfile) return { bestBuild: buildWithProfile, bestStyle: buildWithProfile.style as PlayerStyle, actualType: 'Contraataque largo' };
-        
-        const archetype = symmetricalPositionMap[position];
-        if (archetype) {
-            const archBuildWithProfile = findBuild(archetype, `${searchStyle}${profileSuffix}`);
-            if (archBuildWithProfile) return { bestBuild: archBuildWithProfile, bestStyle: archBuildWithProfile.style as PlayerStyle, actualType: 'Contraataque largo' };
+    return findBestBuildInList(candidateBuilds, height, effectiveStyle);
+}
+
+function findBestBuildInList(builds: IdealBuild[], height: number | undefined, styleLabel: string) {
+    if (height !== undefined && height > 0) {
+        const matchingBuild = builds.find(b => {
+            const min = b.height?.min || 0;
+            const max = b.height?.max || 0;
+            const hasRange = min > 0 || max > 0;
+            if (!hasRange) return false;
+            
+            const matchesMin = min > 0 ? height >= min : true;
+            const matchesMax = max > 0 ? height <= max : true;
+            return matchesMin && matchesMax;
+        });
+        if (matchingBuild) {
+            const label = matchingBuild.profileName ? `${styleLabel} (${matchingBuild.profileName})` : styleLabel;
+            return { bestBuild: matchingBuild, bestStyle: label, actualType: 'Contraataque largo' as const };
         }
     }
 
-    // 2. Fallback to base style (e.g., "El destructor")
-    let build = findBuild(position, searchStyle);
-    if (build) return { bestBuild: build, bestStyle: normalizeStyleName(build.style) as PlayerStyle, actualType: 'Contraataque largo' };
-
-    // 3. Archetype fallback
-    const archetype = symmetricalPositionMap[position];
-    if (archetype) {
-        build = findBuild(archetype, searchStyle);
-        if (build) return { bestBuild: build, bestStyle: normalizeStyleName(build.style) as PlayerStyle, actualType: 'Contraataque largo' };
+    const baseBuild = builds.find(b => (!b.height?.min || b.height.min === 0) && (!b.height?.max || b.height.max === 0));
+    if (baseBuild) {
+        const finalLabel = baseBuild.profileName ? `${styleLabel} (${baseBuild.profileName})` : styleLabel;
+        return { bestBuild: baseBuild, bestStyle: finalLabel, actualType: 'Contraataque largo' as const };
     }
-
-    // 4. Fallback to Ninguno (with profile)
-    if (profileSuffix && searchStyle !== 'Ninguno') {
-        const buildNingunoProfile = findBuild(position, `Ninguno${profileSuffix}`);
-        if (buildNingunoProfile) return { bestBuild: buildNingunoProfile, bestStyle: buildNingunoProfile.style as PlayerStyle, actualType: 'Contraataque largo' };
-    }
-
-    // 5. Absolute fallback to Ninguno
-    build = findBuild(position, 'Ninguno');
-    if (build) return { bestBuild: build, bestStyle: 'Ninguno', actualType: 'Contraataque largo' };
-
-    if (archetype) {
-        build = findBuild(archetype, 'Ninguno');
-        if (build) return { bestBuild: build, bestStyle: 'Ninguno', actualType: 'Contraataque largo' };
-    }
-
-    // Last resort: any build for the position
-    const anyForPos = idealBuilds.filter(b => b.position === position || b.position === symmetricalPositionMap[position]);
-    if (anyForPos.length > 0) {
-        return { bestBuild: anyForPos[0], bestStyle: normalizeStyleName(anyForPos[0].style) as PlayerStyle, actualType: 'Contraataque largo' };
-    }
-
-    return { bestBuild: null, bestStyle: null, actualType: 'Contraataque largo' };
+    
+    const firstBuild = builds[0];
+    const finalLabel = firstBuild.profileName ? `${styleLabel} (${firstBuild.profileName})` : styleLabel;
+    return { bestBuild: firstBuild, bestStyle: finalLabel, actualType: 'Contraataque largo' as const };
 }
 
 
@@ -341,25 +328,17 @@ function calculatePhysicalAttributeAffinity(
     const min = idealRange?.min && idealRange.min > 0 ? Number(idealRange.min) : undefined;
     const max = idealRange?.max && idealRange.max > 0 ? Number(idealRange.max) : undefined;
 
-    // If no real limits are provided (both undefined or 0), don't calculate affinity
     if (min === undefined && max === undefined) return 0;
-
-    // If player has no value but a requirement exists, we can't award bonus (return 0)
     if (playerValue === undefined || playerValue === 0) return 0;
 
     const val = Number(playerValue);
 
-    if (
-        (min === undefined || val >= min) &&
-        (max === undefined || val <= max)
-    ) {
-        return 2.5; // Bonus for being within the ideal range
+    if ((min === undefined || val >= min) && (max === undefined || val <= max)) {
+        return 2.5; 
     } else if (min !== undefined && val < min) {
-        const diff = min - val;
-        return -(diff * 0.5); // Penalty for being below min
+        return -((min - val) * 0.5); 
     } else if (max !== undefined && val > max) {
-        const diff = val - max;
-        return -(diff * 0.25); // Smaller penalty for being above max
+        return -((val - max) * 0.25); 
     }
     return 0;
 }
@@ -406,7 +385,6 @@ export function calculateAffinityWithBreakdown(
     const isGoalkeeper = idealBuild.position === 'PT';
     const relevantKeys = isGoalkeeper ? goalkeeperStatsKeys : allStatsKeys;
 
-    // Stat breakdown (HEAVY WEIGHT)
     for (const key of relevantKeys) {
         const playerValue = playerStats[key as keyof PlayerAttributeStats];
         const idealValue = idealBuildStats[key as keyof PlayerAttributeStats];
@@ -416,16 +394,14 @@ export function calculateAffinityWithBreakdown(
              const diff = playerValue - idealValue;
             
             if (diff >= 0) {
-                // High reward for meeting or exceeding high targets
                 score = diff * 0.25; 
             } else {
-                // Heavy penalty for missing critical high targets
                 if (idealValue >= 90) score = diff * 0.5;
                 else if (idealValue >= 80) score = diff * 0.3;
                 else score = diff * 0.2;
             }
 
-            score = Math.max(-10, score); // Allow stats to really drop the affinity
+            score = Math.max(-10, score);
             totalAffinityScore += score;
         }
         
@@ -438,7 +414,6 @@ export function calculateAffinityWithBreakdown(
         });
     }
 
-    // Special Jump Rule for GKs (Small GKs must jump high)
     if (isGoalkeeper && physicalAttributes?.height && physicalAttributes.height > 0 && physicalAttributes.height < 188) {
         const jumpValue = playerStats.jump || 0;
         if (jumpValue <= 85) {
@@ -454,7 +429,6 @@ export function calculateAffinityWithBreakdown(
         }
     }
 
-    // Physical attributes breakdown
     const physicalAttrKeys: (keyof PhysicalAttribute)[] = ['height', 'weight'];
     physicalAttrKeys.forEach(key => {
         const playerVal = physicalAttributes?.[key];
@@ -470,33 +444,20 @@ export function calculateAffinityWithBreakdown(
         });
     });
 
-    // Skills breakdown (LOWER WEIGHT)
     const playerSkillsSet = new Set(playerSkills || []);
     
-    // Primary Skills
     for (const idealSkill of primarySkills) {
         const hasSkill = playerSkillsSet.has(idealSkill);
-        const score = hasSkill ? 1.0 : -0.5; // Reduced from 2.0 / -1.0
+        const score = hasSkill ? 1.0 : -0.5;
         totalAffinityScore += score;
-        skillsBreakdown.push({
-            skill: idealSkill,
-            hasSkill,
-            score,
-            type: 'primary'
-        });
+        skillsBreakdown.push({ skill: idealSkill, hasSkill, score, type: 'primary' });
     }
 
-    // Secondary Skills
     for (const idealSkill of secondarySkills) {
         const hasSkill = playerSkillsSet.has(idealSkill);
-        const score = hasSkill ? 0.5 : -0.25; // Reduced from 1.0 / -0.5
+        const score = hasSkill ? 0.5 : -0.25;
         totalAffinityScore += score;
-        skillsBreakdown.push({
-            skill: idealSkill,
-            hasSkill,
-            score,
-            type: 'secondary'
-        });
+        skillsBreakdown.push({ skill: idealSkill, hasSkill, score, type: 'secondary' });
     }
 
 
@@ -512,11 +473,6 @@ export const hasProgressionPoints = (build: PlayerBuild | undefined): boolean =>
     });
 };
 
-// --- Progression Cost Calculation ---
-
-/**
- * Calculates the total progression points (PP) required to reach a specific category level.
- */
 export function calculatePointsForLevel(level: number): number {
   if (level <= 0) return 0;
   if (level <= 4) return level * 1;
@@ -525,9 +481,6 @@ export function calculatePointsForLevel(level: number): number {
   return 24 + (level - 12) * 4;
 }
 
-/**
- * Calculates the maximum category level achievable with a given number of progression points (PP).
- */
 export function calculateLevelForPoints(points: number): number {
   if (points <= 4) return points;
   if (points <= 12) return 4 + Math.floor((points - 4) / 2);
@@ -555,7 +508,7 @@ export function calculateProgressionSuggestions(
   baseStats: PlayerAttributeStats,
   idealBuild: IdealBuild | null,
   isGoalkeeper: boolean,
-  totalProgressionPoints: number = 50 // Default budget
+  totalProgressionPoints: number = 50
 ): Partial<OutfieldBuild & GoalkeeperBuild> {
   if (!idealBuild || totalProgressionPoints <= 0) return {};
 
@@ -568,25 +521,17 @@ export function calculateProgressionSuggestions(
   categories.forEach(cat => build[cat] = 0);
   let pointsSpent = 0;
 
-  // Loop until we run out of points or can't make any more useful investments
   while (pointsSpent < totalProgressionPoints) {
     let bestCategory: CategoryName | null = null;
     let maxWeightedDeficit = -Infinity;
 
     for (const category of categories) {
       const currentLevel = build[category]!;
-      
-      // Limit to 16 levels per category
       if (currentLevel >= MAX_CATEGORY_LEVEL) continue;
 
       const costForNextLevel = calculatePointsForLevel(currentLevel + 1) - calculatePointsForLevel(currentLevel);
+      if ((pointsSpent + costForNextLevel) > totalProgressionPoints) continue;
       
-      // If we can't afford the next level, skip this category for this iteration
-      if ((pointsSpent + costForNextLevel) > totalProgressionPoints) {
-        continue;
-      }
-      
-      // Calculate current stats with a temporary build that includes the next level for this category
       const tempBuild = { ...build, [category]: currentLevel + 1 };
       const projectedStats = calculateProgressionStats(baseStats, tempBuild, isGoalkeeper);
       
@@ -595,25 +540,18 @@ export function calculateProgressionSuggestions(
 
       for (const stat of statsInCat) {
         const idealStat = idealBuildStats[stat] ?? 0;
-        
-        // Only consider stats that need improvement
         if (idealStat < 70) continue; 
-        
         const currentStat = projectedStats[stat] ?? 0;
-        if (currentStat > idealStat) continue; // Don't reward over-leveling
+        if (currentStat > idealStat) continue; 
 
-        // Calculate the deficit reduction this single level provides
-        const deficitReduction = 1; // Each level point adds 1 to the stat
-        
+        const deficitReduction = 1; 
         let weight = 1;
         if (idealStat >= 90) weight = 3;
         else if (idealStat >= 80) weight = 2;
-        
         categoryWeightedDeficit += deficitReduction * weight;
       }
       
       const valuePerPoint = categoryWeightedDeficit / costForNextLevel;
-
       if (valuePerPoint > maxWeightedDeficit) {
         maxWeightedDeficit = valuePerPoint;
         bestCategory = category;
@@ -625,25 +563,18 @@ export function calculateProgressionSuggestions(
       pointsSpent += cost;
       build[bestCategory]! += 1;
     } else {
-      // If no category offers improvement, break the loop
       break;
     }
   }
 
-  // If points are left over, distribute them greedily to the cheapest categories
-  // that still have some value, to use up the budget.
   while(pointsSpent < totalProgressionPoints) {
     let cheapestCategory: CategoryName | null = null;
     let minCost = Infinity;
 
     for (const category of categories) {
       const currentLevel = build[category]!;
-      
-      // Respect max level cap
       if (currentLevel >= MAX_CATEGORY_LEVEL) continue;
-
       const cost = calculatePointsForLevel(currentLevel + 1) - calculatePointsForLevel(currentLevel);
-
       if ((pointsSpent + cost) <= totalProgressionPoints && cost < minCost) {
           minCost = cost;
           cheapestCategory = category;
@@ -654,10 +585,9 @@ export function calculateProgressionSuggestions(
         pointsSpent += minCost;
         build[cheapestCategory]! += 1;
     } else {
-        break; // No affordable category found
+        break;
     }
   }
-
 
   return build;
 }

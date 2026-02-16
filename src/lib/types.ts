@@ -1,11 +1,11 @@
 import * as z from "zod";
 import type { AffinityBreakdownResult } from "./utils";
 
-export const playerStyles = ['Ninguno', 'Cazagoles', 'Cazagoles (Meta)', 'Cazagoles (Tanque)', 'Hombre de área', 'Segundo delantero', 'Hombre objetivo', 'Creador de juego', 'Creador de jugadas', 'El destructor', 'Portero defensivo', 'Portero ofensivo', 'Atacante extra', 'Lateral defensivo', 'Lateral ofensivo', 'Lateral finalizador', 'Especialista en centros', 'Omnipresente', 'Medio escudo', 'Organizador', 'Jugador de huecos', 'Extremo móvil', 'Extremo prolífico', 'Diez Clasico'] as const;
+export const playerStyles = ['Ninguno', 'Cazagoles', 'Hombre de área', 'Segundo delantero', 'Hombre objetivo', 'Creador de juego', 'Creador de jugadas', 'El destructor', 'Portero defensivo', 'Portero ofensivo', 'Atacante extra', 'Lateral defensivo', 'Lateral ofensivo', 'Lateral finalizador', 'Especialista en centros', 'Omnipresente', 'Medio escudo', 'Organizador', 'Jugador de huecos', 'Extremo móvil', 'Extremo prolífico', 'Diez Clasico'] as const;
 export type PlayerStyle = typeof playerStyles[number];
 
-// List of styles to show in the UI (hiding internal Cazagoles profiles)
-export const playerStylesUI = playerStyles.filter(s => s !== 'Cazagoles (Meta)' && s !== 'Cazagoles (Tanque)');
+// List of styles to show in the UI
+export const playerStylesUI = playerStyles;
 
 export const positions = ['PT', 'DFC', 'LI', 'LD', 'MCD', 'MC', 'MDI', 'MDD', 'MO', 'EXI', 'EXD', 'SD', 'DC'] as const;
 export type Position = typeof positions[number];
@@ -99,6 +99,7 @@ export type IdealBuild = {
   playStyle: IdealBuildType;
   position: BuildPosition;
   style: PlayerStyle;
+  profileName?: string;
   build: PlayerAttributeStats;
   height?: MinMaxRange;
   weight?: MinMaxRange;
