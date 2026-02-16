@@ -45,7 +45,7 @@ const buildSchema = z.object({
   playStyle: z.enum(idealBuildTypes),
   position: z.enum(buildPositions),
   style: z.enum(playerStyles),
-  profile: z.enum(['Meta', 'Tanque']).optional(), // For Cazagoles
+  profile: z.enum(['Meta', 'Tanque']).optional(),
   primarySkills: z.array(z.string()).optional(),
   secondarySkills: z.array(z.string()).optional(),
   height: minMaxSchema,
@@ -207,17 +207,17 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
       if (initialBuild) {
         const initialBuildValues: Record<string, any> = {};
         statFields.forEach(cat => cat.fields.forEach(f => {
-            initialBuildValues[f.name] = initialBuild?.build?.[f.name] ?? '';
+            initialBuildValues[f.name] = initialBuild?.build?.[f.name as keyof PlayerAttributeStats] ?? '';
         }));
         
         let profile: 'Meta' | 'Tanque' = 'Meta';
         let style = initialBuild.style;
         if (style.includes('(Meta)')) {
             profile = 'Meta';
-            style = 'Cazagoles' as any;
+            style = style.replace(' (Meta)', '') as any;
         } else if (style.includes('(Tanque)')) {
             profile = 'Tanque';
-            style = 'Cazagoles' as any;
+            style = style.replace(' (Tanque)', '') as any;
         }
 
         const mergedInitial: IdealBuildFormValues = {
@@ -251,8 +251,8 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
 
   const handleSubmit = (values: IdealBuildFormValues) => {
     let styleToSave = values.style;
-    if (styleToSave === 'Cazagoles') {
-        styleToSave = values.profile === 'Tanque' ? 'Cazagoles (Tanque)' : 'Cazagoles (Meta)' as any;
+    if (styleToSave !== 'Ninguno') {
+        styleToSave = values.profile === 'Tanque' ? `${styleToSave} (Tanque)` : `${styleToSave} (Meta)` as any;
     }
 
     const finalBuild: IdealBuild = {
@@ -377,7 +377,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
           <DialogTitle>{isEditing ? 'Editar' : 'Añadir'} Build Ideal</DialogTitle>
           <DialogDescription>
             {isEditing 
-                ? `Editando build para Contraataque largo: ${watchedPosition} - ${watchedStyle} ${watchedStyle === 'Cazagoles' ? `(${watchedProfile})` : ''}.`
+                ? `Editando build para Contraataque largo: ${watchedPosition} - ${watchedStyle} (${watchedProfile}).`
                 : "Define los atributos ideales para una combinación de posición y estilo de jugador en Contraataque largo."
             }
           </DialogDescription>
@@ -429,13 +429,13 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
                   />
                 </div>
 
-                {watchedStyle === 'Cazagoles' && (
+                {watchedStyle !== 'Ninguno' && (
                     <FormField
                         control={form.control}
                         name="profile"
                         render={({ field }) => (
                             <FormItem className="space-y-3 p-4 bg-muted/30 rounded-lg border">
-                                <FormLabel>Perfil de Cazagoles (Detección Automática por Altura)</FormLabel>
+                                <FormLabel>Perfil de Jugador (Detección Automática por Altura)</FormLabel>
                                 <FormControl>
                                     <RadioGroup
                                         onValueChange={field.onChange}
