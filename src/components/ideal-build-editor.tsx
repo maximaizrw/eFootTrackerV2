@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -205,7 +204,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
         const initialBuildValues: Record<string, any> = {};
         statFields.forEach(cat => {
           cat.fields.forEach(f => {
-            initialBuildValues[f.name] = initialBuild?.build?.[f.name as keyof PlayerAttributeStats] ?? '';
+            initialBuildValues[f.name] = initialBuild.build?.[f.name as keyof PlayerAttributeStats] ?? '';
           });
         });
         
@@ -218,7 +217,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
           secondarySkills: initialBuild.secondarySkills || [],
           height: { min: initialBuild.height?.min || undefined, max: initialBuild.height?.max || undefined },
           weight: { min: initialBuild.weight?.min || undefined, max: initialBuild.weight?.max || undefined },
-          build: initialBuildValues,
+          build: initialBuildValues as any,
         };
         reset(mergedInitial);
       } else {

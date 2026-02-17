@@ -1,4 +1,3 @@
-
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position, BuildPosition, PhysicalAttribute, PlayerSkill, PlayerPerformance, LiveUpdateRating, IdealBuildType, PlayerCard } from "./types";
@@ -60,7 +59,7 @@ export function normalizeText(text: string): string {
 }
 
 /**
- * Normalizes style names to ensure consistency (e.g., Señuelo -> Segundo delantero).
+ * Normalizes style names to ensure consistency.
  */
 export function normalizeStyleName(style: string): string {
     if (!style) return 'Ninguno';
@@ -149,10 +148,9 @@ export function isProfileIncomplete(card: PlayerCard): boolean {
 }
 
 
-// --- New Progression System ---
+// --- Progression System ---
 
 const MAX_STAT_VALUE = 99;
-const MAX_CATEGORY_LEVEL = 16;
 
 const outfieldStatsKeys: (keyof PlayerAttributeStats)[] = [
     'offensiveAwareness', 'ballControl', 'dribbling', 'tightPossession', 'lowPass', 'loftedPass', 'finishing', 'heading', 'placeKicking', 'curl',
@@ -183,70 +181,61 @@ export function calculateProgressionStats(
     baseStats[baseStat] !== undefined ? baseStats[baseStat] : baseStats[stat] || 0;
 
   if (!isGoalkeeper) {
-    // --- Shooting ---
     const shootingPoints = outfieldBuild.shooting || 0;
-    newStats.finishing = Math.min(MAX_STAT_VALUE, (getBase('finishing', 'baseFinishing')!) + shootingPoints);
-    newStats.placeKicking = Math.min(MAX_STAT_VALUE, (getBase('placeKicking', 'basePlaceKicking')!) + shootingPoints);
-    newStats.curl = Math.min(MAX_STAT_VALUE, (getBase('curl', 'baseCurl')!) + shootingPoints);
+    newStats.finishing = Math.min(MAX_STAT_VALUE, (getBase('finishing', 'baseFinishing')) + shootingPoints);
+    newStats.placeKicking = Math.min(MAX_STAT_VALUE, (getBase('placeKicking', 'basePlaceKicking')) + shootingPoints);
+    newStats.curl = Math.min(MAX_STAT_VALUE, (getBase('curl', 'baseCurl')) + shootingPoints);
     
-    // --- Passing ---
     const passingPoints = outfieldBuild.passing || 0;
-    newStats.lowPass = Math.min(MAX_STAT_VALUE, (getBase('lowPass', 'baseLowPass')!) + passingPoints);
-    newStats.loftedPass = Math.min(MAX_STAT_VALUE, (getBase('loftedPass', 'baseLoftedPass')!) + passingPoints);
+    newStats.lowPass = Math.min(MAX_STAT_VALUE, (getBase('lowPass', 'baseLowPass')) + passingPoints);
+    newStats.loftedPass = Math.min(MAX_STAT_VALUE, (getBase('loftedPass', 'baseLoftedPass')) + passingPoints);
     
-    // --- Dribbling ---
     const dribblingPoints = outfieldBuild.dribbling || 0;
-    newStats.ballControl = Math.min(MAX_STAT_VALUE, (getBase('ballControl', 'baseBallControl')!) + dribblingPoints);
-    newStats.dribbling = Math.min(MAX_STAT_VALUE, (getBase('dribbling', 'baseDribbling')!) + dribblingPoints);
-    newStats.tightPossession = Math.min(MAX_STAT_VALUE, (getBase('tightPossession', 'baseTightPossession')!) + dribblingPoints);
+    newStats.ballControl = Math.min(MAX_STAT_VALUE, (getBase('ballControl', 'baseBallControl')) + dribblingPoints);
+    newStats.dribbling = Math.min(MAX_STAT_VALUE, (getBase('dribbling', 'baseDribbling')) + dribblingPoints);
+    newStats.tightPossession = Math.min(MAX_STAT_VALUE, (getBase('tightPossession', 'baseTightPossession')) + dribblingPoints);
 
-    // --- Dexterity ---
     const dexterityPoints = outfieldBuild.dexterity || 0;
-    newStats.offensiveAwareness = Math.min(MAX_STAT_VALUE, (getBase('offensiveAwareness', 'baseOffensiveAwareness')!) + dexterityPoints);
-    newStats.acceleration = Math.min(MAX_STAT_VALUE, (getBase('acceleration', 'baseAcceleration')!) + dexterityPoints);
-    newStats.balance = Math.min(MAX_STAT_VALUE, (getBase('balance', 'baseBalance')!) + dexterityPoints);
+    newStats.offensiveAwareness = Math.min(MAX_STAT_VALUE, (getBase('offensiveAwareness', 'baseOffensiveAwareness')) + dexterityPoints);
+    newStats.acceleration = Math.min(MAX_STAT_VALUE, (getBase('acceleration', 'baseAcceleration')) + dexterityPoints);
+    newStats.balance = Math.min(MAX_STAT_VALUE, (getBase('balance', 'baseBalance')) + dexterityPoints);
 
-    // --- Lower Body Strength ---
     const lowerBodyPoints = outfieldBuild.lowerBodyStrength || 0;
-    newStats.speed = Math.min(MAX_STAT_VALUE, (getBase('speed', 'baseSpeed')!) + lowerBodyPoints);
-    newStats.kickingPower = Math.min(MAX_STAT_VALUE, (getBase('kickingPower', 'baseKickingPower')!) + lowerBodyPoints);
-    newStats.stamina = Math.min(MAX_STAT_VALUE, (getBase('stamina', 'baseStamina')!) + lowerBodyPoints);
+    newStats.speed = Math.min(MAX_STAT_VALUE, (getBase('speed', 'baseSpeed')) + lowerBodyPoints);
+    newStats.kickingPower = Math.min(MAX_STAT_VALUE, (getBase('kickingPower', 'baseKickingPower')) + lowerBodyPoints);
+    newStats.stamina = Math.min(MAX_STAT_VALUE, (getBase('stamina', 'baseStamina')) + lowerBodyPoints);
 
-    // --- Aerial Strength ---
     const aerialPoints = outfieldBuild.aerialStrength || 0;
-    newStats.heading = Math.min(MAX_STAT_VALUE, (getBase('heading', 'baseHeading')!) + aerialPoints);
-    newStats.jump = Math.min(MAX_STAT_VALUE, (getBase('jump', 'baseJump')!) + aerialPoints);
-    newStats.physicalContact = Math.min(MAX_STAT_VALUE, (getBase('physicalContact', 'basePhysicalContact')!) + aerialPoints);
+    newStats.heading = Math.min(MAX_STAT_VALUE, (getBase('heading', 'baseHeading')) + aerialPoints);
+    newStats.jump = Math.min(MAX_STAT_VALUE, (getBase('jump', 'baseJump')) + aerialPoints);
+    newStats.physicalContact = Math.min(MAX_STAT_VALUE, (getBase('physicalContact', 'basePhysicalContact')) + aerialPoints);
 
-    // --- Defending ---
     const defendingPoints = outfieldBuild.defending || 0;
-    newStats.defensiveAwareness = Math.min(MAX_STAT_VALUE, (getBase('defensiveAwareness', 'baseDefensiveAwareness')!) + defendingPoints);
-    newStats.defensiveEngagement = Math.min(MAX_STAT_VALUE, (getBase('defensiveEngagement', 'baseDefensiveEngagement')!) + defendingPoints);
-    newStats.tackling = Math.min(MAX_STAT_VALUE, (getBase('tackling', 'baseTackling')!) + defendingPoints);
-    newStats.aggression = Math.min(MAX_STAT_VALUE, (getBase('aggression', 'baseAggression')!) + defendingPoints);
+    newStats.defensiveAwareness = Math.min(MAX_STAT_VALUE, (getBase('defensiveAwareness', 'baseDefensiveAwareness')) + defendingPoints);
+    newStats.defensiveEngagement = Math.min(MAX_STAT_VALUE, (getBase('defensiveEngagement', 'baseDefensiveEngagement')) + defendingPoints);
+    newStats.tackling = Math.min(MAX_STAT_VALUE, (getBase('tackling', 'baseTackling')) + defendingPoints);
+    newStats.aggression = Math.min(MAX_STAT_VALUE, (getBase('aggression', 'baseAggression')) + defendingPoints);
   } else {
     const defendingPoints = (outfieldBuild as any).defending || 0;
      if (defendingPoints > 0) {
-        newStats.defensiveAwareness = Math.min(MAX_STAT_VALUE, (getBase('defensiveAwareness', 'baseDefensiveAwareness')!) + defendingPoints);
-        newStats.defensiveEngagement = Math.min(MAX_STAT_VALUE, (getBase('defensiveEngagement', 'baseDefensiveEngagement')!) + defendingPoints);
-        newStats.tackling = Math.min(MAX_STAT_VALUE, (getBase('tackling', 'baseTackling')!) + defendingPoints);
-        newStats.aggression = Math.min(MAX_STAT_VALUE, (getBase('aggression', 'baseAggression')!) + defendingPoints);
+        newStats.defensiveAwareness = Math.min(MAX_STAT_VALUE, (getBase('defensiveAwareness', 'baseDefensiveAwareness')) + defendingPoints);
+        newStats.defensiveEngagement = Math.min(MAX_STAT_VALUE, (getBase('defensiveEngagement', 'baseDefensiveEngagement')) + defendingPoints);
+        newStats.tackling = Math.min(MAX_STAT_VALUE, (getBase('tackling', 'baseTackling')) + defendingPoints);
+        newStats.aggression = Math.min(MAX_STAT_VALUE, (getBase('aggression', 'baseAggression')) + defendingPoints);
      }
   }
 
-
-  // --- Goalkeeping ---
   const gk1Points = goalkeeperBuild.gk1 || 0;
   const gk2Points = goalkeeperBuild.gk2 || 0;
   const gk3Points = goalkeeperBuild.gk3 || 0;
-  newStats.goalkeeping = Math.min(MAX_STAT_VALUE, (getBase('goalkeeping', 'baseGoalkeeping')!) + gk1Points);
+  newStats.goalkeeping = Math.min(MAX_STAT_VALUE, (getBase('goalkeeping', 'baseGoalkeeping')) + gk1Points);
   if (isGoalkeeper || !outfieldBuild.aerialStrength) { 
-    newStats.jump = Math.min(MAX_STAT_VALUE, (getBase('jump', 'baseJump')!) + gk1Points);
+    newStats.jump = Math.min(MAX_STAT_VALUE, (getBase('jump', 'baseJump')) + gk1Points);
   }
-  newStats.gkParrying = Math.min(MAX_STAT_VALUE, (getBase('gkParrying', 'baseGkParrying')!) + gk2Points);
-  newStats.gkReach = Math.min(MAX_STAT_VALUE, (getBase('gkReach', 'baseGkReach')!) + gk2Points);
-  newStats.gkCatching = Math.min(MAX_STAT_VALUE, (getBase('gkCatching', 'baseGkCatching')!) + gk3Points);
-  newStats.gkReflexes = Math.min(MAX_STAT_VALUE, (getBase('gkReflexes', 'baseGkReflexes')!) + gk3Points);
+  newStats.gkParrying = Math.min(MAX_STAT_VALUE, (getBase('gkParrying', 'baseGkParrying')) + gk2Points);
+  newStats.gkReach = Math.min(MAX_STAT_VALUE, (getBase('gkReach', 'baseGkReach')) + gk2Points);
+  newStats.gkCatching = Math.min(MAX_STAT_VALUE, (getBase('gkCatching', 'baseGkCatching')) + gk3Points);
+  newStats.gkReflexes = Math.min(MAX_STAT_VALUE, (getBase('gkReflexes', 'baseGkReflexes')) + gk3Points);
   
   return newStats;
 }
@@ -272,52 +261,59 @@ export function getIdealBuildForPlayer(
     const effectiveStyle = activeStyles.includes(baseStyle as any) ? baseStyle : 'Ninguno';
 
     const archetype = symmetricalPositionMap[position];
+    
+    // Find all potential builds for this position/style
     const candidateBuilds = idealBuilds.filter(b => 
         (b.position === position || (archetype && b.position === archetype)) && 
         normalizeStyleName(b.style) === effectiveStyle
     );
 
     if (candidateBuilds.length === 0) {
+        // Fallback to "Ninguno" profile if exists
         const fallbackBuilds = idealBuilds.filter(b => 
             (b.position === position || (archetype && b.position === archetype)) && 
             normalizeStyleName(b.style) === 'Ninguno'
         );
         if (fallbackBuilds.length > 0) {
-            return findBestBuildInList(fallbackBuilds, height, 'Ninguno');
+            return findBestBuildByRange(fallbackBuilds, height, 'Ninguno');
         }
         return { bestBuild: null, bestStyle: effectiveStyle, actualType: 'Contraataque largo' };
     }
 
-    return findBestBuildInList(candidateBuilds, height, effectiveStyle);
+    return findBestBuildByRange(candidateBuilds, height, effectiveStyle);
 }
 
-function findBestBuildInList(builds: IdealBuild[], height: number | undefined, styleLabel: string) {
+function findBestBuildByRange(builds: IdealBuild[], height: number | undefined, styleLabel: string) {
+    // If we have a height, try to find a matching range
     if (height !== undefined && height > 0) {
-        const matchingBuild = builds.find(b => {
+        const matchingRange = builds.find(b => {
             const min = b.height?.min || 0;
             const max = b.height?.max || 0;
-            const hasRange = min > 0 || max > 0;
-            if (!hasRange) return false;
+            if (min === 0 && max === 0) return false; // Not a range-specific build
             
-            const matchesMin = min > 0 ? height >= min : true;
-            const matchesMax = max > 0 ? height <= max : true;
-            return matchesMin && matchesMax;
+            const minMatch = min > 0 ? height >= min : true;
+            const maxMatch = max > 0 ? height <= max : true;
+            return minMatch && maxMatch;
         });
-        if (matchingBuild) {
-            const label = matchingBuild.profileName ? `${styleLabel} (${matchingBuild.profileName})` : styleLabel;
-            return { bestBuild: matchingBuild, bestStyle: label, actualType: 'Contraataque largo' as const };
+        
+        if (matchingRange) {
+            const label = matchingRange.profileName ? `${styleLabel} (${matchingRange.profileName})` : styleLabel;
+            return { bestBuild: matchingRange, bestStyle: label, actualType: 'Contraataque largo' as const };
         }
     }
 
+    // Fallback: find the build with no range (base build)
     const baseBuild = builds.find(b => (!b.height?.min || b.height.min === 0) && (!b.height?.max || b.height.max === 0));
-    if (baseBuild) {
-        const finalLabel = baseBuild.profileName ? `${styleLabel} (${baseBuild.profileName})` : styleLabel;
-        return { bestBuild: baseBuild, bestStyle: finalLabel, actualType: 'Contraataque largo' as const };
-    }
     
-    const firstBuild = builds[0];
-    const finalLabel = firstBuild.profileName ? `${styleLabel} (${firstBuild.profileName})` : styleLabel;
-    return { bestBuild: firstBuild, bestStyle: finalLabel, actualType: 'Contraataque largo' as const };
+    if (baseBuild) {
+        const label = baseBuild.profileName ? `${styleLabel} (${baseBuild.profileName})` : styleLabel;
+        return { bestBuild: baseBuild, bestStyle: label, actualType: 'Contraataque largo' as const };
+    }
+
+    // Last resort: just the first one
+    const first = builds[0];
+    const label = first.profileName ? `${styleLabel} (${first.profileName})` : styleLabel;
+    return { bestBuild: first, bestStyle: label, actualType: 'Contraataque largo' as const };
 }
 
 
@@ -527,7 +523,7 @@ export function calculateProgressionSuggestions(
 
     for (const category of categories) {
       const currentLevel = build[category]!;
-      if (currentLevel >= MAX_CATEGORY_LEVEL) continue;
+      if (currentLevel >= 16) continue;
 
       const costForNextLevel = calculatePointsForLevel(currentLevel + 1) - calculatePointsForLevel(currentLevel);
       if ((pointsSpent + costForNextLevel) > totalProgressionPoints) continue;
@@ -573,7 +569,7 @@ export function calculateProgressionSuggestions(
 
     for (const category of categories) {
       const currentLevel = build[category]!;
-      if (currentLevel >= MAX_CATEGORY_LEVEL) continue;
+      if (currentLevel >= 16) continue;
       const cost = calculatePointsForLevel(currentLevel + 1) - calculatePointsForLevel(currentLevel);
       if ((pointsSpent + cost) <= totalProgressionPoints && cost < minCost) {
           minCost = cost;
