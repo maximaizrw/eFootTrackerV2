@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -181,10 +182,10 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
   React.useEffect(() => {
     if (open) {
       setPastedText('');
-      const defaultBuild: Record<string, any> = {};
+      const defaultBuildValues: Record<string, any> = {};
       statFields.forEach(cat => {
         cat.fields.forEach(f => {
-          defaultBuild[f.name] = '';
+          defaultBuildValues[f.name] = '';
         });
       });
 
@@ -197,7 +198,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
         secondarySkills: [],
         height: { min: undefined, max: undefined },
         weight: { min: undefined, max: undefined },
-        build: defaultBuild,
+        build: defaultBuildValues as any,
       };
 
       if (initialBuild) {

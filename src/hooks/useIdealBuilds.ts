@@ -1,11 +1,12 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase-config';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, query, getDoc, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, query, getDocs } from 'firebase/firestore';
 import { useToast } from './use-toast';
-import type { IdealBuild, PlayerAttributeStats, Player, PlayerCard, PlayerSkill, IdealBuildType } from '@/lib/types';
-import { calculateProgressionStats, getIdealBuildForPlayer, calculateAffinityWithBreakdown, normalizeStyleName } from '@/lib/utils';
+import type { IdealBuild, PlayerAttributeStats, Player, PlayerCard } from '@/lib/types';
+import { calculateProgressionStats, calculateAffinityWithBreakdown, normalizeStyleName } from '@/lib/utils';
 
 export function useIdealBuilds() {
   const [idealBuilds, setIdealBuilds] = useState<IdealBuild[]>([]);
@@ -71,16 +72,18 @@ export function useIdealBuilds() {
 
             newCards.forEach(card => {
                 if (normalizeStyleName(card.style) === normalizeStyleName(updatedBuild.style)) {
-                    if (card.buildsByPosition && card.buildsByPosition[updatedBuild.position]) {
-                        const currentBuild = card.buildsByPosition[updatedBuild.position]!
-                        const isGoalkeeper = updatedBuild.position === 'PT';
-                        const finalStats = calculateProgressionStats(card.attributeStats || {}, currentBuild, isGoalkeeper);
-
-                        const { totalAffinityScore } = calculateAffinityWithBreakdown(finalStats, updatedBuild, card.physicalAttributes, card.skills);
-                        
-                        currentBuild.manualAffinity = totalAffinityScore;
-                        currentBuild.updatedAt = new Date().toISOString();
-                        playerWasUpdated = true;
+                    if (card.buildsByPosition) {
+                        for (const posKey in card.buildsByPosition) {
+                            if (posKey === updatedBuild.position) {
+                                const currentBuild = card.buildsByPosition[updatedBuild.position]!;
+                                const isGoalkeeper = updatedBuild.position === 'PT';
+                                const finalStats = calculateProgressionStats(card.attributeStats || {}, currentBuild, isGoalkeeper);
+                                const { totalAffinityScore } = calculateAffinityWithBreakdown(finalStats, updatedBuild, card.physicalAttributes, card.skills);
+                                currentBuild.manualAffinity = totalAffinityScore;
+                                currentBuild.updatedAt = new Date().toISOString();
+                                playerWasUpdated = true;
+                            }
+                        }
                     }
                 }
             });
@@ -97,7 +100,7 @@ export function useIdealBuilds() {
   const saveIdealBuild = async (build: IdealBuild) => {
     if (!db) return;
     
-    // Unique ID combining tactica, position, style and custom profile name
+    // Unique ID combining tactic, position, style and profile name
     const profilePart = build.profileName ? `-${build.profileName.trim().replace(/\s+/g, '_')}` : '';
     const buildId = `Contraataque_largo-${build.position}-${build.style.replace(/\s+/g, '_')}${profilePart}`;
     
