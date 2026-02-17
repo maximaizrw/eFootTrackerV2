@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import type { BuildPosition, PlayerStyle, IdealBuild, PlayerAttributeStats, PhysicalAttribute, PlayerSkill, IdealBuildType } from "@/lib/types";
+import type { BuildPosition, PlayerStyle, IdealBuild, PlayerAttributeStats, IdealBuildType } from "@/lib/types";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -322,7 +322,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Editar' : 'Añadir'} Build Ideal</DialogTitle>
           <DialogDescription>
-            Define los atributos ideales y los activadores por rango de altura/peso.
+            Define los atributos ideales y los activadores por rango físico opcional.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -397,24 +397,28 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
                     </Button>
                 </div>
                 
-                 <div className="p-4 rounded-lg border bg-background/50 space-y-4">
-                    <h3 className="text-lg font-semibold text-primary">Activadores del Perfil (Opcional)</h3>
+                 <div className="p-4 rounded-lg border bg-muted/20 space-y-4">
+                    <h3 className="text-sm font-bold text-primary uppercase tracking-wider">Activadores del Perfil (Opcional)</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <FormLabel className="mb-2 block">Altura (cm)</FormLabel>
+                            <FormLabel className="mb-2 block text-xs">Altura (cm)</FormLabel>
                             <div className="grid grid-cols-2 gap-2">
                                 <FormField control={form.control} name="height.min" render={({ field }) => (<FormItem><FormControl><Input type="number" placeholder="Min" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
                                 <FormField control={form.control} name="height.max" render={({ field }) => (<FormItem><FormControl><Input type="number" placeholder="Max" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
                             </div>
                         </div>
                         <div>
-                            <FormLabel className="mb-2 block">Peso (kg)</FormLabel>
+                            <FormLabel className="mb-2 block text-xs">Peso (kg)</FormLabel>
                             <div className="grid grid-cols-2 gap-2">
                                 <FormField control={form.control} name="weight.min" render={({ field }) => (<FormItem><FormControl><Input type="number" placeholder="Min" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
                                 <FormField control={form.control} name="weight.max" render={({ field }) => (<FormItem><FormControl><Input type="number" placeholder="Max" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
                             </div>
                         </div>
                     </div>
+                </div>
+
+                <div className="p-4 rounded-lg border bg-background/50 space-y-4">
+                    <h3 className="text-sm font-bold text-primary uppercase tracking-wider">Habilidades Recomendadas</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormField
                             control={form.control}
