@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -38,7 +37,6 @@ const minMaxSchema = z.object({
   min: physicalSchema,
   max: physicalSchema,
 }).optional();
-
 
 const buildSchema = z.object({
   playStyle: z.enum(idealBuildTypes),
@@ -150,13 +148,11 @@ const nameToSchemaKeyMap: Record<string, keyof PlayerAttributeStats> = {
 
 const orderedStatFields: (keyof PlayerAttributeStats)[] = statFields.flatMap(category => category.fields.map(field => field.name));
 
-
 export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, existingBuilds }: IdealBuildEditorProps) {
   const { toast } = useToast();
   const [pastedText, setPastedText] = React.useState('');
   const [primarySkillsPopoverOpen, setPrimarySkillsPopoverOpen] = React.useState(false);
   const [secondarySkillsPopoverOpen, setSecondarySkillsPopoverOpen] = React.useState(false);
-
 
   const form = useForm<IdealBuildFormValues>({
     resolver: zodResolver(buildSchema),
@@ -189,18 +185,6 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
         });
       });
 
-      const defaultValues: IdealBuildFormValues = {
-        playStyle: "Contraataque largo",
-        position: "DC",
-        style: "Cazagoles",
-        profileName: "",
-        primarySkills: [],
-        secondarySkills: [],
-        height: { min: undefined, max: undefined },
-        weight: { min: undefined, max: undefined },
-        build: defaultBuildValues as any,
-      };
-
       if (initialBuild) {
         const initialBuildValues: Record<string, any> = {};
         statFields.forEach(cat => {
@@ -208,21 +192,29 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
             initialBuildValues[f.name] = initialBuild.build?.[f.name as keyof PlayerAttributeStats] ?? '';
           });
         });
-        
-        const mergedInitial: IdealBuildFormValues = {
-          ...defaultValues,
+        reset({
+          playStyle: "Contraataque largo",
           position: initialBuild.position,
           style: initialBuild.style,
           profileName: initialBuild.profileName || "",
           primarySkills: initialBuild.primarySkills || [],
           secondarySkills: initialBuild.secondarySkills || [],
-          height: { min: initialBuild.height?.min || undefined, max: initialBuild.height?.max || undefined },
-          weight: { min: initialBuild.weight?.min || undefined, max: initialBuild.weight?.max || undefined },
+          height: { min: initialBuild.height?.min, max: initialBuild.height?.max },
+          weight: { min: initialBuild.weight?.min, max: initialBuild.weight?.max },
           build: initialBuildValues as any,
-        };
-        reset(mergedInitial);
+        });
       } else {
-        reset(defaultValues);
+        reset({
+          playStyle: "Contraataque largo",
+          position: "DC",
+          style: "Cazagoles",
+          profileName: "",
+          primarySkills: [],
+          secondarySkills: [],
+          height: { min: undefined, max: undefined },
+          weight: { min: undefined, max: undefined },
+          build: defaultBuildValues as any,
+        });
       }
     }
   }, [open, initialBuild, reset]);
@@ -238,6 +230,17 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
   }, [availableStyles, watch, setValue, isEditing]);
 
   const handleSubmit = (values: IdealBuildFormValues) => {
+    const finalStats: PlayerAttributeStats = {};
+    statFields.forEach(category => {
+        category.fields.forEach(field => {
+            const key = field.name as keyof PlayerAttributeStats;
+            const value = values.build[key];
+            if (value !== '' && value !== null && value !== undefined && !isNaN(Number(value))) {
+                finalStats[key] = Number(value);
+            }
+        });
+    });
+
     const finalBuild: IdealBuild = {
       playStyle: "Contraataque largo",
       position: values.position,
@@ -247,18 +250,8 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
       secondarySkills: values.secondarySkills || [],
       height: { min: values.height?.min, max: values.height?.max },
       weight: { min: values.weight?.min, max: values.weight?.max },
-      build: {},
+      build: finalStats,
     };
-
-    statFields.forEach(category => {
-        category.fields.forEach(field => {
-            const key = field.name as keyof PlayerAttributeStats;
-            const value = values.build[key];
-            if (value !== '' && value !== null && value !== undefined && !isNaN(Number(value))) {
-                finalBuild.build[key] = Number(value);
-            }
-        });
-    });
     
     onSave(finalBuild);
     onOpenChange(false);
@@ -267,7 +260,6 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
   const handleParseText = () => {
     const lines = pastedText.split('\n').filter(line => line.trim() !== '');
     let parsedCount = 0;
-    
     const isNumericOnly = lines.every(line => /^\d+\s*$/.test(line.trim()));
 
     if (isNumericOnly) {
@@ -291,12 +283,9 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
         lines.forEach(line => {
             const parts = line.split(/\s+/).filter(Boolean);
             if (parts.length < 2) return;
-
             const value = parseInt(parts[parts.length - 1], 10);
             if (isNaN(value)) return;
-            
             const namePart = parts.slice(0, -1).join(' ').replace('●', '').trim().toLowerCase();
-            
             const schemaKey = nameToSchemaKeyMap[namePart];
             if (schemaKey) {
                 form.setValue(`build.${schemaKey}`, value, { shouldValidate: true });
@@ -306,10 +295,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
     }
 
     if (parsedCount > 0) {
-      toast({
-        title: "Estadísticas Cargadas",
-        description: `Se han cargado ${parsedCount} atributos en el formulario.`,
-      });
+      toast({ title: "Estadísticas Cargadas", description: `Se han cargado ${parsedCount} atributos.` });
       setPastedText('');
     }
   };
@@ -317,26 +303,18 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
   const handleSkillToggle = (skillToToggle: string, type: 'primary' | 'secondary') => {
     const fieldName = type === 'primary' ? 'primarySkills' : 'secondarySkills';
     const otherFieldName = type === 'primary' ? 'secondarySkills' : 'primarySkills';
-    
     const currentValues = getValues(fieldName) || [];
     const otherValues = getValues(otherFieldName) || [];
 
     if (otherValues.includes(skillToToggle)) {
-        toast({
-            variant: "destructive",
-            title: "Habilidad Duplicada",
-            description: "Una habilidad no puede ser primaria y secundaria a la vez."
-        });
+        toast({ variant: "destructive", title: "Habilidad Duplicada", description: "Una habilidad no puede ser primaria y secundaria a la vez." });
         return;
     }
     
     const isSelected = currentValues.includes(skillToToggle);
-    const newValues = isSelected
-      ? currentValues.filter((s) => s !== skillToToggle)
-      : [...currentValues, skillToToggle];
+    const newValues = isSelected ? currentValues.filter((s) => s !== skillToToggle) : [...currentValues, skillToToggle];
     setValue(fieldName, newValues, { shouldValidate: true });
   };
-
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -344,7 +322,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Editar' : 'Añadir'} Build Ideal</DialogTitle>
           <DialogDescription>
-            Define los atributos ideales y los requisitos de activación (altura/peso) para este perfil.
+            Define los atributos ideales y los activadores por rango de altura/peso.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -397,9 +375,9 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
                     name="profileName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Nombre del Perfil (Ej: Meta, Tanque...)</FormLabel>
+                        <FormLabel>Nombre del Perfil (Ej: Veloz, Tanque...)</FormLabel>
                         <FormControl>
-                          <Input placeholder="Ej: Veloz, Físico..." {...field} />
+                          <Input placeholder="Personaliza el nombre del perfil" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -407,124 +385,78 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
                   />
                 </div>
 
-                <div className="flex flex-wrap gap-2">
-                    <div className="flex gap-2 flex-grow">
-                        <Textarea
-                            placeholder="Pega aquí las estadísticas..."
-                            value={pastedText}
-                            onChange={(e) => setPastedText(e.target.value)}
-                            className="min-h-[40px] h-10 flex-grow"
-                        />
-                        <Button type="button" onClick={handleParseText} disabled={!pastedText} size="sm">
-                            <UploadCloud className="mr-2 h-4 w-4" />
-                            Cargar
-                        </Button>
-                    </div>
+                <div className="flex gap-2">
+                    <Textarea
+                        placeholder="Pega las estadísticas aquí..."
+                        value={pastedText}
+                        onChange={(e) => setPastedText(e.target.value)}
+                        className="min-h-[40px] h-10 flex-grow"
+                    />
+                    <Button type="button" onClick={handleParseText} disabled={!pastedText} size="sm">
+                        <UploadCloud className="mr-2 h-4 w-4" /> Cargar
+                    </Button>
                 </div>
                 
                  <div className="p-4 rounded-lg border bg-background/50 space-y-4">
                     <h3 className="text-lg font-semibold text-primary">Activadores del Perfil (Opcional)</h3>
-                    <p className="text-xs text-muted-foreground">Define los rangos para que este perfil se aplique automáticamente según el físico del jugador.</p>
-                    <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <FormLabel className="text-base mb-2 block">Altura Activadora (cm)</FormLabel>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <FormField control={form.control} name="height.min" render={({ field }) => (<FormItem><FormLabel className="text-sm">Mínima (>=)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
-                                <FormField control={form.control} name="height.max" render={({ field }) => (<FormItem><FormLabel className="text-sm">Máxima (<=)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
+                            <FormLabel className="mb-2 block">Altura (cm)</FormLabel>
+                            <div className="grid grid-cols-2 gap-2">
+                                <FormField control={form.control} name="height.min" render={({ field }) => (<FormItem><FormControl><Input type="number" placeholder="Min" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
+                                <FormField control={form.control} name="height.max" render={({ field }) => (<FormItem><FormControl><Input type="number" placeholder="Max" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
                             </div>
                         </div>
                         <div>
-                            <FormLabel className="text-base mb-2 block">Peso Activador (kg)</FormLabel>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <FormField control={form.control} name="weight.min" render={({ field }) => (<FormItem><FormLabel className="text-sm">Mínimo (>=)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
-                                <FormField control={form.control} name="weight.max" render={({ field }) => (<FormItem><FormLabel className="text-sm">Máximo (<=)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
+                            <FormLabel className="mb-2 block">Peso (kg)</FormLabel>
+                            <div className="grid grid-cols-2 gap-2">
+                                <FormField control={form.control} name="weight.min" render={({ field }) => (<FormItem><FormControl><Input type="number" placeholder="Min" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
+                                <FormField control={form.control} name="weight.max" render={({ field }) => (<FormItem><FormControl><Input type="number" placeholder="Max" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
                             </div>
                         </div>
                     </div>
-                     <div>
-                        <FormLabel className="text-base mb-2 block">Habilidades Primarias</FormLabel>
-                         <FormField
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
                             control={form.control}
                             name="primarySkills"
                             render={() => (
                                 <FormItem>
+                                <FormLabel>Habilidades Primarias</FormLabel>
                                 <Popover open={primarySkillsPopoverOpen} onOpenChange={setPrimarySkillsPopoverOpen}>
                                     <PopoverTrigger asChild>
-                                        <Button variant="outline" role="combobox" className="w-full justify-between h-auto min-h-10">
+                                        <Button variant="outline" className="w-full justify-between h-auto min-h-10">
                                         <div className="flex gap-1 flex-wrap">
-                                            {watchedPrimarySkills.length > 0 ? (
-                                            watchedPrimarySkills.map((skill) => (
-                                                <Badge variant="default" key={skill} className="mr-1">
-                                                {skill}
-                                                </Badge>
-                                            ))
-                                            ) : (
-                                            <span className="text-muted-foreground">Seleccionar habilidades primarias...</span>
-                                            )}
+                                            {watchedPrimarySkills.length > 0 ? watchedPrimarySkills.map(s => <Badge key={s} variant="default">{s}</Badge>) : <span className="text-muted-foreground text-xs">Seleccionar...</span>}
                                         </div>
                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                         </Button>
                                     </PopoverTrigger>
                                     <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                        <Command>
-                                        <CommandInput placeholder="Buscar habilidad..." />
-                                        <CommandList>
-                                            <CommandEmpty>No se encontró la habilidad.</CommandEmpty>
-                                            {playerSkillsList.map((skill) => (
-                                            <CommandItem key={skill} value={skill} onSelect={() => handleSkillToggle(skill, 'primary')}>
-                                                <Check className={cn("mr-2 h-4 w-4", watchedPrimarySkills.includes(skill) ? "opacity-100" : "opacity-0")} />
-                                                {skill}
-                                            </CommandItem>
-                                            ))}
-                                        </CommandList>
-                                        </Command>
+                                        <Command><CommandInput placeholder="Buscar..." /><CommandList><CommandEmpty>Sin resultados.</CommandEmpty>{playerSkillsList.map(s => <CommandItem key={s} value={s} onSelect={() => handleSkillToggle(s, 'primary')}><Check className={cn("mr-2 h-4 w-4", watchedPrimarySkills.includes(s) ? "opacity-100" : "opacity-0")} />{s}</CommandItem>)}</CommandList></Command>
                                     </PopoverContent>
-                                    </Popover>
-                                <FormMessage />
+                                </Popover>
                                 </FormItem>
                             )}
                         />
-                    </div>
-                     <div>
-                        <FormLabel className="text-base mb-2 block">Habilidades Secundarias</FormLabel>
-                         <FormField
+                        <FormField
                             control={form.control}
                             name="secondarySkills"
                             render={() => (
                                 <FormItem>
+                                <FormLabel>Habilidades Secundarias</FormLabel>
                                 <Popover open={secondarySkillsPopoverOpen} onOpenChange={setSecondarySkillsPopoverOpen}>
                                     <PopoverTrigger asChild>
-                                    <Button variant="outline" role="combobox" className="w-full justify-between h-auto min-h-10">
+                                        <Button variant="outline" className="w-full justify-between h-auto min-h-10">
                                         <div className="flex gap-1 flex-wrap">
-                                        {watchedSecondarySkills.length > 0 ? (
-                                            watchedSecondarySkills.map((skill) => (
-                                            <Badge variant="secondary" key={skill} className="mr-1">
-                                                {skill}
-                                            </Badge>
-                                            ))
-                                        ) : (
-                                            <span className="text-muted-foreground">Seleccionar habilidades secundarias...</span>
-                                        )}
+                                            {watchedSecondarySkills.length > 0 ? watchedSecondarySkills.map(s => <Badge key={s} variant="secondary">{s}</Badge>) : <span className="text-muted-foreground text-xs">Seleccionar...</span>}
                                         </div>
                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                    </Button>
+                                        </Button>
                                     </PopoverTrigger>
                                     <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                    <Command>
-                                        <CommandInput placeholder="Buscar habilidad..." />
-                                        <CommandList>
-                                        <CommandEmpty>No se encontró la habilidad.</CommandEmpty>
-                                        {playerSkillsList.map((skill) => (
-                                            <CommandItem key={skill} value={skill} onSelect={() => handleSkillToggle(skill, 'secondary')}>
-                                            <Check className={cn("mr-2 h-4 w-4", watchedSecondarySkills.includes(skill) ? "opacity-100" : "opacity-0")} />
-                                            {skill}
-                                            </CommandItem>
-                                        ))}
-                                        </CommandList>
-                                    </Command>
+                                        <Command><CommandInput placeholder="Buscar..." /><CommandList><CommandEmpty>Sin resultados.</CommandEmpty>{playerSkillsList.map(s => <CommandItem key={s} value={s} onSelect={() => handleSkillToggle(s, 'secondary')}><Check className={cn("mr-2 h-4 w-4", watchedSecondarySkills.includes(s) ? "opacity-100" : "opacity-0")} />{s}</CommandItem>)}</CommandList></Command>
                                     </PopoverContent>
                                 </Popover>
-                                <FormMessage />
                                 </FormItem>
                             )}
                         />

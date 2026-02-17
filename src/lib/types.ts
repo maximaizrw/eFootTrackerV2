@@ -4,7 +4,6 @@ import type { AffinityBreakdownResult } from "./utils";
 export const playerStyles = ['Ninguno', 'Cazagoles', 'Hombre de área', 'Segundo delantero', 'Hombre objetivo', 'Creador de juego', 'Creador de jugadas', 'El destructor', 'Portero defensivo', 'Portero ofensivo', 'Atacante extra', 'Lateral defensivo', 'Lateral ofensivo', 'Lateral finalizador', 'Especialista en centros', 'Omnipresente', 'Medio escudo', 'Organizador', 'Jugador de huecos', 'Extremo móvil', 'Extremo prolífico', 'Diez Clasico'] as const;
 export type PlayerStyle = typeof playerStyles[number];
 
-// List of styles to show in the UI
 export const playerStylesUI = playerStyles;
 
 export const positions = ['PT', 'DFC', 'LI', 'LD', 'MCD', 'MC', 'MDI', 'MDD', 'MO', 'EXI', 'EXD', 'SD', 'DC'] as const;
@@ -12,7 +11,6 @@ export type Position = typeof positions[number];
 
 export const buildPositions = [...positions, 'LAT', 'INT', 'EXT'] as const;
 export type BuildPosition = typeof buildPositions[number];
-
 
 export const leagues = [
     "Sin Liga", "Premier League", "Ligue 1 Uber Eats", "Serie A TIM", "LaLiga EA SPORTS",
@@ -55,9 +53,8 @@ export type PlayerSkill = typeof playerSkillsList[number];
 export const liveUpdateRatings = ['A', 'B', 'C', 'D', 'E'] as const;
 export type LiveUpdateRating = typeof liveUpdateRatings[number];
 
-
 export type OutfieldBuild = {
-  shooting?: number; // 0-16
+  shooting?: number;
   passing?: number;
   dribbling?: number;
   dexterity?: number;
@@ -67,13 +64,13 @@ export type OutfieldBuild = {
 };
 
 export type GoalkeeperBuild = {
-  gk1?: number; // 0-16
+  gk1?: number;
   gk2?: number;
   gk3?: number;
 };
 
 export type PlayerBuild = (OutfieldBuild & GoalkeeperBuild) & {
-  manualAffinity?: number; // -100 to 100
+  manualAffinity?: number;
   updatedAt?: string;
 };
 
@@ -108,7 +105,6 @@ export type IdealBuild = {
 };
 
 export type PlayerAttributeStats = {
-  // Attacking
   offensiveAwareness?: number;
   ballControl?: number;
   dribbling?: number;
@@ -119,18 +115,15 @@ export type PlayerAttributeStats = {
   heading?: number;
   placeKicking?: number;
   curl?: number;
-  // Defending
   defensiveAwareness?: number;
   defensiveEngagement?: number;
   tackling?: number;
   aggression?: number;
-  // Goalkeeping
   goalkeeping?: number;
   gkCatching?: number;
   gkParrying?: number;
   gkReflexes?: number;
   gkReach?: number;
-  // Athleticism
   speed?: number;
   acceleration?: number;
   kickingPower?: number;
@@ -139,7 +132,6 @@ export type PlayerAttributeStats = {
   balance?: number;
   stamina?: number;
 
-  // Base stats for progression
   baseOffensiveAwareness?: number;
   baseBallControl?: number;
   baseDribbling?: number;
@@ -186,7 +178,6 @@ export const positionLabels: Record<BuildPosition, string> = {
     INT: 'Interior (MDI/MDD)',
     EXT: 'Extremo (EXI/EXD)',
 };
-
 
 export type PositionLabel = typeof positionLabels[Position];
 
@@ -246,10 +237,6 @@ export type EditPlayerFormValues = {
     permanentLiveUpdateRating?: boolean;
 };
 
-export type Formation = {
-  [key in Position]?: number;
-};
-
 export type IdealTeamPlayer = {
   player: Player;
   card: PlayerCard;
@@ -280,7 +267,6 @@ export const FormationSlotSchema = z.object({
   top: z.number().optional(),
   left: z.number().optional(),
 });
-
 
 export type FormationSlot = z.infer<typeof FormationSlotSchema>;
 
@@ -316,7 +302,6 @@ export type EditFormationFormValues = {
   secondaryImageUrl?: string;
   sourceUrl?: string;
 };
-
 
 export type AddMatchFormValues = {
   formationId: string;

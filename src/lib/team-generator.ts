@@ -1,4 +1,3 @@
-
 import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, FormationSlot as FormationSlotType, IdealBuild, IdealBuildType } from './types';
 import { getAvailableStylesForPosition } from './types';
 import { calculateStats, calculateGeneralScore, getIdealBuildForPlayer, calculateProgressionStats, isSpecialCard, calculateAffinityWithBreakdown } from './utils';
@@ -14,10 +13,6 @@ type CandidatePlayer = {
   performance: PlayerPerformance;
 };
 
-
-/**
- * Generates the ideal team (starters and substitutes) based on a given formation.
- */
 export function generateIdealTeam(
   players: Player[],
   formation: FormationStats,
@@ -30,48 +25,28 @@ export function generateIdealTeam(
   isFlexibleWingers: boolean = false,
   targetIdealType: IdealBuildType = 'Contraataque largo'
 ): IdealTeamSlot[] {
-  
-  
   const allPlayerCandidates: CandidatePlayer[] = players.flatMap(player => {
-    if (nationality !== 'all' && player.nationality !== nationality) {
-      return [];
-    }
-    
+    if (nationality !== 'all' && player.nationality !== nationality) return [];
     const allPlayerPositions = new Set(player.cards.flatMap(c => Object.keys(c.ratingsByPosition || {})));
     const isOnlyGoalkeeper = allPlayerPositions.size === 1 && allPlayerPositions.has('PT');
 
-
     return (player.cards || []).flatMap(card => {
-      if (league !== 'all' && card.league !== league) {
-        return [];
-      }
-
+      if (league !== 'all' && card.league !== league) return [];
       const averagesByPosition = new Map<Position, number>();
       for (const p in card.ratingsByPosition) {
           const positionKey = p as Position;
           const posRatings = card.ratingsByPosition[positionKey];
-          if (posRatings && posRatings.length > 0) {
-              averagesByPosition.set(positionKey, calculateStats(posRatings).average);
-          }
+          if (posRatings && posRatings.length > 0) averagesByPosition.set(positionKey, calculateStats(posRatings).average);
       }
       
       const highPerfPositions = new Set<Position>();
-      for (const [p, avg] of averagesByPosition.entries()) {
-          if (avg >= 7.0) highPerfPositions.add(p);
-      }
+      for (const [p, avg] of averagesByPosition.entries()) if (avg >= 7.0) highPerfPositions.add(p);
       const isVersatile = highPerfPositions.size >= 3;
-      
       const positionsWithRatings = Object.keys(card.ratingsByPosition || {}) as Position[];
 
       return positionsWithRatings.map(pos => {
-        if (!card.ratingsByPosition?.[pos] || card.ratingsByPosition[pos]!.length === 0) {
-            return null;
-        }
-
-        // GK Restriction
-        if (isOnlyGoalkeeper && pos !== 'PT') {
-          return null;
-        }
+        if (!card.ratingsByPosition?.[pos] || card.ratingsByPosition[pos]!.length === 0) return null;
+        if (isOnlyGoalkeeper && pos !== 'PT') return null;
 
         const ratings = card.ratingsByPosition![pos]!;
         const stats = calculateStats(ratings);
@@ -82,12 +57,7 @@ export function generateIdealTeam(
         const currentAvg = averagesByPosition.get(pos);
         if (currentAvg && currentAvg >= 8.5 && averagesByPosition.size > 1) {
             let otherPositionsWeaker = true;
-            for (const [p, avg] of averagesByPosition.entries()) {
-                if (p !== pos && avg >= currentAvg - 1.5) {
-                    otherPositionsWeaker = false;
-                    break;
-                }
-            }
+            for (const [p, avg] of averagesByPosition.entries()) if (p !== pos && avg >= currentAvg - 1.5) { otherPositionsWeaker = false; break; }
             isSpecialist = otherPositionsWeaker;
         }
         
@@ -102,36 +72,16 @@ export function generateIdealTeam(
             isSpecialist: isSpecialist,
         };
         
-        // Select build based on sorting context
         const buildsMap = sortBy === 'average' ? (card.averageBuildsByPosition || card.buildsByPosition) : card.buildsByPosition;
         const buildForPos = buildsMap?.[pos];
-        
         const specialCard = isSpecialCard(card.name);
-        const isGoalkeeper = pos === 'PT';
-        const finalStats = specialCard || !buildForPos
-            ? (card.attributeStats || {})
-            : calculateProgressionStats(card.attributeStats || {}, buildForPos, isGoalkeeper);
-
+        const finalStats = specialCard || !buildForPos ? (card.attributeStats || {}) : calculateProgressionStats(card.attributeStats || {}, buildForPos, pos === 'PT');
         const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds, targetIdealType, card.physicalAttributes?.height);
-        const affinityBreakdown = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills);
-        const affinityScore = affinityBreakdown.totalAffinityScore;
-        
-        // Scoring for starters
+        const affinityScore = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills).totalAffinityScore;
         const generalScore = calculateGeneralScore(affinityScore, stats.average, stats.matches, performance, player.liveUpdateRating, card.skills, false);
-        
-        // Scoring for substitutes
         const substituteScore = calculateGeneralScore(affinityScore, stats.average, stats.matches, performance, player.liveUpdateRating, card.skills, true);
 
-        return {
-          player,
-          card,
-          position: pos,
-          average: stats.average,
-          affinityScore,
-          generalScore: generalScore,
-          substituteScore: substituteScore,
-          performance: performance,
-        };
+        return { player, card, position: pos, average: stats.average, affinityScore, generalScore, substituteScore, performance };
       }).filter((p): p is CandidatePlayer => p !== null);
     })
   });
@@ -142,9 +92,7 @@ export function generateIdealTeam(
   
   const sortFunction = (a: CandidatePlayer, b: CandidatePlayer, useSubScore: boolean = false) => {
     if (sortBy === 'average') {
-      // ABSOLUTE priority to average
       if (Math.abs(a.average - b.average) > 0.01) return b.average - a.average;
-      
       const scoreA = useSubScore ? a.substituteScore : a.generalScore;
       const scoreB = useSubScore ? b.substituteScore : b.generalScore;
       if (Math.abs(scoreA - scoreB) > 0.01) return scoreB - scoreA;
@@ -158,159 +106,73 @@ export function generateIdealTeam(
     }
   };
 
-
-  const createTeamPlayer = (candidate: CandidatePlayer | undefined, assignedPosition: Position, isSub: boolean): IdealTeamPlayer | null => {
-      if (!candidate) return null;
-      return {
-          player: candidate.player,
-          card: candidate.card,
-          position: candidate.position,
-          assignedPosition: assignedPosition,
-          affinityScore: candidate.affinityScore,
-          generalScore: isSub ? candidate.substituteScore : candidate.generalScore,
-          average: candidate.average,
-          performance: candidate.performance,
-      }
-  }
-
-  const findBestPlayer = (candidates: CandidatePlayer[], isSubSelection: boolean = false): CandidatePlayer | undefined => {
-      const availableCandidates = candidates.filter(p => {
+  const findBestPlayer = (candidates: CandidatePlayer[]): CandidatePlayer | undefined => {
+      return candidates.find(p => {
         if (usedPlayerIds.has(p.player.id) || usedCardIds.has(p.card.id) || discardedCardIds.has(p.card.id)) return false;
-        
-        // REGLA CRÍTICA: Afinidad mínima de 80
         if (p.affinityScore < 80) return false;
-
-        const rating = p.player.liveUpdateRating;
-
-        // Mode-specific form filtering
-        if (sortBy === 'average') {
-            // STRICT restriction: Only A or B for average mode
-            if (rating !== 'A' && rating !== 'B') return false;
-        } else {
-            // General mode: Just avoid bad form
-            if (rating === 'D' || rating === 'E') return false;
-        }
-
+        if (sortBy === 'average' && (p.player.liveUpdateRating !== 'A' && p.player.liveUpdateRating !== 'B')) return false;
+        if (sortBy !== 'average' && (p.player.liveUpdateRating === 'D' || p.player.liveUpdateRating === 'E')) return false;
         return true;
       });
-      return availableCandidates[0];
   };
   
-  const getCandidatesForSlot = (formationSlot: FormationSlotType, applyFlexibility: boolean = true, ignoreStyle: boolean = false, isSub: boolean = false): CandidatePlayer[] => {
+  const getCandidatesForSlot = (formationSlot: FormationSlotType, applyFlex: boolean, ignoreStyle: boolean, isSub: boolean): CandidatePlayer[] => {
     const slotStyles = formationSlot.styles || [];
-    const hasStylePreference = !ignoreStyle && slotStyles.length > 0;
     const targetPosition = formationSlot.position;
-
     let targetPositions: Position[] = [targetPosition];
-    if (applyFlexibility) {
+    if (applyFlex) {
       if (isFlexibleLaterals && (targetPosition === 'LI' || targetPosition === 'LD')) targetPositions = ['LI', 'LD'];
       if (isFlexibleWingers && (targetPosition === 'EXI' || targetPosition === 'EXD')) targetPositions = ['EXI', 'EXD'];
     }
-
-    let positionCandidates = allPlayerCandidates.filter(p => targetPositions.includes(p.position));
-        
-    if (hasStylePreference) {
+    let filtered = allPlayerCandidates.filter(p => targetPositions.includes(p.position));
+    if (!ignoreStyle && slotStyles.length > 0) {
         if (slotStyles.length === 1 && slotStyles[0] === 'Ninguno') {
-            const activeStylesForPos = getAvailableStylesForPosition(targetPosition);
-            positionCandidates = positionCandidates.filter(p => !activeStylesForPos.includes(p.card.style));
-        } else {
-            positionCandidates = positionCandidates.filter(p => slotStyles.includes(p.card.style));
-        }
+            const activeStyles = getAvailableStylesForPosition(targetPosition);
+            filtered = filtered.filter(p => !activeStyles.includes(p.card.style));
+        } else filtered = filtered.filter(p => slotStyles.includes(p.card.style));
     }
-    return positionCandidates.sort((a, b) => sortFunction(a, b, isSub));
+    return filtered.sort((a, b) => sortFunction(a, b, isSub));
   }
 
-  // STARTERS
   for (const formationSlot of formation.slots) {
-    let candidates = getCandidatesForSlot(formationSlot, true, false, false);
-    let starterCandidate = findBestPlayer(candidates, false);
-    
-    // If no candidate found with style preference, try ignoring it
-    if (!starterCandidate && formationSlot.styles && formationSlot.styles.length > 0) {
-        candidates = getCandidatesForSlot(formationSlot, true, true, false);
-        starterCandidate = findBestPlayer(candidates, false);
+    let cand = getCandidatesForSlot(formationSlot, true, false, false);
+    let starter = findBestPlayer(cand);
+    if (!starter && formationSlot.styles && formationSlot.styles.length > 0) {
+        cand = getCandidatesForSlot(formationSlot, true, true, false);
+        starter = findBestPlayer(cand);
     }
-    
-    if (starterCandidate) {
-      usedPlayerIds.add(starterCandidate.player.id);
-      usedCardIds.add(starterCandidate.card.id);
-    }
-    finalTeamSlots.push({ starter: createTeamPlayer(starterCandidate, formationSlot.position, false), substitute: null });
+    if (starter) { usedPlayerIds.add(starter.player.id); usedCardIds.add(starter.card.id); }
+    finalTeamSlots.push({ starter: starter ? { player: starter.player, card: starter.card, position: starter.position, assignedPosition: formationSlot.position, affinityScore: starter.affinityScore, generalScore: starter.generalScore, average: starter.average, performance: starter.performance } : null, substitute: null });
   }
   
-  // SUBSTITUTES
   finalTeamSlots.forEach((slot, index) => {
-    const originalFormationSlot = formation.slots[index];
-    const subSearchSlot: FormationSlotType = { ...originalFormationSlot };
-    if (slot.starter && slot.starter.position !== originalFormationSlot.position) subSearchSlot.position = slot.starter.position;
-    
-    const getBestSub = (ignoreStyle: boolean) => {
-        const candidates = getCandidatesForSlot(subSearchSlot, false, ignoreStyle, true);
-        
-        // Prioritize players with fewer matches for the bench (growing talent)
-        const tier1 = candidates.filter(p => p.performance.stats.matches < 5);
-        let found = findBestPlayer(tier1, true);
-        if (found) return found;
-        
-        const tier2 = candidates.filter(p => p.performance.stats.matches < 10);
-        found = findBestPlayer(tier2, true);
-        if (found) return found;
-        
-        return findBestPlayer(candidates, true);
+    const originalSlot = formation.slots[index];
+    const subPos = (slot.starter && slot.starter.position !== originalSlot.position) ? slot.starter.position : originalSlot.position;
+    const getSub = (ignore: boolean) => {
+        const cand = getCandidatesForSlot({ ...originalSlot, position: subPos }, false, ignore, true);
+        const t1 = cand.filter(p => p.performance.stats.matches < 5);
+        let found = findBestPlayer(t1); if (found) return found;
+        const t2 = cand.filter(p => p.performance.stats.matches < 10);
+        found = findBestPlayer(t2); if (found) return found;
+        return findBestPlayer(cand);
     };
-
-    let substituteCandidate = getBestSub(false);
-    if (!substituteCandidate && subSearchSlot.styles && subSearchSlot.styles.length > 0) substituteCandidate = getBestSub(true);
-    
-    if (substituteCandidate) {
-      usedPlayerIds.add(substituteCandidate.player.id);
-      usedCardIds.add(substituteCandidate.card.id);
-      slot.substitute = createTeamPlayer(substituteCandidate, originalFormationSlot.position, true);
+    let sub = getSub(false); if (!sub && originalSlot.styles && originalSlot.styles.length > 0) sub = getSub(true);
+    if (sub) {
+      usedPlayerIds.add(sub.player.id); usedCardIds.add(sub.card.id);
+      slot.substitute = { player: sub.player, card: sub.card, position: sub.position, assignedPosition: originalSlot.position, affinityScore: sub.affinityScore, generalScore: sub.substituteScore, average: sub.average, performance: sub.performance };
     }
   });
 
-  // 12th SUB (Wildcard)
-  const outfieldFormationPositions = formation.slots.map(s => s.position).filter(p => p !== 'PT');
-  const allRemainingOutfieldCandidates = allPlayerCandidates
-    .filter(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id) && !discardedCardIds.has(p.card.id) && outfieldFormationPositions.includes(p.position))
+  const remaining = allPlayerCandidates.filter(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id) && !discardedCardIds.has(p.card.id))
     .sort((a, b) => sortFunction(a, b, true));
-  
-  if (allRemainingOutfieldCandidates.length > 0) {
-      const tier1_12th = allRemainingOutfieldCandidates.filter(p => p.performance.stats.matches < 5);
-      let extraSubCandidate = findBestPlayer(tier1_12th, true);
-      if (!extraSubCandidate) {
-          const tier2_12th = allRemainingOutfieldCandidates.filter(p => p.performance.stats.matches < 10);
-          extraSubCandidate = findBestPlayer(tier2_12th, true);
-      }
-      if (!extraSubCandidate) extraSubCandidate = findBestPlayer(allRemainingOutfieldCandidates, true);
-      
-      if (extraSubCandidate) {
-          finalTeamSlots.push({ starter: null, substitute: createTeamPlayer(extraSubCandidate, extraSubCandidate.position, true) });
-      }
-  }
+  let extraSub = findBestPlayer(remaining.filter(p => p.performance.stats.matches < 10)) || findBestPlayer(remaining);
+  if (extraSub) finalTeamSlots.push({ starter: null, substitute: { player: extraSub.player, card: extraSub.card, position: extraSub.position, assignedPosition: extraSub.position, affinityScore: extraSub.affinityScore, generalScore: extraSub.substituteScore, average: extraSub.average, performance: extraSub.performance } });
 
-  const placeholderPerformance: PlayerPerformance = {
-        stats: { average: 0, matches: 0, stdDev: 0 },
-        isHotStreak: false, isConsistent: false, isPromising: false, isVersatile: false,
-        isGameChanger: false, isStalwart: false, isSpecialist: false,
-  };
-  
-  const finalSlots = finalTeamSlots.map((slot, index) => {
-    const formationSlot = index < formation.slots.length ? formation.slots[index] : null;
-    const assignedPosition = formationSlot?.position || (slot.substitute?.position || 'DFC');
-    
-    const placeholderPlayer: IdealTeamPlayer = {
-        player: { id: `placeholder-S-${index}`, name: `Vacante`, cards: [], nationality: 'Sin Nacionalidad' as Nationality, permanentLiveUpdateRating: false },
-        card: { id: `placeholder-card-S-${index}`, name: 'N/A', style: 'Ninguno', ratingsByPosition: {} },
-        position: assignedPosition, assignedPosition: assignedPosition, average: 0, affinityScore: 0, generalScore: 0, performance: placeholderPerformance
-    };
-    
-    const starter = slot.starter || (index < 11 ? placeholderPlayer : null);
-    const subPlaceholderPlayer: IdealTeamPlayer = { ...placeholderPlayer, player: { ...placeholderPlayer.player, id: `placeholder-SUB-${index}`}, card: { ...placeholderPlayer.card, id: `placeholder-card-SUB-${index}`} };
-    const substitute = slot.substitute || (index < 12 ? subPlaceholderPlayer : null);
-    
-    return { starter, substitute };
+  return finalTeamSlots.map((slot, i) => {
+    const formationSlot = i < formation.slots.length ? formation.slots[i] : null;
+    const assigned = formationSlot?.position || (slot.substitute?.position || 'DFC');
+    const phPerf = { stats: { average: 0, matches: 0, stdDev: 0 }, isHotStreak: false, isConsistent: false, isPromising: false, isVersatile: false };
+    const ph = (id: string) => ({ player: { id, name: 'Vacante', cards: [], nationality: 'Sin Nacionalidad' as Nationality }, card: { id: `card-${id}`, name: 'N/A', style: 'Ninguno' as PlayerStyle, ratingsByPosition: {} }, position: assigned, assignedPosition: assigned, average: 0, affinityScore: 0, generalScore: 0, performance: phPerf } as IdealTeamPlayer);
+    return { starter: slot.starter || (i < 11 ? ph(`ph-s-${i}`) : null), substitute: slot.substitute || (i < 12 ? ph(`ph-sub-${i}`) : null) };
   });
-
-  return finalSlots.filter(s => s.starter || s.substitute);
 }

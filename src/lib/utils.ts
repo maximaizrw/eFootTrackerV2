@@ -1,4 +1,3 @@
-
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position, BuildPosition, PhysicalAttribute, PlayerSkill, PlayerPerformance, LiveUpdateRating, IdealBuildType, PlayerCard } from "./types";
@@ -35,7 +34,6 @@ export function calculateStats(numbers: number[]): PlayerRatingStats {
   return { average, matches, stdDev };
 }
 
-
 export function formatAverage(avg: number): string {
   return avg.toFixed(1);
 }
@@ -47,9 +45,6 @@ export function getAverageColorClass(average: number): string {
   return 'text-orange-400';
 }
 
-/**
- * Normalizes text for search and comparison.
- */
 export function normalizeText(text: string): string {
   if (!text) return '';
   return text
@@ -59,9 +54,6 @@ export function normalizeText(text: string): string {
     .trim();
 }
 
-/**
- * Normalizes style names to ensure consistency.
- */
 export function normalizeStyleName(style: string): string {
     if (!style) return 'Ninguno';
     if (style === 'Señuelo') return 'Segundo delantero';
@@ -86,7 +78,6 @@ export const LIVE_UPDATE_BONUSES: Record<LiveUpdateRating, number> = {
   E: -10,
 };
 
-
 export function calculateGeneralScore(
   affinityScore: number, 
   average: number, 
@@ -96,16 +87,12 @@ export function calculateGeneralScore(
   skills: PlayerSkill[] = [],
   isSubstitute: boolean = false
 ): number {
-  
   const weight = Math.min(100, matches) / 100;
   const avgWeight = weight;
   const affinityWeight = 1 - weight;
-
   const avgComponent = ((average * 10) + 50);
-  
   let generalScore = (avgComponent * avgWeight) + (affinityScore * affinityWeight);
 
-  // Apply badge bonuses
   if (performance.isHotStreak) generalScore += BADGE_BONUSES.HOT_STREAK;
   if (performance.isConsistent) generalScore += BADGE_BONUSES.CONSISTENT;
   if (performance.isVersatile) generalScore += BADGE_BONUSES.VERSATILE;
@@ -114,12 +101,10 @@ export function calculateGeneralScore(
   if (performance.isStalwart) generalScore += BADGE_BONUSES.STALWART;
   if (performance.isSpecialist) generalScore += BADGE_BONUSES.SPECIALIST;
   
-  // Apply live update bonus
   if (liveUpdateRating && LIVE_UPDATE_BONUSES[liveUpdateRating]) {
     generalScore += LIVE_UPDATE_BONUSES[liveUpdateRating];
   }
 
-  // Apply "As en la manga" bonus ONLY for substitutes
   if (isSubstitute && skills.includes('As en la manga')) {
     generalScore += 1;
   }
@@ -127,16 +112,12 @@ export function calculateGeneralScore(
   return Math.max(0, generalScore);
 }
 
-
 export function isSpecialCard(cardName: string): boolean {
   if (!cardName) return false;
   const lowerCaseCardName = cardName.toLowerCase();
   return lowerCaseCardName.includes('potw') || lowerCaseCardName.includes('pots') || lowerCaseCardName.includes('potm');
 }
 
-/**
- * Checks if a player card profile is incomplete.
- */
 export function isProfileIncomplete(card: PlayerCard): boolean {
   if (!card) return true;
   const special = isSpecialCard(card.name);
@@ -144,12 +125,8 @@ export function isProfileIncomplete(card: PlayerCard): boolean {
   const hasPhysical = card.physicalAttributes && card.physicalAttributes.height !== undefined && card.physicalAttributes.weight !== undefined;
   const hasSkills = card.skills && card.skills.length > 0;
   const hasProgression = special || (card.totalProgressionPoints !== undefined && card.totalProgressionPoints > 0);
-
   return !hasStats || !hasPhysical || !hasSkills || !hasProgression;
 }
-
-
-// --- Progression System ---
 
 const MAX_STAT_VALUE = 99;
 
@@ -163,11 +140,9 @@ const goalkeeperStatsKeys: (keyof PlayerAttributeStats)[] = [
     'goalkeeping', 'gkCatching', 'gkParrying', 'gkReflexes', 'gkReach'
 ];
 
-
 export const allStatsKeys: (keyof PlayerAttributeStats)[] = [
     ...new Set([...outfieldStatsKeys, ...goalkeeperStatsKeys])
 ];
-
 
 export function calculateProgressionStats(
   baseStats: PlayerAttributeStats,
@@ -248,7 +223,6 @@ const symmetricalPositionMap: Record<Position, BuildPosition | undefined> = {
     'PT': undefined, 'DFC': undefined, 'MCD': undefined, 'MC': undefined, 'MO': undefined, 'SD': undefined, 'DC': undefined,
 };
 
-
 export function getIdealBuildForPlayer(
     playerStyle: PlayerStyle,
     position: Position,
@@ -256,21 +230,17 @@ export function getIdealBuildForPlayer(
     targetType: IdealBuildType = 'Contraataque largo',
     height?: number
 ): { bestBuild: IdealBuild | null; bestStyle: string | null; actualType: IdealBuildType } {
-    
     const baseStyle = normalizeStyleName(playerStyle);
     const activeStyles = getAvailableStylesForPosition(position, true);
     const effectiveStyle = activeStyles.includes(baseStyle as any) ? baseStyle : 'Ninguno';
-
     const archetype = symmetricalPositionMap[position];
     
-    // Find all potential builds for this position/style
     const candidateBuilds = idealBuilds.filter(b => 
         (b.position === position || (archetype && b.position === archetype)) && 
         normalizeStyleName(b.style) === effectiveStyle
     );
 
     if (candidateBuilds.length === 0) {
-        // Fallback to "Ninguno" profile if exists
         const fallbackBuilds = idealBuilds.filter(b => 
             (b.position === position || (archetype && b.position === archetype)) && 
             normalizeStyleName(b.style) === 'Ninguno'
@@ -285,38 +255,29 @@ export function getIdealBuildForPlayer(
 }
 
 function findBestBuildByRange(builds: IdealBuild[], height: number | undefined, styleLabel: string) {
-    // If we have a height, try to find a matching range
     if (height !== undefined && height > 0) {
         const matchingRange = builds.find(b => {
             const min = b.height?.min || 0;
             const max = b.height?.max || 0;
-            if (min === 0 && max === 0) return false; // Not a range-specific build
-            
+            if (min === 0 && max === 0) return false;
             const minMatch = min > 0 ? height >= min : true;
             const maxMatch = max > 0 ? height <= max : true;
             return minMatch && maxMatch;
         });
-        
         if (matchingRange) {
             const label = matchingRange.profileName ? `${styleLabel} (${matchingRange.profileName})` : styleLabel;
             return { bestBuild: matchingRange, bestStyle: label, actualType: 'Contraataque largo' as const };
         }
     }
-
-    // Fallback: find the build with no range (base build)
     const baseBuild = builds.find(b => (!b.height?.min || b.height.min === 0) && (!b.height?.max || b.height.max === 0));
-    
     if (baseBuild) {
         const label = baseBuild.profileName ? `${styleLabel} (${baseBuild.profileName})` : styleLabel;
         return { bestBuild: baseBuild, bestStyle: label, actualType: 'Contraataque largo' as const };
     }
-
-    // Last resort: just the first one
     const first = builds[0];
     const label = first.profileName ? `${styleLabel} (${first.profileName})` : styleLabel;
     return { bestBuild: first, bestStyle: label, actualType: 'Contraataque largo' as const };
 }
-
 
 function calculatePhysicalAttributeAffinity(
     playerValue: number | undefined,
@@ -324,12 +285,9 @@ function calculatePhysicalAttributeAffinity(
 ): number {
     const min = idealRange?.min && idealRange.min > 0 ? Number(idealRange.min) : undefined;
     const max = idealRange?.max && idealRange.max > 0 ? Number(idealRange.max) : undefined;
-
     if (min === undefined && max === undefined) return 0;
     if (playerValue === undefined || playerValue === 0) return 0;
-
     const val = Number(playerValue);
-
     if ((min === undefined || val >= min) && (max === undefined || val <= max)) {
         return 2.5; 
     } else if (min !== undefined && val < min) {
@@ -389,7 +347,6 @@ export function calculateAffinityWithBreakdown(
 
         if (key !== 'placeKicking' && playerValue !== undefined && idealValue !== undefined && idealValue >= 70) {
              const diff = playerValue - idealValue;
-            
             if (diff >= 0) {
                 score = diff * 0.25; 
             } else {
@@ -397,11 +354,9 @@ export function calculateAffinityWithBreakdown(
                 else if (idealValue >= 80) score = diff * 0.3;
                 else score = diff * 0.2;
             }
-
             score = Math.max(-10, score);
             totalAffinityScore += score;
         }
-        
         breakdown.push({
             stat: key as keyof PlayerAttributeStats,
             label: statLabels[key as keyof PlayerAttributeStats] || 'Unknown',
@@ -442,22 +397,18 @@ export function calculateAffinityWithBreakdown(
     });
 
     const playerSkillsSet = new Set(playerSkills || []);
-    
     for (const idealSkill of primarySkills) {
         const hasSkill = playerSkillsSet.has(idealSkill);
         const score = hasSkill ? 1.0 : -0.5;
         totalAffinityScore += score;
         skillsBreakdown.push({ skill: idealSkill, hasSkill, score, type: 'primary' });
     }
-
     for (const idealSkill of secondarySkills) {
         const hasSkill = playerSkillsSet.has(idealSkill);
         const score = hasSkill ? 0.5 : -0.25;
         totalAffinityScore += score;
         skillsBreakdown.push({ skill: idealSkill, hasSkill, score, type: 'secondary' });
     }
-
-
     return { totalAffinityScore, breakdown, skillsBreakdown };
 }
 
@@ -485,7 +436,6 @@ export function calculateLevelForPoints(points: number): number {
   return 12 + Math.floor((points - 24) / 4);
 }
 
-
 type CategoryName = keyof (OutfieldBuild & GoalkeeperBuild);
 
 const categoryStatsMap: Record<CategoryName, (keyof PlayerAttributeStats)[]> = {
@@ -508,53 +458,42 @@ export function calculateProgressionSuggestions(
   totalProgressionPoints: number = 50
 ): Partial<OutfieldBuild & GoalkeeperBuild> {
   if (!idealBuild || totalProgressionPoints <= 0) return {};
-
   const idealBuildStats = idealBuild.build;
   const categories: CategoryName[] = isGoalkeeper
     ? ['gk1', 'gk2', 'gk3']
     : ['shooting', 'passing', 'dribbling', 'dexterity', 'lowerBodyStrength', 'aerialStrength', 'defending'];
-
   const build: { [key in CategoryName]?: number } = {};
   categories.forEach(cat => build[cat] = 0);
   let pointsSpent = 0;
-
   while (pointsSpent < totalProgressionPoints) {
     let bestCategory: CategoryName | null = null;
     let maxWeightedDeficit = -Infinity;
-
     for (const category of categories) {
       const currentLevel = build[category]!;
       if (currentLevel >= 16) continue;
-
       const costForNextLevel = calculatePointsForLevel(currentLevel + 1) - calculatePointsForLevel(currentLevel);
       if ((pointsSpent + costForNextLevel) > totalProgressionPoints) continue;
-      
       const tempBuild = { ...build, [category]: currentLevel + 1 };
       const projectedStats = calculateProgressionStats(baseStats, tempBuild, isGoalkeeper);
-      
       let categoryWeightedDeficit = 0;
       const statsInCat = categoryStatsMap[category] || [];
-
       for (const stat of statsInCat) {
         const idealStat = idealBuildStats[stat] ?? 0;
         if (idealStat < 70) continue; 
         const currentStat = projectedStats[stat] ?? 0;
         if (currentStat > idealStat) continue; 
-
         const deficitReduction = 1; 
         let weight = 1;
         if (idealStat >= 90) weight = 3;
         else if (idealStat >= 80) weight = 2;
         categoryWeightedDeficit += deficitReduction * weight;
       }
-      
       const valuePerPoint = categoryWeightedDeficit / costForNextLevel;
       if (valuePerPoint > maxWeightedDeficit) {
         maxWeightedDeficit = valuePerPoint;
         bestCategory = category;
       }
     }
-
     if (bestCategory && maxWeightedDeficit > 0) {
       const cost = calculatePointsForLevel(build[bestCategory]! + 1) - calculatePointsForLevel(build[bestCategory]!);
       pointsSpent += cost;
@@ -563,11 +502,9 @@ export function calculateProgressionSuggestions(
       break;
     }
   }
-
   while(pointsSpent < totalProgressionPoints) {
     let cheapestCategory: CategoryName | null = null;
     let minCost = Infinity;
-
     for (const category of categories) {
       const currentLevel = build[category]!;
       if (currentLevel >= 16) continue;
@@ -577,7 +514,6 @@ export function calculateProgressionSuggestions(
           cheapestCategory = category;
       }
     }
-
     if (cheapestCategory) {
         pointsSpent += minCost;
         build[cheapestCategory]! += 1;
@@ -585,6 +521,5 @@ export function calculateProgressionSuggestions(
         break;
     }
   }
-
   return build;
 }
