@@ -1,4 +1,3 @@
-
 import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, FormationSlot as FormationSlotType, IdealBuild, IdealBuildType } from './types';
 import { getAvailableStylesForPosition } from './types';
 import { calculateStats, calculateGeneralScore, getIdealBuildForPlayer, calculateProgressionStats, isSpecialCard, calculateAffinityWithBreakdown } from './utils';
@@ -127,6 +126,14 @@ export function generateIdealTeam(
             filtered = filtered.filter(p => slotStyles.includes(p.card.style));
         }
     }
+
+    // Filter by specific profile if specified
+    if (formationSlot.profileName && formationSlot.profileName !== 'General') {
+        filtered = filtered.filter(p => {
+            const { bestBuild } = getIdealBuildForPlayer(p.card.style, p.position, idealBuilds, targetIdealType, p.card.physicalAttributes?.height);
+            return bestBuild?.profileName === formationSlot.profileName;
+        });
+    }
     
     return filtered.sort((a, b) => sortFunction(a, b, isSub));
   }
@@ -155,32 +162,27 @@ export function generateIdealTeam(
     });
   }
   
-  // SUPLENTES: Siempre del mismo rol si se pide
+  // SUPLENTES
   finalTeamSlots.forEach((slot, index) => {
     if (index >= formation.slots.length) return;
     const originalSlot = formation.slots[index];
     const subPos = (slot.starter && slot.starter.position !== originalSlot.position) ? slot.starter.position : originalSlot.position;
     
     const getSub = () => {
-        // 1. Mismo Rol + Afinidad 80 + Letra OK
         let cand = getCandidatesForSlot({ ...originalSlot, position: subPos }, false, false, true);
         let found = findBestPlayer(cand, { minAffinity: 80, relaxRatings: false });
         if (found) return found;
 
-        // 2. Mismo Rol + Cualquier Afinidad + Letra OK
         found = findBestPlayer(cand, { minAffinity: 0, relaxRatings: false });
         if (found) return found;
 
-        // 3. Mismo Rol + Cualquier Afinidad + Letra Emergencia
         found = findBestPlayer(cand, { minAffinity: 0, relaxRatings: true });
         if (found) return found;
 
-        // 4. Cualquier Rol (Variante) + Afinidad 80 + Letra OK
         cand = getCandidatesForSlot({ ...originalSlot, position: subPos }, false, true, true);
         found = findBestPlayer(cand, { minAffinity: 80, relaxRatings: false });
         if (found) return found;
 
-        // 5. Cualquier Rol + Protocolo de Vacante
         return findBestPlayer(cand, { minAffinity: 0, relaxRatings: true });
     };
     
@@ -192,7 +194,7 @@ export function generateIdealTeam(
     }
   });
 
-  // SUPLENTE 12: Solo de posiciones y roles de la formación
+  // SUPLENTE 12
   const formationRequirements = formation.slots.map(s => ({
     position: s.position,
     styles: s.styles || []
@@ -222,7 +224,6 @@ export function generateIdealTeam(
       });
   }
 
-  // Placeholders finales
   return finalTeamSlots.map((slot, i) => {
     const formationSlot = i < formation.slots.length ? formation.slots[i] : null;
     const assigned = formationSlot?.position || 'DFC';

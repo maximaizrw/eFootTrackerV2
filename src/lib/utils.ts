@@ -216,7 +216,7 @@ export function calculateProgressionStats(
   return newStats;
 }
 
-const symmetricalPositionMap: Record<Position, BuildPosition | undefined> = {
+export const symmetricalPositionMap: Record<Position, BuildPosition | undefined> = {
     'LI': 'LAT', 'LD': 'LAT',
     'MDI': 'INT', 'MDD': 'INT',
     'EXI': 'EXT', 'EXD': 'EXT',

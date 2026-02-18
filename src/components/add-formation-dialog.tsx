@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -31,7 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import type { AddFormationFormValues } from "@/lib/types";
+import type { AddFormationFormValues, IdealBuild } from "@/lib/types";
 import { formationPlayStyles, FormationSlotSchema } from "@/lib/types";
 import { VisualFormationEditor } from "./visual-formation-editor";
 import { formationPresets } from "@/lib/formation-presets";
@@ -51,11 +50,12 @@ type AddFormationDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAddFormation: (values: AddFormationFormValues) => void;
+  idealBuilds: IdealBuild[];
 };
 
 const defaultSlots = formationPresets.find(p => p.name === '4-3-3')?.slots || Array(11).fill({ position: 'DC', styles: [] });
 
-export function AddFormationDialog({ open, onOpenChange, onAddFormation }: AddFormationDialogProps) {
+export function AddFormationDialog({ open, onOpenChange, onAddFormation, idealBuilds }: AddFormationDialogProps) {
   const [preset, setPreset] = useState('4-3-3 (Clásico)');
   
   const form = useForm<AddFormationFormValues>({
@@ -193,6 +193,7 @@ export function AddFormationDialog({ open, onOpenChange, onAddFormation }: AddFo
                                     <VisualFormationEditor 
                                         value={field.value} 
                                         onChange={field.onChange} 
+                                        idealBuilds={idealBuilds}
                                     />
                                 </FormControl>
                                 <FormMessage />

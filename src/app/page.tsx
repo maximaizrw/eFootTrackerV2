@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -486,12 +485,14 @@ export default function Home() {
         open={isAddFormationDialogOpen}
         onOpenChange={setAddFormationDialogOpen}
         onAddFormation={addFormation}
+        idealBuilds={idealBuilds}
       />
       <EditFormationDialog
         open={isEditFormationDialogOpen}
         onOpenChange={setEditFormationDialogOpen}
         onEditFormation={editFormation}
         initialData={editFormationDialogInitialData}
+        idealBuilds={idealBuilds}
       />
       <AddMatchDialog
         open={isAddMatchDialogOpen}

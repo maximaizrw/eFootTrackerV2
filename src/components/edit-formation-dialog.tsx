@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
@@ -31,7 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import type { EditFormationFormValues, FormationStats, FormationSlot } from "@/lib/types";
+import type { EditFormationFormValues, FormationStats, FormationSlot, IdealBuild } from "@/lib/types";
 import { formationPlayStyles, FormationSlotSchema } from "@/lib/types";
 import { VisualFormationEditor } from "./visual-formation-editor";
 import { formationPresets } from "@/lib/formation-presets";
@@ -57,9 +56,10 @@ type EditFormationDialogProps = {
   onOpenChange: (open: boolean) => void;
   onEditFormation: (values: EditFormationFormValues) => void;
   initialData?: FormationStats;
+  idealBuilds: IdealBuild[];
 };
 
-export function EditFormationDialog({ open, onOpenChange, onEditFormation, initialData }: EditFormationDialogProps) {
+export function EditFormationDialog({ open, onOpenChange, onEditFormation, initialData, idealBuilds }: EditFormationDialogProps) {
   const form = useForm<EditFormationFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -84,6 +84,7 @@ export function EditFormationDialog({ open, onOpenChange, onEditFormation, initi
         slots: (initialData.slots && initialData.slots.length === 11 ? initialData.slots : defaultSlots).map(s => ({
           ...s,
           styles: s.styles || [],
+          profileName: s.profileName,
           top: s.top ?? 50,
           left: s.left ?? 50,
         })),
@@ -109,7 +110,7 @@ export function EditFormationDialog({ open, onOpenChange, onEditFormation, initi
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex-grow overflow-hidden flex flex-col">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex-grow overflow-hidden flex flex-col pt-2">
                 <ScrollArea className="flex-grow pr-6">
                     <div className="space-y-4 pb-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -173,6 +174,7 @@ export function EditFormationDialog({ open, onOpenChange, onEditFormation, initi
                                         <VisualFormationEditor 
                                             value={field.value as FormationSlot[]} 
                                             onChange={field.onChange} 
+                                            idealBuilds={idealBuilds}
                                         />
                                     </FormControl>
                                     <FormMessage />

@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -14,14 +13,15 @@ import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Check, ChevronsUpDown, Settings } from "lucide-react";
-import type { FormationSlot, Position, PlayerStyle } from "@/lib/types";
+import type { FormationSlot, Position, PlayerStyle, IdealBuild } from "@/lib/types";
 import { positions, getAvailableStylesForPosition } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, symmetricalPositionMap } from "@/lib/utils";
 import { FootballPitch } from "./football-pitch";
 
 type VisualFormationEditorProps = {
   value: FormationSlot[];
   onChange: (value: FormationSlot[]) => void;
+  idealBuilds: IdealBuild[];
 };
 
 const PlayerToken = ({
@@ -30,30 +30,50 @@ const PlayerToken = ({
   style,
   isSelected,
   onMouseDown,
+  idealBuilds,
 }: {
   slot: FormationSlot;
   onSlotChange: (newSlot: FormationSlot) => void;
   style: React.CSSProperties;
   isSelected: boolean;
   onMouseDown: (e: React.MouseEvent) => void;
+  idealBuilds: IdealBuild[];
 }) => {
   const [isPopoverOpen, setIsPopoverOpen] = React.useState(false);
 
   const handleStyleToggle = (styleToToggle: PlayerStyle) => {
     const currentValues = slot.styles || [];
-    const isSelected = currentValues.includes(styleToToggle);
-    const newValues = isSelected
+    const isAlreadySelected = currentValues.includes(styleToToggle);
+    const newValues = isAlreadySelected
       ? currentValues.filter((s) => s !== styleToToggle)
       : [...currentValues, styleToToggle];
-    onSlotChange({ ...slot, styles: newValues });
+    onSlotChange({ ...slot, styles: newValues, profileName: undefined });
   };
   
   const handlePositionChange = (newPos: Position) => {
-    onSlotChange({ ...slot, position: newPos, styles: [] });
+    onSlotChange({ ...slot, position: newPos, styles: [], profileName: undefined });
   };
 
+  const availableProfiles = React.useMemo(() => {
+    if (!idealBuilds) return [];
+    const archetype = symmetricalPositionMap[slot.position];
+    
+    // If slot.styles is empty or has 'Ninguno', we check for those.
+    const stylesToSearch = slot.styles && slot.styles.length > 0 ? slot.styles : ['Ninguno'];
+
+    const profiles = new Set<string>();
+    idealBuilds.forEach(b => {
+        const posMatch = b.position === slot.position || (archetype && b.position === archetype);
+        const styleMatch = stylesToSearch.includes(b.style);
+        if (posMatch && styleMatch && b.profileName) {
+            profiles.add(b.profileName);
+        }
+    });
+    
+    return Array.from(profiles).sort();
+  }, [slot.position, slot.styles, idealBuilds]);
+
   const displayPosition = slot.position;
-  // Always include "Ninguno" as an option in the formation editor.
   const availableStyles: PlayerStyle[] = ['Ninguno', ...getAvailableStylesForPosition(slot.position, false)];
   
   return (
@@ -74,7 +94,7 @@ const PlayerToken = ({
               <button
                 className="p-1 rounded-full bg-background/60 hover:bg-accent backdrop-blur-sm"
                 onClick={(e) => { e.stopPropagation(); setIsPopoverOpen(true); }}
-                onMouseDown={(e) => e.stopPropagation()} // Prevent drag from starting here
+                onMouseDown={(e) => e.stopPropagation()} 
                 aria-label="Configurar posición"
               >
                 <Settings className="h-3 w-3 text-primary-foreground/80" />
@@ -149,6 +169,24 @@ const PlayerToken = ({
                           </PopoverContent>
                       </Popover>
                   </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Perfil Táctico</label>
+                    <Select 
+                        value={slot.profileName || 'General'} 
+                        onValueChange={(val) => onSlotChange({ ...slot, profileName: val === 'General' ? undefined : val })}
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder="Selecciona perfil..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="General">General (Automático)</SelectItem>
+                            {availableProfiles.map(p => (
+                                <SelectItem key={p} value={p}>{p}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                  </div>
               </div>
             </PopoverContent>
           </Popover>
@@ -158,7 +196,7 @@ const PlayerToken = ({
 };
 
 
-export function VisualFormationEditor({ value, onChange }: VisualFormationEditorProps) {
+export function VisualFormationEditor({ value, onChange, idealBuilds }: VisualFormationEditorProps) {
   const editorRef = React.useRef<HTMLDivElement>(null);
   const [movingTokenIndex, setMovingTokenIndex] = React.useState<number | null>(null);
 
@@ -228,6 +266,7 @@ export function VisualFormationEditor({ value, onChange }: VisualFormationEditor
               style={style}
               isSelected={movingTokenIndex === index}
               onMouseDown={(e) => handleTokenMouseDown(e, index)}
+              idealBuilds={idealBuilds}
             />
         );
       })}

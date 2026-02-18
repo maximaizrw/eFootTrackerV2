@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -28,7 +27,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "./ui/command";
 import { Badge } from "./ui/badge";
 import { cn, normalizeText } from "@/lib/utils";
-import { Alert, AlertDescription } from "./ui/alert";
 
 const statSchema = z.union([z.coerce.number().min(0).max(99), z.literal('')]).optional();
 const physicalSchema = z.union([z.coerce.number().min(0), z.literal('')]).optional();
@@ -148,15 +146,13 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
   const watchedSecondarySkills = watch("secondarySkills") || [];
   const isEditing = !!initialBuild?.id;
 
-  // Validation for duplicate names (mandatory when duplicating or creating new)
   const isDuplicateName = React.useMemo(() => {
-    // If we are editing an existing record, we only check duplicates if the key fields changed
     const currentName = watch('profileName') || '';
     const currentPos = watch('position');
     const currentStyle = watch('style');
 
     return existingBuilds.some(b => 
-        b.id !== initialBuild?.id && // Don't match self
+        b.id !== initialBuild?.id && 
         b.position === currentPos && 
         b.style === currentStyle && 
         normalizeText(b.profileName || '') === normalizeText(currentName)
