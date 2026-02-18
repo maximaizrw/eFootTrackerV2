@@ -80,4 +80,14 @@
   [role="tablist"] {
     @apply flex-nowrap;
   }
+
+  /* Formation editor pitch token pulse for selected state */
+  .formation-editor-pitch [data-moving="true"] {
+    animation: token-pulse 0.8s ease-in-out infinite alternate;
+  }
+
+  /* Smooth token drag shadow */
+  .formation-editor-pitch .cursor-grabbing * {
+    cursor: grabbing !important;
+  }
 }
