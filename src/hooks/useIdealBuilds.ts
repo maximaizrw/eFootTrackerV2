@@ -1,10 +1,12 @@
+
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { db } from '@/lib/firebase-config';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, query, getDocs } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import type { IdealBuild, Player, PlayerCard, Position } from '@/lib/types';
+import { playerSkillsList } from '@/lib/types';
 import { calculateProgressionStats, calculateAffinityWithBreakdown, normalizeStyleName, getIdealBuildForPlayer } from '@/lib/utils';
 
 export function useIdealBuilds() {
@@ -13,18 +15,32 @@ export function useIdealBuilds() {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
+  const validSkillsSet = useMemo(() => new Set(playerSkillsList), []);
+
   useEffect(() => {
     if (!db) { setError("Configuración incompleta."); setLoading(false); return; }
     const unsub = onSnapshot(collection(db, "idealBuilds"), (snapshot) => {
       try {
-        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as IdealBuild));
+        const data = snapshot.docs.map(doc => {
+            const buildData = doc.data();
+            // Filter skills
+            const filteredPrimary = (buildData.primarySkills || []).filter((s: string) => validSkillsSet.has(s as any));
+            const filteredSecondary = (buildData.secondarySkills || []).filter((s: string) => validSkillsSet.has(s as any));
+
+            return { 
+                id: doc.id, 
+                ...buildData,
+                primarySkills: filteredPrimary,
+                secondarySkills: filteredSecondary,
+            } as IdealBuild;
+        });
         data.sort((a, b) => a.position.localeCompare(b.position) || a.style.localeCompare(b.style) || (a.profileName || '').localeCompare(b.profileName || ''));
         setIdealBuilds(data);
         setError(null);
       } catch (err) { setError("Error al procesar builds."); } finally { setLoading(false); }
     }, (err) => { setError("Error de conexión."); setLoading(false); });
     return () => unsub();
-  }, []);
+  }, [validSkillsSet]);
 
   const saveIdealBuild = async (build: IdealBuild) => {
     if (!db) return;

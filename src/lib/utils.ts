@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position, BuildPosition, PhysicalAttribute, PlayerSkill, PlayerPerformance, LiveUpdateRating, IdealBuildType, PlayerCard } from "./types";
-import { getAvailableStylesForPosition } from "./types";
+import { getAvailableStylesForPosition, playerSkillsList } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -397,13 +397,17 @@ export function calculateAffinityWithBreakdown(
     });
 
     const playerSkillsSet = new Set(playerSkills || []);
+    const validSkills = new Set(playerSkillsList);
+
     for (const idealSkill of primarySkills) {
+        if (!validSkills.has(idealSkill as any)) continue;
         const hasSkill = playerSkillsSet.has(idealSkill);
         const score = hasSkill ? 1.0 : -0.5;
         totalAffinityScore += score;
         skillsBreakdown.push({ skill: idealSkill, hasSkill, score, type: 'primary' });
     }
     for (const idealSkill of secondarySkills) {
+        if (!validSkills.has(idealSkill as any)) continue;
         const hasSkill = playerSkillsSet.has(idealSkill);
         const score = hasSkill ? 0.5 : -0.25;
         totalAffinityScore += score;
