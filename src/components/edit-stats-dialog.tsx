@@ -90,9 +90,9 @@ const statFields: { category: string, fields: { name: keyof PlayerAttributeStats
         category: 'Defensa',
         fields: [
             { name: 'defensiveAwareness', label: 'Actitud defensiva' },
-            { name: 'defensiveEngagement', label: 'Entrada' },
+            { name: 'defensiveEngagement', label: 'Dedicación defensiva' },
+            { name: 'tackling', label: 'Entrada' },
             { name: 'aggression', label: 'Agresividad' },
-            { name: 'tackling', label: 'Dedicacion defensiva' },
         ]
     },
     {
@@ -124,15 +124,20 @@ const nameToSchemaKeyMap: Record<string, keyof PlayerAttributeStats> = {
     "tight possession": "tightPossession", "low pass": "lowPass", "lofted pass": "loftedPass",
     "finishing": "finishing", "heading": "heading", "place kicking": "placeKicking", "curl": "curl",
     "actitud defensiva": "defensiveAwareness", "defensive awareness": "defensiveAwareness", 
-    "entrada": "defensiveEngagement", "defensive engagement": "defensiveEngagement",
-    "dedicacion defensiva": "tackling", "tackling": "tackling",
+    "dedicacion defensiva": "defensiveEngagement", "defensive engagement": "defensiveEngagement",
+    "entrada": "tackling", "tackling": "tackling",
     "agresividad": "aggression", "aggression": "aggression",
     "goalkeeping": "goalkeeping", "gk catching": "gkCatching", "gk parrying": "gkParrying",
     "gk reflexes": "gkReflexes", "gk reach": "gkReach", "speed": "speed", "acceleration": "acceleration",
     "kicking power": "kickingPower", "jump": "jump", "physical contact": "physicalContact", "balance": "balance", "stamina": "stamina",
 };
 
-const orderedStatFields: (keyof PlayerAttributeStats)[] = statFields.flatMap(category => category.fields.map(field => field.name));
+const orderedStatFields: (keyof PlayerAttributeStats)[] = [
+    'offensiveAwareness', 'ballControl', 'dribbling', 'tightPossession', 'lowPass', 'loftedPass', 'finishing', 'heading', 'placeKicking', 'curl',
+    'defensiveAwareness', 'defensiveEngagement', 'tackling', 'aggression',
+    'goalkeeping', 'gkCatching', 'gkParrying', 'gkReflexes', 'gkReach',
+    'speed', 'acceleration', 'kickingPower', 'jump', 'physicalContact', 'balance', 'stamina'
+];
 
 
 type EditStatsDialogProps = {
