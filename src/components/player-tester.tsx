@@ -47,8 +47,11 @@ const nameToSchemaKeyMap: Record<string, keyof PlayerAttributeStats> = {
     "offensive awareness": "offensiveAwareness", "ball control": "ballControl", "dribbling": "dribbling",
     "tight possession": "tightPossession", "low pass": "lowPass", "lofted pass": "loftedPass",
     "finishing": "finishing", "heading": "heading", "place kicking": "placeKicking", "curl": "curl",
-    "defensive awareness": "defensiveAwareness", "defensive engagement": "defensiveEngagement", "tackling": "tackling",
-    "aggression": "aggression", "goalkeeping": "goalkeeping", "gk catching": "gkCatching", "gk parrying": "gkParrying",
+    "actitud defensiva": "defensiveAwareness", "defensive awareness": "defensiveAwareness", 
+    "entrada": "defensiveEngagement", "defensive engagement": "defensiveEngagement",
+    "dedicacion defensiva": "tackling", "tackling": "tackling",
+    "agresividad": "aggression", "aggression": "aggression",
+    "goalkeeping": "goalkeeping", "gk catching": "gkCatching", "gk parrying": "gkParrying",
     "gk reflexes": "gkReflexes", "gk reach": "gkReach", "speed": "speed", "acceleration": "acceleration",
     "kicking power": "kickingPower", "jump": "jump", "physical contact": "physicalContact", "balance": "balance", "stamina": "stamina",
 };

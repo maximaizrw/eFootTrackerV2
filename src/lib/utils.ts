@@ -132,7 +132,7 @@ const MAX_STAT_VALUE = 99;
 
 const outfieldStatsKeys: (keyof PlayerAttributeStats)[] = [
     'offensiveAwareness', 'ballControl', 'dribbling', 'tightPossession', 'lowPass', 'loftedPass', 'finishing', 'heading', 'placeKicking', 'curl',
-    'defensiveAwareness', 'defensiveEngagement', 'tackling', 'aggression',
+    'defensiveAwareness', 'defensiveEngagement', 'aggression', 'tackling',
     'speed', 'acceleration', 'kickingPower', 'jump', 'physicalContact', 'balance', 'stamina'
 ];
 
@@ -318,7 +318,7 @@ export type AffinityBreakdownResult = {
 export const statLabels: Record<keyof PlayerAttributeStats | keyof PhysicalAttribute, string> = {
     offensiveAwareness: 'Act. Ofensiva', ballControl: 'Control de Balón', dribbling: 'Regate', tightPossession: 'Posesión Estrecha',
     lowPass: 'Pase Raso', loftedPass: 'Pase Bombeado', finishing: 'Finalización', heading: 'Cabeceo', placeKicking: 'Balón Parado', curl: 'Efecto',
-    defensiveAwareness: 'Act. Defensiva', defensiveEngagement: 'Entrada', tackling: 'Segada', aggression: 'Agresividad',
+    defensiveAwareness: 'Actitud defensiva', defensiveEngagement: 'Entrada', aggression: 'Agresividad', tackling: 'Dedicacion defensiva',
     goalkeeping: 'Act. Portero', gkCatching: 'Atajar', gkParrying: 'Despejar', gkReflexes: 'Reflejos', gkReach: 'Alcance',
     speed: 'Velocidad', acceleration: 'Aceleración', kickingPower: 'Potencia de Tiro', jump: 'Salto', physicalContact: 'Contacto Físico',
     balance: 'Equilibrio', stamina: 'Resistencia',
@@ -449,7 +449,7 @@ const categoryStatsMap: Record<CategoryName, (keyof PlayerAttributeStats)[]> = {
     dexterity: ['offensiveAwareness', 'acceleration', 'balance'],
     lowerBodyStrength: ['speed', 'kickingPower', 'stamina'],
     aerialStrength: ['heading', 'jump', 'physicalContact'],
-    defending: ['defensiveAwareness', 'defensiveEngagement', 'tackling', 'aggression'],
+    defending: ['defensiveAwareness', 'defensiveEngagement', 'aggression', 'tackling'],
     gk1: ['goalkeeping', 'jump'],
     gk2: ['gkParrying', 'gkReach'],
     gk3: ['gkCatching', 'gkReflexes'],
