@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import type { BuildPosition, PlayerStyle, IdealBuild, PlayerAttributeStats, IdealBuildType, PlayerSkill, Position } from "@/lib/types";
+import type { BuildPosition, PlayerStyle, IdealBuild, PlayerAttributeStats, IdealBuildType, PlayerSkill } from "@/lib/types";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -26,7 +26,7 @@ import { UploadCloud, Check, ChevronsUpDown, AlertCircle } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "./ui/command";
 import { Badge } from "./ui/badge";
-import { cn, normalizeText } from "@/lib/utils";
+import { cn, normalizeText, allStatsKeys } from "@/lib/utils";
 
 const statSchema = z.union([z.coerce.number().min(0).max(99), z.literal('')]).optional();
 const physicalSchema = z.union([z.coerce.number().min(0), z.literal('')]).optional();
@@ -117,7 +117,7 @@ const nameToSchemaKeyMap: Record<string, keyof PlayerAttributeStats> = {
     "kicking power": "kickingPower", "jump": "jump", "physical contact": "physicalContact", "balance": "balance", "stamina": "stamina",
 };
 
-const orderedStatFields: (keyof PlayerAttributeStats)[] = statFields.flatMap(category => category.fields.map(field => field.name));
+const orderedStatFields: (keyof PlayerAttributeStats)[] = allStatsKeys;
 
 export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, existingBuilds }: IdealBuildEditorProps) {
   const { toast } = useToast();
@@ -300,10 +300,22 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
               <div className="space-y-6 pb-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <FormField control={form.control} name="position" render={({ field }) => (
-                    <FormItem><FormLabel>Posición</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isEditing}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{buildPositions.map(p => <SelectItem key={p} value={p}>{positionLabels[p]}</SelectItem>)}</SelectContent></Select></FormItem>
+                    <FormItem>
+                      <FormLabel>Posición</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={isEditing}>
+                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                        <SelectContent>{buildPositions.map(p => <SelectItem key={p} value={p}>{positionLabels[p]}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </FormItem>
                   )} />
                   <FormField control={form.control} name="style" render={({ field }) => (
-                    <FormItem><FormLabel>Estilo</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isEditing}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{availableStyles.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></FormItem>
+                    <FormItem>
+                      <FormLabel>Estilo</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={isEditing}>
+                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                        <SelectContent>{availableStyles.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </FormItem>
                   )} />
                   <FormField control={form.control} name="profileName" render={({ field }) => (
                     <FormItem>

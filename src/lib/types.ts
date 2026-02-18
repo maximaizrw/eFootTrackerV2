@@ -36,16 +36,21 @@ export const nationalities = [
 export type Nationality = typeof nationalities[number];
 
 export const playerSkillsList = [
-    "Elástica", "Marsellesa", "Sombrero", "Recorte y cambio/cortada", "Amago por detrás y giro",
-    "Rebote interior", "Control con la suela/pisar el balon", "Cabeceador", "Disparo lejano con rosca/Cañonero",
-    "Vaselina", "Tiro de larga distancia", "Disparo descendente", "Disparo ascendente",
-    "Finalización acrobática", "Espuela/Taconazo", "Remate al primer toque", "Pase al primer toque",
-    "Pase en profundidad/pase medido", "Pase al hueco", "Pase cruzado", "Centro con rosca", "Rabona",
-    "Pase sin mirar", "Pase bombeado bajo", "Patadon por bajo (Portero)",
-    "Patadon en largo (Portero)", "Saque de banda largo", "Saque largo (Portero)",
-    "Especialista en penaltis", "Parapenaltis (Portero)", "Picardía", "Marcaje",
-    "Delantero atrasado", "Interceptador", "Bloqueador", "Superioridad aérea",
-    "Entrada deslizante", "Despeje acrobático", "Capitanía", "Espíritu de lucha", "As en la manga", "Doble toque", "Croqueta", "Tijera", "Malicia"
+    "Tijera", "Doble toque", "Elastica", "Marsellesa", "Sombrerito", "Recorte y cambio",
+    "Amago por detrás y giro", "Rebote interior", "Control con la suela", "Drible dinamico",
+    "Quiebre magistral", "Pies magnéticos", "Cabeceador", "Cabezazo matador",
+    "Disparo lejano con rosca", "Rosca bomba", "Sombrero", "Tiro con empeine",
+    "Disparo descendente", "Dispar ascendente", "Tiro de larga distancia", "Bombazo raso",
+    "Finalización acrobática", "Taconazo", "Remate al primer toque", "Tiro al blanco",
+    "Fuerza de voluntad", "Pase al primer toque", "Pase en profundidad", "Pase medido",
+    "Pase cruzado", "Centro en picada", "Centro con rosca", "Rabona", "Pase sin mirar",
+    "Pase catalizador", "Pase visionario", "Pase fenomenal", "Pase bombeado bajo",
+    "Patadon en corto PT", "Patadon en largo", "Saque de banda largo", "Saque de meta largo",
+    "Especialista en penales", "Parapenales", "Orden defensivo PT", "Grito de espíritu",
+    "Malicia", "Marcaje", "Delantero atrasado", "Interceptador", "Bloqueador",
+    "Superioridad aérea", "Entrada deslizante", "Entrada de lago alcance",
+    "Liderazgo inquebrantable", "Despeje acrobatico", "Baluarte aéreo", "Capitania",
+    "Super refuerzo", "Espiritu de lucha"
 ] as const;
 
 export type PlayerSkill = typeof playerSkillsList[number];

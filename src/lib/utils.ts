@@ -105,7 +105,7 @@ export function calculateGeneralScore(
     generalScore += LIVE_UPDATE_BONUSES[liveUpdateRating];
   }
 
-  if (isSubstitute && skills.includes('As en la manga')) {
+  if (isSubstitute && skills.includes('Super refuerzo')) {
     generalScore += 1;
   }
 
