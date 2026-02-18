@@ -96,8 +96,6 @@ export function generateIdealTeam(
   const findBestPlayer = (candidates: CandidatePlayer[], options: { minAffinity: number, relaxRatings: boolean }): CandidatePlayer | undefined => {
       return candidates.find(p => {
         if (usedPlayerIds.has(p.player.id) || usedCardIds.has(p.card.id) || discardedCardIds.has(p.card.id)) return false;
-        
-        // RESTRICCION ESTRICTA: Mínimo 80 de afinidad para ser considerado "apto" en los niveles normales
         if (options.minAffinity > 0 && p.affinityScore < options.minAffinity) return false;
         
         if (!options.relaxRatings) {
@@ -133,27 +131,18 @@ export function generateIdealTeam(
     return filtered.sort((a, b) => sortFunction(a, b, isSub));
   }
 
-  // TITULARES: 4 Niveles de búsqueda para evitar vacantes
+  // TITULARES
   for (const formationSlot of formation.slots) {
-    // 1. Óptimo: Estilo + Afinidad 80 + Letra OK
     let cand = getCandidatesForSlot(formationSlot, true, false, false);
     let starter = findBestPlayer(cand, { minAffinity: 80, relaxRatings: false });
     
-    // 2. Variante: Cualquier Estilo + Afinidad 80 + Letra OK
     if (!starter) {
         cand = getCandidatesForSlot(formationSlot, true, true, false);
         starter = findBestPlayer(cand, { minAffinity: 80, relaxRatings: false });
     }
     
-    // 3. Físico: Cualquier Estilo + Ignorar Afinidad (pero mantener Letra OK si es posible)
-    if (!starter) {
-        starter = findBestPlayer(cand, { minAffinity: 0, relaxRatings: false });
-    }
-    
-    // 4. OBLIGATORIO: Ignorar todo (Letra y Afinidad) para no dejar vacante
-    if (!starter) {
-        starter = findBestPlayer(cand, { minAffinity: 0, relaxRatings: true });
-    }
+    if (!starter) starter = findBestPlayer(cand, { minAffinity: 0, relaxRatings: false });
+    if (!starter) starter = findBestPlayer(cand, { minAffinity: 0, relaxRatings: true });
 
     if (starter) {
         usedPlayerIds.add(starter.player.id);
@@ -166,25 +155,32 @@ export function generateIdealTeam(
     });
   }
   
-  // SUPLENTES: También con protocolo de emergencia
+  // SUPLENTES: Siempre del mismo rol si se pide
   finalTeamSlots.forEach((slot, index) => {
     if (index >= formation.slots.length) return;
     const originalSlot = formation.slots[index];
     const subPos = (slot.starter && slot.starter.position !== originalSlot.position) ? slot.starter.position : originalSlot.position;
     
     const getSub = () => {
-        const cand = getCandidatesForSlot({ ...originalSlot, position: subPos }, false, true, true);
-        
-        // Priorizar jugadores con menos de 10 partidos para probarlos
-        const t1 = cand.filter(p => p.performance.stats.matches < 10);
-        let found = findBestPlayer(t1, { minAffinity: 80, relaxRatings: false });
+        // 1. Mismo Rol + Afinidad 80 + Letra OK
+        let cand = getCandidatesForSlot({ ...originalSlot, position: subPos }, false, false, true);
+        let found = findBestPlayer(cand, { minAffinity: 80, relaxRatings: false });
         if (found) return found;
-        
-        // Nivel estándar suplente
+
+        // 2. Mismo Rol + Cualquier Afinidad + Letra OK
+        found = findBestPlayer(cand, { minAffinity: 0, relaxRatings: false });
+        if (found) return found;
+
+        // 3. Mismo Rol + Cualquier Afinidad + Letra Emergencia
+        found = findBestPlayer(cand, { minAffinity: 0, relaxRatings: true });
+        if (found) return found;
+
+        // 4. Cualquier Rol (Variante) + Afinidad 80 + Letra OK
+        cand = getCandidatesForSlot({ ...originalSlot, position: subPos }, false, true, true);
         found = findBestPlayer(cand, { minAffinity: 80, relaxRatings: false });
         if (found) return found;
-        
-        // Nivel emergencia suplente
+
+        // 5. Cualquier Rol + Protocolo de Vacante
         return findBestPlayer(cand, { minAffinity: 0, relaxRatings: true });
     };
     
@@ -196,11 +192,28 @@ export function generateIdealTeam(
     }
   });
 
-  // Banquillo extra si hay espacio
-  const remaining = allPlayerCandidates.filter(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id) && !discardedCardIds.has(p.card.id))
-    .sort((a, b) => sortFunction(a, b, true));
+  // SUPLENTE 12: Solo de posiciones y roles de la formación
+  const formationRequirements = formation.slots.map(s => ({
+    position: s.position,
+    styles: s.styles || []
+  }));
+
+  const remainingMatchingRequirements = allPlayerCandidates.filter(p => {
+    if (usedPlayerIds.has(p.player.id) || usedCardIds.has(p.card.id) || discardedCardIds.has(p.card.id)) return false;
     
-  let extraSub = findBestPlayer(remaining, { minAffinity: 80, relaxRatings: false }) || findBestPlayer(remaining, { minAffinity: 0, relaxRatings: true });
+    return formationRequirements.some(req => {
+        if (p.position !== req.position) return false;
+        if (req.styles.length === 0) return true;
+        if (req.styles.includes('Ninguno')) {
+            const activeStyles = getAvailableStylesForPosition(req.position);
+            return !activeStyles.includes(p.card.style);
+        }
+        return req.styles.includes(p.card.style);
+    });
+  }).sort((a, b) => sortFunction(a, b, true));
+    
+  let extraSub = findBestPlayer(remainingMatchingRequirements, { minAffinity: 80, relaxRatings: false }) || 
+                 findBestPlayer(remainingMatchingRequirements, { minAffinity: 0, relaxRatings: true });
   
   if (extraSub) {
       finalTeamSlots.push({ 
@@ -209,7 +222,7 @@ export function generateIdealTeam(
       });
   }
 
-  // Rellenar con Placeholders SOLO si no hay ningún jugador en la DB para esa posición
+  // Placeholders finales
   return finalTeamSlots.map((slot, i) => {
     const formationSlot = i < formation.slots.length ? formation.slots[i] : null;
     const assigned = formationSlot?.position || 'DFC';

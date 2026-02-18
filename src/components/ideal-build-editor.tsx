@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import type { BuildPosition, PlayerStyle, IdealBuild, PlayerAttributeStats, IdealBuildType, PlayerSkill } from "@/lib/types";
+import type { BuildPosition, PlayerStyle, IdealBuild, PlayerAttributeStats, IdealBuildType, PlayerSkill, Position } from "@/lib/types";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -135,8 +135,8 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild }: I
       profileName: "",
       primarySkills: [],
       secondarySkills: [],
-      height: { min: undefined, max: undefined },
-      weight: { min: undefined, max: undefined },
+      height: { min: '', max: '' },
+      weight: { min: '', max: '' },
       build: {},
     },
   });
@@ -151,7 +151,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild }: I
     if (open) {
       setPastedText('');
       const defaultBuildValues: any = {};
-      orderedStatFields.forEach(key => defaultBuildValues[key] = '');
+      orderedStatFields.forEach(key => { defaultBuildValues[key] = ''; });
 
       if (initialBuild) {
         reset({
@@ -209,12 +209,12 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild }: I
       primarySkills: values.primarySkills as PlayerSkill[],
       secondarySkills: values.secondarySkills as PlayerSkill[],
       height: {
-          min: values.height?.min === '' ? undefined : Number(values.height?.min),
-          max: values.height?.max === '' ? undefined : Number(values.height?.max)
+          min: (values.height?.min === '' || values.height?.min === undefined) ? undefined : Number(values.height.min),
+          max: (values.height?.max === '' || values.height?.max === undefined) ? undefined : Number(values.height.max)
       },
       weight: {
-          min: values.weight?.min === '' ? undefined : Number(values.weight?.min),
-          max: values.weight?.max === '' ? undefined : Number(values.weight?.max)
+          min: (values.weight?.min === '' || values.weight?.min === undefined) ? undefined : Number(values.weight.min),
+          max: (values.weight?.max === '' || values.weight?.max === undefined) ? undefined : Number(values.weight.max)
       },
       build: finalStats,
     });
