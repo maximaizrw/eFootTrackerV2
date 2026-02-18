@@ -762,6 +762,7 @@ export default function Home() {
                       <div>
                         <p className="font-semibold">
                             {build.position} - <span className="text-primary">{build.style}</span>
+                            {build.profileName && <span className="text-muted-foreground ml-1">({build.profileName})</span>}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">

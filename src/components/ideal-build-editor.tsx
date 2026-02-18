@@ -206,8 +206,8 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild }: I
       position: values.position,
       style: values.style,
       profileName: values.profileName,
-      primarySkills: values.primarySkills as PlayerSkill[],
-      secondarySkills: values.secondarySkills as PlayerSkill[],
+      primarySkills: (values.primarySkills || []) as PlayerSkill[],
+      secondarySkills: (values.secondarySkills || []) as PlayerSkill[],
       height: {
           min: (values.height?.min === '' || values.height?.min === undefined) ? undefined : Number(values.height.min),
           max: (values.height?.max === '' || values.height?.max === undefined) ? undefined : Number(values.height.max)
@@ -320,14 +320,14 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild }: I
                         <FormItem>
                             <FormLabel>Primarias</FormLabel>
                             <Popover open={primarySkillsPopoverOpen} onOpenChange={setPrimarySkillsPopoverOpen}>
-                                <PopoverTrigger asChild><Button variant="outline" className="w-full justify-between h-auto min-h-10"><div className="flex gap-1 flex-wrap">{watchedPrimarySkills.length > 0 ? watchedPrimarySkills.map(s => <Badge key={s} variant="default">{s}</Badge>) : <span className="text-muted-foreground text-xs">Seleccionar...</span>}</div><ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" /></Button></PopoverTrigger>
+                                <PopoverTrigger asChild><Button variant="outline" className="w-full justify-between h-auto min-h-10"><div className="flex gap-1 flex-wrap">{watchedPrimarySkills.length > 0 ? watchedPrimarySkills.map(s => <Badge key={s} variant="default">{s}</Badge>) : <span className="text-muted-foreground text-xs">Seleccionar...</span>}</div><Check className="ml-2 h-4 w-4 shrink-0 opacity-50" /></Button></PopoverTrigger>
                                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0"><Command><CommandInput placeholder="Buscar..." /><CommandList><CommandEmpty>Sin resultados.</CommandEmpty>{playerSkillsList.map(s => <CommandItem key={s} value={s} onSelect={() => handleSkillToggle(s, 'primary')}><Check className={cn("mr-2 h-4 w-4", watchedPrimarySkills.includes(s) ? "opacity-100" : "opacity-0")} />{s}</CommandItem>)}</CommandList></Command></PopoverContent>
                             </Popover>
                         </FormItem>
                         <FormItem>
                             <FormLabel>Secundarias</FormLabel>
                             <Popover open={secondarySkillsPopoverOpen} onOpenChange={setSecondarySkillsPopoverOpen}>
-                                <PopoverTrigger asChild><Button variant="outline" className="w-full justify-between h-auto min-h-10"><div className="flex gap-1 flex-wrap">{watchedSecondarySkills.length > 0 ? watchedSecondarySkills.map(s => <Badge key={s} variant="secondary">{s}</Badge>) : <span className="text-muted-foreground text-xs">Seleccionar...</span>}</div><ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" /></Button></PopoverTrigger>
+                                <PopoverTrigger asChild><Button variant="outline" className="w-full justify-between h-auto min-h-10"><div className="flex gap-1 flex-wrap">{watchedSecondarySkills.length > 0 ? watchedSecondarySkills.map(s => <Badge key={s} variant="secondary">{s}</Badge>) : <span className="text-muted-foreground text-xs">Seleccionar...</span>}</div><Check className="ml-2 h-4 w-4 shrink-0 opacity-50" /></Button></PopoverTrigger>
                                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0"><Command><CommandInput placeholder="Buscar..." /><CommandList><CommandEmpty>Sin resultados.</CommandEmpty>{playerSkillsList.map(s => <CommandItem key={s} value={s} onSelect={() => handleSkillToggle(s, 'secondary')}><Check className={cn("mr-2 h-4 w-4", watchedSecondarySkills.includes(s) ? "opacity-100" : "opacity-0")} />{s}</CommandItem>)}</CommandList></Command></PopoverContent>
                             </Popover>
                         </FormItem>
