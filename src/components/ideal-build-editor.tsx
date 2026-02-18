@@ -17,17 +17,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from "./ui/scroll-area";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
-import { UploadCloud, Check, ChevronsUpDown } from "lucide-react";
+import { UploadCloud, Check, ChevronsUpDown, AlertCircle } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "./ui/command";
 import { Badge } from "./ui/badge";
-import { cn } from "@/lib/utils";
+import { cn, normalizeText } from "@/lib/utils";
+import { Alert, AlertDescription } from "./ui/alert";
 
 const statSchema = z.union([z.coerce.number().min(0).max(99), z.literal('')]).optional();
 const physicalSchema = z.union([z.coerce.number().min(0), z.literal('')]).optional();
@@ -120,7 +121,7 @@ const nameToSchemaKeyMap: Record<string, keyof PlayerAttributeStats> = {
 
 const orderedStatFields: (keyof PlayerAttributeStats)[] = statFields.flatMap(category => category.fields.map(field => field.name));
 
-export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild }: IdealBuildEditorProps) {
+export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, existingBuilds }: IdealBuildEditorProps) {
   const { toast } = useToast();
   const [pastedText, setPastedText] = React.useState('');
   const [primarySkillsPopoverOpen, setPrimarySkillsPopoverOpen] = React.useState(false);
@@ -146,6 +147,21 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild }: I
   const watchedPrimarySkills = watch("primarySkills") || [];
   const watchedSecondarySkills = watch("secondarySkills") || [];
   const isEditing = !!initialBuild?.id;
+
+  // Validation for duplicate names (mandatory when duplicating or creating new)
+  const isDuplicateName = React.useMemo(() => {
+    // If we are editing an existing record, we only check duplicates if the key fields changed
+    const currentName = watch('profileName') || '';
+    const currentPos = watch('position');
+    const currentStyle = watch('style');
+
+    return existingBuilds.some(b => 
+        b.id !== initialBuild?.id && // Don't match self
+        b.position === currentPos && 
+        b.style === currentStyle && 
+        normalizeText(b.profileName || '') === normalizeText(currentName)
+    );
+  }, [watch('position'), watch('style'), watch('profileName'), existingBuilds, initialBuild?.id]);
 
   React.useEffect(() => {
     if (open) {
@@ -192,6 +208,15 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild }: I
   }, [availableStyles, watch, setValue, isEditing]);
 
   const onSubmit = (values: IdealBuildFormValues) => {
+    if (isDuplicateName) {
+        toast({
+            variant: "destructive",
+            title: "Nombre Duplicado",
+            description: "Ya existe un perfil con este nombre para la misma posición y estilo.",
+        });
+        return;
+    }
+
     const finalStats: PlayerAttributeStats = {};
     orderedStatFields.forEach(key => {
         const val = values.build[key];
@@ -285,7 +310,16 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild }: I
                     <FormItem><FormLabel>Estilo</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isEditing}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{availableStyles.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></FormItem>
                   )} />
                   <FormField control={form.control} name="profileName" render={({ field }) => (
-                    <FormItem><FormLabel>Nombre Perfil (Ej: Veloz)</FormLabel><FormControl><Input placeholder="Nombre personalizado" {...field} /></FormControl></FormItem>
+                    <FormItem>
+                        <FormLabel>Nombre Perfil (Ej: Veloz)</FormLabel>
+                        <FormControl><Input placeholder="Nombre personalizado" {...field} /></FormControl>
+                        {isDuplicateName && (
+                            <FormDescription className="text-destructive font-semibold flex items-center gap-1">
+                                <AlertCircle className="h-3 w-3" />
+                                Este nombre ya existe para esta posición.
+                            </FormDescription>
+                        )}
+                    </FormItem>
                   )} />
                 </div>
 
@@ -349,7 +383,12 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild }: I
               </div>
             </ScrollArea>
             <DialogFooter className="flex-shrink-0 pt-4 mt-4 border-t">
-              <Button type="submit">{isEditing ? 'Guardar Cambios' : 'Guardar Build Ideal'}</Button>
+              {isDuplicateName && (
+                  <div className="mr-auto text-destructive text-xs font-bold animate-pulse">
+                      ¡Atención! El nombre del perfil debe ser diferente para la copia.
+                  </div>
+              )}
+              <Button type="submit" disabled={isDuplicateName}>{isEditing ? 'Guardar Cambios' : 'Guardar Build Ideal'}</Button>
             </DialogFooter>
           </form>
         </Form>
