@@ -1,3 +1,4 @@
+
 import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, FormationSlot as FormationSlotType, IdealBuild, IdealBuildType } from './types';
 import { getAvailableStylesForPosition } from './types';
 import { calculateStats, calculateGeneralScore, getIdealBuildForPlayer, calculateProgressionStats, isSpecialCard, calculateAffinityWithBreakdown } from './utils';
@@ -95,7 +96,9 @@ export function generateIdealTeam(
   const findBestPlayer = (candidates: CandidatePlayer[], options: { minAffinity: number, relaxRatings: boolean }): CandidatePlayer | undefined => {
       return candidates.find(p => {
         if (usedPlayerIds.has(p.player.id) || usedCardIds.has(p.card.id) || discardedCardIds.has(p.card.id)) return false;
-        if (p.affinityScore < options.minAffinity) return false;
+        
+        // RESTRICCION ESTRICTA: Mínimo 80 de afinidad para ser considerado "apto" en los niveles normales
+        if (options.minAffinity > 0 && p.affinityScore < options.minAffinity) return false;
         
         if (!options.relaxRatings) {
             if (sortBy === 'average' && (p.player.liveUpdateRating !== 'A' && p.player.liveUpdateRating !== 'B')) return false;
@@ -130,24 +133,24 @@ export function generateIdealTeam(
     return filtered.sort((a, b) => sortFunction(a, b, isSub));
   }
 
-  // TITULARES
+  // TITULARES: 4 Niveles de búsqueda para evitar vacantes
   for (const formationSlot of formation.slots) {
-    // 1. Intentar con Estilo + Afinidad 80 + Letra OK
+    // 1. Óptimo: Estilo + Afinidad 80 + Letra OK
     let cand = getCandidatesForSlot(formationSlot, true, false, false);
     let starter = findBestPlayer(cand, { minAffinity: 80, relaxRatings: false });
     
-    // 2. Si no hay, intentar Cualquier Estilo + Afinidad 80 + Letra OK
+    // 2. Variante: Cualquier Estilo + Afinidad 80 + Letra OK
     if (!starter) {
         cand = getCandidatesForSlot(formationSlot, true, true, false);
         starter = findBestPlayer(cand, { minAffinity: 80, relaxRatings: false });
     }
     
-    // 3. OBLIGATORIO: Si sigue vacío, relajar Afinidad pero mantener Letra OK
+    // 3. Físico: Cualquier Estilo + Ignorar Afinidad (pero mantener Letra OK si es posible)
     if (!starter) {
         starter = findBestPlayer(cand, { minAffinity: 0, relaxRatings: false });
     }
     
-    // 4. EMERGENCIA: Si sigue vacío, aceptar cualquier jugador en la posición
+    // 4. OBLIGATORIO: Ignorar todo (Letra y Afinidad) para no dejar vacante
     if (!starter) {
         starter = findBestPlayer(cand, { minAffinity: 0, relaxRatings: true });
     }
@@ -163,7 +166,7 @@ export function generateIdealTeam(
     });
   }
   
-  // SUPLENTES
+  // SUPLENTES: También con protocolo de emergencia
   finalTeamSlots.forEach((slot, index) => {
     if (index >= formation.slots.length) return;
     const originalSlot = formation.slots[index];
@@ -171,14 +174,17 @@ export function generateIdealTeam(
     
     const getSub = () => {
         const cand = getCandidatesForSlot({ ...originalSlot, position: subPos }, false, true, true);
-        // Priorizar promesas o jugadores con pocos partidos para probar
+        
+        // Priorizar jugadores con menos de 10 partidos para probarlos
         const t1 = cand.filter(p => p.performance.stats.matches < 10);
         let found = findBestPlayer(t1, { minAffinity: 80, relaxRatings: false });
         if (found) return found;
         
+        // Nivel estándar suplente
         found = findBestPlayer(cand, { minAffinity: 80, relaxRatings: false });
         if (found) return found;
         
+        // Nivel emergencia suplente
         return findBestPlayer(cand, { minAffinity: 0, relaxRatings: true });
     };
     
@@ -203,7 +209,7 @@ export function generateIdealTeam(
       });
   }
 
-  // Rellenar con Placeholders si la base de datos es muy pequeña (poco probable pero evita errores de UI)
+  // Rellenar con Placeholders SOLO si no hay ningún jugador en la DB para esa posición
   return finalTeamSlots.map((slot, i) => {
     const formationSlot = i < formation.slots.length ? formation.slots[i] : null;
     const assigned = formationSlot?.position || 'DFC';

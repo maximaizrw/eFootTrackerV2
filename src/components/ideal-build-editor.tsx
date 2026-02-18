@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -28,8 +29,8 @@ import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from ".
 import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
 
-const statSchema = z.coerce.number().min(0).max(99).optional();
-const physicalSchema = z.coerce.number().optional();
+const statSchema = z.union([z.coerce.number().min(0).max(99), z.literal('')]).optional();
+const physicalSchema = z.union([z.coerce.number().min(0), z.literal('')]).optional();
 
 const minMaxSchema = z.object({
   min: physicalSchema,
@@ -45,14 +46,7 @@ const buildSchema = z.object({
   secondarySkills: z.array(z.string()).optional(),
   height: minMaxSchema,
   weight: minMaxSchema,
-  build: z.object({
-    offensiveAwareness: statSchema, ballControl: statSchema, dribbling: statSchema, tightPossession: statSchema,
-    lowPass: statSchema, loftedPass: statSchema, finishing: statSchema, heading: statSchema, placeKicking: statSchema, curl: statSchema,
-    defensiveAwareness: statSchema, defensiveEngagement: statSchema, tackling: statSchema, aggression: statSchema,
-    goalkeeping: statSchema, gkCatching: statSchema, gkParrying: statSchema, gkReflexes: statSchema, gkReach: statSchema,
-    speed: statSchema, acceleration: statSchema, kickingPower: statSchema, jump: statSchema, physicalContact: statSchema,
-    balance: statSchema, stamina: statSchema,
-  }),
+  build: z.record(z.string(), statSchema),
 });
 
 type IdealBuildFormValues = z.infer<typeof buildSchema>;
@@ -147,7 +141,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild }: I
     },
   });
 
-  const { watch, reset, setValue, getValues } = form;
+  const { watch, reset, setValue, getValues, handleSubmit: formHandleSubmit } = form;
   const watchedPosition = watch("position");
   const watchedPrimarySkills = watch("primarySkills") || [];
   const watchedSecondarySkills = watch("secondarySkills") || [];
@@ -167,9 +161,9 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild }: I
           profileName: initialBuild.profileName || "",
           primarySkills: initialBuild.primarySkills || [],
           secondarySkills: initialBuild.secondarySkills || [],
-          height: { min: initialBuild.height?.min, max: initialBuild.height?.max },
-          weight: { min: initialBuild.weight?.min, max: initialBuild.weight?.max },
-          build: initialBuild.build as any,
+          height: { min: initialBuild.height?.min ?? '', max: initialBuild.height?.max ?? '' },
+          weight: { min: initialBuild.weight?.min ?? '', max: initialBuild.weight?.max ?? '' },
+          build: (initialBuild.build as any) || defaultBuildValues,
         });
       } else {
         reset({
@@ -179,8 +173,8 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild }: I
           profileName: "",
           primarySkills: [],
           secondarySkills: [],
-          height: { min: undefined, max: undefined },
-          weight: { min: undefined, max: undefined },
+          height: { min: '', max: '' },
+          weight: { min: '', max: '' },
           build: defaultBuildValues,
         });
       }
@@ -197,7 +191,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild }: I
       }
   }, [availableStyles, watch, setValue, isEditing]);
 
-  const handleSubmit = (values: IdealBuildFormValues) => {
+  const onSubmit = (values: IdealBuildFormValues) => {
     const finalStats: PlayerAttributeStats = {};
     orderedStatFields.forEach(key => {
         const val = values.build[key];
@@ -214,8 +208,14 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild }: I
       profileName: values.profileName,
       primarySkills: values.primarySkills as PlayerSkill[],
       secondarySkills: values.secondarySkills as PlayerSkill[],
-      height: values.height,
-      weight: values.weight,
+      height: {
+          min: values.height?.min === '' ? undefined : Number(values.height?.min),
+          max: values.height?.max === '' ? undefined : Number(values.height?.max)
+      },
+      weight: {
+          min: values.weight?.min === '' ? undefined : Number(values.weight?.min),
+          max: values.weight?.max === '' ? undefined : Number(values.weight?.max)
+      },
       build: finalStats,
     });
     onOpenChange(false);
@@ -274,7 +274,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild }: I
           <DialogDescription>Configura el perfil táctico y sus activadores físicos opcionales.</DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="flex-grow overflow-hidden flex flex-col">
+          <form onSubmit={formHandleSubmit(onSubmit)} className="flex-grow overflow-hidden flex flex-col">
             <ScrollArea className="flex-grow pr-4 -mr-4">
               <div className="space-y-6 pb-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -300,15 +300,15 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild }: I
                         <div>
                             <FormLabel className="mb-2 block text-xs">Altura (cm)</FormLabel>
                             <div className="grid grid-cols-2 gap-2">
-                                <FormField control={form.control} name="height.min" render={({ field }) => (<FormItem><FormControl><Input type="number" placeholder="Min" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value ? Number(e.target.value) : undefined)} /></FormControl></FormItem>)} />
-                                <FormField control={form.control} name="height.max" render={({ field }) => (<FormItem><FormControl><Input type="number" placeholder="Max" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value ? Number(e.target.value) : undefined)} /></FormControl></FormItem>)} />
+                                <FormField control={form.control} name="height.min" render={({ field }) => (<FormItem><FormControl><Input type="number" placeholder="Min" {...field} /></FormControl></FormItem>)} />
+                                <FormField control={form.control} name="height.max" render={({ field }) => (<FormItem><FormControl><Input type="number" placeholder="Max" {...field} /></FormControl></FormItem>)} />
                             </div>
                         </div>
                         <div>
                             <FormLabel className="mb-2 block text-xs">Peso (kg)</FormLabel>
                             <div className="grid grid-cols-2 gap-2">
-                                <FormField control={form.control} name="weight.min" render={({ field }) => (<FormItem><FormControl><Input type="number" placeholder="Min" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value ? Number(e.target.value) : undefined)} /></FormControl></FormItem>)} />
-                                <FormField control={form.control} name="weight.max" render={({ field }) => (<FormItem><FormControl><Input type="number" placeholder="Max" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value ? Number(e.target.value) : undefined)} /></FormControl></FormItem>)} />
+                                <FormField control={form.control} name="weight.min" render={({ field }) => (<FormItem><FormControl><Input type="number" placeholder="Min" {...field} /></FormControl></FormItem>)} />
+                                <FormField control={form.control} name="weight.max" render={({ field }) => (<FormItem><FormControl><Input type="number" placeholder="Max" {...field} /></FormControl></FormItem>)} />
                             </div>
                         </div>
                     </div>
@@ -339,8 +339,8 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild }: I
                     <h3 className="text-lg font-semibold mb-3 text-primary">{cat.category}</h3>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-3">
                       {cat.fields.map(f => (
-                        <FormField key={f.name} control={form.control} name={`build.${f.name as any}`} render={({ field: ff }) => (
-                          <FormItem><FormLabel className="text-xs">{f.label}</FormLabel><FormControl><Input type="number" min="40" max="99" {...ff} value={ff.value ?? ''} onChange={e => ff.onChange(e.target.value === '' ? undefined : Number(e.target.value))} /></FormControl></FormItem>
+                        <FormField key={f.name} control={form.control} name={`build.${f.name}`} render={({ field: ff }) => (
+                          <FormItem><FormLabel className="text-xs">{f.label}</FormLabel><FormControl><Input type="number" min="0" max="99" {...ff} /></FormControl><FormMessage /></FormItem>
                         )} />
                       ))}
                     </div>
