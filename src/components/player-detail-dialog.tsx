@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -49,7 +48,7 @@ const outfieldCategories: { key: keyof OutfieldBuild; label: string, icon: React
 
 const goalkeeperCategories: { key: keyof GoalkeeperBuild; label: string, icon: React.ElementType }[] = [
     { key: 'gk1', label: 'Portero 1', icon: Hand },
-    { key: 'gk2', label: 'Portero 2', icon: Hand },
+    { key: 'gk2', label: 'Parada', icon: Hand },
     { key: 'gk3', label: 'Portero 3', icon: Hand },
 ];
 

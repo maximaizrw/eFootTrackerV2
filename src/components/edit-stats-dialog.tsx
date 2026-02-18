@@ -100,9 +100,9 @@ const statFields: { category: string, fields: { name: keyof PlayerAttributeStats
         fields: [
             { name: 'goalkeeping', label: 'Act. de Portero' },
             { name: 'gkCatching', label: 'Atajar' },
-            { name: 'gkParrying', label: 'Despejar' },
+            { name: 'gkParrying', label: 'Parada' },
             { name: 'gkReflexes', label: 'Reflejos' },
-            { name: 'gkReach', label: 'Alcance' },
+            { name: 'gkReach', label: 'Cobertura' },
         ]
     },
     {
@@ -127,8 +127,8 @@ const nameToSchemaKeyMap: Record<string, keyof PlayerAttributeStats> = {
     "dedicacion defensiva": "defensiveEngagement", "defensive engagement": "defensiveEngagement",
     "entrada": "tackling", "tackling": "tackling",
     "agresividad": "aggression", "aggression": "aggression",
-    "goalkeeping": "goalkeeping", "gk catching": "gkCatching", "gk parrying": "gkParrying",
-    "gk reflexes": "gkReflexes", "gk reach": "gkReach", "speed": "speed", "acceleration": "acceleration",
+    "goalkeeping": "goalkeeping", "gk catching": "gkCatching", "gk parrying": "gkParrying", "parada": "gkParrying",
+    "gk reflexes": "gkReflexes", "gk reach": "gkReach", "cobertura": "gkReach", "speed": "speed", "acceleration": "acceleration",
     "kicking power": "kickingPower", "jump": "jump", "physical contact": "physicalContact", "balance": "balance", "stamina": "stamina",
 };
 

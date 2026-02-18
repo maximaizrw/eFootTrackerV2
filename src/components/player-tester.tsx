@@ -48,11 +48,11 @@ const nameToSchemaKeyMap: Record<string, keyof PlayerAttributeStats> = {
     "tight possession": "tightPossession", "low pass": "lowPass", "lofted pass": "loftedPass",
     "finishing": "finishing", "heading": "heading", "place kicking": "placeKicking", "curl": "curl",
     "actitud defensiva": "defensiveAwareness", "defensive awareness": "defensiveAwareness", 
-    "dedicacion defensiva": "defensiveEngagement", "defensive engagement": "defensiveEngagement",
+    "dedicacion defensiva": "defensiveEngagement", "dedicacion": "defensiveEngagement",
     "entrada": "tackling", "tackling": "tackling",
     "agresividad": "aggression", "aggression": "aggression",
-    "goalkeeping": "goalkeeping", "gk catching": "gkCatching", "gk parrying": "gkParrying",
-    "gk reflexes": "gkReflexes", "gk reach": "gkReach", "speed": "speed", "acceleration": "acceleration",
+    "goalkeeping": "goalkeeping", "gk catching": "gkCatching", "gk parrying": "gkParrying", "parada": "gkParrying",
+    "gk reflexes": "gkReflexes", "gk reach": "gkReach", "cobertura": "gkReach", "speed": "speed", "acceleration": "acceleration",
     "kicking power": "kickingPower", "jump": "jump", "physical contact": "physicalContact", "balance": "balance", "stamina": "stamina",
 };
 
@@ -70,7 +70,7 @@ const outfieldCategories: { key: keyof OutfieldBuild; label: string, icon: React
 
 const goalkeeperCategories: { key: keyof GoalkeeperBuild; label: string, icon: React.ElementType }[] = [
     { key: 'gk1', label: 'Portero 1', icon: Hand },
-    { key: 'gk2', label: 'Portero 2', icon: Hand },
+    { key: 'gk2', label: 'Parada', icon: Hand },
     { key: 'gk3', label: 'Portero 3', icon: Hand },
 ];
 

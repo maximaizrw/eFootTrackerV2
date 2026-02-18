@@ -319,7 +319,7 @@ export const statLabels: Record<keyof PlayerAttributeStats | keyof PhysicalAttri
     offensiveAwareness: 'Act. Ofensiva', ballControl: 'Control de Balón', dribbling: 'Regate', tightPossession: 'Posesión Estrecha',
     lowPass: 'Pase Raso', loftedPass: 'Pase Bombeado', finishing: 'Finalización', heading: 'Cabeceo', placeKicking: 'Balón Parado', curl: 'Efecto',
     defensiveAwareness: 'Actitud defensiva', defensiveEngagement: 'Dedicación defensiva', tackling: 'Entrada', aggression: 'Agresividad',
-    goalkeeping: 'Act. Portero', gkCatching: 'Atajar', gkParrying: 'Despejar', gkReflexes: 'Reflejos', gkReach: 'Alcance',
+    goalkeeping: 'Act. Portero', gkCatching: 'Atajar', gkParrying: 'Parada', gkReflexes: 'Reflejos', gkReach: 'Cobertura',
     speed: 'Velocidad', acceleration: 'Aceleración', kickingPower: 'Potencia de Tiro', jump: 'Salto', physicalContact: 'Contacto Físico',
     balance: 'Equilibrio', stamina: 'Resistencia',
     height: 'Altura', weight: 'Peso',
