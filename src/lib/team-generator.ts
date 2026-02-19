@@ -78,24 +78,43 @@ export function generateIdealTeam(
   const usedCardIds = new Set<string>();
   const finalTeamSlots: IdealTeamSlot[] = [];
   
-  const sortFunction = (a: CandidatePlayer, b: CandidatePlayer, useSubScore: boolean = false) => {
+  // Starter sort: High performance first
+  const starterSort = (a: CandidatePlayer, b: CandidatePlayer) => {
     if (sortBy === 'average') {
       if (Math.abs(a.average - b.average) > 0.01) return b.average - a.average;
-      const scoreA = useSubScore ? a.substituteScore : a.generalScore;
-      const scoreB = useSubScore ? b.substituteScore : b.generalScore;
-      return scoreB - scoreA;
+      return b.generalScore - a.generalScore;
     } else {
-      const scoreA = useSubScore ? a.substituteScore : a.generalScore;
-      const scoreB = useSubScore ? b.substituteScore : b.generalScore;
-      if (Math.abs(scoreA - scoreB) > 0.01) return scoreB - scoreA;
+      if (Math.abs(a.generalScore - b.generalScore) > 0.01) return b.generalScore - a.generalScore;
       return b.affinityScore - a.affinityScore;
     }
   };
 
-  const findBestPlayer = (candidates: CandidatePlayer[], options: { minAffinity: number, relaxRatings: boolean }): CandidatePlayer | undefined => {
+  // Substitute sort: Prioritize testing (fewer matches), then affinity/score
+  const substituteSort = (a: CandidatePlayer, b: CandidatePlayer) => {
+    // Testing priority: players with < 5 matches go first
+    const isATesting = a.performance.stats.matches < 5;
+    const isBTesting = b.performance.stats.matches < 5;
+    if (isATesting && !isBTesting) return -1;
+    if (!isATesting && isBTesting) return 1;
+
+    // Both are either testing or experienced
+    if (Math.abs(a.affinityScore - b.affinityScore) > 1) return b.affinityScore - a.affinityScore;
+    return b.substituteScore - a.substituteScore;
+  };
+
+  const findBestPlayer = (candidates: CandidatePlayer[], options: { isSub: boolean, minAffinity: number, relaxRatings: boolean, minAvg?: number }): CandidatePlayer | undefined => {
       return candidates.find(p => {
         if (usedPlayerIds.has(p.player.id) || usedCardIds.has(p.card.id) || discardedCardIds.has(p.card.id)) return false;
-        if (options.minAffinity > 0 && p.affinityScore < options.minAffinity) return false;
+        
+        // Strict bench rules
+        if (options.isSub) {
+            if (p.affinityScore <= 80) return false;
+            // Post-test rule: if played 5+ matches, average must be > 6
+            if (p.performance.stats.matches >= 5 && p.performance.stats.average <= 6) return false;
+        } else {
+            // Starter rules
+            if (options.minAffinity > 0 && p.affinityScore < options.minAffinity) return false;
+        }
         
         if (!options.relaxRatings) {
             if (sortBy === 'average' && (p.player.liveUpdateRating !== 'A' && p.player.liveUpdateRating !== 'B')) return false;
@@ -127,7 +146,6 @@ export function generateIdealTeam(
         }
     }
 
-    // Filter by specific profile if specified
     if (formationSlot.profileName && formationSlot.profileName !== 'General') {
         filtered = filtered.filter(p => {
             const { bestBuild } = getIdealBuildForPlayer(p.card.style, p.position, idealBuilds, targetIdealType, p.card.physicalAttributes?.height);
@@ -135,21 +153,22 @@ export function generateIdealTeam(
         });
     }
     
-    return filtered.sort((a, b) => sortFunction(a, b, isSub));
+    return filtered.sort(isSub ? substituteSort : starterSort);
   }
 
-  // TITULARES
+  // STEP 1: STARTERS
   for (const formationSlot of formation.slots) {
     let cand = getCandidatesForSlot(formationSlot, true, false, false);
-    let starter = findBestPlayer(cand, { minAffinity: 80, relaxRatings: false });
+    let starter = findBestPlayer(cand, { isSub: false, minAffinity: 80, relaxRatings: false });
     
     if (!starter) {
         cand = getCandidatesForSlot(formationSlot, true, true, false);
-        starter = findBestPlayer(cand, { minAffinity: 80, relaxRatings: false });
+        starter = findBestPlayer(cand, { isSub: false, minAffinity: 80, relaxRatings: false });
     }
     
-    if (!starter) starter = findBestPlayer(cand, { minAffinity: 0, relaxRatings: false });
-    if (!starter) starter = findBestPlayer(cand, { minAffinity: 0, relaxRatings: true });
+    if (!starter) starter = findBestPlayer(cand, { isSub: false, minAffinity: 0, relaxRatings: false });
+    // Emergency: Fill the gap
+    if (!starter) starter = findBestPlayer(cand, { isSub: false, minAffinity: 0, relaxRatings: true });
 
     if (starter) {
         usedPlayerIds.add(starter.player.id);
@@ -162,31 +181,24 @@ export function generateIdealTeam(
     });
   }
   
-  // SUPLENTES
+  // STEP 2: SUBSTITUTES (1 to 11 matched by Role)
   finalTeamSlots.forEach((slot, index) => {
     if (index >= formation.slots.length) return;
     const originalSlot = formation.slots[index];
     const subPos = (slot.starter && slot.starter.position !== originalSlot.position) ? slot.starter.position : originalSlot.position;
     
-    const getSub = () => {
-        let cand = getCandidatesForSlot({ ...originalSlot, position: subPos }, false, false, true);
-        let found = findBestPlayer(cand, { minAffinity: 80, relaxRatings: false });
-        if (found) return found;
-
-        found = findBestPlayer(cand, { minAffinity: 0, relaxRatings: false });
-        if (found) return found;
-
-        found = findBestPlayer(cand, { minAffinity: 0, relaxRatings: true });
-        if (found) return found;
-
-        cand = getCandidatesForSlot({ ...originalSlot, position: subPos }, false, true, true);
-        found = findBestPlayer(cand, { minAffinity: 80, relaxRatings: false });
-        if (found) return found;
-
-        return findBestPlayer(cand, { minAffinity: 0, relaxRatings: true });
-    };
+    // Attempt to find sub matching exact role/position
+    let cand = getCandidatesForSlot({ ...originalSlot, position: subPos }, false, false, true);
+    let sub = findBestPlayer(cand, { isSub: true, minAffinity: 80, relaxRatings: false });
     
-    let sub = getSub();
+    if (!sub) sub = findBestPlayer(cand, { isSub: true, minAffinity: 80, relaxRatings: true });
+
+    // Protocol emergency for subs: relax testing rules if none found
+    if (!sub) {
+        cand = getCandidatesForSlot({ ...originalSlot, position: subPos }, false, true, true);
+        sub = findBestPlayer(cand, { isSub: false, minAffinity: 0, relaxRatings: true }); // Emergency override
+    }
+
     if (sub) {
       usedPlayerIds.add(sub.player.id);
       usedCardIds.add(sub.card.id);
@@ -194,10 +206,11 @@ export function generateIdealTeam(
     }
   });
 
-  // SUPLENTE 12
+  // STEP 3: SUBSTITUTE 12 (Must match at least one profile from formation)
   const formationRequirements = formation.slots.map(s => ({
     position: s.position,
-    styles: s.styles || []
+    styles: s.styles || [],
+    profileName: s.profileName
   }));
 
   const remainingMatchingRequirements = allPlayerCandidates.filter(p => {
@@ -205,6 +218,14 @@ export function generateIdealTeam(
     
     return formationRequirements.some(req => {
         if (p.position !== req.position) return false;
+        
+        // Profile check
+        if (req.profileName && req.profileName !== 'General') {
+            const { bestBuild } = getIdealBuildForPlayer(p.card.style, p.position, idealBuilds, targetIdealType, p.card.physicalAttributes?.height);
+            if (bestBuild?.profileName !== req.profileName) return false;
+        }
+
+        // Style check
         if (req.styles.length === 0) return true;
         if (req.styles.includes('Ninguno')) {
             const activeStyles = getAvailableStylesForPosition(req.position);
@@ -212,10 +233,11 @@ export function generateIdealTeam(
         }
         return req.styles.includes(p.card.style);
     });
-  }).sort((a, b) => sortFunction(a, b, true));
+  }).sort(substituteSort);
     
-  let extraSub = findBestPlayer(remainingMatchingRequirements, { minAffinity: 80, relaxRatings: false }) || 
-                 findBestPlayer(remainingMatchingRequirements, { minAffinity: 0, relaxRatings: true });
+  let extraSub = findBestPlayer(remainingMatchingRequirements, { isSub: true, minAffinity: 80, relaxRatings: false }) || 
+                 findBestPlayer(remainingMatchingRequirements, { isSub: true, minAffinity: 80, relaxRatings: true }) ||
+                 findBestPlayer(remainingMatchingRequirements, { isSub: false, minAffinity: 0, relaxRatings: true }); // Emergency
   
   if (extraSub) {
       finalTeamSlots.push({ 
@@ -224,6 +246,7 @@ export function generateIdealTeam(
       });
   }
 
+  // FINAL: Map placeholders for visual consistency
   return finalTeamSlots.map((slot, i) => {
     const formationSlot = i < formation.slots.length ? formation.slots[i] : null;
     const assigned = formationSlot?.position || 'DFC';
