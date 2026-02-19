@@ -1,5 +1,4 @@
 import * as z from "zod";
-import type { AffinityBreakdownResult } from "./utils";
 
 export const playerStyles = ['Ninguno', 'Cazagoles', 'Hombre de área', 'Segundo delantero', 'Hombre objetivo', 'Creador de juego', 'Creador de jugadas', 'El destructor', 'Portero defensivo', 'Portero ofensivo', 'Atacante extra', 'Lateral defensivo', 'Lateral ofensivo', 'Lateral finalizador', 'Especialista en centros', 'Omnipresente', 'Medio escudo', 'Organizador', 'Jugador de huecos', 'Extremo móvil', 'Extremo prolífico', 'Diez Clasico'] as const;
 export type PlayerStyle = typeof playerStyles[number];
@@ -184,8 +183,6 @@ export const positionLabels: Record<BuildPosition, string> = {
     EXT: 'Extremo (EXI/EXD)',
 };
 
-export type PositionLabel = typeof positionLabels[Position];
-
 export type PhysicalAttribute = {
   height?: number;
   weight?: number;
@@ -341,7 +338,11 @@ export type FlatPlayer = {
   affinityScore: number;
   generalScore: number;
   position: Position;
-  affinityBreakdown: AffinityBreakdownResult;
+  affinityBreakdown: {
+    totalAffinityScore: number;
+    breakdown: any[];
+    skillsBreakdown?: any[];
+  };
 };
 
 export function getAvailableStylesForPosition(position: BuildPosition, includeNone: boolean = false): PlayerStyle[] {

@@ -108,7 +108,7 @@ const statFields: { category: string, fields: { name: keyof PlayerAttributeStats
 ];
 
 const nameToSchemaKeyMap: Record<string, keyof PlayerAttributeStats> = {
-    "offensive awareness": "offensiveAwareness", "ball control": "ballControl", "dribbling": "dribbling",
+    "actitud ofensiva": "offensiveAwareness", "offensive awareness": "offensiveAwareness", "ball control": "ballControl", "dribbling": "dribbling",
     "tight possession": "tightPossession", "low pass": "lowPass", "lofted pass": "loftedPass",
     "finishing": "finishing", "heading": "heading", "place kicking": "placeKicking", "curl": "curl",
     "actitud defensiva": "defensiveAwareness", "defensive awareness": "defensiveAwareness", 

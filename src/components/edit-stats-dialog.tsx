@@ -27,7 +27,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "./ui/command";
 import { Badge } from "./ui/badge";
 import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, allStatsKeys } from "@/lib/utils";
 
 
 const statSchema = z.coerce.number().min(0).max(99).optional();
@@ -120,11 +120,11 @@ const statFields: { category: string, fields: { name: keyof PlayerAttributeStats
 ];
 
 const nameToSchemaKeyMap: Record<string, keyof PlayerAttributeStats> = {
-    "offensive awareness": "offensiveAwareness", "ball control": "ballControl", "dribbling": "dribbling",
+    "actitud ofensiva": "offensiveAwareness", "offensive awareness": "offensiveAwareness", "ball control": "ballControl", "dribbling": "dribbling",
     "tight possession": "tightPossession", "low pass": "lowPass", "lofted pass": "loftedPass",
     "finishing": "finishing", "heading": "heading", "place kicking": "placeKicking", "curl": "curl",
     "actitud defensiva": "defensiveAwareness", "defensive awareness": "defensiveAwareness", 
-    "dedicacion defensiva": "defensiveEngagement", "defensive engagement": "defensiveEngagement",
+    "dedicacion defensiva": "defensiveEngagement", "dedicacion": "defensiveEngagement",
     "entrada": "tackling", "tackling": "tackling",
     "agresividad": "aggression", "aggression": "aggression",
     "goalkeeping": "goalkeeping", "gk catching": "gkCatching", "gk parrying": "gkParrying", "parada": "gkParrying",
@@ -132,12 +132,7 @@ const nameToSchemaKeyMap: Record<string, keyof PlayerAttributeStats> = {
     "kicking power": "kickingPower", "jump": "jump", "physical contact": "physicalContact", "balance": "balance", "stamina": "stamina",
 };
 
-const orderedStatFields: (keyof PlayerAttributeStats)[] = [
-    'offensiveAwareness', 'ballControl', 'dribbling', 'tightPossession', 'lowPass', 'loftedPass', 'finishing', 'heading', 'placeKicking', 'curl',
-    'defensiveAwareness', 'defensiveEngagement', 'tackling', 'aggression',
-    'goalkeeping', 'gkCatching', 'gkParrying', 'gkReflexes', 'gkReach',
-    'speed', 'acceleration', 'kickingPower', 'jump', 'physicalContact', 'balance', 'stamina'
-];
+const orderedStatFields: (keyof PlayerAttributeStats)[] = allStatsKeys;
 
 
 type EditStatsDialogProps = {
@@ -218,14 +213,6 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
     const isNumericOnly = lines.every(line => /^\d+\s*$/.test(line.trim()));
 
     if (isNumericOnly) {
-        if (lines.length !== orderedStatFields.length) {
-            toast({
-                variant: "destructive",
-                title: "Error de Formato",
-                description: `Se esperaban ${orderedStatFields.length} atributos, pero se encontraron ${lines.length}.`,
-            });
-            return;
-        }
         lines.forEach((line, index) => {
             const value = parseInt(line.trim(), 10);
             const schemaKey = orderedStatFields[index];

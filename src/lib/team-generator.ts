@@ -108,8 +108,9 @@ export function generateIdealTeam(
         
         // Strict bench rules
         if (options.isSub) {
+            // Must have > 80 affinity
             if (p.affinityScore <= 80) return false;
-            // Post-test rule: if played 5+ matches, average must be > 6
+            // Rule: After 5 matches, must have avg > 6
             if (p.performance.stats.matches >= 5 && p.performance.stats.average <= 6) return false;
         } else {
             // Starter rules

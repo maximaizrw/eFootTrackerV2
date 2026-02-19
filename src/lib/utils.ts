@@ -338,7 +338,7 @@ export function calculateAffinityWithBreakdown(
     const skillsBreakdown: AffinityBreakdownResult['skillsBreakdown'] = [];
     const { build: idealBuildStats, primarySkills = [], secondarySkills = [] } = idealBuild;
     const isGoalkeeper = idealBuild.position === 'PT';
-    const relevantKeys = isGoalkeeper ? goalkeeperStatsKeys : allStatsKeys;
+    const relevantKeys = isGoalkeeper ? goalkeeperStatsKeys : outfieldStatsKeys;
 
     for (const key of relevantKeys) {
         const playerValue = playerStats[key as keyof PlayerAttributeStats];
