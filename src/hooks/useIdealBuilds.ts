@@ -23,7 +23,6 @@ export function useIdealBuilds() {
       try {
         const data = snapshot.docs.map(doc => {
             const buildData = doc.data();
-            // Filter skills
             const filteredPrimary = (buildData.primarySkills || []).filter((s: string) => validSkillsSet.has(s as any));
             const filteredSecondary = (buildData.secondarySkills || []).filter((s: string) => validSkillsSet.has(s as any));
 
@@ -46,12 +45,28 @@ export function useIdealBuilds() {
     if (!db) return;
     const profilePart = build.profileName ? `-${build.profileName.trim().replace(/\s+/g, '_')}` : '';
     const buildId = `Contraataque_largo-${build.position}-${build.style.replace(/\s+/g, '_')}${profilePart}`;
+    
+    // Clean heights/weights to avoid 'undefined' errors
+    const cleanRange = (range: any) => {
+        const r: any = {};
+        if (range?.min !== undefined && range.min !== '' && range.min !== null) r.min = Number(range.min);
+        else r.min = 0;
+        if (range?.max !== undefined && range.max !== '' && range.max !== null) r.max = Number(range.max);
+        else r.max = 0;
+        return r;
+    };
+
     try {
         const dataToSave = {
-          playStyle: 'Contraataque largo', position: build.position, style: build.style,
-          profileName: build.profileName || "", build: build.build,
-          height: build.height || { min: 0, max: 0 }, weight: build.weight || { min: 0, max: 0 },
-          primarySkills: build.primarySkills || [], secondarySkills: build.secondarySkills || []
+          playStyle: 'Contraataque largo', 
+          position: build.position, 
+          style: build.style,
+          profileName: build.profileName || "", 
+          build: build.build,
+          height: cleanRange(build.height), 
+          weight: cleanRange(build.weight),
+          primarySkills: build.primarySkills || [], 
+          secondarySkills: build.secondarySkills || []
         };
         await setDoc(doc(db, 'idealBuilds', buildId), dataToSave, { merge: true });
         toast({ title: "Build Guardada", description: `${build.position} - ${build.style}` });
@@ -68,9 +83,11 @@ export function useIdealBuilds() {
                             const b = builds[build.position];
                             const final = isSpecialCard(card.name) ? card.attributeStats : calculateProgressionStats(card.attributeStats || {}, b, build.position === 'PT');
                             const { bestBuild } = getIdealBuildForPlayer(card.style, build.position as Position, [...idealBuilds, { ...dataToSave, id: buildId }], 'Contraataque largo', card.physicalAttributes?.height);
-                            b.manualAffinity = calculateAffinityWithBreakdown(final || {}, bestBuild, card.physicalAttributes, card.skills).totalAffinityScore;
-                            b.updatedAt = new Date().toISOString();
-                            updated = true;
+                            if (bestBuild) {
+                                b.manualAffinity = calculateAffinityWithBreakdown(final || {}, bestBuild, card.physicalAttributes, card.skills).totalAffinityScore;
+                                b.updatedAt = new Date().toISOString();
+                                updated = true;
+                            }
                         }
                     });
                 }
@@ -78,7 +95,10 @@ export function useIdealBuilds() {
             });
             if (updated) await setDoc(doc(db, 'players', player.id), { ...player, cards: newCards });
         }
-    } catch (error) { toast({ variant: "destructive", title: "Error", description: "No se pudo guardar." }); }
+    } catch (error) { 
+        console.error("Error saving ideal build: ", error);
+        toast({ variant: "destructive", title: "Error", description: "No se pudo guardar la build ideal." }); 
+    }
   };
 
   const deleteIdealBuild = async (id: string) => {

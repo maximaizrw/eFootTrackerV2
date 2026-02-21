@@ -6,9 +6,25 @@ import { db } from '@/lib/firebase-config';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, getDocs, arrayUnion, query, orderBy, getDoc } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import { v4 as uuidv4 } from 'uuid';
-import type { FormationStats, MatchResult, AddMatchFormValues, AddFormationFormValues, EditFormationFormValues } from '@/lib/types';
+import type { FormationStats, MatchResult, AddMatchFormValues, AddFormationFormValues, EditFormationFormValues, FormationSlot } from '@/lib/types';
 
 const defaultSlots = Array(11).fill({ position: 'DC', styles: [] });
+
+/**
+ * Sanitizes formation slots to ensure no 'undefined' values reach Firestore.
+ */
+const sanitizeSlots = (slots: FormationSlot[]) => {
+  return slots.map(slot => {
+    const s: any = {
+      position: slot.position,
+      styles: slot.styles || [],
+    };
+    if (slot.profileName !== undefined && slot.profileName !== null) s.profileName = slot.profileName;
+    if (slot.top !== undefined && slot.top !== null) s.top = slot.top;
+    if (slot.left !== undefined && slot.left !== null) s.left = slot.left;
+    return s;
+  });
+};
 
 export function useFormations() {
   const [formations, setFormations] = useState<FormationStats[]>([]);
@@ -33,7 +49,6 @@ export function useFormations() {
             return {
               id: doc.id,
               ...data,
-              // Ensure slots exist and are properly formatted
               slots: (data.slots && data.slots.length === 11) 
                 ? data.slots.map((s: any) => ({ ...s, styles: s.styles || [] })) 
                 : defaultSlots,
@@ -44,24 +59,14 @@ export function useFormations() {
       } catch (err) {
         console.error("Error processing formations snapshot: ", err);
         setError("No se pudieron procesar los datos de las formaciones.");
-        toast({
-          variant: "destructive",
-          title: "Error de Datos",
-          description: "No se pudieron procesar los datos de las formaciones.",
-        });
       } finally {
         setLoading(false);
       }
     }, (err) => {
       console.error("Error fetching formations from Firestore: ", err);
-      setError("No se pudo conectar a la base de datos para leer formaciones.");
+      setError("No se pudo conectar a la base de datos.");
       setFormations([]);
       setLoading(false);
-      toast({
-          variant: "destructive",
-          title: "Error de Conexión",
-          description: "No se pudo conectar a la base de datos para leer formaciones."
-      });
     });
 
     return () => unsub();
@@ -74,7 +79,7 @@ export function useFormations() {
             name: values.name,
             creator: values.creator || '',
             playStyle: values.playStyle,
-            slots: values.slots,
+            slots: sanitizeSlots(values.slots),
             matches: [],
             imageUrl: values.imageUrl || '',
             secondaryImageUrl: values.secondaryImageUrl || '',
@@ -87,7 +92,7 @@ export function useFormations() {
         toast({
             variant: "destructive",
             title: "Error al Guardar",
-            description: `No se pudo guardar la formación.`,
+            description: `No se pudo guardar la formación. Revisa los datos.`,
         });
     }
   };
@@ -100,7 +105,7 @@ export function useFormations() {
         name: values.name,
         creator: values.creator || '',
         playStyle: values.playStyle,
-        slots: values.slots,
+        slots: sanitizeSlots(values.slots),
         imageUrl: values.imageUrl || '',
         secondaryImageUrl: values.secondaryImageUrl || '',
         sourceUrl: values.sourceUrl || '',

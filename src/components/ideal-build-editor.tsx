@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -108,16 +109,39 @@ const statFields: { category: string, fields: { name: keyof PlayerAttributeStats
 ];
 
 const nameToSchemaKeyMap: Record<string, keyof PlayerAttributeStats> = {
-    "actitud ofensiva": "offensiveAwareness", "offensive awareness": "offensiveAwareness", "ball control": "ballControl", "dribbling": "dribbling",
-    "tight possession": "tightPossession", "low pass": "lowPass", "lofted pass": "loftedPass",
-    "finishing": "finishing", "heading": "heading", "place kicking": "placeKicking", "curl": "curl",
-    "actitud defensiva": "defensiveAwareness", "defensive awareness": "defensiveAwareness", 
-    "dedicacion defensiva": "defensiveEngagement", "dedicacion": "defensiveEngagement",
-    "entrada": "tackling", "tackling": "tackling",
-    "agresividad": "aggression", "aggression": "aggression",
-    "goalkeeping": "goalkeeping", "gk catching": "gkCatching", "gk parrying": "gkParrying", "parada": "gkParrying",
-    "gk reflexes": "gkReflexes", "gk reach": "gkReach", "cobertura": "gkReach", "speed": "speed", "acceleration": "acceleration",
-    "kicking power": "kickingPower", "jump": "jump", "physical contact": "physicalContact", "balance": "balance", "stamina": "stamina",
+    "actitud ofensiva": "offensiveAwareness", 
+    "offensive awareness": "offensiveAwareness", 
+    "ball control": "ballControl", 
+    "dribbling": "dribbling",
+    "tight possession": "tightPossession", 
+    "low pass": "lowPass", 
+    "lofted pass": "loftedPass",
+    "finishing": "finishing", 
+    "heading": "heading", 
+    "place kicking": "placeKicking", 
+    "curl": "curl",
+    "actitud defensiva": "defensiveAwareness", 
+    "defensive awareness": "defensiveAwareness", 
+    "dedicacion defensiva": "defensiveEngagement", 
+    "dedicacion": "defensiveEngagement",
+    "entrada": "tackling", 
+    "tackling": "tackling",
+    "agresividad": "aggression", 
+    "aggression": "aggression",
+    "goalkeeping": "goalkeeping", 
+    "gk catching": "gkCatching", 
+    "gk parrying": "gkParrying", 
+    "parada": "gkParrying",
+    "gk reflexes": "gkReflexes", 
+    "gk reach": "gkReach", 
+    "cobertura": "gkReach", 
+    "speed": "speed", 
+    "acceleration": "acceleration",
+    "kicking power": "kickingPower", 
+    "jump": "jump", 
+    "physical contact": "physicalContact", 
+    "balance": "balance", 
+    "stamina": "stamina",
 };
 
 const orderedStatFields: (keyof PlayerAttributeStats)[] = allStatsKeys;
@@ -233,12 +257,12 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
       primarySkills: (values.primarySkills || []) as PlayerSkill[],
       secondarySkills: (values.secondarySkills || []) as PlayerSkill[],
       height: {
-          min: (values.height?.min === '' || values.height?.min === undefined) ? undefined : Number(values.height.min),
-          max: (values.height?.max === '' || values.height?.max === undefined) ? undefined : Number(values.height.max)
+          min: (values.height?.min === '' || values.height?.min === undefined) ? 0 : Number(values.height.min),
+          max: (values.height?.max === '' || values.height?.max === undefined) ? 0 : Number(values.height.max)
       },
       weight: {
-          min: (values.weight?.min === '' || values.weight?.min === undefined) ? undefined : Number(values.weight.min),
-          max: (values.weight?.max === '' || values.weight?.max === undefined) ? undefined : Number(values.weight.max)
+          min: (values.weight?.min === '' || values.weight?.min === undefined) ? 0 : Number(values.weight.min),
+          max: (values.weight?.max === '' || values.weight?.max === undefined) ? 0 : Number(values.weight.max)
       },
       build: finalStats,
     });
@@ -298,7 +322,7 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
           <DialogDescription>Configura el perfil táctico y sus activadores físicos opcionales.</DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={formHandleSubmit(onSubmit)} className="flex-grow overflow-hidden flex flex-col">
+          <form onSubmit={formHandleSubmit(onSubmit)} className="flex-grow overflow-hidden flex flex-col pt-2">
             <ScrollArea className="flex-grow pr-4 -mr-4">
               <div className="space-y-6 pb-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -363,16 +387,16 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
                     <h3 className="text-sm font-bold text-primary uppercase">Habilidades Recomendadas</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormItem>
-                            <FormLabel>Primarias</FormLabel>
+                            <FormLabel className="text-xs">Primarias</FormLabel>
                             <Popover open={primarySkillsPopoverOpen} onOpenChange={setPrimarySkillsPopoverOpen}>
-                                <PopoverTrigger asChild><Button variant="outline" className="w-full justify-between h-auto min-h-10"><div className="flex gap-1 flex-wrap">{watchedPrimarySkills.length > 0 ? watchedPrimarySkills.map(s => <Badge key={s} variant="default">{s}</Badge>) : <span className="text-muted-foreground text-xs">Seleccionar...</span>}</div><Check className="ml-2 h-4 w-4 shrink-0 opacity-50" /></Button></PopoverTrigger>
+                                <PopoverTrigger asChild><Button variant="outline" className="w-full justify-between h-auto min-h-10"><div className="flex gap-1 flex-wrap">{watchedPrimarySkills.length > 0 ? watchedPrimarySkills.map(s => <Badge key={s} variant="default" className="text-[10px]">{s}</Badge>) : <span className="text-muted-foreground text-[10px]">Seleccionar...</span>}</div><Check className="ml-2 h-4 w-4 shrink-0 opacity-50" /></Button></PopoverTrigger>
                                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0"><Command><CommandInput placeholder="Buscar..." /><CommandList><CommandEmpty>Sin resultados.</CommandEmpty>{playerSkillsList.map(s => <CommandItem key={s} value={s} onSelect={() => handleSkillToggle(s, 'primary')}><Check className={cn("mr-2 h-4 w-4", watchedPrimarySkills.includes(s) ? "opacity-100" : "opacity-0")} />{s}</CommandItem>)}</CommandList></Command></PopoverContent>
                             </Popover>
                         </FormItem>
                         <FormItem>
-                            <FormLabel>Secundarias</FormLabel>
+                            <FormLabel className="text-xs">Secundarias</FormLabel>
                             <Popover open={secondarySkillsPopoverOpen} onOpenChange={setSecondarySkillsPopoverOpen}>
-                                <PopoverTrigger asChild><Button variant="outline" className="w-full justify-between h-auto min-h-10"><div className="flex gap-1 flex-wrap">{watchedSecondarySkills.length > 0 ? watchedSecondarySkills.map(s => <Badge key={s} variant="secondary">{s}</Badge>) : <span className="text-muted-foreground text-xs">Seleccionar...</span>}</div><Check className="ml-2 h-4 w-4 shrink-0 opacity-50" /></Button></PopoverTrigger>
+                                <PopoverTrigger asChild><Button variant="outline" className="w-full justify-between h-auto min-h-10"><div className="flex gap-1 flex-wrap">{watchedSecondarySkills.length > 0 ? watchedSecondarySkills.map(s => <Badge key={s} variant="secondary" className="text-[10px]">{s}</Badge>) : <span className="text-muted-foreground text-[10px]">Seleccionar...</span>}</div><Check className="ml-2 h-4 w-4 shrink-0 opacity-50" /></Button></PopoverTrigger>
                                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0"><Command><CommandInput placeholder="Buscar..." /><CommandList><CommandEmpty>Sin resultados.</CommandEmpty>{playerSkillsList.map(s => <CommandItem key={s} value={s} onSelect={() => handleSkillToggle(s, 'secondary')}><Check className={cn("mr-2 h-4 w-4", watchedSecondarySkills.includes(s) ? "opacity-100" : "opacity-0")} />{s}</CommandItem>)}</CommandList></Command></PopoverContent>
                             </Popover>
                         </FormItem>
@@ -380,12 +404,12 @@ export function IdealBuildEditor({ open, onOpenChange, onSave, initialBuild, exi
                 </div>
 
                 {statFields.map(cat => (
-                  <div key={cat.category}>
-                    <h3 className="text-lg font-semibold mb-3 text-primary">{cat.category}</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-3">
+                  <div key={cat.category} className="space-y-3">
+                    <h3 className="text-sm font-bold text-primary uppercase border-b pb-1">{cat.category}</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-2">
                       {cat.fields.map(f => (
                         <FormField key={f.name} control={form.control} name={`build.${f.name}`} render={({ field: ff }) => (
-                          <FormItem><FormLabel className="text-xs">{f.label}</FormLabel><FormControl><Input type="number" min="0" max="99" {...ff} /></FormControl><FormMessage /></FormItem>
+                          <FormItem className="space-y-1"><FormLabel className="text-[10px] text-muted-foreground">{f.label}</FormLabel><FormControl><Input type="number" min="0" max="99" {...ff} className="h-8 text-xs" /></FormControl><FormMessage /></FormItem>
                         )} />
                       ))}
                     </div>
