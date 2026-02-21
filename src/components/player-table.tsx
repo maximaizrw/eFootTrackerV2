@@ -9,10 +9,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, X, Wrench, Pencil, NotebookPen, Search, Star, SlidersHorizontal, Dna, BarChart2 } from 'lucide-react';
+import { PlusCircle, Trash2, X, Wrench, Pencil, NotebookPen, Search, Star, SlidersHorizontal, Dna, BarChart2, Ruler, MapPin } from 'lucide-react';
 import { cn, formatAverage, getAverageColorClass, isSpecialCard, isProfileIncomplete } from '@/lib/utils';
 import type { Player, PlayerCard, Position, FlatPlayer, PhysicalAttribute, LiveUpdateRating, IdealBuildType } from '@/lib/types';
-import { idealBuildTypes } from '@/lib/types';
+import { idealBuildTypes, positions } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import { PerformanceBadges } from './performance-badges';
 import { AffinityStatusIndicator } from './affinity-status-indicator';
@@ -52,6 +52,10 @@ type FilterProps = {
   onStyleFilterChange: (value: string) => void;
   cardFilter: string;
   onCardFilterChange: (value: string) => void;
+  minHeightFilter: string;
+  onMinHeightFilterChange: (value: string) => void;
+  secondPosFilter: string;
+  onSecondPosFilterChange: (value: string) => void;
   uniqueStyles: string[];
   uniqueCardNames: string[];
   sortBy: 'average' | 'general';
@@ -65,57 +69,90 @@ const Filters = memo(({
   onStyleFilterChange,
   cardFilter,
   onCardFilterChange,
+  minHeightFilter,
+  onMinHeightFilterChange,
+  secondPosFilter,
+  onSecondPosFilterChange,
   uniqueStyles,
   uniqueCardNames,
   sortBy,
   onSortByChange,
 }: FilterProps) => (
-  <div className="flex flex-col md:flex-row gap-2">
-    <div className="relative flex-grow">
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-      <Input
-        placeholder={`Buscar...`}
-        value={searchTerm}
-        onChange={(e) => onSearchTermChange(e.target.value)}
-        className="pl-10 w-full"
-      />
+  <div className="space-y-4">
+    <div className="flex flex-col md:flex-row gap-2">
+        <div className="relative flex-grow">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+            placeholder={`Buscar por nombre de jugador...`}
+            value={searchTerm}
+            onChange={(e) => onSearchTermChange(e.target.value)}
+            className="pl-10 w-full"
+        />
+        </div>
+        <div className="flex gap-2">
+            <ToggleGroup 
+                type="single" 
+                value={sortBy} 
+                onValueChange={(value: 'average' | 'general') => value && onSortByChange(value)}
+                className="border rounded-md shrink-0"
+            >
+            <ToggleGroupItem value="average" aria-label="Build Promedio" className="text-xs px-2 h-9">
+                <BarChart2 className="mr-1 h-3.5 w-3.5" />
+                Promedio
+            </ToggleGroupItem>
+            <ToggleGroupItem value="general" aria-label="Build Táctica" className="text-xs px-2 h-9">
+                <Star className="mr-1 h-3.5 w-3.5" />
+                Táctica
+            </ToggleGroupItem>
+            </ToggleGroup>
+        </div>
     </div>
-    <div className="flex gap-2 flex-wrap md:flex-nowrap">
-        <ToggleGroup 
-            type="single" 
-            value={sortBy} 
-            onValueChange={(value: 'average' | 'general') => value && onSortByChange(value)}
-            className="border rounded-md"
-        >
-          <ToggleGroupItem value="average" aria-label="Build Promedio" className="text-xs px-2 h-9">
-            <BarChart2 className="mr-1 h-3.5 w-3.5" />
-            Promedio
-          </ToggleGroupItem>
-          <ToggleGroupItem value="general" aria-label="Build Táctica" className="text-xs px-2 h-9">
-             <Star className="mr-1 h-3.5 w-3.5" />
-            Táctica
-          </ToggleGroupItem>
-        </ToggleGroup>
-
+    
+    <div className="flex flex-wrap gap-2">
         <Select value={styleFilter} onValueChange={onStyleFilterChange}>
-        <SelectTrigger className="w-full md:w-[150px]">
-            <SelectValue placeholder="Filtrar estilo" />
-        </SelectTrigger>
-        <SelectContent>
-            {uniqueStyles.map(style => (
-            <SelectItem key={style} value={style}>{style === 'all' ? 'Todos los Estilos' : style}</SelectItem>
-            ))}
-        </SelectContent>
+            <SelectTrigger className="w-full md:w-[180px]">
+                <SelectValue placeholder="Estilo de juego" />
+            </SelectTrigger>
+            <SelectContent>
+                {uniqueStyles.map(style => (
+                <SelectItem key={style} value={style}>{style === 'all' ? 'Todos los Estilos' : style}</SelectItem>
+                ))}
+            </SelectContent>
         </Select>
+
         <Select value={cardFilter} onValueChange={onCardFilterChange}>
-        <SelectTrigger className="w-full md:w-[150px]">
-            <SelectValue placeholder="Filtrar carta" />
-        </SelectTrigger>
-        <SelectContent>
-            {uniqueCardNames.map(name => (
-            <SelectItem key={name} value={name}>{name === 'all' ? 'Todas las Cartas' : name}</SelectItem>
-            ))}
-        </SelectContent>
+            <SelectTrigger className="w-full md:w-[180px]">
+                <SelectValue placeholder="Tipo de carta" />
+            </SelectTrigger>
+            <SelectContent>
+                {uniqueCardNames.map(name => (
+                <SelectItem key={name} value={name}>{name === 'all' ? 'Todas las Cartas' : name}</SelectItem>
+                ))}
+            </SelectContent>
+        </Select>
+
+        <div className="relative w-full md:w-[140px]">
+            <Ruler className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-50" />
+            <Input
+                type="number"
+                placeholder="Altura min."
+                value={minHeightFilter}
+                onChange={(e) => onMinHeightFilterChange(e.target.value)}
+                className="pl-9"
+            />
+        </div>
+
+        <Select value={secondPosFilter} onValueChange={onSecondPosFilterChange}>
+            <SelectTrigger className="w-full md:w-[160px]">
+                <MapPin className="mr-2 h-4 w-4 text-muted-foreground opacity-50" />
+                <SelectValue placeholder="2ª Posición" />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem value="all">Cualquier posición</SelectItem>
+                {positions.map(p => (
+                    <SelectItem key={p} value={p}>{p}</SelectItem>
+                ))}
+            </SelectContent>
         </Select>
     </div>
   </div>
@@ -178,10 +215,10 @@ const PlayerTableMemo = memo(function PlayerTable({
     return (
       <div className="col-span-full flex flex-col items-center justify-center text-center p-10">
         <p className="text-lg font-medium text-muted-foreground">
-          {`Todavía no hay jugadores en la posición de ${position}.`}
+          {`Todavía no hay jugadores que cumplan los criterios de filtrado en la posición de ${position}.`}
         </p>
         <p className="text-sm text-muted-foreground">
-          {"¡Haz clic en 'Añadir Valoración' para empezar!"}
+          {"¡Prueba a ajustar los filtros o añade una valoración!"}
         </p>
       </div>
     );
@@ -257,8 +294,9 @@ const PlayerTableMemo = memo(function PlayerTable({
                               </Tooltip>
                             </TooltipProvider>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                             <span className="text-xs text-muted-foreground">{card.name} ({performance.stats.matches} P.)</span>
+                            {card.physicalAttributes?.height && <span className="text-[10px] bg-muted px-1 rounded font-mono">{card.physicalAttributes.height}cm</span>}
                              <PerformanceBadges performance={performance} />
                         </div>
                       </div>

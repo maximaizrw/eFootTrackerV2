@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -43,10 +44,10 @@ import { useToast } from "@/hooks/use-toast";
 
 import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerBuild, IdealTeamPlayer, PlayerAttributeStats, IdealBuild, IdealBuildType } from '@/lib/types';
 import { positions, leagues, nationalities, formationPlayStyles } from '@/lib/types';
-import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Dna, RefreshCw, Beaker, Wand2, Copy, Trash2, CopyPlus } from 'lucide-react';
 import { normalizeText } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Dna, RefreshCw, Beaker, Wand2, Copy, Trash2, CopyPlus } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -59,9 +60,7 @@ export default function Home() {
     deleteIdealBuild,
   } = useIdealBuilds();
 
-  // ONLY Contraataque largo is supported as the base tactic
   const idealBuildType: IdealBuildType = 'Contraataque largo';
-
   const [sortBy, setSortBy] = useState<'average' | 'general'>('general');
 
   const { 
@@ -100,6 +99,11 @@ export default function Home() {
 
   const [activeTab, setActiveTab] = useState<string>('DC');
   const [searchTerm, setSearchTerm] = useState('');
+  const [styleFilter, setStyleFilter] = useState<string>('all');
+  const [cardFilter, setCardFilter] = useState<string>('all');
+  const [minHeightFilter, setMinHeightFilter] = useState('');
+  const [secondPosFilter, setSecondPosFilter] = useState('all');
+  
   const [isAddRatingDialogOpen, setAddRatingDialogOpen] = useState(false);
   const [isAddFormationDialogOpen, setAddFormationDialogOpen] = useState(false);
   const [isEditFormationDialogOpen, setEditFormationDialogOpen] = useState(false);
@@ -132,8 +136,6 @@ export default function Home() {
   const [isFlexibleLaterals, setFlexibleLaterals] = useState(false);
   const [isFlexibleWingers, setFlexibleWingers] = useState(false);
   
-  const [styleFilter, setStyleFilter] = useState<string>('all');
-  const [cardFilter, setCardFilter] = useState<string>('all');
   const [pagination, setPagination] = useState<Record<string, number>>({});
   
   const { toast } = useToast();
@@ -171,12 +173,9 @@ export default function Home() {
     const newTeam = players.length > 0 ? generateIdealTeam(players, formation, idealBuilds, discardedCardIds, selectedLeague, selectedNationality, sortBy, isFlexibleLaterals, isFlexibleWingers, idealBuildType) : [];
 
     setIdealTeam(newTeam);
-    if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur();
-    }
     toast({
       title: "11 Ideal Generado",
-      description: `Se ha generado un equipo para la formación "${formation.name}" usando la build de "${idealBuildType}".`,
+      description: `Se ha generado un equipo para la formación "${formation.name}".`,
     });
   }, [players, selectedFormationId, formations, idealBuilds, discardedCardIds, selectedLeague, selectedNationality, sortBy, isFlexibleLaterals, isFlexibleWingers, idealBuildType, toast]);
 
@@ -184,7 +183,6 @@ export default function Home() {
     if (idealTeam.length > 0) {
       handleGenerateTeam();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [discardedCardIds]);
 
 
@@ -241,7 +239,6 @@ export default function Home() {
     setAddMatchDialogOpen(true);
   }, []);
 
-  
   const handleFormationSelectionChange = useCallback((id: string) => {
     setSelectedFormationId(id);
   }, []);
@@ -288,11 +285,7 @@ export default function Home() {
       return;
     }
     
-    const backupData = {
-      players: playersData,
-      formations: formationsData,
-    };
-
+    const backupData = { players: playersData, formations: formationsData };
     const jsonData = JSON.stringify(backupData, null, 2);
     const blob = new Blob([jsonData], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -303,11 +296,6 @@ export default function Home() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-
-    toast({
-      title: "Descarga Iniciada",
-      description: "El backup de la base de datos se está degradando.",
-    });
   }, [downloadPlayersBackup, downloadFormationsBackup, toast]);
 
   const handleTabChange = useCallback((value: string) => {
@@ -315,6 +303,8 @@ export default function Home() {
     setSearchTerm('');
     setStyleFilter('all');
     setCardFilter('all');
+    setMinHeightFilter('');
+    setSecondPosFilter('all');
   }, []);
 
   const handleViewPlayerBuild = useCallback((player: IdealTeamPlayer) => {
@@ -337,12 +327,7 @@ export default function Home() {
   }, [idealBuildType]);
 
   const handleDuplicateIdealBuild = useCallback((build: IdealBuild) => {
-    // We pass the build data but without ID to indicate it's a new entry
-    const duplicate = {
-        ...build,
-        id: undefined,
-        // Keep the original name, but the editor will force a change because it lacks an ID
-    };
+    const duplicate = { ...build, id: undefined };
     setEditingIdealBuild(duplicate);
     setIsIdealBuildEditorOpen(true);
   }, []);
@@ -350,47 +335,17 @@ export default function Home() {
   const handleCopyIdealBuild = useCallback((build: IdealBuild) => {
     const json = JSON.stringify(build.build, null, 2);
     navigator.clipboard.writeText(json).then(() => {
-      toast({
-        title: "Copiado al portapapeles",
-        description: `Las estadísticas de ${build.position} - ${build.style} se han copiado como JSON.`,
-      });
-    }).catch(err => {
-      console.error('Error al copiar: ', err);
-      toast({
-        variant: "destructive",
-        title: "Error al copiar",
-        description: "No se pudo copiar al portapapeles.",
-      });
+      toast({ title: "Copiado", description: "JSON de estadísticas copiado." });
     });
   }, [toast]);
 
 
   const getHeaderButtons = () => {
     const isPositionTab = positions.some(p => p === activeTab);
-
-    return (
-        <div className="flex items-center gap-2">
-            {isPositionTab ? (
-                <Button onClick={() => handleOpenAddRating({ position: activeTab as Position })} size="sm">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    <span className="hidden sm:inline">Añadir Valoración</span>
-                    <span className="inline sm:hidden">Valorar</span>
-                </Button>
-            ) : activeTab === 'formations' ? (
-                <Button onClick={() => setAddFormationDialogOpen(true)} size="sm">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    <span className="hidden sm:inline">Añadir Formación</span>
-                    <span className="inline sm:hidden">Formación</span>
-                </Button>
-            ) : activeTab === 'ideal-builds' ? (
-                <Button onClick={() => handleOpenIdealBuildEditor()} size="sm">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    <span className="hidden sm:inline">Añadir Build Ideal</span>
-                    <span className="inline sm:hidden">Build</span>
-                </Button>
-            ) : null}
-        </div>
-    );
+    if (isPositionTab) return <Button onClick={() => handleOpenAddRating({ position: activeTab as Position })} size="sm"><PlusCircle className="mr-2 h-4 w-4" />Valorar</Button>;
+    if (activeTab === 'formations') return <Button onClick={() => setAddFormationDialogOpen(true)} size="sm"><PlusCircle className="mr-2 h-4 w-4" />Formación</Button>;
+    if (activeTab === 'ideal-builds') return <Button onClick={() => handleOpenIdealBuildEditor()} size="sm"><PlusCircle className="mr-2 h-4 w-4" />Nueva Build</Button>;
+    return null;
   };
   
   const handlePageChange = useCallback((position: Position, direction: 'next' | 'prev') => {
@@ -411,38 +366,29 @@ export default function Home() {
             const cardMatch = cardFilter === 'all' || card.name === cardFilter;
             const leagueMatch = selectedLeague === 'all' || card.league === selectedLeague;
             const nationalityMatch = selectedNationality === 'all' || player.nationality === selectedNationality;
-            return searchMatch && styleMatch && cardMatch && leagueMatch && nationalityMatch;
-        
+            const heightMatch = !minHeightFilter || (card.physicalAttributes?.height || 0) >= parseInt(minHeightFilter);
+            const secondPosMatch = secondPosFilter === 'all' || (card.ratingsByPosition && !!card.ratingsByPosition[secondPosFilter as Position]);
+            return searchMatch && styleMatch && cardMatch && leagueMatch && nationalityMatch && heightMatch && secondPosMatch;
         }).sort((a, b) => {
           if (sortBy === 'general') {
-            const generalA = a.generalScore;
-            const generalB = b.generalScore;
-            if (generalB !== generalA) return generalB - generalA;
+            if (b.generalScore !== a.generalScore) return b.generalScore - a.generalScore;
           }
-          
-          const avgA = a.performance.stats.average;
-          const avgB = b.performance.stats.average;
-          if (avgB !== avgA) return avgB - avgA;
-          
-          const matchesA = a.performance.stats.matches;
-          const matchesB = b.performance.stats.matches;
-          return matchesB - matchesA;
+          if (b.performance.stats.average !== a.performance.stats.average) return b.performance.stats.average - a.performance.stats.average;
+          return b.performance.stats.matches - a.performance.stats.matches;
         });
     }
     return grouped;
-  }, [flatPlayers, searchTerm, styleFilter, cardFilter, selectedLeague, selectedNationality, sortBy]);
+  }, [flatPlayers, searchTerm, styleFilter, cardFilter, selectedLeague, selectedNationality, sortBy, minHeightFilter, secondPosFilter]);
 
   const uniqueFiltersByPosition = useMemo(() => {
     const filters: Record<string, { uniqueStyles: string[], uniqueCardNames: string[] }> = {};
     for (const pos of positions) {
       const allPositionalStyles = new Set<string>();
       const allPositionalCards = new Set<string>();
-      
       flatPlayers.filter(p => p.position === pos).forEach(p => {
         allPositionalStyles.add(p.card.style);
         allPositionalCards.add(p.card.name);
       });
-      
       filters[pos] = {
         uniqueStyles: ['all', ...Array.from(allPositionalStyles)],
         uniqueCardNames: ['all', ...Array.from(allPositionalCards)],
@@ -626,14 +572,9 @@ export default function Home() {
 
           {positions.map((pos) => {
             const filteredPlayerList = filteredPlayersByPosition[pos] || [];
-            
             const currentPage = pagination[pos] || 0;
-            const paginatedPlayers = filteredPlayerList.slice(
-              currentPage * ITEMS_PER_PAGE,
-              (currentPage + 1) * ITEMS_PER_PAGE
-            );
+            const paginatedPlayers = filteredPlayerList.slice(currentPage * ITEMS_PER_PAGE, (currentPage + 1) * ITEMS_PER_PAGE);
             const totalPages = Math.ceil(filteredPlayerList.length / ITEMS_PER_PAGE);
-            
             const { uniqueStyles, uniqueCardNames } = uniqueFiltersByPosition[pos] || { uniqueStyles: ['all'], uniqueCardNames: ['all'] };
 
             return (
@@ -647,6 +588,10 @@ export default function Home() {
                           onStyleFilterChange={setStyleFilter}
                           cardFilter={cardFilter}
                           onCardFilterChange={setCardFilter}
+                          minHeightFilter={minHeightFilter}
+                          onMinHeightFilterChange={setMinHeightFilter}
+                          secondPosFilter={secondPosFilter}
+                          onSecondPosFilterChange={setSecondPosFilter}
                           uniqueStyles={uniqueStyles}
                           uniqueCardNames={uniqueCardNames}
                           sortBy={sortBy}
@@ -680,12 +625,9 @@ export default function Home() {
           <TabsContent value="ideal-11" className="mt-6">
              <Card>
                <CardHeader>
-                 <CardTitle className="flex items-center gap-2 text-accent">
-                   <Star />
-                   Generador de 11 Ideal
-                 </CardTitle>
+                 <CardTitle className="flex items-center gap-2 text-accent"><Star />Generador de 11 Ideal</CardTitle>
                  <CardDescription>
-                   Selecciona una formación, define tus filtros y elige si ordenar por promedio o por una valoración "General" (afinidad + promedio) para crear tu equipo.
+                   Configura tu táctica. El banquillo se llenará con jugadores en prueba (menos de 5 partidos) o rendimiento alto (>6 avg), siempre con >80 de afinidad.
                  </CardDescription>
                </CardHeader>
                <CardContent>
@@ -707,39 +649,11 @@ export default function Home() {
                     onFlexibleWingersChange={setFlexibleWingers}
                   />
                   <div className="flex flex-wrap items-center gap-4 mt-6">
-                    <Button onClick={handleGenerateTeam} disabled={!selectedFormationId}>
-                      <Star className="mr-2 h-4 w-4" />
-                      Generar 11 Ideal
-                    </Button>
-                    <Button
-                        onClick={handleResetDiscards}
-                        variant="outline"
-                        disabled={discardedCardIds.size === 0}
-                        >
-                        <RotateCcw className="mr-2 h-4 w-4" />
-                        Reiniciar Descartados ({discardedCardIds.size})
-                    </Button>
-                     <Button
-                        onClick={() => recalculateAllAffinities()}
-                        variant="secondary"
-                        >
-                        <RefreshCw className="mr-2 h-4 w-4" />
-                        Actualizar Afinidades
-                    </Button>
-                    <Button
-                        onClick={() => suggestAllBuilds()}
-                        variant="secondary"
-                        >
-                        <Wand2 className="mr-2 h-4 w-4" />
-                        Sugerir Todas las Builds
-                    </Button>
-                     <Button
-                        onClick={() => resetAllLiveUpdateRatings()}
-                        variant="outline"
-                        >
-                        <RotateCcw className="mr-2 h-4 w-4" />
-                        Resetear Letras
-                    </Button>
+                    <Button onClick={handleGenerateTeam} disabled={!selectedFormationId}><Star className="mr-2 h-4 w-4" />Generar 11 Ideal</Button>
+                    <Button onClick={handleResetDiscards} variant="outline" disabled={discardedCardIds.size === 0}><RotateCcw className="mr-2 h-4 w-4" />Reiniciar Descartados ({discardedCardIds.size})</Button>
+                    <Button onClick={() => recalculateAllAffinities()} variant="secondary"><RefreshCw className="mr-2 h-4 w-4" />Actualizar Afinidades</Button>
+                    <Button onClick={() => suggestAllBuilds()} variant="secondary"><Wand2 className="mr-2 h-4 w-4" />Sugerir Builds</Button>
+                    <Button onClick={() => resetAllLiveUpdateRatings()} variant="outline"><RotateCcw className="mr-2 h-4 w-4" />Resetear Letras</Button>
                   </div>
                </CardContent>
              </Card>
@@ -759,57 +673,28 @@ export default function Home() {
           <TabsContent value="ideal-builds" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-accent">
-                  <Dna />
-                  Builds Ideales
-                </CardTitle>
-                <CardDescription>
-                  Define la distribución de puntos de progresión ideal para cada arquetipo de jugador en la táctica de Contraataque largo.
-                </CardDescription>
+                <CardTitle className="flex items-center gap-2 text-accent"><Dna />Builds Ideales</CardTitle>
+                <CardDescription>Perfiles tácticos para Contraataque largo.</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   {idealBuilds.map((build) => (
                     <div key={build.id} className="flex items-center justify-between p-3 bg-muted rounded-md">
-                      <div>
-                        <p className="font-semibold">
-                            {build.position} - <span className="text-primary">{build.style}</span>
-                            {build.profileName && <span className="text-muted-foreground ml-1">({build.profileName})</span>}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => handleCopyIdealBuild(build)}>
-                          <Copy className="h-4 w-4 mr-2" />
-                          JSON
-                        </Button>
-                        <Button variant="secondary" size="sm" onClick={() => handleDuplicateIdealBuild(build)}>
-                          <CopyPlus className="h-4 w-4 mr-2" />
-                          Generar Copia
-                        </Button>
+                      <p className="font-semibold">{build.position} - <span className="text-primary">{build.style}</span> {build.profileName && <span className="text-muted-foreground ml-1">({build.profileName})</span>}</p>
+                      <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => handleCopyIdealBuild(build)}><Copy className="h-4 w-4 mr-2" />JSON</Button>
+                        <Button variant="secondary" size="sm" onClick={() => handleDuplicateIdealBuild(build)}><CopyPlus className="h-4 w-4 mr-2" />Copiar</Button>
                         <Button variant="outline" size="sm" onClick={() => handleOpenIdealBuildEditor(build)}>Editar</Button>
                         <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="destructive" size="sm">Eliminar</Button>
-                            </AlertDialogTrigger>
+                            <AlertDialogTrigger asChild><Button variant="destructive" size="sm">Eliminar</Button></AlertDialogTrigger>
                             <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>¿Eliminar Build Ideal?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        Esta acción eliminará permanentemente la configuración ideal para {build.position} - {build.style}.
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => deleteIdealBuild(build.id!)}>Eliminar</AlertDialogAction>
-                                </AlertDialogFooter>
+                                <AlertDialogHeader><AlertDialogTitle>¿Eliminar Build?</AlertDialogTitle></AlertDialogHeader>
+                                <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => deleteIdealBuild(build.id!)}>Eliminar</AlertDialogAction></AlertDialogFooter>
                             </AlertDialogContent>
                         </AlertDialog>
                       </div>
                     </div>
                   ))}
-                  {idealBuilds.length === 0 && (
-                    <p className="text-muted-foreground text-center p-4">No has definido ninguna build ideal todavía.</p>
-                  )}
                 </div>
               </CardContent>
             </Card>
@@ -818,7 +703,6 @@ export default function Home() {
           <TabsContent value="tester" className="mt-6">
             <PlayerTester idealBuilds={idealBuilds} />
           </TabsContent>
-
         </Tabs>
       </main>
     </div>

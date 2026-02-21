@@ -1,3 +1,4 @@
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position, BuildPosition, PhysicalAttribute, PlayerSkill, PlayerPerformance, LiveUpdateRating, IdealBuildType, PlayerCard } from "./types";
@@ -15,23 +16,17 @@ export type PlayerRatingStats = {
 
 export function calculateAverage(numbers: number[]): number {
   if (!numbers || numbers.length === 0) return 0;
-  const sum = numbers.reduce((a, b) => a + b, 0);
-  return sum / numbers.length;
+  return numbers.reduce((a, b) => a + b, 0) / numbers.length;
 }
 
 export function calculateStdDev(numbers: number[]): number {
   if (!numbers || numbers.length < 2) return 0;
-  const n = numbers.length;
   const mean = calculateAverage(numbers);
-  const variance = numbers.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / n;
-  return Math.sqrt(variance);
+  return Math.sqrt(numbers.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / numbers.length);
 }
 
 export function calculateStats(numbers: number[]): PlayerRatingStats {
-  const average = calculateAverage(numbers);
-  const stdDev = calculateStdDev(numbers);
-  const matches = numbers.length;
-  return { average, matches, stdDev };
+  return { average: calculateAverage(numbers), matches: numbers.length, stdDev: calculateStdDev(numbers) };
 }
 
 export function formatAverage(avg: number): string {
@@ -47,11 +42,7 @@ export function getAverageColorClass(average: number): string {
 
 export function normalizeText(text: string): string {
   if (!text) return '';
-  return text
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim();
+  return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 }
 
 export function normalizeStyleName(style: string): string {
@@ -60,23 +51,8 @@ export function normalizeStyleName(style: string): string {
     return style;
 }
 
-export const BADGE_BONUSES = {
-  HOT_STREAK: 3,
-  CONSISTENT: 2,
-  VERSATILE: 1,
-  PROMISING: 1,
-  GAME_CHANGER: 2,
-  STALWART: 2,
-  SPECIALIST: 3,
-};
-
-export const LIVE_UPDATE_BONUSES: Record<LiveUpdateRating, number> = {
-  A: 8,
-  B: 4,
-  C: 0,
-  D: -5,
-  E: -10,
-};
+export const BADGE_BONUSES = { HOT_STREAK: 3, CONSISTENT: 2, VERSATILE: 1, PROMISING: 1, GAME_CHANGER: 2, STALWART: 2, SPECIALIST: 3 };
+export const LIVE_UPDATE_BONUSES: Record<LiveUpdateRating, number> = { A: 8, B: 4, C: 0, D: -5, E: -10 };
 
 export function calculateGeneralScore(
   affinityScore: number, 
@@ -88,10 +64,8 @@ export function calculateGeneralScore(
   isSubstitute: boolean = false
 ): number {
   const weight = Math.min(100, matches) / 100;
-  const avgWeight = weight;
-  const affinityWeight = 1 - weight;
   const avgComponent = ((average * 10) + 50);
-  let generalScore = (avgComponent * avgWeight) + (affinityScore * affinityWeight);
+  let generalScore = (avgComponent * weight) + (affinityScore * (1 - weight));
 
   if (performance.isHotStreak) generalScore += BADGE_BONUSES.HOT_STREAK;
   if (performance.isConsistent) generalScore += BADGE_BONUSES.CONSISTENT;
@@ -101,219 +75,27 @@ export function calculateGeneralScore(
   if (performance.isStalwart) generalScore += BADGE_BONUSES.STALWART;
   if (performance.isSpecialist) generalScore += BADGE_BONUSES.SPECIALIST;
   
-  if (liveUpdateRating && LIVE_UPDATE_BONUSES[liveUpdateRating]) {
-    generalScore += LIVE_UPDATE_BONUSES[liveUpdateRating];
-  }
-
-  if (isSubstitute && skills.includes('Super refuerzo')) {
-    generalScore += 1;
-  }
+  if (liveUpdateRating) generalScore += LIVE_UPDATE_BONUSES[liveUpdateRating] || 0;
+  if (isSubstitute && skills.includes('Super refuerzo')) generalScore += 1;
 
   return Math.max(0, generalScore);
 }
 
 export function isSpecialCard(cardName: string): boolean {
   if (!cardName) return false;
-  const lowerCaseCardName = cardName.toLowerCase();
-  return lowerCaseCardName.includes('potw') || lowerCaseCardName.includes('pots') || lowerCaseCardName.includes('potm');
+  const n = cardName.toLowerCase();
+  return n.includes('potw') || n.includes('pots') || n.includes('potm');
 }
 
 export function isProfileIncomplete(card: PlayerCard): boolean {
   if (!card) return true;
-  const special = isSpecialCard(card.name);
   const hasStats = card.attributeStats && Object.keys(card.attributeStats).length > 0;
-  const hasPhysical = card.physicalAttributes && card.physicalAttributes.height !== undefined && card.physicalAttributes.weight !== undefined;
+  const hasPhysical = card.physicalAttributes?.height !== undefined && card.physicalAttributes?.weight !== undefined;
   const hasSkills = card.skills && card.skills.length > 0;
-  const hasProgression = special || (card.totalProgressionPoints !== undefined && card.totalProgressionPoints > 0);
-  return !hasStats || !hasPhysical || !hasSkills || !hasProgression;
+  return !hasStats || !hasPhysical || !hasSkills;
 }
 
 const MAX_STAT_VALUE = 99;
-
-const outfieldStatsKeys: (keyof PlayerAttributeStats)[] = [
-    'offensiveAwareness', 'ballControl', 'dribbling', 'tightPossession', 'lowPass', 'loftedPass', 'finishing', 'heading', 'placeKicking', 'curl',
-    'defensiveAwareness', 'defensiveEngagement', 'tackling', 'aggression',
-    'speed', 'acceleration', 'kickingPower', 'jump', 'physicalContact', 'balance', 'stamina'
-];
-
-const goalkeeperStatsKeys: (keyof PlayerAttributeStats)[] = [
-    'goalkeeping', 'gkCatching', 'gkParrying', 'gkReflexes', 'gkReach'
-];
-
-export const allStatsKeys: (keyof PlayerAttributeStats)[] = [
-    ...new Set([...outfieldStatsKeys, ...goalkeeperStatsKeys])
-];
-
-export function calculateProgressionStats(
-  baseStats: PlayerAttributeStats,
-  build: PlayerBuild,
-  isGoalkeeper: boolean = false
-): PlayerAttributeStats {
-  const newStats: PlayerAttributeStats = { ...baseStats };
-  const outfieldBuild = build as OutfieldBuild;
-  const goalkeeperBuild = build as GoalkeeperBuild;
-
-  const getBase = (stat: keyof PlayerAttributeStats, baseStat: keyof PlayerAttributeStats) => 
-    baseStats[baseStat] !== undefined ? baseStats[baseStat] : baseStats[stat] || 0;
-
-  if (!isGoalkeeper) {
-    const shootingPoints = outfieldBuild.shooting || 0;
-    newStats.finishing = Math.min(MAX_STAT_VALUE, (getBase('finishing', 'baseFinishing')) + shootingPoints);
-    newStats.placeKicking = Math.min(MAX_STAT_VALUE, (getBase('placeKicking', 'basePlaceKicking')) + shootingPoints);
-    newStats.curl = Math.min(MAX_STAT_VALUE, (getBase('curl', 'baseCurl')) + shootingPoints);
-    
-    const passingPoints = outfieldBuild.passing || 0;
-    newStats.lowPass = Math.min(MAX_STAT_VALUE, (getBase('lowPass', 'baseLowPass')) + passingPoints);
-    newStats.loftedPass = Math.min(MAX_STAT_VALUE, (getBase('loftedPass', 'baseLoftedPass')) + passingPoints);
-    
-    const dribblingPoints = outfieldBuild.dribbling || 0;
-    newStats.ballControl = Math.min(MAX_STAT_VALUE, (getBase('ballControl', 'baseBallControl')) + dribblingPoints);
-    newStats.dribbling = Math.min(MAX_STAT_VALUE, (getBase('dribbling', 'baseDribbling')) + dribblingPoints);
-    newStats.tightPossession = Math.min(MAX_STAT_VALUE, (getBase('tightPossession', 'baseTightPossession')) + dribblingPoints);
-
-    const dexterityPoints = outfieldBuild.dexterity || 0;
-    newStats.offensiveAwareness = Math.min(MAX_STAT_VALUE, (getBase('offensiveAwareness', 'baseOffensiveAwareness')) + dexterityPoints);
-    newStats.acceleration = Math.min(MAX_STAT_VALUE, (getBase('acceleration', 'baseAcceleration')) + dexterityPoints);
-    newStats.balance = Math.min(MAX_STAT_VALUE, (getBase('balance', 'baseBalance')) + dexterityPoints);
-
-    const lowerBodyPoints = outfieldBuild.lowerBodyStrength || 0;
-    newStats.speed = Math.min(MAX_STAT_VALUE, (getBase('speed', 'baseSpeed')) + lowerBodyPoints);
-    newStats.kickingPower = Math.min(MAX_STAT_VALUE, (getBase('kickingPower', 'baseKickingPower')) + lowerBodyPoints);
-    newStats.stamina = Math.min(MAX_STAT_VALUE, (getBase('stamina', 'baseStamina')) + lowerBodyPoints);
-
-    const aerialPoints = outfieldBuild.aerialStrength || 0;
-    newStats.heading = Math.min(MAX_STAT_VALUE, (getBase('heading', 'baseHeading')) + aerialPoints);
-    newStats.jump = Math.min(MAX_STAT_VALUE, (getBase('jump', 'baseJump')) + aerialPoints);
-    newStats.physicalContact = Math.min(MAX_STAT_VALUE, (getBase('physicalContact', 'basePhysicalContact')) + aerialPoints);
-
-    const defendingPoints = outfieldBuild.defending || 0;
-    newStats.defensiveAwareness = Math.min(MAX_STAT_VALUE, (getBase('defensiveAwareness', 'baseDefensiveAwareness')) + defendingPoints);
-    newStats.defensiveEngagement = Math.min(MAX_STAT_VALUE, (getBase('defensiveEngagement', 'baseDefensiveEngagement')) + defendingPoints);
-    newStats.tackling = Math.min(MAX_STAT_VALUE, (getBase('tackling', 'baseTackling')) + defendingPoints);
-    newStats.aggression = Math.min(MAX_STAT_VALUE, (getBase('aggression', 'baseAggression')) + defendingPoints);
-  } else {
-    const defendingPoints = (outfieldBuild as any).defending || 0;
-     if (defendingPoints > 0) {
-        newStats.defensiveAwareness = Math.min(MAX_STAT_VALUE, (getBase('defensiveAwareness', 'baseDefensiveAwareness')) + defendingPoints);
-        newStats.defensiveEngagement = Math.min(MAX_STAT_VALUE, (getBase('defensiveEngagement', 'baseDefensiveEngagement')) + defendingPoints);
-        newStats.tackling = Math.min(MAX_STAT_VALUE, (getBase('tackling', 'baseTackling')) + defendingPoints);
-        newStats.aggression = Math.min(MAX_STAT_VALUE, (getBase('aggression', 'baseAggression')) + defendingPoints);
-     }
-  }
-
-  const gk1Points = goalkeeperBuild.gk1 || 0;
-  const gk2Points = goalkeeperBuild.gk2 || 0;
-  const gk3Points = goalkeeperBuild.gk3 || 0;
-  newStats.goalkeeping = Math.min(MAX_STAT_VALUE, (getBase('goalkeeping', 'baseGoalkeeping')) + gk1Points);
-  if (isGoalkeeper || !outfieldBuild.aerialStrength) { 
-    newStats.jump = Math.min(MAX_STAT_VALUE, (getBase('jump', 'baseJump')) + gk1Points);
-  }
-  newStats.gkParrying = Math.min(MAX_STAT_VALUE, (getBase('gkParrying', 'baseGkParrying')) + gk2Points);
-  newStats.gkReach = Math.min(MAX_STAT_VALUE, (getBase('gkReach', 'baseGkReach')) + gk2Points);
-  newStats.gkCatching = Math.min(MAX_STAT_VALUE, (getBase('gkCatching', 'baseGkCatching')) + gk3Points);
-  newStats.gkReflexes = Math.min(MAX_STAT_VALUE, (getBase('gkReflexes', 'baseGkReflexes')) + gk3Points);
-  
-  return newStats;
-}
-
-export const symmetricalPositionMap: Record<Position, BuildPosition | undefined> = {
-    'LI': 'LAT', 'LD': 'LAT',
-    'MDI': 'INT', 'MDD': 'INT',
-    'EXI': 'EXT', 'EXD': 'EXT',
-    'PT': undefined, 'DFC': undefined, 'MCD': undefined, 'MC': undefined, 'MO': undefined, 'SD': undefined, 'DC': undefined,
-};
-
-export function getIdealBuildForPlayer(
-    playerStyle: PlayerStyle,
-    position: Position,
-    idealBuilds: IdealBuild[],
-    targetType: IdealBuildType = 'Contraataque largo',
-    height?: number
-): { bestBuild: IdealBuild | null; bestStyle: string | null; actualType: IdealBuildType } {
-    const baseStyle = normalizeStyleName(playerStyle);
-    const activeStyles = getAvailableStylesForPosition(position, true);
-    const effectiveStyle = activeStyles.includes(baseStyle as any) ? baseStyle : 'Ninguno';
-    const archetype = symmetricalPositionMap[position];
-    
-    const candidateBuilds = idealBuilds.filter(b => 
-        (b.position === position || (archetype && b.position === archetype)) && 
-        normalizeStyleName(b.style) === effectiveStyle
-    );
-
-    if (candidateBuilds.length === 0) {
-        const fallbackBuilds = idealBuilds.filter(b => 
-            (b.position === position || (archetype && b.position === archetype)) && 
-            normalizeStyleName(b.style) === 'Ninguno'
-        );
-        if (fallbackBuilds.length > 0) {
-            return findBestBuildByRange(fallbackBuilds, height, 'Ninguno');
-        }
-        return { bestBuild: null, bestStyle: effectiveStyle, actualType: 'Contraataque largo' };
-    }
-
-    return findBestBuildByRange(candidateBuilds, height, effectiveStyle);
-}
-
-function findBestBuildByRange(builds: IdealBuild[], height: number | undefined, styleLabel: string) {
-    if (height !== undefined && height > 0) {
-        const matchingRange = builds.find(b => {
-            const min = b.height?.min || 0;
-            const max = b.height?.max || 0;
-            if (min === 0 && max === 0) return false;
-            const minMatch = min > 0 ? height >= min : true;
-            const maxMatch = max > 0 ? height <= max : true;
-            return minMatch && maxMatch;
-        });
-        if (matchingRange) {
-            const label = matchingRange.profileName ? `${styleLabel} (${matchingRange.profileName})` : styleLabel;
-            return { bestBuild: matchingRange, bestStyle: label, actualType: 'Contraataque largo' as const };
-        }
-    }
-    const baseBuild = builds.find(b => (!b.height?.min || b.height.min === 0) && (!b.height?.max || b.height.max === 0));
-    if (baseBuild) {
-        const label = baseBuild.profileName ? `${styleLabel} (${baseBuild.profileName})` : styleLabel;
-        return { bestBuild: baseBuild, bestStyle: label, actualType: 'Contraataque largo' as const };
-    }
-    const first = builds[0];
-    const label = first.profileName ? `${styleLabel} (${first.profileName})` : styleLabel;
-    return { bestBuild: first, bestStyle: label, actualType: 'Contraataque largo' as const };
-}
-
-function calculatePhysicalAttributeAffinity(
-    playerValue: number | undefined,
-    idealRange: { min?: number; max?: number } | undefined,
-): number {
-    const min = idealRange?.min && idealRange.min > 0 ? Number(idealRange.min) : undefined;
-    const max = idealRange?.max && idealRange.max > 0 ? Number(idealRange.max) : undefined;
-    if (min === undefined && max === undefined) return 0;
-    if (playerValue === undefined || playerValue === 0) return 0;
-    const val = Number(playerValue);
-    if ((min === undefined || val >= min) && (max === undefined || val <= max)) {
-        return 2.5; 
-    } else if (min !== undefined && val < min) {
-        return -((min - val) * 0.5); 
-    } else if (max !== undefined && val > max) {
-        return -((val - max) * 0.25); 
-    }
-    return 0;
-}
-
-export type AffinityBreakdownResult = {
-    totalAffinityScore: number;
-    breakdown: {
-        stat: keyof PlayerAttributeStats | keyof PhysicalAttribute;
-        label: string;
-        playerValue?: number;
-        idealValue?: number | { min?: number, max?: number };
-        score: number;
-    }[];
-    skillsBreakdown?: {
-        skill: PlayerSkill;
-        hasSkill: boolean;
-        score: number;
-        type: 'primary' | 'secondary';
-    }[];
-};
 
 export const statLabels: Record<keyof PlayerAttributeStats | keyof PhysicalAttribute, string> = {
     offensiveAwareness: 'Act. Ofensiva', ballControl: 'Control de Balón', dribbling: 'Regate', tightPossession: 'Posesión Estrecha',
@@ -325,205 +107,196 @@ export const statLabels: Record<keyof PlayerAttributeStats | keyof PhysicalAttri
     height: 'Altura', weight: 'Peso',
 };
 
-export function calculateAffinityWithBreakdown(
-    playerStats: PlayerAttributeStats,
-    idealBuild: IdealBuild | null,
-    physicalAttributes?: PhysicalAttribute,
-    playerSkills?: PlayerSkill[]
-): AffinityBreakdownResult {
+const outfieldStatsKeys: (keyof PlayerAttributeStats)[] = [
+    'offensiveAwareness', 'ballControl', 'dribbling', 'tightPossession', 'lowPass', 'loftedPass', 'finishing', 'heading', 'placeKicking', 'curl',
+    'defensiveAwareness', 'defensiveEngagement', 'tackling', 'aggression',
+    'speed', 'acceleration', 'kickingPower', 'jump', 'physicalContact', 'balance', 'stamina'
+];
+
+const goalkeeperStatsKeys: (keyof PlayerAttributeStats)[] = ['goalkeeping', 'gkCatching', 'gkParrying', 'gkReflexes', 'gkReach'];
+
+export const allStatsKeys: (keyof PlayerAttributeStats)[] = [...new Set([...outfieldStatsKeys, ...goalkeeperStatsKeys])];
+
+export function calculateProgressionStats(baseStats: PlayerAttributeStats, build: PlayerBuild, isGoalkeeper: boolean = false): PlayerAttributeStats {
+  const newStats: PlayerAttributeStats = { ...baseStats };
+  const getBase = (s: keyof PlayerAttributeStats, b: keyof PlayerAttributeStats) => baseStats[b] !== undefined ? baseStats[b] : baseStats[s] || 0;
+
+  if (!isGoalkeeper) {
+    const sP = build.shooting || 0;
+    newStats.finishing = Math.min(MAX_STAT_VALUE, getBase('finishing', 'baseFinishing') + sP);
+    newStats.placeKicking = Math.min(MAX_STAT_VALUE, getBase('placeKicking', 'basePlaceKicking') + sP);
+    newStats.curl = Math.min(MAX_STAT_VALUE, getBase('curl', 'baseCurl') + sP);
+    const pP = build.passing || 0;
+    newStats.lowPass = Math.min(MAX_STAT_VALUE, getBase('lowPass', 'baseLowPass') + pP);
+    newStats.loftedPass = Math.min(MAX_STAT_VALUE, getBase('loftedPass', 'baseLoftedPass') + pP);
+    const dP = build.dribbling || 0;
+    newStats.ballControl = Math.min(MAX_STAT_VALUE, getBase('ballControl', 'baseBallControl') + dP);
+    newStats.dribbling = Math.min(MAX_STAT_VALUE, getBase('dribbling', 'baseDribbling') + dP);
+    newStats.tightPossession = Math.min(MAX_STAT_VALUE, getBase('tightPossession', 'baseTightPossession') + dP);
+    const dxP = build.dexterity || 0;
+    newStats.offensiveAwareness = Math.min(MAX_STAT_VALUE, getBase('offensiveAwareness', 'baseOffensiveAwareness') + dxP);
+    newStats.acceleration = Math.min(MAX_STAT_VALUE, getBase('acceleration', 'baseAcceleration') + dxP);
+    newStats.balance = Math.min(MAX_STAT_VALUE, getBase('balance', 'baseBalance') + dxP);
+    const lbP = build.lowerBodyStrength || 0;
+    newStats.speed = Math.min(MAX_STAT_VALUE, getBase('speed', 'baseSpeed') + lbP);
+    newStats.kickingPower = Math.min(MAX_STAT_VALUE, getBase('kickingPower', 'baseKickingPower') + lbP);
+    newStats.stamina = Math.min(MAX_STAT_VALUE, getBase('stamina', 'baseStamina') + lbP);
+    const aP = build.aerialStrength || 0;
+    newStats.heading = Math.min(MAX_STAT_VALUE, getBase('heading', 'baseHeading') + aP);
+    newStats.jump = Math.min(MAX_STAT_VALUE, getBase('jump', 'baseJump') + aP);
+    newStats.physicalContact = Math.min(MAX_STAT_VALUE, getBase('physicalContact', 'basePhysicalContact') + aP);
+    const dfP = build.defending || 0;
+    newStats.defensiveAwareness = Math.min(MAX_STAT_VALUE, getBase('defensiveAwareness', 'baseDefensiveAwareness') + dfP);
+    newStats.defensiveEngagement = Math.min(MAX_STAT_VALUE, getBase('defensiveEngagement', 'baseDefensiveEngagement') + dfP);
+    newStats.tackling = Math.min(MAX_STAT_VALUE, getBase('tackling', 'baseTackling') + dfP);
+    newStats.aggression = Math.min(MAX_STAT_VALUE, getBase('aggression', 'baseAggression') + dfP);
+  } else {
+    const gk1 = build.gk1 || 0;
+    newStats.goalkeeping = Math.min(MAX_STAT_VALUE, getBase('goalkeeping', 'baseGoalkeeping') + gk1);
+    newStats.jump = Math.min(MAX_STAT_VALUE, getBase('jump', 'baseJump') + gk1);
+    const gk2 = build.gk2 || 0;
+    newStats.gkParrying = Math.min(MAX_STAT_VALUE, getBase('gkParrying', 'baseGkParrying') + gk2);
+    newStats.gkReach = Math.min(MAX_STAT_VALUE, getBase('gkReach', 'baseGkReach') + gk2);
+    const gk3 = build.gk3 || 0;
+    newStats.gkCatching = Math.min(MAX_STAT_VALUE, getBase('gkCatching', 'baseGkCatching') + gk3);
+    newStats.gkReflexes = Math.min(MAX_STAT_VALUE, getBase('gkReflexes', 'baseGkReflexes') + gk3);
+  }
+  return newStats;
+}
+
+export const symmetricalPositionMap: Record<Position, BuildPosition | undefined> = {
+    'LI': 'LAT', 'LD': 'LAT', 'MDI': 'INT', 'MDD': 'INT', 'EXI': 'EXT', 'EXD': 'EXT',
+    'PT': undefined, 'DFC': undefined, 'MCD': undefined, 'MC': undefined, 'MO': undefined, 'SD': undefined, 'DC': undefined,
+};
+
+export function getIdealBuildForPlayer(playerStyle: PlayerStyle, position: Position, idealBuilds: IdealBuild[], targetType: IdealBuildType = 'Contraataque largo', height?: number) {
+    const baseStyle = normalizeStyleName(playerStyle);
+    const activeStyles = getAvailableStylesForPosition(position, true);
+    const effectiveStyle = activeStyles.includes(baseStyle as any) ? baseStyle : 'Ninguno';
+    const archetype = symmetricalPositionMap[position];
+    
+    const candidates = idealBuilds.filter(b => (b.position === position || (archetype && b.position === archetype)) && normalizeStyleName(b.style) === effectiveStyle);
+    if (candidates.length === 0) {
+        const fallbacks = idealBuilds.filter(b => (b.position === position || (archetype && b.position === archetype)) && normalizeStyleName(b.style) === 'Ninguno');
+        return findBestBuildByRange(fallbacks.length > 0 ? fallbacks : [], height, 'Ninguno');
+    }
+    return findBestBuildByRange(candidates, height, effectiveStyle);
+}
+
+function findBestBuildByRange(builds: IdealBuild[], height: number | undefined, styleLabel: string) {
+    if (!builds || builds.length === 0) return { bestBuild: null, bestStyle: styleLabel };
+    if (height && height > 0) {
+        const match = builds.find(b => {
+            const min = b.height?.min || 0;
+            const max = b.height?.max || 0;
+            if (min === 0 && max === 0) return false;
+            return (min > 0 ? height >= min : true) && (max > 0 ? height <= max : true);
+        });
+        if (match) return { bestBuild: match, bestStyle: match.profileName ? `${styleLabel} (${match.profileName})` : styleLabel };
+    }
+    const base = builds.find(b => (!b.height?.min || b.height.min === 0) && (!b.height?.max || b.height.max === 0)) || builds[0];
+    return { bestBuild: base, bestStyle: base.profileName ? `${styleLabel} (${base.profileName})` : styleLabel };
+}
+
+export function calculateAffinityWithBreakdown(playerStats: PlayerAttributeStats, idealBuild: IdealBuild | null, physicalAttributes?: PhysicalAttribute, playerSkills?: PlayerSkill[]) {
     if (!idealBuild) return { totalAffinityScore: 0, breakdown: [], skillsBreakdown: [] };
+    let score = 100;
+    const breakdown: any[] = [];
+    const skillsBreakdown: any[] = [];
+    const { build: iS, primarySkills = [], secondarySkills = [] } = idealBuild;
+    const keys = idealBuild.position === 'PT' ? goalkeeperStatsKeys : outfieldStatsKeys;
 
-    let totalAffinityScore = 100;
-    const breakdown: AffinityBreakdownResult['breakdown'] = [];
-    const skillsBreakdown: AffinityBreakdownResult['skillsBreakdown'] = [];
-    const { build: idealBuildStats, primarySkills = [], secondarySkills = [] } = idealBuild;
-    const isGoalkeeper = idealBuild.position === 'PT';
-    const relevantKeys = isGoalkeeper ? goalkeeperStatsKeys : outfieldStatsKeys;
+    keys.forEach(k => {
+        const pV = playerStats[k];
+        const iV = iS[k];
+        let s = 0;
+        if (k !== 'placeKicking' && pV !== undefined && iV !== undefined && iV >= 70) {
+            const d = pV - iV;
+            if (d >= 0) s = d * 0.25;
+            else s = iV >= 90 ? d * 0.5 : iV >= 80 ? d * 0.3 : d * 0.2;
+            s = Math.max(-10, s);
+            score += s;
+        }
+        breakdown.push({ stat: k, label: statLabels[k], playerValue: pV, idealValue: iV, score: s });
+    });
 
-    for (const key of relevantKeys) {
-        const playerValue = playerStats[key as keyof PlayerAttributeStats];
-        const idealValue = idealBuildStats[key as keyof PlayerAttributeStats];
-        let score = 0;
+    if (idealBuild.position === 'PT' && physicalAttributes?.height && physicalAttributes.height < 188 && (playerStats.jump || 0) <= 85) {
+        score -= 10;
+        breakdown.push({ stat: 'jump', label: 'Requisito: Salto > 85 (H < 188cm)', playerValue: playerStats.jump, idealValue: 86, score: -10 });
+    }
 
-        if (key !== 'placeKicking' && playerValue !== undefined && idealValue !== undefined && idealValue >= 70) {
-             const diff = playerValue - idealValue;
-            if (diff >= 0) {
-                score = diff * 0.25; 
-            } else {
-                if (idealValue >= 90) score = diff * 0.5;
-                else if (idealValue >= 80) score = diff * 0.3;
-                else score = diff * 0.2;
+    const physicalKeys: (keyof PhysicalAttribute)[] = ['height', 'weight'];
+    physicalKeys.forEach(k => {
+        const pV = physicalAttributes?.[k];
+        const range = idealBuild[k];
+        let s = 0;
+        if (range && pV) {
+            const min = range.min || 0;
+            const max = range.max || 0;
+            if (min > 0 || max > 0) {
+                if ((min === 0 || pV >= min) && (max === 0 || pV <= max)) s = 2.5;
+                else s = min > 0 && pV < min ? -(min - pV) * 0.5 : -(pV - max) * 0.25;
             }
-            score = Math.max(-10, score);
-            totalAffinityScore += score;
         }
-        breakdown.push({
-            stat: key as keyof PlayerAttributeStats,
-            label: statLabels[key as keyof PlayerAttributeStats] || 'Unknown',
-            playerValue,
-            idealValue,
-            score
-        });
-    }
-
-    if (isGoalkeeper && physicalAttributes?.height && physicalAttributes.height > 0 && physicalAttributes.height < 188) {
-        const jumpValue = playerStats.jump || 0;
-        if (jumpValue <= 85) {
-            const penalty = -10;
-            totalAffinityScore += penalty;
-            breakdown.push({
-                stat: 'jump',
-                label: 'Requisito: Salto > 85 (Altura < 188cm)',
-                playerValue: jumpValue,
-                idealValue: 86,
-                score: penalty
-            });
-        }
-    }
-
-    const physicalAttrKeys: (keyof PhysicalAttribute)[] = ['height', 'weight'];
-    physicalAttrKeys.forEach(key => {
-        const playerVal = physicalAttributes?.[key];
-        const idealRange = idealBuild[key];
-        const score = calculatePhysicalAttributeAffinity(playerVal, idealRange);
-        totalAffinityScore += score;
-        breakdown.push({
-            stat: key,
-            label: statLabels[key],
-            playerValue: playerVal,
-            idealValue: idealRange,
-            score,
-        });
+        score += s;
+        breakdown.push({ stat: k, label: statLabels[k], playerValue: pV, idealValue: range, score: s });
     });
 
-    const playerSkillsSet = new Set(playerSkills || []);
-    const validSkills = new Set(playerSkillsList);
-
-    for (const idealSkill of primarySkills) {
-        if (!validSkills.has(idealSkill as any)) continue;
-        const hasSkill = playerSkillsSet.has(idealSkill);
-        const score = hasSkill ? 1.0 : -0.5;
-        totalAffinityScore += score;
-        skillsBreakdown.push({ skill: idealSkill, hasSkill, score, type: 'primary' });
-    }
-    for (const idealSkill of secondarySkills) {
-        if (!validSkills.has(idealSkill as any)) continue;
-        const hasSkill = playerSkillsSet.has(idealSkill);
-        const score = hasSkill ? 0.5 : -0.25;
-        totalAffinityScore += score;
-        skillsBreakdown.push({ skill: idealSkill, hasSkill, score, type: 'secondary' });
-    }
-    return { totalAffinityScore, breakdown, skillsBreakdown };
-}
-
-export const hasProgressionPoints = (build: PlayerBuild | undefined): boolean => {
-    if (!build) return false;
-    const keys: (keyof PlayerBuild)[] = ['shooting', 'passing', 'dribbling', 'dexterity', 'lowerBodyStrength', 'aerialStrength', 'defending', 'gk1', 'gk2', 'gk3'];
-    return keys.some(key => {
-        const value = build[key];
-        return typeof value === 'number' && value > 0;
+    const pSSet = new Set(playerSkills || []);
+    primarySkills.forEach(sk => {
+        const has = pSSet.has(sk);
+        const s = has ? 1.0 : -0.5;
+        score += s;
+        skillsBreakdown.push({ skill: sk, hasSkill: has, score: s, type: 'primary' });
     });
-};
+    secondarySkills.forEach(sk => {
+        const has = pSSet.has(sk);
+        const s = has ? 0.5 : -0.25;
+        score += s;
+        skillsBreakdown.push({ skill: sk, hasSkill: has, score: s, type: 'secondary' });
+    });
 
-export function calculatePointsForLevel(level: number): number {
-  if (level <= 0) return 0;
-  if (level <= 4) return level * 1;
-  if (level <= 8) return 4 + (level - 4) * 2;
-  if (level <= 12) return 12 + (level - 8) * 3;
-  return 24 + (level - 12) * 4;
+    return { totalAffinityScore: score, breakdown, skillsBreakdown };
 }
 
-export function calculateLevelForPoints(points: number): number {
-  if (points <= 4) return points;
-  if (points <= 12) return 4 + Math.floor((points - 4) / 2);
-  if (points <= 24) return 8 + Math.floor((points - 12) / 3);
-  return 12 + Math.floor((points - 24) / 4);
+export function calculatePointsForLevel(l: number): number {
+  if (l <= 0) return 0;
+  if (l <= 4) return l;
+  if (l <= 8) return 4 + (l - 4) * 2;
+  if (l <= 12) return 12 + (l - 8) * 3;
+  return 24 + (l - 12) * 4;
 }
 
-type CategoryName = keyof (OutfieldBuild & GoalkeeperBuild);
-
-const categoryStatsMap: Record<CategoryName, (keyof PlayerAttributeStats)[]> = {
-    shooting: ['finishing', 'placeKicking', 'curl'],
-    passing: ['lowPass', 'loftedPass'],
-    dribbling: ['ballControl', 'dribbling', 'tightPossession'],
-    dexterity: ['offensiveAwareness', 'acceleration', 'balance'],
-    lowerBodyStrength: ['speed', 'kickingPower', 'stamina'],
-    aerialStrength: ['heading', 'jump', 'physicalContact'],
+const categoryStatsMap: Record<string, (keyof PlayerAttributeStats)[]> = {
+    shooting: ['finishing', 'placeKicking', 'curl'], passing: ['lowPass', 'loftedPass'],
+    dribbling: ['ballControl', 'dribbling', 'tightPossession'], dexterity: ['offensiveAwareness', 'acceleration', 'balance'],
+    lowerBodyStrength: ['speed', 'kickingPower', 'stamina'], aerialStrength: ['heading', 'jump', 'physicalContact'],
     defending: ['defensiveAwareness', 'defensiveEngagement', 'tackling', 'aggression'],
-    gk1: ['goalkeeping', 'jump'],
-    gk2: ['gkParrying', 'gkReach'],
-    gk3: ['gkCatching', 'gkReflexes'],
+    gk1: ['goalkeeping', 'jump'], gk2: ['gkParrying', 'gkReach'], gk3: ['gkCatching', 'gkReflexes'],
 };
 
-export function calculateProgressionSuggestions(
-  baseStats: PlayerAttributeStats,
-  idealBuild: IdealBuild | null,
-  isGoalkeeper: boolean,
-  totalProgressionPoints: number = 50
-): Partial<OutfieldBuild & GoalkeeperBuild> {
-  if (!idealBuild || totalProgressionPoints <= 0) return {};
-  const idealBuildStats = idealBuild.build;
-  const categories: CategoryName[] = isGoalkeeper
-    ? ['gk1', 'gk2', 'gk3']
-    : ['shooting', 'passing', 'dribbling', 'dexterity', 'lowerBodyStrength', 'aerialStrength', 'defending'];
-  const build: { [key in CategoryName]?: number } = {};
-  categories.forEach(cat => build[cat] = 0);
-  let pointsSpent = 0;
-  while (pointsSpent < totalProgressionPoints) {
-    let bestCategory: CategoryName | null = null;
-    let maxWeightedDeficit = -Infinity;
-    for (const category of categories) {
-      const currentLevel = build[category]!;
-      if (currentLevel >= 16) continue;
-      const costForNextLevel = calculatePointsForLevel(currentLevel + 1) - calculatePointsForLevel(currentLevel);
-      if ((pointsSpent + costForNextLevel) > totalProgressionPoints) continue;
-      const tempBuild = { ...build, [category]: currentLevel + 1 };
-      const projectedStats = calculateProgressionStats(baseStats, tempBuild, isGoalkeeper);
-      let categoryWeightedDeficit = 0;
-      const statsInCat = categoryStatsMap[category] || [];
-      for (const stat of statsInCat) {
-        const idealStat = idealBuildStats[stat] ?? 0;
-        if (idealStat < 70) continue; 
-        const currentStat = projectedStats[stat] ?? 0;
-        if (currentStat > idealStat) continue; 
-        const deficitReduction = 1; 
-        let weight = 1;
-        if (idealStat >= 90) weight = 3;
-        else if (idealStat >= 80) weight = 2;
-        categoryWeightedDeficit += deficitReduction * weight;
+export function calculateProgressionSuggestions(base: PlayerAttributeStats, ideal: IdealBuild | null, isGK: boolean, total: number = 50) {
+  if (!ideal || total <= 0) return {};
+  const cats = isGK ? ['gk1', 'gk2', 'gk3'] : ['shooting', 'passing', 'dribbling', 'dexterity', 'lowerBodyStrength', 'aerialStrength', 'defending'];
+  const b: any = {}; cats.forEach(c => b[c] = 0);
+  let spent = 0;
+  while (spent < total) {
+    let best = null, maxV = -Infinity;
+    for (const c of cats) {
+      if (b[c] >= 16) continue;
+      const cost = calculatePointsForLevel(b[c] + 1) - calculatePointsForLevel(b[c]);
+      if (spent + cost > total) continue;
+      const proj = calculateProgressionStats(base, { ...b, [c]: b[c] + 1 }, isGK);
+      let v = 0;
+      for (const s of categoryStatsMap[c]) {
+        const iV = ideal.build[s] ?? 0;
+        if (iV >= 70 && (proj[s] ?? 0) <= iV) v += iV >= 90 ? 3 : iV >= 80 ? 2 : 1;
       }
-      const valuePerPoint = categoryWeightedDeficit / costForNextLevel;
-      if (valuePerPoint > maxWeightedDeficit) {
-        maxWeightedDeficit = valuePerPoint;
-        bestCategory = category;
-      }
+      const vPP = v / cost;
+      if (vPP > maxV) { maxV = vPP; best = c; }
     }
-    if (bestCategory && maxWeightedDeficit > 0) {
-      const cost = calculatePointsForLevel(build[bestCategory]! + 1) - calculatePointsForLevel(build[bestCategory]!);
-      pointsSpent += cost;
-      build[bestCategory]! += 1;
-    } else {
-      break;
-    }
+    if (best && maxV > 0) { spent += calculatePointsForLevel(b[best] + 1) - calculatePointsForLevel(b[best]); b[best]++; }
+    else break;
   }
-  while(pointsSpent < totalProgressionPoints) {
-    let cheapestCategory: CategoryName | null = null;
-    let minCost = Infinity;
-    for (const category of categories) {
-      const currentLevel = build[category]!;
-      if (currentLevel >= 16) continue;
-      const cost = calculatePointsForLevel(currentLevel + 1) - calculatePointsForLevel(currentLevel);
-      if ((pointsSpent + cost) <= totalProgressionPoints && cost < minCost) {
-          minCost = cost;
-          cheapestCategory = category;
-      }
-    }
-    if (cheapestCategory) {
-        pointsSpent += minCost;
-        build[cheapestCategory]! += 1;
-    } else {
-        break;
-    }
-  }
-  return build;
+  return b;
 }
