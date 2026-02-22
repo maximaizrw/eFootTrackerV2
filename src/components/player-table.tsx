@@ -1,4 +1,3 @@
-
 "use client";
 
 import Image from 'next/image';
@@ -36,7 +35,7 @@ type PlayerTableProps = {
   onOpenAddRating: (initialData?: Partial<AddRatingFormValues>) => void;
   onOpenEditCard: (player: Player, card: PlayerCard) => void;
   onOpenEditPlayer: (player: Player) => void;
-  onOpenEditStats: (player: Player, card: PlayerCard) => void;
+  onOpenEditStats: (playerId: string, cardId: string, stats: any, physical: any, skills: any) => void;
   onOpenPlayerDetail: (flatPlayer: FlatPlayer) => void;
   onViewImage: (url: string, name: string) => void;
   onDeletePositionRatings: (playerId: string, cardId: string, position: Position) => void;
@@ -52,10 +51,6 @@ type FilterProps = {
   onStyleFilterChange: (value: string) => void;
   cardFilter: string;
   onCardFilterChange: (value: string) => void;
-  minHeightFilter: string;
-  onMinHeightFilterChange: (value: string) => void;
-  secondPosFilter: string;
-  onSecondPosFilterChange: (value: string) => void;
   uniqueStyles: string[];
   uniqueCardNames: string[];
   sortBy: 'average' | 'general';
@@ -69,10 +64,6 @@ const Filters = memo(({
   onStyleFilterChange,
   cardFilter,
   onCardFilterChange,
-  minHeightFilter,
-  onMinHeightFilterChange,
-  secondPosFilter,
-  onSecondPosFilterChange,
   uniqueStyles,
   uniqueCardNames,
   sortBy,
@@ -127,30 +118,6 @@ const Filters = memo(({
             <SelectContent>
                 {uniqueCardNames.map(name => (
                 <SelectItem key={name} value={name}>{name === 'all' ? 'Todas las Cartas' : name}</SelectItem>
-                ))}
-            </SelectContent>
-        </Select>
-
-        <div className="relative w-full md:w-[140px]">
-            <Ruler className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-50" />
-            <Input
-                type="number"
-                placeholder="Altura min."
-                value={minHeightFilter}
-                onChange={(e) => onMinHeightFilterChange(e.target.value)}
-                className="pl-9"
-            />
-        </div>
-
-        <Select value={secondPosFilter} onValueChange={onSecondPosFilterChange}>
-            <SelectTrigger className="w-full md:w-[160px]">
-                <MapPin className="mr-2 h-4 w-4 text-muted-foreground opacity-50" />
-                <SelectValue placeholder="2ª Posición" />
-            </SelectTrigger>
-            <SelectContent>
-                <SelectItem value="all">Cualquier posición</SelectItem>
-                {positions.map(p => (
-                    <SelectItem key={p} value={p}>{p}</SelectItem>
                 ))}
             </SelectContent>
         </Select>
@@ -418,7 +385,7 @@ const PlayerTableMemo = memo(function PlayerTable({
                               <Button
                                   variant="ghost" size="icon" className="h-8 w-8 rounded-full"
                                   aria-label={`Editar atributos de ${card.name}`}
-                                  onClick={(e) => { e.stopPropagation(); onOpenEditStats(player, card); }}
+                                  onClick={(e) => { e.stopPropagation(); onOpenEditStats(player.id, card.id, card.attributeStats, card.physicalAttributes, card.skills); }}
                                   >
                                   <SlidersHorizontal className="h-4 w-4 text-muted-foreground/80 hover:text-muted-foreground" />
                               </Button>

@@ -1,14 +1,15 @@
-
 "use client";
 
 import * as React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { FormationStats, League, Nationality, IdealBuildType } from '@/lib/types';
+import type { FormationStats, League, Nationality, IdealBuildType, Position } from '@/lib/types';
+import { positions } from '@/lib/types';
 import { Label } from './ui/label';
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
-import { BarChart2, Star, ArrowRightLeft, Dna } from 'lucide-react';
+import { BarChart2, Star, ArrowRightLeft, Dna, Ruler, MapPin } from 'lucide-react';
 import { Switch } from './ui/switch';
 import { calculateStats } from './formations-display';
+import { Input } from './ui/input';
 
 type IdealTeamSetupProps = {
   formations: FormationStats[];
@@ -26,6 +27,10 @@ type IdealTeamSetupProps = {
   onFlexibleLateralsChange: (value: boolean) => void;
   isFlexibleWingers: boolean;
   onFlexibleWingersChange: (value: boolean) => void;
+  minHeightFilter: string;
+  onMinHeightFilterChange: (value: string) => void;
+  secondPosFilter: string;
+  onSecondPosFilterChange: (value: string) => void;
 };
 
 const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({ 
@@ -44,6 +49,10 @@ const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({
     onFlexibleLateralsChange,
     isFlexibleWingers,
     onFlexibleWingersChange,
+    minHeightFilter,
+    onMinHeightFilterChange,
+    secondPosFilter,
+    onSecondPosFilterChange,
 }: IdealTeamSetupProps) {
 
   const selectedFormation = React.useMemo(() => {
@@ -127,9 +136,41 @@ const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({
           </ToggleGroupItem>
         </ToggleGroup>
       </div>
+      
+      {/* Search Filters for Pool */}
+      <div className="space-y-2">
+        <Label>Altura Mínima Requerida</Label>
+        <div className="relative">
+            <Ruler className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-50" />
+            <Input
+                type="number"
+                placeholder="cm (Ej: 185)"
+                value={minHeightFilter}
+                onChange={(e) => onMinHeightFilterChange(e.target.value)}
+                className="pl-9"
+            />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Segunda Posición Requerida</Label>
+        <Select value={secondPosFilter} onValueChange={onSecondPosFilterChange}>
+            <SelectTrigger className="w-full">
+                <MapPin className="mr-2 h-4 w-4 text-muted-foreground opacity-50 shrink-0" />
+                <SelectValue placeholder="Cualquiera..." />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem value="all">Cualquier posición</SelectItem>
+                {positions.map(p => (
+                    <SelectItem key={p} value={p}>{p}</SelectItem>
+                ))}
+            </SelectContent>
+        </Select>
+      </div>
+
       <div className="space-y-2">
         <Label>
-            Filtrar por Liga (Opcional)
+            Filtrar por Liga
         </Label>
         <Select
             value={selectedLeague}
@@ -148,7 +189,7 @@ const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({
       </div>
       <div className="space-y-2">
         <Label>
-            Filtrar por Nacionalidad (Opcional)
+            Filtrar por Nacionalidad
         </Label>
         <Select
             value={selectedNationality}
@@ -166,7 +207,7 @@ const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({
         </Select>
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 lg:col-span-4">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 lg:col-span-4 mt-2">
         {hasLaterals && (
           <div className="flex items-center space-x-2">
             <Switch
@@ -176,7 +217,7 @@ const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({
             />
             <Label htmlFor="flexible-laterals" className="flex items-center gap-2 cursor-pointer">
               <ArrowRightLeft className="h-4 w-4" />
-              Laterales Flexibles
+              Laterales Flexibles (LI/LD)
             </Label>
           </div>
         )}
@@ -189,7 +230,7 @@ const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({
             />
             <Label htmlFor="flexible-wingers" className="flex items-center gap-2 cursor-pointer">
               <ArrowRightLeft className="h-4 w-4" />
-              Extremos Flexibles
+              Extremos Flexibles (EXI/EXD)
             </Label>
           </div>
         )}

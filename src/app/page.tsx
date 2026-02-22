@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -101,6 +100,8 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState('');
   const [styleFilter, setStyleFilter] = useState<string>('all');
   const [cardFilter, setCardFilter] = useState<string>('all');
+  
+  // Generator-specific filters
   const [minHeightFilter, setMinHeightFilter] = useState('');
   const [secondPosFilter, setSecondPosFilter] = useState('all');
   
@@ -170,14 +171,30 @@ export default function Home() {
       return;
     }
     
-    const newTeam = players.length > 0 ? generateIdealTeam(players, formation, idealBuilds, discardedCardIds, selectedLeague, selectedNationality, sortBy, isFlexibleLaterals, isFlexibleWingers, idealBuildType) : [];
+    const minH = minHeightFilter ? parseInt(minHeightFilter, 10) : undefined;
+    const secPos = secondPosFilter !== 'all' ? (secondPosFilter as Position) : undefined;
+
+    const newTeam = players.length > 0 ? generateIdealTeam(
+        players, 
+        formation, 
+        idealBuilds, 
+        discardedCardIds, 
+        selectedLeague, 
+        selectedNationality, 
+        sortBy, 
+        isFlexibleLaterals, 
+        isFlexibleWingers, 
+        idealBuildType,
+        minH,
+        secPos
+    ) : [];
 
     setIdealTeam(newTeam);
     toast({
       title: "11 Ideal Generado",
       description: `Se ha generado un equipo para la formación "${formation.name}".`,
     });
-  }, [players, selectedFormationId, formations, idealBuilds, discardedCardIds, selectedLeague, selectedNationality, sortBy, isFlexibleLaterals, isFlexibleWingers, idealBuildType, toast]);
+  }, [players, selectedFormationId, formations, idealBuilds, discardedCardIds, selectedLeague, selectedNationality, sortBy, isFlexibleLaterals, isFlexibleWingers, idealBuildType, minHeightFilter, secondPosFilter, toast]);
 
   useEffect(() => {
     if (idealTeam.length > 0) {
@@ -303,8 +320,6 @@ export default function Home() {
     setSearchTerm('');
     setStyleFilter('all');
     setCardFilter('all');
-    setMinHeightFilter('');
-    setSecondPosFilter('all');
   }, []);
 
   const handleViewPlayerBuild = useCallback((player: IdealTeamPlayer) => {
@@ -364,11 +379,7 @@ export default function Home() {
             const searchMatch = normalizeText(player.name).includes(normalizeText(searchTerm));
             const styleMatch = styleFilter === 'all' || card.style === styleFilter;
             const cardMatch = cardFilter === 'all' || card.name === cardFilter;
-            const leagueMatch = selectedLeague === 'all' || card.league === selectedLeague;
-            const nationalityMatch = selectedNationality === 'all' || player.nationality === selectedNationality;
-            const heightMatch = !minHeightFilter || (card.physicalAttributes?.height || 0) >= parseInt(minHeightFilter);
-            const secondPosMatch = secondPosFilter === 'all' || (card.ratingsByPosition && !!card.ratingsByPosition[secondPosFilter as Position]);
-            return searchMatch && styleMatch && cardMatch && leagueMatch && nationalityMatch && heightMatch && secondPosMatch;
+            return searchMatch && styleMatch && cardMatch;
         }).sort((a, b) => {
           if (sortBy === 'general') {
             if (b.generalScore !== a.generalScore) return b.generalScore - a.generalScore;
@@ -378,7 +389,7 @@ export default function Home() {
         });
     }
     return grouped;
-  }, [flatPlayers, searchTerm, styleFilter, cardFilter, selectedLeague, selectedNationality, sortBy, minHeightFilter, secondPosFilter]);
+  }, [flatPlayers, searchTerm, styleFilter, cardFilter, sortBy]);
 
   const uniqueFiltersByPosition = useMemo(() => {
     const filters: Record<string, { uniqueStyles: string[], uniqueCardNames: string[] }> = {};
@@ -588,10 +599,6 @@ export default function Home() {
                           onStyleFilterChange={setStyleFilter}
                           cardFilter={cardFilter}
                           onCardFilterChange={setCardFilter}
-                          minHeightFilter={minHeightFilter}
-                          onMinHeightFilterChange={setMinHeightFilter}
-                          secondPosFilter={secondPosFilter}
-                          onSecondPosFilterChange={setSecondPosFilter}
                           uniqueStyles={uniqueStyles}
                           uniqueCardNames={uniqueCardNames}
                           sortBy={sortBy}
@@ -604,7 +611,7 @@ export default function Home() {
                       onOpenAddRating={handleOpenAddRating}
                       onOpenEditCard={handleOpenEditCard}
                       onOpenEditPlayer={handleOpenEditPlayer}
-                      onOpenEditStats={handleOpenEditStats}
+                      onOpenEditStats={saveAttributeStats}
                       onOpenPlayerDetail={handleOpenPlayerDetail}
                       onViewImage={handleViewImage}
                       onDeletePositionRatings={deletePositionRatings}
@@ -647,6 +654,10 @@ export default function Home() {
                     onFlexibleLateralsChange={setFlexibleLaterals}
                     isFlexibleWingers={isFlexibleWingers}
                     onFlexibleWingersChange={setFlexibleWingers}
+                    minHeightFilter={minHeightFilter}
+                    onMinHeightFilterChange={setMinHeightFilter}
+                    secondPosFilter={secondPosFilter}
+                    onSecondPosFilterChange={setSecondPosFilter}
                   />
                   <div className="flex flex-wrap items-center gap-4 mt-6">
                     <Button onClick={handleGenerateTeam} disabled={!selectedFormationId}><Star className="mr-2 h-4 w-4" />Generar 11 Ideal</Button>
