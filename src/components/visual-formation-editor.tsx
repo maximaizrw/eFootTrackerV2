@@ -14,15 +14,18 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Check,
-  ChevronsUpDown,
   RotateCcw,
   FlipHorizontal2,
   Shield,
   Crosshair,
   Swords,
   User,
+  Ruler,
+  MapPin,
+  Settings2,
 } from "lucide-react";
 import type {
   FormationSlot,
@@ -76,7 +79,6 @@ const zoneConfig: Record<
   },
 };
 
-// --- Zone color dot for popover preview ---
 function ZoneColorDot({ position }: { position: Position }) {
   const zone = getPositionZone(position);
   const config = zoneConfig[zone];
@@ -117,6 +119,7 @@ const PlayerToken = ({
 }) => {
   const [isPopoverOpen, setIsPopoverOpen] = React.useState(false);
   const [isProfileOpen, setIsProfileOpen] = React.useState(false);
+  const [isAdvancedOpen, setIsAdvancedOpen] = React.useState(false);
 
   const zone = getPositionZone(slot.position);
   const config = zoneConfig[zone];
@@ -164,6 +167,7 @@ const PlayerToken = ({
   ];
   const hasStyles = slot.styles && slot.styles.length > 0;
   const hasProfile = !!slot.profileName;
+  const hasAdvanced = !!slot.minHeight || !!slot.secondaryPosition;
 
   return (
     <div
@@ -176,7 +180,6 @@ const PlayerToken = ({
       style={style}
       onPointerDown={onPointerDown}
     >
-      {/* Main token */}
       <div
         className={cn(
           "relative w-11 h-11 sm:w-14 sm:h-14 rounded-full flex flex-col items-center justify-center cursor-grab",
@@ -189,16 +192,13 @@ const PlayerToken = ({
         )}
         style={{ textShadow: "0 1px 3px rgba(0,0,0,0.5)" }}
       >
-        {/* Player number */}
         <span className="text-[9px] sm:text-[10px] font-medium text-white/70 leading-none">
           {index + 1}
         </span>
-        {/* Position label */}
         <span className="font-bold text-xs sm:text-sm text-white leading-none">
           {displayPosition}
         </span>
 
-        {/* Config button */}
         <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
           <PopoverTrigger asChild>
             <button
@@ -215,35 +215,22 @@ const PlayerToken = ({
               onPointerDown={(e) => e.stopPropagation()}
               aria-label="Configurar posicion"
             >
-              <svg
-                width="10"
-                height="10"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="sm:w-3 sm:h-3"
-              >
-                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
+              <Settings2 className="w-3 h-3" />
             </button>
           </PopoverTrigger>
           <PopoverContent
-            className="w-72 p-0"
+            className="w-72 p-0 max-h-[80vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
             side="right"
             align="start"
           >
             <div className="p-4 space-y-4">
-              {/* Position selector with zone color preview */}
+              {/* Position selector */}
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center gap-2">
                   <ZoneColorDot position={slot.position} />
-                  Posicion
+                  Posicion Principal
                 </label>
                 <Select
                   value={slot.position}
@@ -267,11 +254,9 @@ const PlayerToken = ({
                 </Select>
               </div>
 
-              {/* Styles as chip toggles */}
+              {/* Styles */}
               <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  Estilos de Juego
-                </label>
+                <label className="text-sm font-medium">Estilos de Juego</label>
                 <div className="flex flex-wrap gap-1.5">
                   {availableStyles.map((s) => {
                     const isActive = slot.styles?.includes(s);
@@ -295,7 +280,7 @@ const PlayerToken = ({
                 </div>
               </div>
 
-              {/* Collapsible tactical profile */}
+              {/* Profile */}
               <div>
                 <button
                   type="button"
@@ -306,7 +291,7 @@ const PlayerToken = ({
                     <User className="w-3.5 h-3.5" />
                     Perfil Tactico
                   </span>
-                  <ChevronsUpDown className={cn("w-3.5 h-3.5 transition-transform", isProfileOpen && "rotate-180")} />
+                  <Settings2 className={cn("w-3.5 h-3.5 transition-transform", isProfileOpen && "rotate-180")} />
                 </button>
                 {isProfileOpen && (
                   <div className="pt-2">
@@ -323,16 +308,72 @@ const PlayerToken = ({
                         <SelectValue placeholder="Selecciona perfil..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="General">
-                          General (Automatico)
-                        </SelectItem>
+                        <SelectItem value="General">General (Auto)</SelectItem>
                         {availableProfiles.map((p) => (
-                          <SelectItem key={p} value={p}>
-                            {p}
-                          </SelectItem>
+                          <SelectItem key={p} value={p}>{p}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                )}
+              </div>
+
+              {/* Advanced Requirements */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
+                  className="flex items-center justify-between w-full text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-1 border-t mt-2 pt-2"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Settings2 className="w-3.5 h-3.5" />
+                    Requisitos Extra
+                  </span>
+                  <Settings2 className={cn("w-3.5 h-3.5 transition-transform", isAdvancedOpen && "rotate-180")} />
+                </button>
+                {isAdvancedOpen && (
+                  <div className="pt-2 space-y-3">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium flex items-center gap-1.5">
+                        <Ruler className="w-3 h-3" /> Altura Minima (cm)
+                      </label>
+                      <Input
+                        type="number"
+                        placeholder="Ej: 185"
+                        value={slot.minHeight || ""}
+                        onChange={(e) =>
+                          onSlotChange({
+                            ...slot,
+                            minHeight: e.target.value ? parseInt(e.target.value, 10) : undefined,
+                          })
+                        }
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium flex items-center gap-1.5">
+                        <MapPin className="w-3 h-3" /> 2ª Posicion Requerida
+                      </label>
+                      <Select
+                        value={slot.secondaryPosition || "none"}
+                        onValueChange={(val) =>
+                          onSlotChange({
+                            ...slot,
+                            secondaryPosition: val === "none" ? undefined : (val as Position),
+                          })
+                        }
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue placeholder="Ninguna" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Ninguna</SelectItem>
+                          {positions.map((p) => (
+                            <SelectItem key={p} value={p}>{p}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 )}
               </div>
@@ -341,19 +382,21 @@ const PlayerToken = ({
         </Popover>
       </div>
 
-      {/* Style/Profile indicators below token */}
-      {(hasStyles || hasProfile) && (
+      {(hasStyles || hasProfile || hasAdvanced) && (
         <div className="flex items-center gap-0.5 max-w-[60px] sm:max-w-[72px]">
           {hasStyles && (
             <span className="truncate text-[8px] sm:text-[9px] font-medium text-white/80 bg-black/40 px-1 py-px rounded backdrop-blur-sm">
-              {slot.styles!.length === 1
-                ? slot.styles![0].substring(0, 8)
-                : `${slot.styles!.length} estilos`}
+              {slot.styles![0].substring(0, 4)}
             </span>
           )}
           {hasProfile && (
             <span className="text-[8px] sm:text-[9px] font-medium text-white/80 bg-black/40 px-1 py-px rounded backdrop-blur-sm">
-              {slot.profileName!.substring(0, 6)}
+              {slot.profileName!.substring(0, 4)}
+            </span>
+          )}
+          {hasAdvanced && (
+            <span className="text-[8px] sm:text-[9px] font-medium text-white/80 bg-primary/60 px-1 py-px rounded backdrop-blur-sm">
+              REQ
             </span>
           )}
         </div>
@@ -418,7 +461,6 @@ export function VisualFormationEditor({
     null
   );
 
-  // Unified pointer handler (works for mouse + touch)
   const handlePointerMove = React.useCallback(
     (e: PointerEvent) => {
       if (movingTokenIndex === null) return;
@@ -461,7 +503,6 @@ export function VisualFormationEditor({
 
   const handleTokenPointerDown = (e: React.PointerEvent, index: number) => {
     e.preventDefault();
-    // Capture pointer for reliable touch tracking
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
     setMovingTokenIndex(index);
   };
@@ -472,7 +513,6 @@ export function VisualFormationEditor({
     onChange(newSlots);
   };
 
-  // Reset to default positions based on current slot positions
   const handleReset = () => {
     const currentPositions = value.map((s) => s.position).join(",");
     const matchingPreset = formationPresets.find(
@@ -489,7 +529,6 @@ export function VisualFormationEditor({
     }
   };
 
-  // Mirror positions horizontally
   const handleMirror = () => {
     onChange(
       value.map((slot) => ({
@@ -501,7 +540,6 @@ export function VisualFormationEditor({
 
   return (
     <div className="space-y-3">
-      {/* Toolbar */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <ZoneCounter slots={value} />
         <div className="flex items-center gap-1.5">
@@ -528,7 +566,6 @@ export function VisualFormationEditor({
         </div>
       </div>
 
-      {/* Pitch */}
       <FootballPitch
         ref={editorRef}
         showZoneLabels

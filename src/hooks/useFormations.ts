@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -20,6 +19,8 @@ const sanitizeSlots = (slots: FormationSlot[]) => {
       styles: slot.styles || [],
     };
     if (slot.profileName !== undefined && slot.profileName !== null) s.profileName = slot.profileName;
+    if (slot.minHeight !== undefined && slot.minHeight !== null) s.minHeight = slot.minHeight;
+    if (slot.secondaryPosition !== undefined && slot.secondaryPosition !== null) s.secondaryPosition = slot.secondaryPosition;
     if (slot.top !== undefined && slot.top !== null) s.top = slot.top;
     if (slot.left !== undefined && slot.left !== null) s.left = slot.left;
     return s;

@@ -23,24 +23,16 @@ export function generateIdealTeam(
   sortBy: 'average' | 'general' = 'average',
   isFlexibleLaterals: boolean = false,
   isFlexibleWingers: boolean = false,
-  targetIdealType: IdealBuildType = 'Contraataque largo',
-  minHeight?: number,
-  secondPosition?: Position
+  targetIdealType: IdealBuildType = 'Contraataque largo'
 ): IdealTeamSlot[] {
   const allPlayerCandidates: CandidatePlayer[] = players.flatMap(player => {
-    // Early filters
+    // Global filter: Nationality
     if (nationality !== 'all' && player.nationality !== nationality) return [];
     
     return (player.cards || []).flatMap(card => {
-      // League filter
+      // Global filter: League
       if (league !== 'all' && card.league !== league) return [];
       
-      // Height filter
-      if (minHeight !== undefined && (card.physicalAttributes?.height || 0) < minHeight) return [];
-      
-      // 2nd Position filter (player must have ratings in that position)
-      if (secondPosition !== undefined && (!card.ratingsByPosition || !card.ratingsByPosition[secondPosition])) return [];
-
       const averagesByPosition = new Map<Position, number>();
       for (const p in card.ratingsByPosition) {
           const posKey = p as Position;
@@ -98,16 +90,11 @@ export function generateIdealTeam(
   };
 
   const substituteSort = (a: CandidatePlayer, b: CandidatePlayer) => {
-    // 1. Prioritize players in "Test" mode (< 5 matches)
     const isATesting = a.performance.stats.matches < 5;
     const isBTesting = b.performance.stats.matches < 5;
     if (isATesting && !isBTesting) return -1;
     if (!isATesting && isBTesting) return 1;
-    
-    // 2. Tie-break by affinity
     if (Math.abs(a.affinityScore - b.affinityScore) > 1) return b.affinityScore - a.affinityScore;
-    
-    // 3. Final tie-break by general score
     return b.substituteScore - a.substituteScore;
   };
 
@@ -116,9 +103,7 @@ export function generateIdealTeam(
         if (usedPlayerIds.has(p.player.id) || usedCardIds.has(p.card.id) || discardedCardIds.has(p.card.id)) return false;
         
         if (options.isSub) {
-            // Must have > 80 affinity
             if (p.affinityScore <= 80) return false;
-            // After 5 matches, must have > 6 avg
             if (p.performance.stats.matches >= 5 && p.performance.stats.average <= 6) return false;
         } else {
             if (!options.relaxAffinity && p.affinityScore < options.minAffinity) return false;
@@ -143,6 +128,16 @@ export function generateIdealTeam(
     
     let filtered = allPlayerCandidates.filter(p => targetPositions.includes(p.position));
     
+    // Slot-specific filter: Height
+    if (formationSlot.minHeight) {
+        filtered = filtered.filter(p => (p.card.physicalAttributes?.height || 0) >= formationSlot.minHeight!);
+    }
+    
+    // Slot-specific filter: Secondary Position
+    if (formationSlot.secondaryPosition) {
+        filtered = filtered.filter(p => p.card.ratingsByPosition && p.card.ratingsByPosition[formationSlot.secondaryPosition!]);
+    }
+
     // Role filter (Style)
     if (!ignoreStyle && formationSlot.styles && formationSlot.styles.length > 0) {
         if (formationSlot.styles.length === 1 && formationSlot.styles[0] === 'Ninguno') {
@@ -187,17 +182,16 @@ export function generateIdealTeam(
     finalTeamSlots.push({ starter: starter ? { ...starter, assignedPosition: slot.position } : null, substitute: null });
   }
   
-  // SUBSTITUTES 1-11: Same Role as the starter
+  // SUBSTITUTES 1-11
   finalTeamSlots.forEach((slot, i) => {
     const originalSlot = formation.slots[i];
     const subPos = (slot.starter && slot.starter.position !== originalSlot.position) ? slot.starter.position : originalSlot.position;
     
-    // Try to find a sub with the exact same role (Pos + Style + Profile)
     let cand = getCandidatesForSlot({ ...originalSlot, position: subPos }, false, false, true);
     let sub = findBestPlayer(cand, { isSub: true, minAffinity: 80, relaxRatings: false, relaxAffinity: false }) ||
               findBestPlayer(cand, { isSub: true, minAffinity: 80, relaxRatings: true, relaxAffinity: false });
 
-    if (!sub) { // Try relaxing the style if not found
+    if (!sub) {
         cand = getCandidatesForSlot({ ...originalSlot, position: subPos }, false, true, true);
         sub = findBestPlayer(cand, { isSub: true, minAffinity: 80, relaxRatings: true, relaxAffinity: false });
     }
@@ -209,23 +203,23 @@ export function generateIdealTeam(
     }
   });
 
-  // SUBSTITUTE 12: Any role that exists in the formation
-  const formationRoles = formation.slots.map(s => ({ position: s.position, styles: s.styles || [], profileName: s.profileName }));
+  // SUBSTITUTE 12
+  const formationRoles = formation.slots.map(s => ({ position: s.position, styles: s.styles || [], profileName: s.profileName, minHeight: s.minHeight, secondaryPosition: s.secondaryPosition }));
   
   const extraCand = allPlayerCandidates.filter(p => {
     if (usedPlayerIds.has(p.player.id) || usedCardIds.has(p.card.id) || discardedCardIds.has(p.card.id)) return false;
     
-    // Must match at least ONE role defined in the formation
     return formationRoles.some(role => {
         if (p.position !== role.position) return false;
         
-        // Profile match if requested
+        if (role.minHeight && (p.card.physicalAttributes?.height || 0) < role.minHeight) return false;
+        if (role.secondaryPosition && (!p.card.ratingsByPosition || !p.card.ratingsByPosition[role.secondaryPosition])) return false;
+
         if (role.profileName && role.profileName !== 'General') {
             const { bestBuild } = getIdealBuildForPlayer(p.card.style, p.position, idealBuilds, targetIdealType, p.card.physicalAttributes?.height);
             if (bestBuild?.profileName !== role.profileName) return false;
         }
         
-        // Style match if requested
         if (role.styles.length > 0) {
             if (role.styles.includes('Ninguno')) {
                 const activeStyles = getAvailableStylesForPosition(role.position);
@@ -245,7 +239,6 @@ export function generateIdealTeam(
       finalTeamSlots.push({ starter: null, substitute: { ...extraSub, assignedPosition: extraSub.position } });
   }
 
-  // Map to final format with placeholders if needed
   return finalTeamSlots.map((slot, i) => {
     const formationSlot = i < formation.slots.length ? formation.slots[i] : null;
     const assigned = formationSlot?.position || 'DFC';

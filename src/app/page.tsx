@@ -41,12 +41,12 @@ import { useFormations } from '@/hooks/useFormations';
 import { useIdealBuilds } from '@/hooks/useIdealBuilds';
 import { useToast } from "@/hooks/use-toast";
 
-import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, PlayerPerformance, League, Nationality, PlayerBuild, IdealTeamPlayer, PlayerAttributeStats, IdealBuild, IdealBuildType } from '@/lib/types';
-import { positions, leagues, nationalities, formationPlayStyles } from '@/lib/types';
+import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, League, Nationality, IdealTeamPlayer, IdealBuild, IdealBuildType } from '@/lib/types';
+import { positions, leagues, nationalities } from '@/lib/types';
 import { normalizeText } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Dna, RefreshCw, Beaker, Wand2, Copy, Trash2, CopyPlus } from 'lucide-react';
+import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Dna, RefreshCw, Beaker, Wand2, Copy, CopyPlus } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -100,10 +100,6 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState('');
   const [styleFilter, setStyleFilter] = useState<string>('all');
   const [cardFilter, setCardFilter] = useState<string>('all');
-  
-  // Generator-specific filters
-  const [minHeightFilter, setMinHeightFilter] = useState('');
-  const [secondPosFilter, setSecondPosFilter] = useState('all');
   
   const [isAddRatingDialogOpen, setAddRatingDialogOpen] = useState(false);
   const [isAddFormationDialogOpen, setAddFormationDialogOpen] = useState(false);
@@ -171,9 +167,6 @@ export default function Home() {
       return;
     }
     
-    const minH = minHeightFilter ? parseInt(minHeightFilter, 10) : undefined;
-    const secPos = secondPosFilter !== 'all' ? (secondPosFilter as Position) : undefined;
-
     const newTeam = players.length > 0 ? generateIdealTeam(
         players, 
         formation, 
@@ -184,9 +177,7 @@ export default function Home() {
         sortBy, 
         isFlexibleLaterals, 
         isFlexibleWingers, 
-        idealBuildType,
-        minH,
-        secPos
+        idealBuildType
     ) : [];
 
     setIdealTeam(newTeam);
@@ -194,7 +185,7 @@ export default function Home() {
       title: "11 Ideal Generado",
       description: `Se ha generado un equipo para la formación "${formation.name}".`,
     });
-  }, [players, selectedFormationId, formations, idealBuilds, discardedCardIds, selectedLeague, selectedNationality, sortBy, isFlexibleLaterals, isFlexibleWingers, idealBuildType, minHeightFilter, secondPosFilter, toast]);
+  }, [players, selectedFormationId, formations, idealBuilds, discardedCardIds, selectedLeague, selectedNationality, sortBy, isFlexibleLaterals, isFlexibleWingers, idealBuildType, toast]);
 
   useEffect(() => {
     if (idealTeam.length > 0) {
@@ -654,10 +645,6 @@ export default function Home() {
                     onFlexibleLateralsChange={setFlexibleLaterals}
                     isFlexibleWingers={isFlexibleWingers}
                     onFlexibleWingersChange={setFlexibleWingers}
-                    minHeightFilter={minHeightFilter}
-                    onMinHeightFilterChange={setMinHeightFilter}
-                    secondPosFilter={secondPosFilter}
-                    onSecondPosFilterChange={setSecondPosFilter}
                   />
                   <div className="flex flex-wrap items-center gap-4 mt-6">
                     <Button onClick={handleGenerateTeam} disabled={!selectedFormationId}><Star className="mr-2 h-4 w-4" />Generar 11 Ideal</Button>

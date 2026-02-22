@@ -267,6 +267,8 @@ export const FormationSlotSchema = z.object({
   position: z.enum(positions),
   styles: z.array(z.string()).optional().default([]),
   profileName: z.string().optional(),
+  minHeight: z.number().optional(),
+  secondaryPosition: z.enum(positions).optional(),
   top: z.number().optional(),
   left: z.number().optional(),
 });
