@@ -8,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, X, Wrench, Pencil, NotebookPen, Search, Star, SlidersHorizontal, Dna, BarChart2, Ruler, MapPin } from 'lucide-react';
+import { PlusCircle, Trash2, X, Wrench, Pencil, NotebookPen, Search, Star, SlidersHorizontal, Dna, BarChart2, Ruler, MapPin, HandMetal } from 'lucide-react';
 import { cn, formatAverage, getAverageColorClass, isSpecialCard, isProfileIncomplete } from '@/lib/utils';
 import type { Player, PlayerCard, Position, FlatPlayer, PhysicalAttribute, LiveUpdateRating, IdealBuildType } from '@/lib/types';
 import { idealBuildTypes, positions } from '@/lib/types';
@@ -53,8 +53,8 @@ type FilterProps = {
   onCardFilterChange: (value: string) => void;
   uniqueStyles: string[];
   uniqueCardNames: string[];
-  sortBy: 'average' | 'general';
-  onSortByChange: (val: 'average' | 'general') => void;
+  sortBy: 'manual' | 'general';
+  onSortByChange: (val: 'manual' | 'general') => void;
 };
 
 const Filters = memo(({
@@ -84,12 +84,12 @@ const Filters = memo(({
             <ToggleGroup 
                 type="single" 
                 value={sortBy} 
-                onValueChange={(value: 'average' | 'general') => value && onSortByChange(value)}
+                onValueChange={(value: 'manual' | 'general') => value && onSortByChange(value)}
                 className="border rounded-md shrink-0"
             >
-            <ToggleGroupItem value="average" aria-label="Build Promedio" className="text-xs px-2 h-9">
-                <BarChart2 className="mr-1 h-3.5 w-3.5" />
-                Promedio
+            <ToggleGroupItem value="manual" aria-label="Build Manual" className="text-xs px-2 h-9">
+                <HandMetal className="mr-1 h-3.5 w-3.5" />
+                Manual
             </ToggleGroupItem>
             <ToggleGroupItem value="general" aria-label="Build Táctica" className="text-xs px-2 h-9">
                 <Star className="mr-1 h-3.5 w-3.5" />

@@ -30,10 +30,10 @@ type PlayerDetailDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   flatPlayer: FlatPlayer | null;
-  onSavePlayerBuild: (playerId: string, cardId: string, position: Position, build: PlayerBuild, totalProgressionPoints?: number, buildType: 'tactical' | 'average') => void;
+  onSavePlayerBuild: (playerId: string, cardId: string, position: Position, build: PlayerBuild, totalProgressionPoints?: number, buildType: 'tactical' | 'manual') => void;
   idealBuilds: IdealBuild[];
   idealBuildType?: IdealBuildType;
-  initialSortBy?: 'average' | 'general';
+  initialSortBy?: 'manual' | 'general';
 };
 
 const outfieldCategories: { key: keyof OutfieldBuild; label: string, icon: React.ElementType }[] = [
@@ -54,7 +54,7 @@ const goalkeeperCategories: { key: keyof GoalkeeperBuild; label: string, icon: R
 
 
 export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlayerBuild, idealBuilds, idealBuildType = 'Contraataque largo', initialSortBy = 'general' }: PlayerDetailDialogProps) {
-  const [buildType, setBuildType] = React.useState<'tactical' | 'average'>(initialSortBy === 'average' ? 'average' : 'tactical');
+  const [buildType, setBuildType] = React.useState<'tactical' | 'manual'>(initialSortBy === 'manual' ? 'manual' : 'tactical');
   const [build, setBuild] = React.useState<PlayerBuild>({ manualAffinity: 0 });
   const [totalProgressionPoints, setTotalProgressionPoints] = React.useState<number | undefined>(undefined);
 
@@ -76,7 +76,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
 
   React.useEffect(() => {
     if (open && flatPlayer && position && card) {
-      const fieldName = buildType === 'tactical' ? 'buildsByPosition' : 'averageBuildsByPosition';
+      const fieldName = buildType === 'tactical' ? 'buildsByPosition' : 'manualBuildsByPosition';
       const initialBuild = (card as any)[fieldName]?.[position];
       setBuild(initialBuild || { manualAffinity: 0 });
       setTotalProgressionPoints(card.totalProgressionPoints);
@@ -85,7 +85,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
 
   React.useEffect(() => {
     if(open) {
-        setBuildType(initialSortBy === 'average' ? 'average' : 'tactical');
+        setBuildType(initialSortBy === 'manual' ? 'manual' : 'tactical');
     }
   }, [open, initialSortBy]);
 
@@ -101,14 +101,18 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
 
   const handleSave = () => {
     if (player && card && position) {
-      const buildToSave = { ...build, manualAffinity: localAffinityResult.totalAffinityScore, updatedAt: new Date().toISOString() };
+      const buildToSave = { ...build, updatedAt: new Date().toISOString() };
+      // For tactical mode, use the calculated affinity. For manual mode, use the slider value.
+      if (buildType === 'tactical') {
+          buildToSave.manualAffinity = localAffinityResult.totalAffinityScore;
+      }
       onSavePlayerBuild(player.id, card.id, position, buildToSave, totalProgressionPoints, buildType);
       onOpenChange(false);
     }
   };
   
   const handleUpdateAffinity = () => {
-    if (player && card && position) {
+    if (player && card && position && buildType === 'tactical') {
       const buildToSave = { ...build, manualAffinity: localAffinityResult.totalAffinityScore, updatedAt: new Date().toISOString() };
       onSavePlayerBuild(player.id, card.id, position, buildToSave, totalProgressionPoints, buildType);
     }
@@ -138,6 +142,14 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
 
   const handleSliderChange = (category: keyof OutfieldBuild | keyof GoalkeeperBuild, value: number) => {
     setBuild(prev => ({ ...prev, [category]: value }));
+  }
+
+  const handleManualAffinityChange = (val: string) => {
+      let num = parseInt(val, 10);
+      if (isNaN(num)) num = 0;
+      if (num > 100) num = 100;
+      if (num < 0) num = 0;
+      setBuild(prev => ({ ...prev, manualAffinity: num }));
   }
 
   const StatDisplay = ({ label, value, baseValue }: { label: string; value?: number; baseValue?: number }) => {
@@ -178,7 +190,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
               <Tabs value={buildType} onValueChange={(v) => setBuildType(v as any)} className="w-auto">
                   <TabsList className="grid w-full grid-cols-2 h-8 p-0.5">
                       <TabsTrigger value="tactical" className="text-xs py-1">Build Táctica</TabsTrigger>
-                      <TabsTrigger value="average" className="text-xs py-1">Build Promedio</TabsTrigger>
+                      <TabsTrigger value="manual" className="text-xs py-1">Build Manual</TabsTrigger>
                   </TabsList>
               </Tabs>
           </div>
@@ -194,17 +206,28 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
               <ScrollArea className="flex-grow pr-4 -mr-4">
                   <div className="space-y-4">
                       <div className="space-y-2">
-                          <Label htmlFor="manualAffinity">Afinidad Calculada</Label>
-                          <div className="flex items-center gap-2">
-                              <div className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-base md:text-sm text-foreground/80 font-bold items-center">
-                                  {localAffinityResult.totalAffinityScore.toFixed(2)}
+                          <Label htmlFor="manualAffinity">Afinidad {buildType === 'manual' ? '(Manual)' : '(Calculada)'}</Label>
+                          {buildType === 'manual' ? (
+                              <Input 
+                                type="number" 
+                                min="0" 
+                                max="100" 
+                                value={build.manualAffinity || 0} 
+                                onChange={(e) => handleManualAffinityChange(e.target.value)}
+                                className="h-10 text-lg font-bold text-primary"
+                              />
+                          ) : (
+                              <div className="flex items-center gap-2">
+                                  <div className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-base md:text-sm text-foreground/80 font-bold items-center">
+                                      {localAffinityResult.totalAffinityScore.toFixed(2)}
+                                  </div>
+                                  <Button variant="outline" size="icon" onClick={handleUpdateAffinity}>
+                                      <RefreshCw className="h-4 w-4" />
+                                  </Button>
                               </div>
-                              <Button variant="outline" size="icon" onClick={handleUpdateAffinity}>
-                                  <RefreshCw className="h-4 w-4" />
-                              </Button>
-                          </div>
+                          )}
                           <p className="text-xs text-muted-foreground text-center">Últ. act build: <span className="font-semibold text-foreground">{formattedDate}</span></p>
-                          <p className="text-xs text-muted-foreground text-center">Editando: <span className="font-semibold text-primary uppercase">{buildType === 'tactical' ? 'Táctica' : 'Promedio'}</span></p>
+                          <p className="text-xs text-muted-foreground text-center">Editando: <span className="font-semibold text-primary uppercase">{buildType === 'tactical' ? 'Táctica' : 'Manual'}</span></p>
                       </div>
                       
                       {specialCard ? (
@@ -252,7 +275,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
                   </div>
               </ScrollArea>
               <ScrollArea className="flex-grow pr-4 -mr-4 md:border-l md:pl-8 md:-ml-8">
-                   <p className="font-medium text-sm text-muted-foreground mb-4">Estadísticas Finales ({buildType === 'tactical' ? 'Táctica' : 'Promedio'})</p>
+                   <p className="font-medium text-sm text-muted-foreground mb-4">Estadísticas Finales ({buildType === 'tactical' ? 'Táctica' : 'Manual'})</p>
                    <div className="space-y-4">
                       {!isGoalkeeper && (
                           <div>
@@ -331,7 +354,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
         </Tabs>
 
         <DialogFooter className="pt-4 border-t mt-4 flex-shrink-0">
-          <Button onClick={handleSave}>Guardar Build de {buildType === 'tactical' ? 'Táctica' : 'Promedio'}</Button>
+          <Button onClick={handleSave}>Guardar Build de {buildType === 'tactical' ? 'Táctica' : 'Manual'}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

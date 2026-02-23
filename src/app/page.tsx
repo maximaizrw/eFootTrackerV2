@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -61,7 +60,7 @@ export default function Home() {
   } = useIdealBuilds();
 
   const idealBuildType: IdealBuildType = 'Contraataque largo';
-  const [sortBy, setSortBy] = useState<'average' | 'general'>('general');
+  const [sortBy, setSortBy] = useState<'manual' | 'general'>('general');
 
   const { 
     players, 
@@ -376,7 +375,7 @@ export default function Home() {
           if (sortBy === 'general') {
             if (b.generalScore !== a.generalScore) return b.generalScore - a.generalScore;
           }
-          if (b.performance.stats.average !== a.performance.stats.average) return b.performance.stats.average - a.performance.stats.average;
+          if (b.affinityScore !== a.affinityScore) return b.affinityScore - a.affinityScore;
           return b.performance.stats.matches - a.performance.stats.matches;
         });
     }
@@ -401,13 +400,12 @@ export default function Home() {
   }, [flatPlayers]);
 
 
-  const error = playersError || formationsError || idealBuildsError;
-  if (error) {
+  if (playersError || formationsError || idealBuildsError) {
     return (
       <div className="flex items-center justify-center min-h-screen text-center p-4">
         <div className="bg-destructive/10 border border-destructive text-destructive p-6 rounded-lg max-w-md">
           <h2 className="text-xl font-bold mb-2">Error de Conexión</h2>
-          <p>{error}</p>
+          <p>{playersError || formationsError || idealBuildsError}</p>
         </div>
       </div>
     );
@@ -480,7 +478,7 @@ export default function Home() {
         open={isBuildViewerOpen}
         onOpenChange={setIsBuildViewerOpen}
         player={viewingPlayerBuild}
-        buildType={sortBy === 'average' ? 'average' : 'tactical'}
+        buildType={sortBy === 'manual' ? 'manual' : 'tactical'}
       />
       <IdealBuildEditor
         open={isIdealBuildEditorOpen}

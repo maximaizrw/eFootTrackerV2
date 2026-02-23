@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { FormationStats, League, Nationality, Position } from '@/lib/types';
 import { Label } from './ui/label';
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
-import { BarChart2, Star, ArrowRightLeft, Dna } from 'lucide-react';
+import { Star, HandMetal, Dna } from 'lucide-react';
 import { Switch } from './ui/switch';
 import { calculateStats } from './formations-display';
 
@@ -19,8 +19,8 @@ type IdealTeamSetupProps = {
   nationalities: (Nationality | 'all')[];
   selectedNationality: Nationality | 'all';
   onNationalityChange: (nationality: Nationality | 'all') => void;
-  sortBy: 'average' | 'general';
-  onSortByChange: (value: 'average' | 'general') => void;
+  sortBy: 'manual' | 'general';
+  onSortByChange: (value: 'manual' | 'general') => void;
   isFlexibleLaterals: boolean;
   onFlexibleLateralsChange: (value: boolean) => void;
   isFlexibleWingers: boolean;
@@ -113,16 +113,16 @@ const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({
         <ToggleGroup 
             type="single" 
             value={sortBy} 
-            onValueChange={(value: 'average' | 'general') => value && onSortByChange(value)}
+            onValueChange={(value: 'manual' | 'general') => value && onSortByChange(value)}
             className="w-full"
         >
-          <ToggleGroupItem value="average" aria-label="Ordenar por promedio" className="w-1/2">
-            <BarChart2 className="mr-2 h-4 w-4" />
-            Promedio
+          <ToggleGroupItem value="manual" aria-label="Ordenar por afinidad manual" className="w-1/2">
+            <HandMetal className="mr-2 h-4 w-4" />
+            Manual
           </ToggleGroupItem>
           <ToggleGroupItem value="general" aria-label="Ordenar por general" className="w-1/2">
              <Star className="mr-2 h-4 w-4" />
-            General
+            Táctica
           </ToggleGroupItem>
         </ToggleGroup>
       </div>

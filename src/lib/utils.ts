@@ -1,4 +1,3 @@
-
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position, BuildPosition, PhysicalAttribute, PlayerSkill, PlayerPerformance, LiveUpdateRating, IdealBuildType, PlayerCard } from "./types";
@@ -54,6 +53,11 @@ export function normalizeStyleName(style: string): string {
 export const BADGE_BONUSES = { HOT_STREAK: 3, CONSISTENT: 2, VERSATILE: 1, PROMISING: 1, GAME_CHANGER: 2, STALWART: 2, SPECIALIST: 3 };
 export const LIVE_UPDATE_BONUSES: Record<LiveUpdateRating, number> = { A: 8, B: 4, C: 0, D: -5, E: -10 };
 
+/**
+ * Calculates a unified score combining affinity and rating performance.
+ * For Manual mode, affinityScore is the user-provided 0-100 value.
+ * For Tactical mode, affinityScore is the calculated value based on attributes.
+ */
 export function calculateGeneralScore(
   affinityScore: number, 
   average: number, 
@@ -64,7 +68,10 @@ export function calculateGeneralScore(
   isSubstitute: boolean = false
 ): number {
   const weight = Math.min(100, matches) / 100;
-  const avgComponent = ((average * 10) + 50);
+  // Convert average (1-10) to 0-100 scale, but starting from 50 to make average 5.0 = 50 affinity
+  const avgComponent = ((average * 10));
+  
+  // Final score is a mix of how well they play (average) and how well they fit the profile (affinity)
   let generalScore = (avgComponent * weight) + (affinityScore * (1 - weight));
 
   if (performance.isHotStreak) generalScore += BADGE_BONUSES.HOT_STREAK;

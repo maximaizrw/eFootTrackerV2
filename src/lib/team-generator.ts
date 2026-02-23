@@ -20,7 +20,7 @@ export function generateIdealTeam(
   discardedCardIds: Set<string> = new Set(),
   league: League | 'all' = 'all',
   nationality: Nationality | 'all' = 'all',
-  sortBy: 'average' | 'general' = 'average',
+  sortBy: 'manual' | 'general' = 'manual',
   isFlexibleLaterals: boolean = false,
   isFlexibleWingers: boolean = false,
   targetIdealType: IdealBuildType = 'Contraataque largo'
@@ -60,13 +60,17 @@ export function generateIdealTeam(
             isStalwart: stats.matches >= 100 && stats.average >= 7.0,
         };
         
-        const buildsMap = sortBy === 'average' ? (card.averageBuildsByPosition || card.buildsByPosition) : card.buildsByPosition;
-        const buildForPos = buildsMap?.[pos];
-        const specialCard = isSpecialCard(card.name);
-        const finalStats = specialCard || !buildForPos ? (card.attributeStats || {}) : calculateProgressionStats(card.attributeStats || {}, buildForPos, pos === 'PT');
-        const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds, targetIdealType, card.physicalAttributes?.height);
-        const affinityBreakdown = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills);
-        const affinityScore = affinityBreakdown.totalAffinityScore;
+        let affinityScore = 0;
+        if (sortBy === 'manual') {
+            affinityScore = card.manualBuildsByPosition?.[pos]?.manualAffinity || 0;
+        } else {
+            const buildForPos = card.buildsByPosition?.[pos];
+            const specialCard = isSpecialCard(card.name);
+            const finalStats = specialCard || !buildForPos ? (card.attributeStats || {}) : calculateProgressionStats(card.attributeStats || {}, buildForPos, pos === 'PT');
+            const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds, targetIdealType, card.physicalAttributes?.height);
+            const affinityBreakdown = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills);
+            affinityScore = affinityBreakdown.totalAffinityScore;
+        }
         
         const generalScore = calculateGeneralScore(affinityScore, stats.average, stats.matches, performance, player.liveUpdateRating, card.skills, false);
         const substituteScore = calculateGeneralScore(affinityScore, stats.average, stats.matches, performance, player.liveUpdateRating, card.skills, true);
@@ -81,15 +85,13 @@ export function generateIdealTeam(
   const finalTeamSlots: IdealTeamSlot[] = [];
   
   const starterSort = (a: CandidatePlayer, b: CandidatePlayer) => {
-    if (sortBy === 'average') {
-      if (Math.abs(a.average - b.average) > 0.01) return b.average - a.average;
-      return b.generalScore - a.generalScore;
-    }
+    // In both modes, we use generalScore as it now correctly incorporates affinity (manual or tactical) + rating
     if (Math.abs(a.generalScore - b.generalScore) > 0.01) return b.generalScore - a.generalScore;
     return b.affinityScore - a.affinityScore;
   };
 
   const substituteSort = (a: CandidatePlayer, b: CandidatePlayer) => {
+    // Substitute rules: Prioritize those under test (<5 matches), then by affinity and score
     const isATesting = a.performance.stats.matches < 5;
     const isBTesting = b.performance.stats.matches < 5;
     if (isATesting && !isBTesting) return -1;
@@ -103,15 +105,20 @@ export function generateIdealTeam(
         if (usedPlayerIds.has(p.player.id) || usedCardIds.has(p.card.id) || discardedCardIds.has(p.card.id)) return false;
         
         if (options.isSub) {
+            // Suplente rules: Affinity > 80, and if they finished trial (5+ matches), average > 6.0
             if (p.affinityScore <= 80) return false;
             if (p.performance.stats.matches >= 5 && p.performance.stats.average <= 6) return false;
         } else {
+            // Starter rules: Affinity check
             if (!options.relaxAffinity && p.affinityScore < options.minAffinity) return false;
         }
         
+        // Letter filter (A/B required unless relaxed)
         if (!options.relaxRatings) {
-            if (sortBy === 'average' && (p.player.liveUpdateRating !== 'A' && p.player.liveUpdateRating !== 'B')) return false;
-            if (sortBy !== 'average' && (p.player.liveUpdateRating === 'D' || p.player.liveUpdateRating === 'E')) return false;
+            if (p.player.liveUpdateRating !== 'A' && p.player.liveUpdateRating !== 'B') return false;
+        } else {
+            // Even if relaxed, avoid D/E
+            if (p.player.liveUpdateRating === 'D' || p.player.liveUpdateRating === 'E') return false;
         }
         
         return true;

@@ -196,7 +196,7 @@ export type PlayerCard = {
   imageUrl?: string;
   ratingsByPosition: { [key in Position]?: number[] };
   buildsByPosition?: { [key in Position]?: PlayerBuild };
-  averageBuildsByPosition?: { [key in Position]?: PlayerBuild };
+  manualBuildsByPosition?: { [key in Position]?: PlayerBuild };
   attributeStats?: PlayerAttributeStats;
   physicalAttributes?: PhysicalAttribute;
   totalProgressionPoints?: number;

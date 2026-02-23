@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -82,7 +81,7 @@ export function useIdealBuilds() {
             let updated = false;
             const newCards = player.cards.map(card => {
                 if (normalizeStyleName(card.style) === normalizeStyleName(build.style)) {
-                    ['buildsByPosition', 'averageBuildsByPosition'].forEach(field => {
+                    ['buildsByPosition'].forEach(field => {
                         const builds = (card as any)[field];
                         if (builds && builds[build.position]) {
                             const b = builds[build.position];
