@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position, BuildPosition, PhysicalAttribute, PlayerSkill, PlayerPerformance, LiveUpdateRating, IdealBuildType, PlayerCard } from "./types";
-import { getAvailableStylesForPosition, playerSkillsList } from "./types";
+import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position, BuildPosition, PhysicalAttribute, PlayerSkill, PlayerPerformance, LiveUpdateRating, IdealBuildType, PlayerCard, ManualTier } from "./types";
+import { getAvailableStylesForPosition, playerSkillsList, manualTiers, manualTierConfig } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -54,9 +54,23 @@ export const BADGE_BONUSES = { HOT_STREAK: 3, CONSISTENT: 2, VERSATILE: 1, PROMI
 export const LIVE_UPDATE_BONUSES: Record<LiveUpdateRating, number> = { A: 8, B: 4, C: 0, D: -5, E: -10 };
 
 /**
+ * Mappings for Tier List display
+ */
+export function scoreToTier(score: number): ManualTier {
+    if (score >= 100) return 'S+';
+    if (score >= 90) return 'S';
+    if (score >= 80) return 'A';
+    if (score >= 70) return 'B';
+    return 'C';
+}
+
+export function tierToScore(tier: ManualTier): number {
+    return manualTierConfig[tier].score;
+}
+
+/**
  * Calculates a unified score combining affinity and rating performance.
- * For Manual mode, affinityScore is the user-provided 0-100 value.
- * For Tactical mode, affinityScore is the calculated value based on attributes.
+ * For Manual mode, affinityScore is the user-provided 0-100 value (now via Tiers).
  */
 export function calculateGeneralScore(
   affinityScore: number, 
@@ -68,10 +82,8 @@ export function calculateGeneralScore(
   isSubstitute: boolean = false
 ): number {
   const weight = Math.min(100, matches) / 100;
-  // Convert average (1-10) to 0-100 scale, but starting from 50 to make average 5.0 = 50 affinity
   const avgComponent = ((average * 10));
   
-  // Final score is a mix of how well they play (average) and how well they fit the profile (affinity)
   let generalScore = (avgComponent * weight) + (affinityScore * (1 - weight));
 
   if (performance.isHotStreak) generalScore += BADGE_BONUSES.HOT_STREAK;

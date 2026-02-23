@@ -2,11 +2,11 @@
 
 import type { IdealTeamPlayer, IdealTeamSlot, FormationStats, Position, LiveUpdateRating } from '@/lib/types';
 import Image from 'next/image';
-import { Users, Shirt, X, ArrowRightLeft } from 'lucide-react';
+import { Users, Shirt, X, ArrowRightLeft, Star } from 'lucide-react';
 import { Button } from './ui/button';
 import { PerformanceBadges } from './performance-badges';
 import { FootballPitch } from './football-pitch';
-import { cn, isProfileIncomplete } from '@/lib/utils';
+import { cn, isProfileIncomplete, scoreToTier } from '@/lib/utils';
 import { AffinityStatusIndicator } from './affinity-status-indicator';
 import { memo, useState, useCallback } from 'react';
 import { LiveUpdateRatingSelector } from './live-update-rating-selector';
@@ -43,6 +43,8 @@ const PlayerToken = memo(function PlayerToken({
   const isFlex = displayPosition !== originalPosition;
   const incomplete = isProfileIncomplete(player.card);
   const isHovered = hoveredId === player.card.id;
+  
+  const isManualMode = !player.card.buildsByPosition?.[originalPosition];
 
   return (
     <div
@@ -86,14 +88,17 @@ const PlayerToken = memo(function PlayerToken({
         )}
         {/* Position badge circle */}
         <div className={cn(
-          "absolute -bottom-1 left-1/2 -translate-x-1/2 px-1.5 py-px rounded-full text-[9px] md:text-[10px] font-bold leading-tight shadow-md",
+          "absolute -bottom-1 left-1/2 -translate-x-1/2 px-1.5 py-px rounded-full text-[9px] md:text-[10px] font-bold leading-tight shadow-md flex items-center gap-0.5",
           isFlex ? "bg-amber-500 text-amber-950" : "bg-sky-500 text-white"
         )}>
           {displayPosition}
+          <span className="opacity-70 text-[8px]">
+            {isManualMode ? scoreToTier(player.affinityScore) : `★${player.affinityScore.toFixed(0)}`}
+          </span>
         </div>
       </div>
 
-      {/* Name label - Fixed: Moved Selector out of the detail trigger button to avoid nested buttons */}
+      {/* Info layout */}
       <div className="mt-1.5 max-w-[5rem] flex flex-row items-center justify-center gap-0.5">
         <div className={cn("flex-shrink-0", incomplete && "text-red-500")}>
           <LiveUpdateRatingSelector
@@ -148,6 +153,7 @@ const BenchCard = memo(function BenchCard({
   const originalPosition = player.position;
   const isFlex = displayPosition !== originalPosition;
   const incomplete = isProfileIncomplete(player.card);
+  const isManualMode = !player.card.buildsByPosition?.[originalPosition];
 
   return (
     <div className="group/bench relative flex items-center gap-2 px-2 py-1.5 rounded-lg bg-card/80 border border-border/50 min-h-[2.75rem] hover:bg-accent/10 transition-colors">
@@ -187,10 +193,13 @@ const BenchCard = memo(function BenchCard({
       <div className="flex-grow overflow-hidden min-w-0">
         <div className="flex items-center gap-1">
           <span className={cn(
-            "text-[10px] font-bold px-1 rounded",
+            "text-[10px] font-bold px-1 rounded flex items-center gap-0.5",
             isFlex ? "bg-amber-500/20 text-amber-500" : "bg-sky-500/20 text-sky-500"
           )}>
             {displayPosition}
+            <span className="text-[8px] opacity-70">
+                {isManualMode ? scoreToTier(player.affinityScore) : `★${player.affinityScore.toFixed(0)}`}
+            </span>
           </span>
           <div className={cn("flex-shrink-0", incomplete && "text-red-500")}>
             <LiveUpdateRatingSelector

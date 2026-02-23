@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import type { Position, FlatPlayer, PlayerBuild, OutfieldBuild, GoalkeeperBuild, PlayerAttributeStats, IdealBuild, IdealBuildType } from "@/lib/types";
+import type { Position, FlatPlayer, PlayerBuild, OutfieldBuild, GoalkeeperBuild, PlayerAttributeStats, IdealBuild, IdealBuildType, ManualTier } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -13,13 +13,15 @@ import {
 import { Button } from '@/components/ui/button';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Slider } from "./ui/slider";
 import { ScrollArea } from "./ui/scroll-area";
 import { Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, BrainCircuit, RefreshCw, Info, Dna } from "lucide-react";
-import { calculateProgressionStats, getIdealBuildForPlayer, calculateAffinityWithBreakdown, type AffinityBreakdownResult, statLabels, calculateProgressionSuggestions, isSpecialCard, isProfileIncomplete } from "@/lib/utils";
+import { calculateProgressionStats, getIdealBuildForPlayer, calculateAffinityWithBreakdown, type AffinityBreakdownResult, statLabels, calculateProgressionSuggestions, isSpecialCard, isProfileIncomplete, scoreToTier, tierToScore } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { manualTiers, manualTierConfig } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { AffinityBreakdown } from "./affinity-breakdown";
@@ -102,7 +104,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
   const handleSave = () => {
     if (player && card && position) {
       const buildToSave = { ...build, updatedAt: new Date().toISOString() };
-      // For tactical mode, use the calculated affinity. For manual mode, use the slider value.
+      // For tactical mode, use the calculated affinity.
       if (buildType === 'tactical') {
           buildToSave.manualAffinity = localAffinityResult.totalAffinityScore;
       }
@@ -144,12 +146,8 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
     setBuild(prev => ({ ...prev, [category]: value }));
   }
 
-  const handleManualAffinityChange = (val: string) => {
-      let num = parseInt(val, 10);
-      if (isNaN(num)) num = 0;
-      if (num > 100) num = 100;
-      if (num < 0) num = 0;
-      setBuild(prev => ({ ...prev, manualAffinity: num }));
+  const handleManualTierChange = (tier: ManualTier) => {
+      setBuild(prev => ({ ...prev, manualAffinity: tierToScore(tier) }));
   }
 
   const StatDisplay = ({ label, value, baseValue }: { label: string; value?: number; baseValue?: number }) => {
@@ -190,7 +188,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
               <Tabs value={buildType} onValueChange={(v) => setBuildType(v as any)} className="w-auto">
                   <TabsList className="grid w-full grid-cols-2 h-8 p-0.5">
                       <TabsTrigger value="tactical" className="text-xs py-1">Build Táctica</TabsTrigger>
-                      <TabsTrigger value="manual" className="text-xs py-1">Build Manual</TabsTrigger>
+                      <TabsTrigger value="manual" className="text-xs py-1">Tier List</TabsTrigger>
                   </TabsList>
               </Tabs>
           </div>
@@ -198,24 +196,34 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
         
         <Tabs defaultValue="build" className="flex-grow overflow-hidden flex flex-col">
           <TabsList className="grid w-full grid-cols-2 flex-shrink-0">
-            <TabsTrigger value="build">Distribución de Puntos</TabsTrigger>
-            <TabsTrigger value="affinity">Impacto en Afinidad</TabsTrigger>
+            <TabsTrigger value="build">Configuración de Build</TabsTrigger>
+            <TabsTrigger value="affinity">Detalle de Afinidad</TabsTrigger>
           </TabsList>
           
           <TabsContent value="build" className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-8 overflow-hidden mt-4">
               <ScrollArea className="flex-grow pr-4 -mr-4">
                   <div className="space-y-4">
                       <div className="space-y-2">
-                          <Label htmlFor="manualAffinity">Afinidad {buildType === 'manual' ? '(Manual)' : '(Calculada)'}</Label>
+                          <Label htmlFor="manualAffinity">{buildType === 'manual' ? 'Clasificación (Tier List)' : 'Afinidad Calculada'}</Label>
                           {buildType === 'manual' ? (
-                              <Input 
-                                type="number" 
-                                min="0" 
-                                max="100" 
-                                value={build.manualAffinity || 0} 
-                                onChange={(e) => handleManualAffinityChange(e.target.value)}
-                                className="h-10 text-lg font-bold text-primary"
-                              />
+                              <Select 
+                                value={scoreToTier(build.manualAffinity || 50)} 
+                                onValueChange={(val) => handleManualTierChange(val as ManualTier)}
+                              >
+                                <SelectTrigger className="h-10 text-lg font-bold text-primary">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {manualTiers.map(tier => (
+                                    <SelectItem key={tier} value={tier}>
+                                      <div className="flex flex-col items-start">
+                                        <span className="font-bold text-lg">{tier}</span>
+                                        <span className="text-[10px] text-muted-foreground leading-none">{manualTierConfig[tier].label}</span>
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                           ) : (
                               <div className="flex items-center gap-2">
                                   <div className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-base md:text-sm text-foreground/80 font-bold items-center">
@@ -227,7 +235,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
                               </div>
                           )}
                           <p className="text-xs text-muted-foreground text-center">Últ. act build: <span className="font-semibold text-foreground">{formattedDate}</span></p>
-                          <p className="text-xs text-muted-foreground text-center">Editando: <span className="font-semibold text-primary uppercase">{buildType === 'tactical' ? 'Táctica' : 'Manual'}</span></p>
+                          <p className="text-xs text-muted-foreground text-center">Editando: <span className="font-semibold text-primary uppercase">{buildType === 'tactical' ? 'Táctica' : 'Tier List'}</span></p>
                       </div>
                       
                       {specialCard ? (
@@ -275,7 +283,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
                   </div>
               </ScrollArea>
               <ScrollArea className="flex-grow pr-4 -mr-4 md:border-l md:pl-8 md:-ml-8">
-                   <p className="font-medium text-sm text-muted-foreground mb-4">Estadísticas Finales ({buildType === 'tactical' ? 'Táctica' : 'Manual'})</p>
+                   <p className="font-medium text-sm text-muted-foreground mb-4">Estadísticas Finales ({buildType === 'tactical' ? 'Táctica' : 'Tier List'})</p>
                    <div className="space-y-4">
                       {!isGoalkeeper && (
                           <div>
@@ -354,7 +362,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
         </Tabs>
 
         <DialogFooter className="pt-4 border-t mt-4 flex-shrink-0">
-          <Button onClick={handleSave}>Guardar Build de {buildType === 'tactical' ? 'Táctica' : 'Manual'}</Button>
+          <Button onClick={handleSave}>Guardar Build de {buildType === 'tactical' ? 'Táctica' : 'Tier List'}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

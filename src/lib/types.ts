@@ -11,6 +11,17 @@ export type Position = typeof positions[number];
 export const buildPositions = [...positions, 'LAT', 'INT', 'EXT'] as const;
 export type BuildPosition = typeof buildPositions[number];
 
+export const manualTiers = ['S+', 'S', 'A', 'B', 'C'] as const;
+export type ManualTier = typeof manualTiers[number];
+
+export const manualTierConfig: Record<ManualTier, { label: string, score: number }> = {
+    'S+': { label: 'Meta absoluto / competitivo alto nivel', score: 100 },
+    'S': { label: 'Muy fuerte meta', score: 90 },
+    'A': { label: 'Funciona bien pero no óptimo', score: 80 },
+    'B': { label: 'Situacional', score: 70 },
+    'C': { label: 'No recomendado para el rol', score: 50 },
+};
+
 export const leagues = [
     "Sin Liga", "Premier League", "Ligue 1 Uber Eats", "Serie A TIM", "LaLiga EA SPORTS",
     "Eredivisie", "Liga Portugal Betclic", "Credit Suisse Super League", "Super Lig",
