@@ -60,7 +60,6 @@ export default function Home() {
   } = useIdealBuilds();
 
   const idealBuildType: IdealBuildType = 'Contraataque largo';
-  const [sortBy, setSortBy] = useState<'manual' | 'general'>('general');
 
   const { 
     players, 
@@ -79,7 +78,7 @@ export default function Home() {
     suggestAllBuilds,
     updateLiveUpdateRating,
     resetAllLiveUpdateRatings,
-  } = usePlayers(idealBuilds, idealBuildType, sortBy);
+  } = usePlayers(idealBuilds, idealBuildType);
 
   const {
     formations,
@@ -174,7 +173,6 @@ export default function Home() {
         discardedCardIds, 
         selectedLeague, 
         selectedNationality, 
-        sortBy, 
         isFlexibleLaterals, 
         isFlexibleWingers, 
         idealBuildType
@@ -185,7 +183,7 @@ export default function Home() {
       title: "11 Ideal Generado",
       description: `Se ha generado un equipo para la formación "${formation.name}".`,
     });
-  }, [players, selectedFormationId, formations, idealBuilds, discardedCardIds, selectedLeague, selectedNationality, sortBy, isFlexibleLaterals, isFlexibleWingers, idealBuildType, toast]);
+  }, [players, selectedFormationId, formations, idealBuilds, discardedCardIds, selectedLeague, selectedNationality, isFlexibleLaterals, isFlexibleWingers, idealBuildType, toast]);
 
   useEffect(() => {
     if (idealTeam.length > 0) {
@@ -444,11 +442,12 @@ export default function Home() {
 
 
   if (playersError || formationsError || idealBuildsError) {
+    const error = playersError || formationsError || idealBuildsError;
     return (
       <div className="flex items-center justify-center min-h-screen text-center p-4">
         <div className="bg-destructive/10 border border-destructive text-destructive p-6 rounded-lg max-w-md">
           <h2 className="text-xl font-bold mb-2">Error de Conexión</h2>
-          <p>{playersError || formationsError || idealBuildsError}</p>
+          <p>{error}</p>
         </div>
       </div>
     );
@@ -515,13 +514,11 @@ export default function Home() {
         onSavePlayerBuild={savePlayerBuild}
         idealBuilds={idealBuilds}
         idealBuildType={idealBuildType}
-        initialSortBy={sortBy}
       />
       <PlayerBuildViewer
         open={isBuildViewerOpen}
         onOpenChange={setIsBuildViewerOpen}
         player={viewingPlayerBuild}
-        buildType={sortBy === 'manual' ? 'manual' : 'tactical'}
       />
       <IdealBuildEditor
         open={isIdealBuildEditorOpen}
@@ -634,8 +631,6 @@ export default function Home() {
                           onCardFilterChange={setCardFilter}
                           uniqueStyles={uniqueStyles}
                           uniqueCardNames={uniqueCardNames}
-                          sortBy={sortBy}
-                          onSortByChange={setSortBy}
                         />
                     </CardHeader>
                     <PlayerTable
@@ -682,8 +677,6 @@ export default function Home() {
                     nationalities={['all', ...nationalities]}
                     selectedNationality={selectedNationality}
                     onNationalityChange={handleNationalityChange}
-                    sortBy={sortBy}
-                    onSortByChange={setSortBy}
                     isFlexibleLaterals={isFlexibleLaterals}
                     onFlexibleLateralsChange={setFlexibleLaterals}
                     isFlexibleWingers={isFlexibleWingers}

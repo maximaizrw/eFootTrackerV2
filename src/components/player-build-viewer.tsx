@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/dialog";
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ScrollArea } from "./ui/scroll-area";
 import { Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, Star } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
@@ -20,7 +19,6 @@ type PlayerBuildViewerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   player: IdealTeamPlayer | null;
-  buildType?: 'tactical' | 'average';
 };
 
 const outfieldCategories: { key: keyof OutfieldBuild; label: string, icon: React.ElementType }[] = [
@@ -40,15 +38,12 @@ const goalkeeperCategories: { key: keyof GoalkeeperBuild; label: string, icon: R
 ];
 
 
-export function PlayerBuildViewer({ open, onOpenChange, player, buildType = 'tactical' }: PlayerBuildViewerProps) {
+export function PlayerBuildViewer({ open, onOpenChange, player }: PlayerBuildViewerProps) {
   if (!player) return null;
 
   const { player: playerData, card, position } = player;
   
-  // Use the build based on the context (tactical or average)
-  const fieldName = buildType === 'tactical' ? 'buildsByPosition' : 'averageBuildsByPosition';
-  const build = (card as any)[fieldName]?.[position];
-  
+  const build = card.buildsByPosition?.[position];
   const isGoalkeeper = position === 'PT';
 
   const updatedAt = build?.updatedAt;
@@ -63,9 +58,8 @@ export function PlayerBuildViewer({ open, onOpenChange, player, buildType = 'tac
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            Build de {playerData.name}
-            {buildType === 'average' && <Badge variant="secondary">Promedio</Badge>}
-            {buildType === 'tactical' && <Badge variant="outline" className="border-primary text-primary">Táctica</Badge>}
+            Build Táctica de {playerData.name}
+            <Badge variant="outline" className="border-primary text-primary">Táctica</Badge>
           </DialogTitle>
           <DialogDescription>
              Build para <span className="font-semibold text-foreground">{position}</span> ({card.name}).

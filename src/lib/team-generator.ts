@@ -20,17 +20,14 @@ export function generateIdealTeam(
   discardedCardIds: Set<string> = new Set(),
   league: League | 'all' = 'all',
   nationality: Nationality | 'all' = 'all',
-  sortBy: 'manual' | 'general' = 'manual',
   isFlexibleLaterals: boolean = false,
   isFlexibleWingers: boolean = false,
   targetIdealType: IdealBuildType = 'Contraataque largo'
 ): IdealTeamSlot[] {
   const allPlayerCandidates: CandidatePlayer[] = players.flatMap(player => {
-    // Global filter: Nationality
     if (nationality !== 'all' && player.nationality !== nationality) return [];
     
     return (player.cards || []).flatMap(card => {
-      // Global filter: League
       if (league !== 'all' && card.league !== league) return [];
       
       const averagesByPosition = new Map<Position, number>();
@@ -60,17 +57,12 @@ export function generateIdealTeam(
             isStalwart: stats.matches >= 100 && stats.average >= 7.0,
         };
         
-        let affinityScore = 0;
-        if (sortBy === 'manual') {
-            affinityScore = card.manualBuildsByPosition?.[pos]?.manualAffinity || 0;
-        } else {
-            const buildForPos = card.buildsByPosition?.[pos];
-            const specialCard = isSpecialCard(card.name);
-            const finalStats = specialCard || !buildForPos ? (card.attributeStats || {}) : calculateProgressionStats(card.attributeStats || {}, buildForPos, pos === 'PT');
-            const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds, targetIdealType, card.physicalAttributes?.height);
-            const affinityBreakdown = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills);
-            affinityScore = affinityBreakdown.totalAffinityScore;
-        }
+        const buildForPos = card.buildsByPosition?.[pos];
+        const specialCard = isSpecialCard(card.name);
+        const finalStats = specialCard || !buildForPos ? (card.attributeStats || {}) : calculateProgressionStats(card.attributeStats || {}, buildForPos, pos === 'PT');
+        const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds, targetIdealType, card.physicalAttributes?.height);
+        const affinityBreakdown = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills);
+        const affinityScore = affinityBreakdown.totalAffinityScore;
         
         const generalScore = calculateGeneralScore(affinityScore, stats.average, stats.matches, performance, player.liveUpdateRating, card.skills, false);
         const substituteScore = calculateGeneralScore(affinityScore, stats.average, stats.matches, performance, player.liveUpdateRating, card.skills, true);
@@ -91,7 +83,6 @@ export function generateIdealTeam(
   };
 
   const substituteSort = (a: CandidatePlayer, b: CandidatePlayer) => {
-    // Regla de suplentes: Priorizar jugadores en prueba (<5 partidos)
     const isATesting = a.performance.stats.matches < 5;
     const isBTesting = b.performance.stats.matches < 5;
     if (isATesting && !isBTesting) return -1;
@@ -107,20 +98,15 @@ export function generateIdealTeam(
         if (usedPlayerIds.has(p.player.id) || usedCardIds.has(p.card.id) || discardedCardIds.has(p.card.id)) return false;
         
         if (options.isSub) {
-            // Regla de Suplentes: Afinidad > 80 obligatoria.
             if (p.affinityScore < 80) return false;
-            // Si ya terminó la prueba (5+ partidos), el promedio debe ser mayor a 6.0
             if (p.performance.stats.matches >= 5 && p.performance.stats.average <= 6) return false;
         } else {
-            // Regla de Titulares: Verificación de afinidad mínima
             if (!options.relaxAffinity && p.affinityScore < options.minAffinity) return false;
         }
         
-        // Filtro de Letra (A/B requerido por defecto)
         if (!options.relaxRatings) {
             if (p.player.liveUpdateRating !== 'A' && p.player.liveUpdateRating !== 'B') return false;
         } else {
-            // Incluso relajado, evitamos D/E si es posible
             if (p.player.liveUpdateRating === 'D' || p.player.liveUpdateRating === 'E') return false;
         }
         
@@ -138,17 +124,14 @@ export function generateIdealTeam(
     
     let filtered = allPlayerCandidates.filter(p => targetPositions.includes(p.position));
     
-    // Requisito por puesto: Altura mínima
     if (formationSlot.minHeight) {
         filtered = filtered.filter(p => (p.card.physicalAttributes?.height || 0) >= formationSlot.minHeight!);
     }
     
-    // Requisito por puesto: 2ª Posición requerida
     if (formationSlot.secondaryPosition) {
         filtered = filtered.filter(p => p.card.ratingsByPosition && p.card.ratingsByPosition[formationSlot.secondaryPosition!]);
     }
 
-    // Filtro de Estilo (Rol)
     if (!ignoreStyle && formationSlot.styles && formationSlot.styles.length > 0) {
         if (formationSlot.styles.length === 1 && formationSlot.styles[0] === 'Ninguno') {
             const activeStyles = getAvailableStylesForPosition(targetPosition);
@@ -158,7 +141,6 @@ export function generateIdealTeam(
         }
     }
     
-    // Filtro de Perfil Táctico
     if (formationSlot.profileName && formationSlot.profileName !== 'General') {
         filtered = filtered.filter(p => {
             const { bestBuild } = getIdealBuildForPlayer(p.card.style, p.position, idealBuilds, targetIdealType, p.card.physicalAttributes?.height);
@@ -169,19 +151,18 @@ export function generateIdealTeam(
     return filtered.sort(isSub ? substituteSort : starterSort);
   }
 
-  // TITULARES (Prioridad Máxima: Rol + Letra + Afinidad)
   for (const slot of formation.slots) {
     let cand = getCandidatesForSlot(slot, true, false, false);
     let starter = findBestPlayer(cand, { isSub: false, minAffinity: 80, relaxRatings: false, relaxAffinity: false });
     
-    if (!starter) { // Protocolo 1: Relajar Rol
+    if (!starter) {
         cand = getCandidatesForSlot(slot, true, true, false);
         starter = findBestPlayer(cand, { isSub: false, minAffinity: 80, relaxRatings: false, relaxAffinity: false });
     }
-    if (!starter) { // Protocolo 2: Relajar Letra (pero manteniendo afinidad)
+    if (!starter) {
         starter = findBestPlayer(cand, { isSub: false, minAffinity: 80, relaxRatings: true, relaxAffinity: false });
     }
-    if (!starter) { // Protocolo 3: Emergencia (Cualquier afinidad y letra aceptable)
+    if (!starter) {
         starter = findBestPlayer(cand, { isSub: false, minAffinity: 0, relaxRatings: true, relaxAffinity: true });
     }
 
@@ -192,7 +173,6 @@ export function generateIdealTeam(
     finalTeamSlots.push({ starter: starter ? { ...starter, assignedPosition: slot.position } : null, substitute: null });
   }
   
-  // SUPLENTES 1-11 (Buscando el mismo rol exacto que el titular)
   finalTeamSlots.forEach((slot, i) => {
     const originalSlot = formation.slots[i];
     const subPos = (slot.starter && slot.starter.position !== originalSlot.position) ? slot.starter.position : originalSlot.position;
@@ -213,7 +193,6 @@ export function generateIdealTeam(
     }
   });
 
-  // SUPLENTE 12 (Perfil comodín basado en los roles presentes en la táctica)
   const formationRoles = formation.slots.map(s => ({ position: s.position, styles: s.styles || [], profileName: s.profileName, minHeight: s.minHeight, secondaryPosition: s.secondaryPosition }));
   
   const extraCand = allPlayerCandidates.filter(p => {

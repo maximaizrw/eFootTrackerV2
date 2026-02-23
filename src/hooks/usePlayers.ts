@@ -10,7 +10,7 @@ import { getAvailableStylesForPosition, playerSkillsList } from '@/lib/types';
 import { normalizeText, normalizeStyleName, calculateProgressionStats, getIdealBuildForPlayer, isSpecialCard, calculateProgressionSuggestions, calculateAffinityWithBreakdown, calculateStats, calculateGeneralScore } from '@/lib/utils';
 
 
-export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: IdealBuildType = 'Contraataque largo', sortByContext: 'manual' | 'general' = 'general') {
+export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: IdealBuildType = 'Contraataque largo') {
   const [players, setPlayers] = useState<Player[]>([]);
   const [flatPlayers, setFlatPlayers] = useState<FlatPlayer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,8 +21,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
 
   useEffect(() => {
     if (!db) {
-      const errorMessage = "La configuración de Firebase no está completa.";
-      setError(errorMessage);
+      setError("La configuración de Firebase no está completa.");
       setLoading(false);
       return;
     }
@@ -37,7 +36,6 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
             const normalizedName = normalizeText(playerName);
 
             const newCards: PlayerCard[] = (data.cards || []).map((card: any) => {
-                // Filter out non-existent skills
                 const filteredSkills = (card.skills || []).filter((s: string) => validSkillsSet.has(s as any));
 
                 return {
@@ -48,7 +46,6 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
                     imageUrl: card.imageUrl || '',
                     ratingsByPosition: card.ratingsByPosition || {},
                     buildsByPosition: card.buildsByPosition || {},
-                    manualBuildsByPosition: card.manualBuildsByPosition || {},
                     attributeStats: card.attributeStats || {},
                     physicalAttributes: card.physicalAttributes || {},
                     skills: filteredSkills,
@@ -74,17 +71,14 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
             }
         });
 
-        const playersData = Array.from(playerMap.values());
-        setPlayers(playersData);
+        setPlayers(Array.from(playerMap.values()));
         setError(null);
       } catch (err) {
-          console.error("Error processing players snapshot: ", err);
           setError("No se pudieron procesar los datos de los jugadores.");
       } finally {
         setLoading(false);
       }
     }, (err) => {
-        console.error("Error fetching players from Firestore: ", err);
         setError("No se pudo conectar a la base de datos.");
         setPlayers([]);
         setLoading(false);
@@ -102,9 +96,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
                 
                 playerPositions.forEach(p => {
                     const ratings = card.ratingsByPosition?.[p];
-                    if (ratings && ratings.length > 0) {
-                        averagesByPosition.set(p, calculateStats(ratings).average);
-                    }
+                    if (ratings && ratings.length > 0) averagesByPosition.set(p, calculateStats(ratings).average);
                 });
 
                 return playerPositions.map(ratedPos => {
@@ -147,25 +139,14 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
                     const isGoalkeeper = ratedPos === 'PT';
                     const specialCard = isSpecialCard(card.name);
                     
-                    // Mode-Specific Affinity
-                    let affinityScore = 0;
-                    let affinityBreakdown: any = { totalAffinityScore: 0, breakdown: [] };
+                    const currentBuild = card.buildsByPosition?.[ratedPos];
+                    const finalStats = specialCard || !currentBuild
+                        ? (card.attributeStats || {})
+                        : calculateProgressionStats(card.attributeStats || {}, currentBuild, isGoalkeeper);
 
-                    if (sortByContext === 'manual') {
-                        // In Manual mode, use the user-provided affinity
-                        affinityScore = card.manualBuildsByPosition?.[ratedPos]?.manualAffinity || 0;
-                        affinityBreakdown.totalAffinityScore = affinityScore;
-                    } else {
-                        // In Táctica mode, calculate based on stats
-                        const currentBuild = card.buildsByPosition?.[ratedPos];
-                        const finalStats = specialCard || !currentBuild
-                            ? (card.attributeStats || {})
-                            : calculateProgressionStats(card.attributeStats || {}, currentBuild, isGoalkeeper);
-
-                        const { bestBuild } = getIdealBuildForPlayer(card.style, ratedPos, idealBuilds, 'Contraataque largo', card.physicalAttributes?.height);
-                        affinityBreakdown = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills);
-                        affinityScore = affinityBreakdown.totalAffinityScore;
-                    }
+                    const { bestBuild } = getIdealBuildForPlayer(card.style, ratedPos, idealBuilds, 'Contraataque largo', card.physicalAttributes?.height);
+                    const affinityBreakdown = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills);
+                    const affinityScore = affinityBreakdown.totalAffinityScore;
                     
                     const generalScore = calculateGeneralScore(affinityScore, stats.average, stats.matches, performance, player.liveUpdateRating, card.skills, false);
 
@@ -175,16 +156,14 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
         );
         setFlatPlayers(allFlatPlayers);
     }
-  }, [players, idealBuilds, sortByContext]);
+  }, [players, idealBuilds]);
 
 
   const addRating = async (values: AddRatingFormValues) => {
     let { playerName, cardName, position, rating, style, league, nationality, playerId } = values;
     if (!db) return;
     
-    // Normalize style
     style = normalizeStyleName(style) as any;
-    
     const validStylesForPosition = getAvailableStylesForPosition(position, true);
     if (!validStylesForPosition.includes(style)) style = 'Ninguno';
 
@@ -220,7 +199,6 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
               imageUrl: '',
               ratingsByPosition: { [position]: [rating] },
               buildsByPosition: { [position]: { manualAffinity: 0 } },
-              manualBuildsByPosition: { [position]: { manualAffinity: 0 } },
               attributeStats: {},
               physicalAttributes: {},
               skills: [],
@@ -241,7 +219,6 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
               imageUrl: '',
               ratingsByPosition: { [position]: [rating] },
               buildsByPosition: { [position]: { manualAffinity: 0 } },
-              manualBuildsByPosition: { [position]: { manualAffinity: 0 } },
               attributeStats: {},
               physicalAttributes: {},
               skills: [],
@@ -251,7 +228,6 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
       }
       toast({ title: "Éxito", description: `La valoración para ${playerName} ha sido guardada.` });
     } catch (error) {
-      console.error("Error adding rating: ", error);
       toast({ variant: "destructive", title: "Error al Guardar", description: "No se pudo guardar la valoración." });
     }
   };
@@ -276,7 +252,6 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
           toast({ title: "Carta Actualizada", description: "Los datos de la carta se han actualizado." });
       }
     } catch (error) {
-      console.error("Error updating card: ", error);
       toast({ variant: "destructive", title: "Error al Actualizar", description: "No se pudieron guardar los cambios." });
     }
   };
@@ -291,7 +266,6 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
       });
       toast({ title: "Jugador Actualizado", description: "Los datos del jugador se han actualizado." });
     } catch (error) {
-      console.error("Error updating player: ", error);
       toast({ variant: "destructive", title: "Error al Actualizar", description: "No se pudo guardar el cambio." });
     }
   };
@@ -349,7 +323,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
     }
   };
   
-  const savePlayerBuild = async (playerId: string, cardId: string, position: Position, build: PlayerBuild, totalProgressionPoints?: number, buildType: 'tactical' | 'manual' = 'tactical') => {
+  const savePlayerBuild = async (playerId: string, cardId: string, position: Position, build: PlayerBuild, totalProgressionPoints?: number) => {
     if (!db) return;
     const playerRef = doc(db, 'players', playerId);
     try {
@@ -363,13 +337,11 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
         if (cardToUpdate) {
             if (totalProgressionPoints !== undefined && !isSpecialCard(cardToUpdate.name)) cardToUpdate.totalProgressionPoints = totalProgressionPoints;
             
-            const fieldName = buildType === 'tactical' ? 'buildsByPosition' : 'manualBuildsByPosition';
-            
-            if (!cardToUpdate[fieldName]) (cardToUpdate as any)[fieldName] = {};
-            (cardToUpdate as any)[fieldName][position] = { ...build, updatedAt: new Date().toISOString() };
+            if (!cardToUpdate.buildsByPosition) cardToUpdate.buildsByPosition = {};
+            cardToUpdate.buildsByPosition[position] = { ...build, updatedAt: new Date().toISOString() };
 
             await updateDoc(playerRef, { cards: newCards });
-            toast({ title: "Build Guardada", description: `Build ${buildType === 'tactical' ? 'Táctica' : 'Manual'} para ${position} actualizada.` });
+            toast({ title: "Build Guardada", description: `Build para ${position} actualizada.` });
         }
     } catch (error) {
         toast({ variant: "destructive", title: "Error al Guardar", description: "No se pudo guardar la build." });
@@ -392,7 +364,6 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
           cardToUpdate.skills = skills;
           cardToUpdate.attributeStats = { ...stats };
           
-          // Recalculate tactical builds
           if(cardToUpdate.buildsByPosition) {
               for (const posKey in cardToUpdate.buildsByPosition) {
                   const pos = posKey as Position;
@@ -440,7 +411,6 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
             const newCards: PlayerCard[] = JSON.parse(JSON.stringify(player.cards || []));
 
             for (const card of newCards) {
-                // Tactical
                 if (card.buildsByPosition) {
                     for (const posKey in card.buildsByPosition) {
                         const pos = posKey as Position;

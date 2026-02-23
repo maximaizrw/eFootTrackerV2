@@ -8,10 +8,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, X, Wrench, Pencil, NotebookPen, Search, Star, SlidersHorizontal, Dna, BarChart2, Ruler, MapPin, HandMetal, Copy } from 'lucide-react';
-import { cn, formatAverage, getAverageColorClass, isSpecialCard, isProfileIncomplete, scoreToTier } from '@/lib/utils';
-import type { Player, PlayerCard, Position, FlatPlayer, PhysicalAttribute, LiveUpdateRating, IdealBuildType } from '@/lib/types';
-import { idealBuildTypes, positions } from '@/lib/types';
+import { PlusCircle, Trash2, X, Wrench, Pencil, NotebookPen, Search, Star, SlidersHorizontal, Copy } from 'lucide-react';
+import { cn, formatAverage, getAverageColorClass, isSpecialCard, isProfileIncomplete } from '@/lib/utils';
+import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating, IdealBuildType } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import { PerformanceBadges } from './performance-badges';
 import { AffinityStatusIndicator } from './affinity-status-indicator';
@@ -27,7 +26,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
 
 type PlayerTableProps = {
   players: FlatPlayer[];
@@ -54,8 +52,6 @@ type FilterProps = {
   onCardFilterChange: (value: string) => void;
   uniqueStyles: string[];
   uniqueCardNames: string[];
-  sortBy: 'manual' | 'general';
-  onSortByChange: (val: 'manual' | 'general') => void;
 };
 
 const Filters = memo(({
@@ -67,8 +63,6 @@ const Filters = memo(({
   onCardFilterChange,
   uniqueStyles,
   uniqueCardNames,
-  sortBy,
-  onSortByChange,
 }: FilterProps) => (
   <div className="space-y-4">
     <div className="flex flex-col md:flex-row gap-2">
@@ -80,23 +74,6 @@ const Filters = memo(({
             onChange={(e) => onSearchTermChange(e.target.value)}
             className="pl-10 w-full"
         />
-        </div>
-        <div className="flex gap-2">
-            <ToggleGroup 
-                type="single" 
-                value={sortBy} 
-                onValueChange={(value: 'manual' | 'general') => value && onSortByChange(value)}
-                className="border rounded-md shrink-0"
-            >
-            <ToggleGroupItem value="manual" aria-label="Build Manual" className="text-xs px-2 h-9">
-                <HandMetal className="mr-1 h-3.5 w-3.5" />
-                Manual
-            </ToggleGroupItem>
-            <ToggleGroupItem value="general" aria-label="Build Táctica" className="text-xs px-2 h-9">
-                <Star className="mr-1 h-3.5 w-3.5" />
-                Táctica
-            </ToggleGroupItem>
-            </ToggleGroup>
         </div>
     </div>
     
@@ -180,11 +157,6 @@ const PlayerTableMemo = memo(function PlayerTable({
   currentIdealBuildType,
 }: PlayerTableProps) {
   
-  const sortBy = React.useMemo(() => {
-      // Inferred from the context of the table
-      return flatPlayers.length > 0 && flatPlayers[0].affinityBreakdown.breakdown.length > 0 ? 'general' : 'manual';
-  }, [flatPlayers]);
-
   if (flatPlayers.length === 0) {
     return (
       <div className="col-span-full flex flex-col items-center justify-center text-center p-10">
@@ -206,7 +178,7 @@ const PlayerTableMemo = memo(function PlayerTable({
             <TableHead className="w-[40%] min-w-[150px]">Jugador</TableHead>
             <TableHead className="hidden md:table-cell">Estilo</TableHead>
             <TableHead>Prom.</TableHead>
-            <TableHead>Potencial</TableHead>
+            <TableHead>Afinidad</TableHead>
             <TableHead>General</TableHead>
             <TableHead className="w-[20%] min-w-[120px] hidden md:table-cell">Últimas Valoraciones</TableHead>
             <TableHead className="text-right">Acciones</TableHead>
@@ -225,8 +197,6 @@ const PlayerTableMemo = memo(function PlayerTable({
             
             const incomplete = isProfileIncomplete(card);
             const nameColorClass = incomplete ? "text-red-500" : "";
-
-            const isManualMode = !flatPlayer.affinityBreakdown.breakdown || flatPlayer.affinityBreakdown.breakdown.length === 0;
 
             return (
               <React.Fragment key={rowId}>
@@ -266,7 +236,7 @@ const PlayerTableMemo = memo(function PlayerTable({
                                 <TooltipTrigger asChild>
                                     <button onClick={(e) => { e.stopPropagation(); onOpenPlayerDetail(flatPlayer); }}><NotebookPen className="h-4 w-4 text-muted-foreground/60 hover:text-muted-foreground" /></button>
                                 </TooltipTrigger>
-                                <TooltipContent><p>Editar Clasificación y Build</p></TooltipContent>
+                                <TooltipContent><p>Configurar Build Táctica</p></TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
                         </div>
@@ -290,11 +260,7 @@ const PlayerTableMemo = memo(function PlayerTable({
                   </TableCell>
                   <TableCell>
                     <div className={cn("text-base md:text-lg font-bold flex items-center gap-1", affinityColorClass)}>
-                      {isManualMode ? (
-                          <span className="text-xl tracking-tight">{scoreToTier(affinityScore)}</span>
-                      ) : (
-                          <><Star className="w-4 h-4" />{affinityScore.toFixed(0)}</>
-                      )}
+                      <Star className="w-4 h-4" />{affinityScore.toFixed(0)}
                     </div>
                   </TableCell>
                   <TableCell>

@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position, BuildPosition, PhysicalAttribute, PlayerSkill, PlayerPerformance, LiveUpdateRating, IdealBuildType, PlayerCard, ManualTier } from "./types";
-import { getAvailableStylesForPosition, playerSkillsList, manualTiers, manualTierConfig } from "./types";
+import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position, BuildPosition, PhysicalAttribute, PlayerSkill, PlayerPerformance, LiveUpdateRating, IdealBuildType, PlayerCard } from "./types";
+import { getAvailableStylesForPosition } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -54,22 +54,8 @@ export const BADGE_BONUSES = { HOT_STREAK: 3, CONSISTENT: 2, VERSATILE: 1, PROMI
 export const LIVE_UPDATE_BONUSES: Record<LiveUpdateRating, number> = { A: 8, B: 4, C: 0, D: -5, E: -10 };
 
 /**
- * Mappings for Tier List display
- */
-export function scoreToTier(score: number): ManualTier {
-    if (score >= 100) return 'S+';
-    if (score >= 90) return 'S';
-    if (score >= 80) return 'A';
-    if (score >= 70) return 'B';
-    return 'C';
-}
-
-export function tierToScore(tier: ManualTier): number {
-    return manualTierConfig[tier].score;
-}
-
-/**
- * Calculates a unified score combining affinity and rating performance.
+ * Calculates a balanced mix between Affinity and Rating Average.
+ * 50/50 once consolidated (5+ matches).
  */
 export function calculateGeneralScore(
   affinityScore: number, 
@@ -80,12 +66,12 @@ export function calculateGeneralScore(
   skills: PlayerSkill[] = [],
   isSubstitute: boolean = false
 ): number {
-  const realityScore = average * 10;
+  const realityScore = average * 10; // Convert 0-10 to 0-100
   const potentialScore = affinityScore;
   
-  // Mix 50/50 after 5 matches
+  // Dampening for new players (< 5 matches)
+  // More matches = more weight to real performance
   const trustFactor = Math.min(5, matches) / 5;
-  
   const averageWeight = 0.5 * trustFactor;
   const affinityWeight = 1 - averageWeight;
   
@@ -244,7 +230,13 @@ function findBestBuildByRange(builds: IdealBuild[], height: number | undefined, 
     return { bestBuild: base, bestStyle: base.profileName ? `${styleLabel} (${base.profileName})` : styleLabel };
 }
 
-export function calculateAffinityWithBreakdown(playerStats: PlayerAttributeStats, idealBuild: IdealBuild | null, physicalAttributes?: PhysicalAttribute, playerSkills?: PlayerSkill[]) {
+export type AffinityBreakdownResult = {
+    totalAffinityScore: number;
+    breakdown: any[];
+    skillsBreakdown?: any[];
+};
+
+export function calculateAffinityWithBreakdown(playerStats: PlayerAttributeStats, idealBuild: IdealBuild | null, physicalAttributes?: PhysicalAttribute, playerSkills?: PlayerSkill[]): AffinityBreakdownResult {
     if (!idealBuild) return { totalAffinityScore: 0, breakdown: [], skillsBreakdown: [] };
     let score = 100;
     const breakdown: any[] = [];

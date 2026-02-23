@@ -4,8 +4,7 @@ import * as React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { FormationStats, League, Nationality, Position } from '@/lib/types';
 import { Label } from './ui/label';
-import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
-import { Star, HandMetal, Dna, ArrowRightLeft } from 'lucide-react';
+import { Star, Dna, ArrowRightLeft } from 'lucide-react';
 import { Switch } from './ui/switch';
 import { calculateStats } from './formations-display';
 
@@ -19,8 +18,6 @@ type IdealTeamSetupProps = {
   nationalities: (Nationality | 'all')[];
   selectedNationality: Nationality | 'all';
   onNationalityChange: (nationality: Nationality | 'all') => void;
-  sortBy: 'manual' | 'general';
-  onSortByChange: (value: 'manual' | 'general') => void;
   isFlexibleLaterals: boolean;
   onFlexibleLateralsChange: (value: boolean) => void;
   isFlexibleWingers: boolean;
@@ -37,8 +34,6 @@ const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({
     nationalities,
     selectedNationality,
     onNationalityChange,
-    sortBy,
-    onSortByChange,
     isFlexibleLaterals,
     onFlexibleLateralsChange,
     isFlexibleWingers,
@@ -105,26 +100,6 @@ const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({
             <Dna className="h-4 w-4 text-primary shrink-0" />
             <span>Contraataque largo</span>
         </div>
-      </div>
-       <div className="space-y-2">
-        <Label>
-          Ordenar Por
-        </Label>
-        <ToggleGroup 
-            type="single" 
-            value={sortBy} 
-            onValueChange={(value: 'manual' | 'general') => value && onSortByChange(value)}
-            className="w-full"
-        >
-          <ToggleGroupItem value="manual" aria-label="Ordenar por afinidad manual" className="w-1/2">
-            <HandMetal className="mr-2 h-4 w-4" />
-            Manual
-          </ToggleGroupItem>
-          <ToggleGroupItem value="general" aria-label="Ordenar por general" className="w-1/2">
-             <Star className="mr-2 h-4 w-4" />
-            Táctica
-          </ToggleGroupItem>
-        </ToggleGroup>
       </div>
       
       <div className="space-y-2">

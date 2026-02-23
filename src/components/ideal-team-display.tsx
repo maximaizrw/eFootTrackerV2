@@ -2,11 +2,11 @@
 
 import type { IdealTeamPlayer, IdealTeamSlot, FormationStats, Position, LiveUpdateRating } from '@/lib/types';
 import Image from 'next/image';
-import { Users, Shirt, X, ArrowRightLeft, Star } from 'lucide-react';
+import { Users, Shirt, X, ArrowRightLeft } from 'lucide-react';
 import { Button } from './ui/button';
 import { PerformanceBadges } from './performance-badges';
 import { FootballPitch } from './football-pitch';
-import { cn, isProfileIncomplete, scoreToTier } from '@/lib/utils';
+import { cn, isProfileIncomplete } from '@/lib/utils';
 import { AffinityStatusIndicator } from './affinity-status-indicator';
 import { memo, useState, useCallback } from 'react';
 import { LiveUpdateRatingSelector } from './live-update-rating-selector';
@@ -43,8 +43,6 @@ const PlayerToken = memo(function PlayerToken({
   const isFlex = displayPosition !== originalPosition;
   const incomplete = isProfileIncomplete(player.card);
   const isHovered = hoveredId === player.card.id;
-  
-  const isManualMode = !player.card.buildsByPosition?.[originalPosition];
 
   return (
     <div
@@ -93,13 +91,13 @@ const PlayerToken = memo(function PlayerToken({
         )}>
           {displayPosition}
           <span className="opacity-70 text-[8px]">
-            {isManualMode ? scoreToTier(player.affinityScore) : `★${player.affinityScore.toFixed(0)}`}
+            ★{player.affinityScore.toFixed(0)}
           </span>
         </div>
       </div>
 
       {/* Info layout */}
-      <div className="mt-1.5 max-w-[5rem] flex flex-row items-center justify-center gap-0.5">
+      <div className="mt-1.5 flex items-center justify-center gap-1">
         <div className={cn("flex-shrink-0", incomplete && "text-red-500")}>
           <LiveUpdateRatingSelector
             value={player.player.liveUpdateRating}
@@ -107,7 +105,7 @@ const PlayerToken = memo(function PlayerToken({
           />
         </div>
         <button
-          className="group/name flex items-center justify-center gap-0.5 min-w-0"
+          className="group/name flex items-center justify-center gap-0.5 min-w-0 max-w-[4rem]"
           onClick={() => onViewBuild(player)}
         >
           <AffinityStatusIndicator player={player} />
@@ -153,7 +151,6 @@ const BenchCard = memo(function BenchCard({
   const originalPosition = player.position;
   const isFlex = displayPosition !== originalPosition;
   const incomplete = isProfileIncomplete(player.card);
-  const isManualMode = !player.card.buildsByPosition?.[originalPosition];
 
   return (
     <div className="group/bench relative flex items-center gap-2 px-2 py-1.5 rounded-lg bg-card/80 border border-border/50 min-h-[2.75rem] hover:bg-accent/10 transition-colors">
@@ -198,7 +195,7 @@ const BenchCard = memo(function BenchCard({
           )}>
             {displayPosition}
             <span className="text-[8px] opacity-70">
-                {isManualMode ? scoreToTier(player.affinityScore) : `★${player.affinityScore.toFixed(0)}`}
+                ★{player.affinityScore.toFixed(0)}
             </span>
           </span>
           <div className={cn("flex-shrink-0", incomplete && "text-red-500")}>
