@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -372,15 +373,14 @@ export default function Home() {
             const cardMatch = cardFilter === 'all' || card.name === cardFilter;
             return searchMatch && styleMatch && cardMatch;
         }).sort((a, b) => {
-          if (sortBy === 'general') {
-            if (b.generalScore !== a.generalScore) return b.generalScore - a.generalScore;
-          }
-          if (b.affinityScore !== a.affinityScore) return b.affinityScore - a.affinityScore;
+          // El orden siempre se basa en la Puntuación General (combo de afinidad y promedio)
+          if (Math.abs(b.generalScore - a.generalScore) > 0.01) return b.generalScore - a.generalScore;
+          if (Math.abs(b.affinityScore - a.affinityScore) > 0.01) return b.affinityScore - a.affinityScore;
           return b.performance.stats.matches - a.performance.stats.matches;
         });
     }
     return grouped;
-  }, [flatPlayers, searchTerm, styleFilter, cardFilter, sortBy]);
+  }, [flatPlayers, searchTerm, styleFilter, cardFilter]);
 
   const uniqueFiltersByPosition = useMemo(() => {
     const filters: Record<string, { uniqueStyles: string[], uniqueCardNames: string[] }> = {};
