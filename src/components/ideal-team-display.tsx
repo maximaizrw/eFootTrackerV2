@@ -93,18 +93,18 @@ const PlayerToken = memo(function PlayerToken({
         </div>
       </div>
 
-      {/* Name label */}
-      <div className="mt-1.5 max-w-[5rem]">
+      {/* Name label - Fixed: Moved Selector out of the detail trigger button to avoid nested buttons */}
+      <div className="mt-1.5 max-w-[5rem] flex flex-row items-center justify-center gap-0.5">
+        <div className={cn("flex-shrink-0", incomplete && "text-red-500")}>
+          <LiveUpdateRatingSelector
+            value={player.player.liveUpdateRating}
+            onValueChange={(newValue) => onUpdateLiveUpdateRating(player.player.id, newValue)}
+          />
+        </div>
         <button
-          className="group/name flex items-center justify-center gap-0.5"
+          className="group/name flex items-center justify-center gap-0.5 min-w-0"
           onClick={() => onViewBuild(player)}
         >
-          <div className={cn("flex-shrink-0", incomplete && "text-red-500")}>
-            <LiveUpdateRatingSelector
-              value={player.player.liveUpdateRating}
-              onValueChange={(newValue) => onUpdateLiveUpdateRating(player.player.id, newValue)}
-            />
-          </div>
           <AffinityStatusIndicator player={player} />
           <span
             className={cn(
