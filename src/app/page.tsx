@@ -601,7 +601,7 @@ export default function Home() {
                       onOpenAddRating={handleOpenAddRating}
                       onOpenEditCard={handleOpenEditCard}
                       onOpenEditPlayer={handleOpenEditPlayer}
-                      onOpenEditStats={saveAttributeStats}
+                      onOpenEditStats={handleOpenEditStats}
                       onOpenPlayerDetail={handleOpenPlayerDetail}
                       onViewImage={handleViewImage}
                       onDeletePositionRatings={deletePositionRatings}

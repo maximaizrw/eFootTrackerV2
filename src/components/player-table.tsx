@@ -35,7 +35,7 @@ type PlayerTableProps = {
   onOpenAddRating: (initialData?: Partial<AddRatingFormValues>) => void;
   onOpenEditCard: (player: Player, card: PlayerCard) => void;
   onOpenEditPlayer: (player: Player) => void;
-  onOpenEditStats: (playerId: string, cardId: string, stats: any, physical: any, skills: any) => void;
+  onOpenEditStats: (player: Player, card: PlayerCard) => void;
   onOpenPlayerDetail: (flatPlayer: FlatPlayer) => void;
   onViewImage: (url: string, name: string) => void;
   onDeletePositionRatings: (playerId: string, cardId: string, position: Position) => void;
@@ -385,7 +385,7 @@ const PlayerTableMemo = memo(function PlayerTable({
                               <Button
                                   variant="ghost" size="icon" className="h-8 w-8 rounded-full"
                                   aria-label={`Editar atributos de ${card.name}`}
-                                  onClick={(e) => { e.stopPropagation(); onOpenEditStats(player.id, card.id, card.attributeStats, card.physicalAttributes, card.skills); }}
+                                  onClick={(e) => { e.stopPropagation(); onOpenEditStats(player, card); }}
                                   >
                                   <SlidersHorizontal className="h-4 w-4 text-muted-foreground/80 hover:text-muted-foreground" />
                               </Button>
