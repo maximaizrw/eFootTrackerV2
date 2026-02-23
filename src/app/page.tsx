@@ -341,7 +341,6 @@ export default function Home() {
   const handleCopyIdealBuild = useCallback((build: IdealBuild) => {
     const orderedData: any = {};
     
-    // Add Skills in Spanish as per UI request
     if (build.primarySkills && build.primarySkills.length > 0) {
       orderedData["Habilidades Primarias"] = build.primarySkills;
     }
@@ -349,7 +348,6 @@ export default function Home() {
       orderedData["Habilidades Secundarias"] = build.secondarySkills;
     }
 
-    // Add Stats in exact UI order with Spanish labels
     allStatsKeys.forEach(key => {
       const val = (build.build as any)[key];
       if (val !== undefined && val !== null && val !== '') {
@@ -362,7 +360,32 @@ export default function Home() {
     navigator.clipboard.writeText(json).then(() => {
       toast({ 
         title: "Copiado al portapapeles", 
-        description: "JSON generado con nombres en español y habilidades." 
+        description: "JSON de Build generado con nombres en español." 
+      });
+    });
+  }, [toast]);
+
+  const handleCopyPlayerJson = useCallback((flatPlayer: FlatPlayer) => {
+    const { player, card } = flatPlayer;
+    const orderedData: any = {
+      "Nombre": player.name,
+      "Altura": card.physicalAttributes?.height || "N/A",
+      "Habilidades": card.skills || []
+    };
+
+    allStatsKeys.forEach(key => {
+      const val = card.attributeStats?.[key];
+      if (val !== undefined && val !== null && val !== '') {
+        const label = statLabels[key] || key;
+        orderedData[label] = val;
+      }
+    });
+
+    const json = JSON.stringify(orderedData, null, 2);
+    navigator.clipboard.writeText(json).then(() => {
+      toast({
+        title: "Ficha copiada",
+        description: `Datos de ${player.name} copiados en español.`
       });
     });
   }, [toast]);
@@ -627,6 +650,7 @@ export default function Home() {
                       onDeletePositionRatings={deletePositionRatings}
                       onDeleteRating={deleteRating}
                       onUpdateLiveUpdateRating={updateLiveUpdateRating}
+                      onCopyPlayerJson={handleCopyPlayerJson}
                       currentIdealBuildType={idealBuildType}
                     />
                     <PlayerTable.Pagination

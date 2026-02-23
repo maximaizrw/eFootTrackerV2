@@ -8,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, X, Wrench, Pencil, NotebookPen, Search, Star, SlidersHorizontal, Dna, BarChart2, Ruler, MapPin, HandMetal } from 'lucide-react';
+import { PlusCircle, Trash2, X, Wrench, Pencil, NotebookPen, Search, Star, SlidersHorizontal, Dna, BarChart2, Ruler, MapPin, HandMetal, Copy } from 'lucide-react';
 import { cn, formatAverage, getAverageColorClass, isSpecialCard, isProfileIncomplete, scoreToTier } from '@/lib/utils';
 import type { Player, PlayerCard, Position, FlatPlayer, PhysicalAttribute, LiveUpdateRating, IdealBuildType } from '@/lib/types';
 import { idealBuildTypes, positions } from '@/lib/types';
@@ -41,6 +41,7 @@ type PlayerTableProps = {
   onDeletePositionRatings: (playerId: string, cardId: string, position: Position) => void;
   onDeleteRating: (playerId: string, cardId: string, position: Position, ratingIndex: number) => void;
   onUpdateLiveUpdateRating: (playerId: string, rating: LiveUpdateRating | null) => void;
+  onCopyPlayerJson: (flatPlayer: FlatPlayer) => void;
   currentIdealBuildType: IdealBuildType;
 };
 
@@ -175,6 +176,7 @@ const PlayerTableMemo = memo(function PlayerTable({
   onDeletePositionRatings,
   onDeleteRating,
   onUpdateLiveUpdateRating,
+  onCopyPlayerJson,
   currentIdealBuildType,
 }: PlayerTableProps) {
   
@@ -340,6 +342,20 @@ const PlayerTableMemo = memo(function PlayerTable({
                   <TableCell className="text-right p-1 md:p-2">
                     <div className="flex items-center justify-end">
                       <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-full"
+                                aria-label={`Copiar ficha de ${player.name}`}
+                                onClick={(e) => { e.stopPropagation(); onCopyPlayerJson(flatPlayer); }}
+                            >
+                                <Copy className="h-4 w-4 text-primary/80 hover:text-primary" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent><p>Copiar Ficha JSON</p></TooltipContent>
+                        </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
