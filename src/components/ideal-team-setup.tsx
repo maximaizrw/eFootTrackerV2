@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { FormationStats, League, Nationality, Position } from '@/lib/types';
 import { Label } from './ui/label';
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
-import { Star, HandMetal, Dna } from 'lucide-react';
+import { Star, HandMetal, Dna, ArrowRightLeft } from 'lucide-react';
 import { Switch } from './ui/switch';
 import { calculateStats } from './formations-display';
 
