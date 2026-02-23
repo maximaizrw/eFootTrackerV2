@@ -70,7 +70,7 @@ export function tierToScore(tier: ManualTier): number {
 
 /**
  * Calculates a unified score combining affinity and rating performance.
- * For Manual mode, affinityScore is the user-provided 0-100 value (now via Tiers).
+ * Balanced 50/50 mix with reliability dampening for players with few matches.
  */
 export function calculateGeneralScore(
   affinityScore: number, 
@@ -81,23 +81,35 @@ export function calculateGeneralScore(
   skills: PlayerSkill[] = [],
   isSubstitute: boolean = false
 ): number {
-  const weight = Math.min(100, matches) / 100;
-  const avgComponent = ((average * 10));
+  const realityScore = average * 10;
+  const potentialScore = affinityScore;
   
-  let generalScore = (avgComponent * weight) + (affinityScore * (1 - weight));
-
-  if (performance.isHotStreak) generalScore += BADGE_BONUSES.HOT_STREAK;
-  if (performance.isConsistent) generalScore += BADGE_BONUSES.CONSISTENT;
-  if (performance.isVersatile) generalScore += BADGE_BONUSES.VERSATILE;
-  if (performance.isPromising) generalScore += BADGE_BONUSES.PROMISING;
-  if (performance.isGameChanger) generalScore += BADGE_BONUSES.GAME_CHANGER;
-  if (performance.isStalwart) generalScore += BADGE_BONUSES.STALWART;
-  if (performance.isSpecialist) generalScore += BADGE_BONUSES.SPECIALIST;
+  // Reliability Factor: How much we trust the average based on match count.
+  // 0 matches: 0% trust in reality (100% potential)
+  // 5+ matches: 100% trust in reality (balanced 50/50 mix)
+  const trustFactor = Math.min(5, matches) / 5;
   
-  if (liveUpdateRating) generalScore += LIVE_UPDATE_BONUSES[liveUpdateRating] || 0;
-  if (isSubstitute && skills.includes('Super refuerzo')) generalScore += 1;
+  const averageWeight = 0.5 * trustFactor;
+  const affinityWeight = 1 - averageWeight;
+  
+  let baseScore = (potentialScore * affinityWeight) + (realityScore * averageWeight);
 
-  return Math.max(0, generalScore);
+  // Apply performance bonuses (Badges)
+  if (performance.isHotStreak) baseScore += BADGE_BONUSES.HOT_STREAK;
+  if (performance.isConsistent) baseScore += BADGE_BONUSES.CONSISTENT;
+  if (performance.isVersatile) baseScore += BADGE_BONUSES.VERSATILE;
+  if (performance.isPromising) baseScore += BADGE_BONUSES.PROMISING;
+  if (performance.isGameChanger) baseScore += BADGE_BONUSES.GAME_CHANGER;
+  if (performance.isStalwart) baseScore += BADGE_BONUSES.STALWART;
+  if (performance.isSpecialist) baseScore += BADGE_BONUSES.SPECIALIST;
+  
+  // Apply Live Update (A/B/C/D/E)
+  if (liveUpdateRating) baseScore += LIVE_UPDATE_BONUSES[liveUpdateRating] || 0;
+  
+  // Super Sub Bonus
+  if (isSubstitute && skills.includes('Super refuerzo')) baseScore += 2;
+
+  return Math.max(0, baseScore);
 }
 
 export function isSpecialCard(cardName: string): boolean {

@@ -1,4 +1,3 @@
-
 import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, FormationSlot as FormationSlotType, IdealBuild, IdealBuildType } from './types';
 import { getAvailableStylesForPosition } from './types';
 import { calculateStats, calculateGeneralScore, getIdealBuildForPlayer, calculateProgressionStats, isSpecialCard, calculateAffinityWithBreakdown } from './utils';
@@ -86,9 +85,9 @@ export function generateIdealTeam(
   const finalTeamSlots: IdealTeamSlot[] = [];
   
   const starterSort = (a: CandidatePlayer, b: CandidatePlayer) => {
-    // La puntuación general es el "combo" solicitado (afinidad + promedio)
-    if (Math.abs(a.generalScore - b.generalScore) > 0.01) return b.generalScore - a.generalScore;
-    return b.affinityScore - a.affinityScore;
+    if (Math.abs(b.generalScore - a.generalScore) > 0.01) return b.generalScore - a.generalScore;
+    if (Math.abs(b.affinityScore - a.affinityScore) > 0.01) return b.affinityScore - a.affinityScore;
+    return b.performance.stats.matches - a.performance.stats.matches;
   };
 
   const substituteSort = (a: CandidatePlayer, b: CandidatePlayer) => {
@@ -98,9 +97,9 @@ export function generateIdealTeam(
     if (isATesting && !isBTesting) return -1;
     if (!isATesting && isBTesting) return 1;
     
-    // Si ambos son veteranos o ambos son nuevos, priorizamos por puntuación de suplente (combo afinidad + promedio)
-    if (Math.abs(a.substituteScore - b.substituteScore) > 0.01) return b.substituteScore - a.substituteScore;
-    return b.affinityScore - a.affinityScore;
+    if (Math.abs(b.substituteScore - a.substituteScore) > 0.01) return b.substituteScore - a.substituteScore;
+    if (Math.abs(b.affinityScore - a.affinityScore) > 0.01) return b.affinityScore - a.affinityScore;
+    return b.performance.stats.matches - a.performance.stats.matches;
   };
 
   const findBestPlayer = (candidates: CandidatePlayer[], options: { isSub: boolean, minAffinity: number, relaxRatings: boolean, relaxAffinity: boolean }): CandidatePlayer | undefined => {
@@ -109,7 +108,7 @@ export function generateIdealTeam(
         
         if (options.isSub) {
             // Regla de Suplentes: Afinidad > 80 obligatoria.
-            if (p.affinityScore <= 80) return false;
+            if (p.affinityScore < 80) return false;
             // Si ya terminó la prueba (5+ partidos), el promedio debe ser mayor a 6.0
             if (p.performance.stats.matches >= 5 && p.performance.stats.average <= 6) return false;
         } else {
@@ -170,19 +169,19 @@ export function generateIdealTeam(
     return filtered.sort(isSub ? substituteSort : starterSort);
   }
 
-  // TITULARES
+  // TITULARES (Prioridad Máxima: Rol + Letra + Afinidad)
   for (const slot of formation.slots) {
     let cand = getCandidatesForSlot(slot, true, false, false);
     let starter = findBestPlayer(cand, { isSub: false, minAffinity: 80, relaxRatings: false, relaxAffinity: false });
     
-    if (!starter) { // Relajar Rol
+    if (!starter) { // Protocolo 1: Relajar Rol
         cand = getCandidatesForSlot(slot, true, true, false);
         starter = findBestPlayer(cand, { isSub: false, minAffinity: 80, relaxRatings: false, relaxAffinity: false });
     }
-    if (!starter) { // Relajar Letra
+    if (!starter) { // Protocolo 2: Relajar Letra (pero manteniendo afinidad)
         starter = findBestPlayer(cand, { isSub: false, minAffinity: 80, relaxRatings: true, relaxAffinity: false });
     }
-    if (!starter) { // Emergencia: Relajar Afinidad
+    if (!starter) { // Protocolo 3: Emergencia (Cualquier afinidad y letra aceptable)
         starter = findBestPlayer(cand, { isSub: false, minAffinity: 0, relaxRatings: true, relaxAffinity: true });
     }
 
@@ -193,7 +192,7 @@ export function generateIdealTeam(
     finalTeamSlots.push({ starter: starter ? { ...starter, assignedPosition: slot.position } : null, substitute: null });
   }
   
-  // SUPLENTES 1-11 (Siguiendo roles de la formación)
+  // SUPLENTES 1-11 (Buscando el mismo rol exacto que el titular)
   finalTeamSlots.forEach((slot, i) => {
     const originalSlot = formation.slots[i];
     const subPos = (slot.starter && slot.starter.position !== originalSlot.position) ? slot.starter.position : originalSlot.position;
@@ -214,7 +213,7 @@ export function generateIdealTeam(
     }
   });
 
-  // SUPLENTE 12 (Perfil comodín basado en la táctica)
+  // SUPLENTE 12 (Perfil comodín basado en los roles presentes en la táctica)
   const formationRoles = formation.slots.map(s => ({ position: s.position, styles: s.styles || [], profileName: s.profileName, minHeight: s.minHeight, secondaryPosition: s.secondaryPosition }));
   
   const extraCand = allPlayerCandidates.filter(p => {
