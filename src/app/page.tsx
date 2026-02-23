@@ -43,7 +43,7 @@ import { useToast } from "@/hooks/use-toast";
 
 import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, League, Nationality, IdealTeamPlayer, IdealBuild, IdealBuildType } from '@/lib/types';
 import { positions, leagues, nationalities } from '@/lib/types';
-import { normalizeText } from '@/lib/utils';
+import { normalizeText, allStatsKeys, statLabels } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Dna, RefreshCw, Beaker, Wand2, Copy, CopyPlus } from 'lucide-react';
@@ -339,9 +339,31 @@ export default function Home() {
   }, []);
 
   const handleCopyIdealBuild = useCallback((build: IdealBuild) => {
-    const json = JSON.stringify(build.build, null, 2);
+    const orderedData: any = {};
+    
+    // Add Skills in Spanish as per UI request
+    if (build.primarySkills && build.primarySkills.length > 0) {
+      orderedData["Habilidades Primarias"] = build.primarySkills;
+    }
+    if (build.secondarySkills && build.secondarySkills.length > 0) {
+      orderedData["Habilidades Secundarias"] = build.secondarySkills;
+    }
+
+    // Add Stats in exact UI order with Spanish labels
+    allStatsKeys.forEach(key => {
+      const val = (build.build as any)[key];
+      if (val !== undefined && val !== null && val !== '') {
+        const label = statLabels[key] || key;
+        orderedData[label] = val;
+      }
+    });
+
+    const json = JSON.stringify(orderedData, null, 2);
     navigator.clipboard.writeText(json).then(() => {
-      toast({ title: "Copiado", description: "JSON de estadísticas copiado." });
+      toast({ 
+        title: "Copiado al portapapeles", 
+        description: "JSON generado con nombres en español y habilidades." 
+      });
     });
   }, [toast]);
 
@@ -372,7 +394,6 @@ export default function Home() {
             const cardMatch = cardFilter === 'all' || card.name === cardFilter;
             return searchMatch && styleMatch && cardMatch;
         }).sort((a, b) => {
-          // El orden siempre se basa en la Puntuación General (combo de afinidad y promedio)
           if (Math.abs(b.generalScore - a.generalScore) > 0.01) return b.generalScore - a.generalScore;
           if (Math.abs(b.affinityScore - a.affinityScore) > 0.01) return b.affinityScore - a.affinityScore;
           return b.performance.stats.matches - a.performance.stats.matches;

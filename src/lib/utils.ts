@@ -70,7 +70,6 @@ export function tierToScore(tier: ManualTier): number {
 
 /**
  * Calculates a unified score combining affinity and rating performance.
- * Balanced 50/50 mix with reliability dampening for players with few matches.
  */
 export function calculateGeneralScore(
   affinityScore: number, 
@@ -84,9 +83,7 @@ export function calculateGeneralScore(
   const realityScore = average * 10;
   const potentialScore = affinityScore;
   
-  // Reliability Factor: How much we trust the average based on match count.
-  // 0 matches: 0% trust in reality (100% potential)
-  // 5+ matches: 100% trust in reality (balanced 50/50 mix)
+  // Mix 50/50 after 5 matches
   const trustFactor = Math.min(5, matches) / 5;
   
   const averageWeight = 0.5 * trustFactor;
@@ -94,7 +91,7 @@ export function calculateGeneralScore(
   
   let baseScore = (potentialScore * affinityWeight) + (realityScore * averageWeight);
 
-  // Apply performance bonuses (Badges)
+  // Apply performance bonuses
   if (performance.isHotStreak) baseScore += BADGE_BONUSES.HOT_STREAK;
   if (performance.isConsistent) baseScore += BADGE_BONUSES.CONSISTENT;
   if (performance.isVersatile) baseScore += BADGE_BONUSES.VERSATILE;
@@ -103,10 +100,7 @@ export function calculateGeneralScore(
   if (performance.isStalwart) baseScore += BADGE_BONUSES.STALWART;
   if (performance.isSpecialist) baseScore += BADGE_BONUSES.SPECIALIST;
   
-  // Apply Live Update (A/B/C/D/E)
   if (liveUpdateRating) baseScore += LIVE_UPDATE_BONUSES[liveUpdateRating] || 0;
-  
-  // Super Sub Bonus
   if (isSubstitute && skills.includes('Super refuerzo')) baseScore += 2;
 
   return Math.max(0, baseScore);
@@ -129,13 +123,34 @@ export function isProfileIncomplete(card: PlayerCard): boolean {
 const MAX_STAT_VALUE = 99;
 
 export const statLabels: Record<keyof PlayerAttributeStats | keyof PhysicalAttribute, string> = {
-    offensiveAwareness: 'Act. Ofensiva', ballControl: 'Control de Balón', dribbling: 'Regate', tightPossession: 'Posesión Estrecha',
-    lowPass: 'Pase Raso', loftedPass: 'Pase Bombeado', finishing: 'Finalización', heading: 'Cabeceo', placeKicking: 'Balón Parado', curl: 'Efecto',
-    defensiveAwareness: 'Actitud defensiva', defensiveEngagement: 'Dedicación defensiva', tackling: 'Entrada', aggression: 'Agresividad',
-    goalkeeping: 'Act. Portero', gkCatching: 'Atajar', gkParrying: 'Parada', gkReflexes: 'Reflejos', gkReach: 'Cobertura',
-    speed: 'Velocidad', acceleration: 'Aceleración', kickingPower: 'Potencia de Tiro', jump: 'Salto', physicalContact: 'Contacto Físico',
-    balance: 'Equilibrio', stamina: 'Resistencia',
-    height: 'Altura', weight: 'Peso',
+    offensiveAwareness: 'Act. Ofensiva', 
+    ballControl: 'Control del Balón', 
+    dribbling: 'Regate', 
+    tightPossession: 'Posesión Estrecha',
+    lowPass: 'Pase Raso', 
+    loftedPass: 'Pase Bombeado', 
+    finishing: 'Finalización', 
+    heading: 'Cabeceo', 
+    placeKicking: 'Balón Parado', 
+    curl: 'Efecto',
+    defensiveAwareness: 'Actitud defensiva', 
+    defensiveEngagement: 'Dedicación defensiva', 
+    tackling: 'Entrada', 
+    aggression: 'Agresividad',
+    goalkeeping: 'Act. de Portero', 
+    gkCatching: 'Atajar', 
+    gkParrying: 'Parada', 
+    gkReflexes: 'Reflejos', 
+    gkReach: 'Cobertura',
+    speed: 'Velocidad', 
+    acceleration: 'Aceleración', 
+    kickingPower: 'Potencia de Tiro', 
+    jump: 'Salto', 
+    physicalContact: 'Contacto Físico',
+    balance: 'Equilibrio', 
+    stamina: 'Resistencia',
+    height: 'Altura', 
+    weight: 'Peso',
 };
 
 const outfieldStatsKeys: (keyof PlayerAttributeStats)[] = [
