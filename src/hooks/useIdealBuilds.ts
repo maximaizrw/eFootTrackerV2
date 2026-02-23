@@ -43,8 +43,13 @@ export function useIdealBuilds() {
 
   const saveIdealBuild = async (build: IdealBuild) => {
     if (!db) return;
-    const profilePart = build.profileName ? `-${build.profileName.trim().replace(/\s+/g, '_')}` : '';
-    const buildId = `Contraataque_largo-${build.position}-${build.style.replace(/\s+/g, '_')}${profilePart}`;
+    
+    // Strict ID Sanitization to avoid odd number of segments error
+    const sanitize = (s: string) => s.trim().replace(/[\s/]+/g, '_').replace(/[^\w-]/g, '');
+    
+    const stylePart = sanitize(build.style);
+    const profilePart = build.profileName ? `-${sanitize(build.profileName)}` : '';
+    const buildId = `Contraataque_largo-${build.position}-${stylePart}${profilePart}`;
     
     // Clean heights/weights to avoid 'undefined' errors
     const cleanRange = (range: any) => {

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -191,7 +192,7 @@ export default function Home() {
     if (idealTeam.length > 0) {
       handleGenerateTeam();
     }
-  }, [discardedCardIds]);
+  }, [discardedCardIds, handleGenerateTeam]);
 
 
   const handleOpenAddRating = useCallback((initialData?: Partial<AddRatingFormValues>) => {
