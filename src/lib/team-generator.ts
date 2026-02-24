@@ -22,7 +22,8 @@ export function generateIdealTeam(
   nationality: Nationality | 'all' = 'all',
   isFlexibleLaterals: boolean = false,
   isFlexibleWingers: boolean = false,
-  targetIdealType: IdealBuildType = 'Contraataque largo'
+  targetIdealType: IdealBuildType = 'Contraataque largo',
+  selectionCriteria: 'general' | 'average' = 'general'
 ): IdealTeamSlot[] {
   const allPlayerCandidates: CandidatePlayer[] = players.flatMap(player => {
     if (nationality !== 'all' && player.nationality !== nationality) return [];
@@ -60,7 +61,7 @@ export function generateIdealTeam(
         const buildForPos = card.buildsByPosition?.[pos];
         const specialCard = isSpecialCard(card.name);
         const finalStats = specialCard || !buildForPos ? (card.attributeStats || {}) : calculateProgressionStats(card.attributeStats || {}, buildForPos, pos === 'PT');
-        const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds, targetIdealType, card.physicalAttributes?.height);
+        const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds, targetIdealType, card.physicalAttributes?.height, buildForPos?.forcedBuildId);
         const affinityBreakdown = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills);
         const affinityScore = affinityBreakdown.totalAffinityScore;
         
@@ -77,6 +78,10 @@ export function generateIdealTeam(
   const finalTeamSlots: IdealTeamSlot[] = [];
   
   const starterSort = (a: CandidatePlayer, b: CandidatePlayer) => {
+    if (selectionCriteria === 'average') {
+        if (Math.abs(b.average - a.average) > 0.01) return b.average - a.average;
+        return b.affinityScore - a.affinityScore;
+    }
     if (Math.abs(b.generalScore - a.generalScore) > 0.01) return b.generalScore - a.generalScore;
     if (Math.abs(b.affinityScore - a.affinityScore) > 0.01) return b.affinityScore - a.affinityScore;
     return b.performance.stats.matches - a.performance.stats.matches;
@@ -143,7 +148,8 @@ export function generateIdealTeam(
     
     if (formationSlot.profileName && formationSlot.profileName !== 'General') {
         filtered = filtered.filter(p => {
-            const { bestBuild } = getIdealBuildForPlayer(p.card.style, p.position, idealBuilds, targetIdealType, p.card.physicalAttributes?.height);
+            const buildInPos = p.card.buildsByPosition?.[p.position];
+            const { bestBuild } = getIdealBuildForPlayer(p.card.style, p.position, idealBuilds, targetIdealType, p.card.physicalAttributes?.height, buildInPos?.forcedBuildId);
             return bestBuild?.profileName === formationSlot.profileName;
         });
     }
@@ -205,7 +211,8 @@ export function generateIdealTeam(
         if (role.secondaryPosition && (!p.card.ratingsByPosition || !p.card.ratingsByPosition[role.secondaryPosition])) return false;
 
         if (role.profileName && role.profileName !== 'General') {
-            const { bestBuild } = getIdealBuildForPlayer(p.card.style, p.position, idealBuilds, targetIdealType, p.card.physicalAttributes?.height);
+            const buildInPos = p.card.buildsByPosition?.[p.position];
+            const { bestBuild } = getIdealBuildForPlayer(p.card.style, p.position, idealBuilds, targetIdealType, p.card.physicalAttributes?.height, buildInPos?.forcedBuildId);
             if (bestBuild?.profileName !== role.profileName) return false;
         }
         

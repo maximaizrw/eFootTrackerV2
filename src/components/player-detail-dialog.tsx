@@ -18,12 +18,13 @@ import { es } from 'date-fns/locale';
 import { Slider } from "./ui/slider";
 import { ScrollArea } from "./ui/scroll-area";
 import { Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, BrainCircuit, RefreshCw, Info, Dna } from "lucide-react";
-import { calculateProgressionStats, getIdealBuildForPlayer, calculateAffinityWithBreakdown, type AffinityBreakdownResult, statLabels, calculateProgressionSuggestions, isSpecialCard, isProfileIncomplete } from "@/lib/utils";
+import { calculateProgressionStats, getIdealBuildForPlayer, calculateAffinityWithBreakdown, type AffinityBreakdownResult, statLabels, calculateProgressionSuggestions, isSpecialCard, isProfileIncomplete, symmetricalPositionMap } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { AffinityBreakdown } from "./affinity-breakdown";
 import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 
 type PlayerDetailDialogProps = {
@@ -66,11 +67,17 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
 
   const baseStats = React.useMemo(() => card?.attributeStats || {}, [card?.attributeStats]);
   
+  const availableBuildsForPos = React.useMemo(() => {
+    if (!position) return [];
+    const archetype = symmetricalPositionMap[position];
+    return idealBuilds.filter(b => b.position === position || (archetype && b.position === archetype));
+  }, [position, idealBuilds]);
+
   const { bestBuild, bestBuildStyle } = React.useMemo(() => {
     if (!card || !position) return { bestBuild: null, bestBuildStyle: null };
-    const result = getIdealBuildForPlayer(card.style, position, idealBuilds, 'Contraataque largo', card.physicalAttributes?.height);
+    const result = getIdealBuildForPlayer(card.style, position, idealBuilds, 'Contraataque largo', card.physicalAttributes?.height, build.forcedBuildId);
     return { bestBuild: result.bestBuild, bestBuildStyle: result.bestStyle };
-  }, [card?.style, position, idealBuilds, card?.physicalAttributes?.height]);
+  }, [card?.style, position, idealBuilds, card?.physicalAttributes?.height, build.forcedBuildId]);
 
   React.useEffect(() => {
     if (open && flatPlayer && position && card) {
@@ -177,6 +184,26 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
           <TabsContent value="build" className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-8 overflow-hidden mt-4">
               <ScrollArea className="flex-grow pr-4 -mr-4">
                   <div className="space-y-4">
+                      <div className="space-y-2">
+                          <Label>Perfil Táctico Aplicado</Label>
+                          <Select
+                            value={build.forcedBuildId || "auto"}
+                            onValueChange={(val) => setBuild(prev => ({ ...prev, forcedBuildId: val === "auto" ? undefined : val }))}
+                          >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Automático (Recomendado)" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="auto">Automático (Detectado)</SelectItem>
+                                {availableBuildsForPos.map(b => (
+                                    <SelectItem key={b.id} value={b.id!}>
+                                        {b.style} {b.profileName ? `(${b.profileName})` : ''}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                      </div>
+
                       <div className="space-y-2">
                           <Label>Afinidad Calculada</Label>
                           <div className="flex items-center gap-2">

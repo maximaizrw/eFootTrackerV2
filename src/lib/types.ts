@@ -76,6 +76,7 @@ export type GoalkeeperBuild = {
 export type PlayerBuild = (OutfieldBuild & GoalkeeperBuild) & {
   manualAffinity?: number;
   updatedAt?: string;
+  forcedBuildId?: string;
 };
 
 type MinMaxRange = {

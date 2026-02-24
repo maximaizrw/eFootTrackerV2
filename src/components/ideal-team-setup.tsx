@@ -4,7 +4,7 @@ import * as React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { FormationStats, League, Nationality, Position } from '@/lib/types';
 import { Label } from './ui/label';
-import { Star, Dna, ArrowRightLeft } from 'lucide-react';
+import { Star, Dna, ArrowRightLeft, LayoutList } from 'lucide-react';
 import { Switch } from './ui/switch';
 import { calculateStats } from './formations-display';
 
@@ -22,6 +22,8 @@ type IdealTeamSetupProps = {
   onFlexibleLateralsChange: (value: boolean) => void;
   isFlexibleWingers: boolean;
   onFlexibleWingersChange: (value: boolean) => void;
+  selectionCriteria: 'general' | 'average';
+  onSelectionCriteriaChange: (value: 'general' | 'average') => void;
 };
 
 const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({ 
@@ -38,6 +40,8 @@ const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({
     onFlexibleLateralsChange,
     isFlexibleWingers,
     onFlexibleWingersChange,
+    selectionCriteria,
+    onSelectionCriteriaChange,
 }: IdealTeamSetupProps) {
 
   const selectedFormation = React.useMemo(() => {
@@ -94,12 +98,20 @@ const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({
       </div>
        <div className="space-y-2">
         <Label>
-          Build Ideal Utilizada
+          Criterio de Selección
         </Label>
-        <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-md border text-sm text-muted-foreground">
-            <Dna className="h-4 w-4 text-primary shrink-0" />
-            <span>Contraataque largo</span>
-        </div>
+        <Select
+            value={selectionCriteria}
+            onValueChange={(val) => onSelectionCriteriaChange(val as 'general' | 'average')}
+        >
+            <SelectTrigger className="w-full">
+                <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem value="general">Equilibrado (Táctica + Notas)</SelectItem>
+                <SelectItem value="average">Rendimiento (Solo Notas)</SelectItem>
+            </SelectContent>
+        </Select>
       </div>
       
       <div className="space-y-2">

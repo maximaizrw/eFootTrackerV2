@@ -131,6 +131,7 @@ export default function Home() {
   const [discardedCardIds, setDiscardedCardIds] = useState<Set<string>>(new Set());
   const [isFlexibleLaterals, setFlexibleLaterals] = useState(false);
   const [isFlexibleWingers, setFlexibleWingers] = useState(false);
+  const [selectionCriteria, setSelectionCriteria] = useState<'general' | 'average'>('general');
   
   const [pagination, setPagination] = useState<Record<string, number>>({});
   
@@ -175,7 +176,8 @@ export default function Home() {
         selectedNationality, 
         isFlexibleLaterals, 
         isFlexibleWingers, 
-        idealBuildType
+        idealBuildType,
+        selectionCriteria
     ) : [];
 
     setIdealTeam(newTeam);
@@ -183,7 +185,7 @@ export default function Home() {
       title: "11 Ideal Generado",
       description: `Se ha generado un equipo para la formación "${formation.name}".`,
     });
-  }, [players, selectedFormationId, formations, idealBuilds, discardedCardIds, selectedLeague, selectedNationality, isFlexibleLaterals, isFlexibleWingers, idealBuildType, toast]);
+  }, [players, selectedFormationId, formations, idealBuilds, discardedCardIds, selectedLeague, selectedNationality, isFlexibleLaterals, isFlexibleWingers, idealBuildType, selectionCriteria, toast]);
 
   useEffect(() => {
     if (idealTeam.length > 0) {
@@ -681,6 +683,8 @@ export default function Home() {
                     onFlexibleLateralsChange={setFlexibleLaterals}
                     isFlexibleWingers={isFlexibleWingers}
                     onFlexibleWingersChange={setFlexibleWingers}
+                    selectionCriteria={selectionCriteria}
+                    onSelectionCriteriaChange={setSelectionCriteria}
                   />
                   <div className="flex flex-wrap items-center gap-4 mt-6">
                     <Button onClick={handleGenerateTeam} disabled={!selectedFormationId}><Star className="mr-2 h-4 w-4" />Generar 11 Ideal</Button>

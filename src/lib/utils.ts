@@ -201,7 +201,12 @@ export const symmetricalPositionMap: Record<Position, BuildPosition | undefined>
     'PT': undefined, 'DFC': undefined, 'MCD': undefined, 'MC': undefined, 'MO': undefined, 'SD': undefined, 'DC': undefined,
 };
 
-export function getIdealBuildForPlayer(playerStyle: PlayerStyle, position: Position, idealBuilds: IdealBuild[], targetType: IdealBuildType = 'Contraataque largo', height?: number) {
+export function getIdealBuildForPlayer(playerStyle: PlayerStyle, position: Position, idealBuilds: IdealBuild[], targetType: IdealBuildType = 'Contraataque largo', height?: number, forcedBuildId?: string) {
+    if (forcedBuildId) {
+        const match = idealBuilds.find(b => b.id === forcedBuildId);
+        if (match) return { bestBuild: match, bestStyle: match.profileName ? `${match.style} (${match.profileName})` : match.style };
+    }
+
     const baseStyle = normalizeStyleName(playerStyle);
     const activeStyles = getAvailableStylesForPosition(position, true);
     const effectiveStyle = activeStyles.includes(baseStyle as any) ? baseStyle : 'Ninguno';

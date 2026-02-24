@@ -144,7 +144,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
                         ? (card.attributeStats || {})
                         : calculateProgressionStats(card.attributeStats || {}, currentBuild, isGoalkeeper);
 
-                    const { bestBuild } = getIdealBuildForPlayer(card.style, ratedPos, idealBuilds, 'Contraataque largo', card.physicalAttributes?.height);
+                    const { bestBuild } = getIdealBuildForPlayer(card.style, ratedPos, idealBuilds, 'Contraataque largo', card.physicalAttributes?.height, currentBuild?.forcedBuildId);
                     const affinityBreakdown = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills);
                     const affinityScore = affinityBreakdown.totalAffinityScore;
                     
@@ -372,7 +372,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
                       const isGK = pos === 'PT';
                       const special = isSpecialCard(cardToUpdate.name);
                       const final = special ? cardToUpdate.attributeStats : calculateProgressionStats(cardToUpdate.attributeStats || {}, bld, isGK);
-                      const { bestBuild } = getIdealBuildForPlayer(cardToUpdate.style, pos, idealBuilds, 'Contraataque largo', physical.height);
+                      const { bestBuild } = getIdealBuildForPlayer(cardToUpdate.style, pos, idealBuilds, 'Contraataque largo', physical.height, bld.forcedBuildId);
                       const newAffinity = calculateAffinityWithBreakdown(final, bestBuild, physical, skills).totalAffinityScore;
                       bld.manualAffinity = newAffinity;
                       bld.updatedAt = new Date().toISOString();
@@ -419,7 +419,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
                            const isGK = pos === 'PT';
                            const special = isSpecialCard(card.name);
                            const final = special ? card.attributeStats : calculateProgressionStats(card.attributeStats, build, isGK);
-                           const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds, 'Contraataque largo', card.physicalAttributes?.height);
+                           const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds, 'Contraataque largo', card.physicalAttributes?.height, build.forcedBuildId);
                            const newAffinity = calculateAffinityWithBreakdown(final, bestBuild, card.physicalAttributes, card.skills).totalAffinityScore;
                            if (Math.abs(build.manualAffinity - newAffinity) > 0.01) {
                                 build.manualAffinity = newAffinity;
@@ -456,7 +456,8 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
           if (!isSpecialCard(card.name) && card.totalProgressionPoints && card.buildsByPosition) {
             for (const posKey in card.buildsByPosition) {
               const pos = posKey as Position;
-              const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds, 'Contraataque largo', card.physicalAttributes?.height);
+              const buildForPos = card.buildsByPosition[pos];
+              const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds, 'Contraataque largo', card.physicalAttributes?.height, buildForPos?.forcedBuildId);
               if (bestBuild) {
                 const suggested = calculateProgressionSuggestions(card.attributeStats || {}, bestBuild, pos === 'PT', card.totalProgressionPoints);
                 const currentBuild = card.buildsByPosition[pos] || {};
