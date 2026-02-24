@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -658,7 +659,6 @@ export default function Home() {
                       onCopyPlayerJson={handleCopyPlayerJson}
                       currentIdealBuildType={idealBuildType}
                       sortCriteria={listSortCriteria}
-                      onUpdateProgressionPoints={updateProgressionPoints}
                     />
                     <PlayerTable.Pagination
                       currentPage={currentPage}

@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from 'next/image';
@@ -42,7 +43,6 @@ type PlayerTableProps = {
   onCopyPlayerJson: (flatPlayer: FlatPlayer) => void;
   currentIdealBuildType: IdealBuildType;
   sortCriteria: 'general' | 'average';
-  onUpdateProgressionPoints?: (playerId: string, cardId: string, points: number) => void;
 };
 
 type FilterProps = {
@@ -175,7 +175,6 @@ const PlayerTableMemo = memo(function PlayerTable({
   onCopyPlayerJson,
   currentIdealBuildType,
   sortCriteria,
-  onUpdateProgressionPoints,
 }: PlayerTableProps) {
   
   if (flatPlayers.length === 0) {
@@ -196,12 +195,15 @@ const PlayerTableMemo = memo(function PlayerTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[30%] min-w-[150px]">Jugador</TableHead>
+            <TableHead className="w-[35%] min-w-[150px]">Jugador</TableHead>
             <TableHead className="hidden md:table-cell">Estilo</TableHead>
             <TableHead>Prom.</TableHead>
-            <TableHead>Afinidad</TableHead>
-            {sortCriteria === 'average' && <TableHead className="w-[80px]">Pts. Prog.</TableHead>}
-            <TableHead>General</TableHead>
+            {sortCriteria !== 'average' && (
+              <>
+                <TableHead>Afinidad</TableHead>
+                <TableHead>General</TableHead>
+              </>
+            )}
             <TableHead className="w-[20%] min-w-[120px] hidden md:table-cell">Últimas Valoraciones</TableHead>
             <TableHead className="text-right">Acciones</TableHead>
           </TableRow>
@@ -280,36 +282,20 @@ const PlayerTableMemo = memo(function PlayerTable({
                       {formatAverage(cardAverage)}
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <div className={cn("text-base md:text-lg font-bold flex items-center gap-1", affinityColorClass)}>
-                      <Star className="w-4 h-4" />{affinityScore.toFixed(0)}
-                    </div>
-                  </TableCell>
-                  {sortCriteria === 'average' && (
-                    <TableCell>
-                        {!isSpecialCard(card.name) ? (
-                            <Input
-                                type="number"
-                                className="w-16 h-8 text-center text-xs font-bold bg-muted/50 border-primary/20"
-                                value={card.totalProgressionPoints || ''}
-                                placeholder="--"
-                                onChange={(e) => {
-                                    const val = parseInt(e.target.value, 10);
-                                    if (!isNaN(val) && onUpdateProgressionPoints) {
-                                        onUpdateProgressionPoints(player.id, card.id, val);
-                                    }
-                                }}
-                            />
-                        ) : (
-                            <span className="text-[10px] text-muted-foreground italic">Fijo</span>
-                        )}
-                    </TableCell>
+                  {sortCriteria !== 'average' && (
+                    <>
+                      <TableCell>
+                        <div className={cn("text-base md:text-lg font-bold flex items-center gap-1", affinityColorClass)}>
+                          <Star className="w-4 h-4" />{affinityScore.toFixed(0)}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className={cn("text-base md:text-lg font-bold", generalColorClass)}>
+                          {generalScore.toFixed(0)}
+                        </div>
+                      </TableCell>
+                    </>
                   )}
-                  <TableCell>
-                    <div className={cn("text-base md:text-lg font-bold", generalColorClass)}>
-                      {generalScore.toFixed(0)}
-                    </div>
-                  </TableCell>
                   <TableCell className="hidden md:table-cell p-2">
                     <div className="flex flex-wrap items-center gap-1">
                       {ratingsForPos.slice(-3).map((rating, index) => {
