@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -422,7 +421,7 @@ export default function Home() {
         }).sort((a, b) => {
           if (listSortCriteria === 'average') {
             if (Math.abs(b.performance.stats.average - a.performance.stats.average) > 0.01) return b.performance.stats.average - a.performance.stats.average;
-            return b.affinityScore - a.affinityScore;
+            return b.performance.stats.matches - a.performance.stats.matches;
           }
           if (Math.abs(b.generalScore - a.generalScore) > 0.01) return b.generalScore - a.generalScore;
           if (Math.abs(b.affinityScore - a.affinityScore) > 0.01) return b.affinityScore - a.affinityScore;
@@ -523,6 +522,7 @@ export default function Home() {
         onSavePlayerBuild={savePlayerBuild}
         idealBuilds={idealBuilds}
         idealBuildType={idealBuildType}
+        initialIsManual={listSortCriteria === 'average'}
       />
       <PlayerBuildViewer
         open={isBuildViewerOpen}

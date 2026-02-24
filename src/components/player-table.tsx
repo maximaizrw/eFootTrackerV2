@@ -1,4 +1,3 @@
-
 "use client";
 
 import Image from 'next/image';
@@ -9,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, X, Wrench, Pencil, NotebookPen, Search, Star, SlidersHorizontal, Copy } from 'lucide-react';
+import { PlusCircle, Trash2, X, Wrench, Pencil, NotebookPen, Search, Star, SlidersHorizontal, Copy, Dumbbell } from 'lucide-react';
 import { cn, formatAverage, getAverageColorClass, isSpecialCard, isProfileIncomplete } from '@/lib/utils';
 import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating, IdealBuildType } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
@@ -190,6 +189,8 @@ const PlayerTableMemo = memo(function PlayerTable({
     );
   }
 
+  const isAverageMode = sortCriteria === 'average';
+
   return (
     <div className="overflow-x-auto">
       <Table>
@@ -198,7 +199,7 @@ const PlayerTableMemo = memo(function PlayerTable({
             <TableHead className="w-[35%] min-w-[150px]">Jugador</TableHead>
             <TableHead className="hidden md:table-cell">Estilo</TableHead>
             <TableHead>Prom.</TableHead>
-            {sortCriteria !== 'average' && (
+            {!isAverageMode && (
               <>
                 <TableHead>Afinidad</TableHead>
                 <TableHead>General</TableHead>
@@ -258,9 +259,15 @@ const PlayerTableMemo = memo(function PlayerTable({
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <button onClick={(e) => { e.stopPropagation(); onOpenPlayerDetail(flatPlayer); }}><NotebookPen className="h-4 w-4 text-muted-foreground/60 hover:text-muted-foreground" /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); onOpenPlayerDetail(flatPlayer); }}>
+                                        {isAverageMode ? (
+                                            <Dumbbell className="h-4 w-4 text-accent/60 hover:text-accent" />
+                                        ) : (
+                                            <NotebookPen className="h-4 w-4 text-muted-foreground/60 hover:text-muted-foreground" />
+                                        )}
+                                    </button>
                                 </TooltipTrigger>
-                                <TooltipContent><p>Configurar Build Táctica</p></TooltipContent>
+                                <TooltipContent><p>{isAverageMode ? "Entrenar Jugador (Manual)" : "Configurar Build Táctica"}</p></TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
                         </div>
@@ -282,7 +289,7 @@ const PlayerTableMemo = memo(function PlayerTable({
                       {formatAverage(cardAverage)}
                     </div>
                   </TableCell>
-                  {sortCriteria !== 'average' && (
+                  {!isAverageMode && (
                     <>
                       <TableCell>
                         <div className={cn("text-base md:text-lg font-bold flex items-center gap-1", affinityColorClass)}>

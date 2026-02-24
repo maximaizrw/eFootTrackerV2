@@ -17,7 +17,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Slider } from "./ui/slider";
 import { ScrollArea } from "./ui/scroll-area";
-import { Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, BrainCircuit, RefreshCw, Info, Dna } from "lucide-react";
+import { Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, BrainCircuit, RefreshCw, Info, Dna, Dumbbell } from "lucide-react";
 import { calculateProgressionStats, getIdealBuildForPlayer, calculateAffinityWithBreakdown, type AffinityBreakdownResult, statLabels, calculateProgressionSuggestions, isSpecialCard, isProfileIncomplete, symmetricalPositionMap } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
@@ -25,6 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { AffinityBreakdown } from "./affinity-breakdown";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
 
 
 type PlayerDetailDialogProps = {
@@ -34,6 +35,7 @@ type PlayerDetailDialogProps = {
   onSavePlayerBuild: (playerId: string, cardId: string, position: Position, build: PlayerBuild, totalProgressionPoints?: number) => void;
   idealBuilds: IdealBuild[];
   idealBuildType?: IdealBuildType;
+  initialIsManual?: boolean;
 };
 
 const outfieldCategories: { key: keyof OutfieldBuild; label: string, icon: React.ElementType }[] = [
@@ -41,7 +43,7 @@ const outfieldCategories: { key: keyof OutfieldBuild; label: string, icon: React
     { key: 'passing', label: 'Pase', icon: Footprints },
     { key: 'dribbling', label: 'Regate', icon: Dribbble },
     { key: 'dexterity', label: 'Destreza', icon: Zap },
-    { key: 'lowerBodyStrength', label: 'Fuerza del tren inferior', icon: Beef },
+    { key: 'lowerBodyStrength', label: 'Fuerza inferior', icon: Beef },
     { key: 'aerialStrength', label: 'Juego aéreo', icon: ChevronsUp },
     { key: 'defending', label: 'Defensa', icon: Shield },
 ];
@@ -53,9 +55,10 @@ const goalkeeperCategories: { key: keyof GoalkeeperBuild; label: string, icon: R
 ];
 
 
-export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlayerBuild, idealBuilds, idealBuildType = 'Contraataque largo' }: PlayerDetailDialogProps) {
+export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlayerBuild, idealBuilds, idealBuildType = 'Contraataque largo', initialIsManual = false }: PlayerDetailDialogProps) {
   const [build, setBuild] = React.useState<PlayerBuild>({ manualAffinity: 0 });
   const [totalProgressionPoints, setTotalProgressionPoints] = React.useState<number | undefined>(undefined);
+  const [isManualMode, setIsManualMode] = React.useState(initialIsManual);
 
   const { toast } = useToast();
   
@@ -83,8 +86,9 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
     if (open && flatPlayer && position && card) {
       setBuild(card.buildsByPosition?.[position] || { manualAffinity: 0 });
       setTotalProgressionPoints(card.totalProgressionPoints);
+      setIsManualMode(initialIsManual);
     }
-  }, [open, flatPlayer, card, position]);
+  }, [open, flatPlayer, card, position, initialIsManual]);
 
   const finalStats = React.useMemo(() => {
     if (!card || !position) return {};
@@ -166,56 +170,72 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl h-[85vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
-          <DialogTitle className={cn(titleColorClass)}>Configuración Táctica para {player?.name} en <span className="text-primary">{position}</span></DialogTitle>
+          <DialogTitle className={cn("flex items-center gap-2", titleColorClass)}>
+            {isManualMode ? <Dumbbell className="h-5 w-5 text-accent" /> : <Dna className="h-5 w-5 text-primary" />}
+            {isManualMode ? "Entrenamiento Libre" : "Configuración Táctica"} para {player?.name} en <span className="text-primary">{position}</span>
+          </DialogTitle>
           <div className="flex items-center gap-4 mt-2">
-              <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-full w-fit border text-xs text-muted-foreground">
-                  <Dna className="h-3 w-3 text-primary" />
-                  <span>Contraataque largo: <span className="text-foreground font-semibold">{bestBuildStyle}</span></span>
+              <div className="space-y-1">
+                <Label className="text-[10px] text-muted-foreground uppercase font-bold">Tipo de Entrenamiento</Label>
+                <ToggleGroup type="single" value={isManualMode ? 'manual' : 'tactical'} onValueChange={(v) => v && setIsManualMode(v === 'manual')}>
+                    <ToggleGroupItem value="tactical" className="text-xs h-8 px-3">Táctico (Auto)</ToggleGroupItem>
+                    <ToggleGroupItem value="manual" className="text-xs h-8 px-3">Manual (Libre)</ToggleGroupItem>
+                </ToggleGroup>
               </div>
+              {!isManualMode && (
+                <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-full w-fit border text-xs text-muted-foreground self-end mb-1">
+                    <Dna className="h-3 w-3 text-primary" />
+                    <span>Contexto: <span className="text-foreground font-semibold">{bestBuildStyle}</span></span>
+                </div>
+              )}
           </div>
         </DialogHeader>
         
         <Tabs defaultValue="build" className="flex-grow overflow-hidden flex flex-col">
-          <TabsList className="grid w-full grid-cols-2 flex-shrink-0">
+          <TabsList className={cn("grid w-full flex-shrink-0", isManualMode ? "grid-cols-1" : "grid-cols-2")}>
             <TabsTrigger value="build">Distribución de Puntos</TabsTrigger>
-            <TabsTrigger value="affinity">Detalle de Afinidad</TabsTrigger>
+            {!isManualMode && <TabsTrigger value="affinity">Detalle de Afinidad</TabsTrigger>}
           </TabsList>
           
           <TabsContent value="build" className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-8 overflow-hidden mt-4">
               <ScrollArea className="flex-grow pr-4 -mr-4">
                   <div className="space-y-4">
-                      <div className="space-y-2">
-                          <Label>Perfil Táctico Aplicado</Label>
-                          <Select
-                            value={build.forcedBuildId || "auto"}
-                            onValueChange={(val) => setBuild(prev => ({ ...prev, forcedBuildId: val === "auto" ? undefined : val }))}
-                          >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Automático (Recomendado)" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="auto">Automático (Detectado)</SelectItem>
-                                {availableBuildsForPos.map(b => (
-                                    <SelectItem key={b.id} value={b.id!}>
-                                        {b.style} {b.profileName ? `(${b.profileName})` : ''}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                          </Select>
-                      </div>
+                      {!isManualMode && (
+                        <div className="space-y-2">
+                            <Label>Perfil Táctico Aplicado</Label>
+                            <Select
+                                value={build.forcedBuildId || "auto"}
+                                onValueChange={(val) => setBuild(prev => ({ ...prev, forcedBuildId: val === "auto" ? undefined : val }))}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Automático (Recomendado)" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="auto">Automático (Detectado)</SelectItem>
+                                    {availableBuildsForPos.map(b => (
+                                        <SelectItem key={b.id} value={b.id!}>
+                                            {b.style} {b.profileName ? `(${b.profileName})` : ''}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                      )}
 
-                      <div className="space-y-2">
-                          <Label>Afinidad Calculada</Label>
-                          <div className="flex items-center gap-2">
-                              <div className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-base md:text-sm text-foreground/80 font-bold items-center">
-                                  {localAffinityResult.totalAffinityScore.toFixed(2)}
-                              </div>
-                              <Button variant="outline" size="icon" onClick={handleUpdateAffinity}>
-                                  <RefreshCw className="h-4 w-4" />
-                              </Button>
-                          </div>
-                          <p className="text-xs text-muted-foreground text-center">Últ. actualización: <span className="font-semibold text-foreground">{formattedDate}</span></p>
-                      </div>
+                      {!isManualMode && (
+                        <div className="space-y-2">
+                            <Label>Afinidad Calculada</Label>
+                            <div className="flex items-center gap-2">
+                                <div className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-base md:text-sm text-foreground/80 font-bold items-center">
+                                    {localAffinityResult.totalAffinityScore.toFixed(2)}
+                                </div>
+                                <Button variant="outline" size="icon" onClick={handleUpdateAffinity}>
+                                    <RefreshCw className="h-4 w-4" />
+                                </Button>
+                            </div>
+                            <p className="text-xs text-muted-foreground text-center">Últ. actualización: <span className="font-semibold text-foreground">{formattedDate}</span></p>
+                        </div>
+                      )}
                       
                       {specialCard ? (
                           <Alert>
@@ -239,10 +259,12 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
                                     disabled={specialCard}
                                   />
                                 </div>
-                                <Button variant="outline" onClick={handleSuggestBuild} disabled={specialCard}>
-                                    <BrainCircuit className="mr-2 h-4 w-4" />
-                                    Sugerir
-                                </Button>
+                                {!isManualMode && (
+                                    <Button variant="outline" onClick={handleSuggestBuild} disabled={specialCard}>
+                                        <BrainCircuit className="mr-2 h-4 w-4" />
+                                        Sugerir
+                                    </Button>
+                                )}
                               </div>
 
                               {(isGoalkeeper ? goalkeeperCategories : outfieldCategories).map(({key, label, icon: Icon}) => (
@@ -341,7 +363,9 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
         </Tabs>
 
         <DialogFooter className="pt-4 border-t mt-4 flex-shrink-0">
-          <Button onClick={handleSave}>Guardar Configuración Táctica</Button>
+          <Button onClick={handleSave}>
+            {isManualMode ? "Guardar Entrenamiento Manual" : "Guardar Configuración Táctica"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
