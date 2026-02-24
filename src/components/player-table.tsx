@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from 'next/image';
@@ -52,6 +53,8 @@ type FilterProps = {
   onCardFilterChange: (value: string) => void;
   uniqueStyles: string[];
   uniqueCardNames: string[];
+  sortCriteria: 'general' | 'average';
+  onSortCriteriaChange: (value: 'general' | 'average') => void;
 };
 
 const Filters = memo(({
@@ -63,6 +66,8 @@ const Filters = memo(({
   onCardFilterChange,
   uniqueStyles,
   uniqueCardNames,
+  sortCriteria,
+  onSortCriteriaChange,
 }: FilterProps) => (
   <div className="space-y-4">
     <div className="flex flex-col md:flex-row gap-2">
@@ -77,7 +82,7 @@ const Filters = memo(({
         </div>
     </div>
     
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-2 items-center">
         <Select value={styleFilter} onValueChange={onStyleFilterChange}>
             <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Estilo de juego" />
@@ -99,6 +104,19 @@ const Filters = memo(({
                 ))}
             </SelectContent>
         </Select>
+
+        <div className="flex items-center gap-2 ml-auto">
+            <span className="text-xs font-medium text-muted-foreground hidden sm:inline">Prioridad:</span>
+            <Select value={sortCriteria} onValueChange={(v) => onSortCriteriaChange(v as 'general' | 'average')}>
+                <SelectTrigger className="w-[140px] h-8 text-xs">
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="general">General (Mix)</SelectItem>
+                    <SelectItem value="average">Promedio (Notas)</SelectItem>
+                </SelectContent>
+            </Select>
+        </div>
     </div>
   </div>
 ));

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -99,6 +100,7 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState('');
   const [styleFilter, setStyleFilter] = useState<string>('all');
   const [cardFilter, setCardFilter] = useState<string>('all');
+  const [listSortCriteria, setListSortCriteria] = useState<'general' | 'average'>('general');
   
   const [isAddRatingDialogOpen, setAddRatingDialogOpen] = useState(false);
   const [isAddFormationDialogOpen, setAddFormationDialogOpen] = useState(false);
@@ -417,13 +419,17 @@ export default function Home() {
             const cardMatch = cardFilter === 'all' || card.name === cardFilter;
             return searchMatch && styleMatch && cardMatch;
         }).sort((a, b) => {
+          if (listSortCriteria === 'average') {
+            if (Math.abs(b.performance.stats.average - a.performance.stats.average) > 0.01) return b.performance.stats.average - a.performance.stats.average;
+            return b.affinityScore - a.affinityScore;
+          }
           if (Math.abs(b.generalScore - a.generalScore) > 0.01) return b.generalScore - a.generalScore;
           if (Math.abs(b.affinityScore - a.affinityScore) > 0.01) return b.affinityScore - a.affinityScore;
           return b.performance.stats.matches - a.performance.stats.matches;
         });
     }
     return grouped;
-  }, [flatPlayers, searchTerm, styleFilter, cardFilter]);
+  }, [flatPlayers, searchTerm, styleFilter, cardFilter, listSortCriteria]);
 
   const uniqueFiltersByPosition = useMemo(() => {
     const filters: Record<string, { uniqueStyles: string[], uniqueCardNames: string[] }> = {};
@@ -633,6 +639,8 @@ export default function Home() {
                           onCardFilterChange={setCardFilter}
                           uniqueStyles={uniqueStyles}
                           uniqueCardNames={uniqueCardNames}
+                          sortCriteria={listSortCriteria}
+                          onSortCriteriaChange={setListSortCriteria}
                         />
                     </CardHeader>
                     <PlayerTable
