@@ -387,6 +387,43 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
     }
   };
 
+  const updateProgressionPoints = async (playerId: string, cardId: string, points: number) => {
+    if (!db) return;
+    const playerRef = doc(db, 'players', playerId);
+    try {
+        const playerDoc = await getDoc(playerRef);
+        if (!playerDoc.exists()) return;
+
+        const playerData = playerDoc.data() as Player;
+        const newCards: PlayerCard[] = JSON.parse(JSON.stringify(playerData.cards || []));
+        const cardToUpdate = newCards.find(c => c.id === cardId);
+
+        if (cardToUpdate && !isSpecialCard(cardToUpdate.name)) {
+            cardToUpdate.totalProgressionPoints = points;
+            
+            // Trigger affinity recalculation for all rated positions
+            if (cardToUpdate.buildsByPosition) {
+                for (const posKey in cardToUpdate.buildsByPosition) {
+                    const pos = posKey as Position;
+                    const bld = cardToUpdate.buildsByPosition[pos];
+                    if (bld && cardToUpdate.attributeStats) {
+                        const isGK = pos === 'PT';
+                        const final = calculateProgressionStats(cardToUpdate.attributeStats, bld, isGK);
+                        const { bestBuild } = getIdealBuildForPlayer(cardToUpdate.style, pos, idealBuilds, 'Contraataque largo', cardToUpdate.physicalAttributes?.height, bld.forcedBuildId);
+                        bld.manualAffinity = calculateAffinityWithBreakdown(final, bestBuild, cardToUpdate.physicalAttributes, cardToUpdate.skills).totalAffinityScore;
+                        bld.updatedAt = new Date().toISOString();
+                    }
+                }
+            }
+
+            await updateDoc(playerRef, { cards: newCards });
+            toast({ title: "Puntos Actualizados", description: `Puntos de progresión para ${cardToUpdate.name} actualizados a ${points}.` });
+        }
+    } catch (error) {
+        console.error("Error updating progression points:", error);
+    }
+  };
+
 
   const downloadBackup = async () => {
     if (!db) return null;
@@ -509,5 +546,5 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
     }
   };
 
-  return { players, flatPlayers, loading, error, addRating, editCard, editPlayer, deleteRating, savePlayerBuild, saveAttributeStats, downloadBackup, deletePositionRatings, recalculateAllAffinities, suggestAllBuilds, updateLiveUpdateRating, resetAllLiveUpdateRatings };
+  return { players, flatPlayers, loading, error, addRating, editCard, editPlayer, deleteRating, savePlayerBuild, saveAttributeStats, downloadBackup, deletePositionRatings, recalculateAllAffinities, suggestAllBuilds, updateLiveUpdateRating, resetAllLiveUpdateRatings, updateProgressionPoints };
 }

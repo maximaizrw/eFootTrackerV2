@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -79,6 +78,7 @@ export default function Home() {
     suggestAllBuilds,
     updateLiveUpdateRating,
     resetAllLiveUpdateRatings,
+    updateProgressionPoints,
   } = usePlayers(idealBuilds, idealBuildType);
 
   const {
@@ -657,6 +657,8 @@ export default function Home() {
                       onUpdateLiveUpdateRating={updateLiveUpdateRating}
                       onCopyPlayerJson={handleCopyPlayerJson}
                       currentIdealBuildType={idealBuildType}
+                      sortCriteria={listSortCriteria}
+                      onUpdateProgressionPoints={updateProgressionPoints}
                     />
                     <PlayerTable.Pagination
                       currentPage={currentPage}
