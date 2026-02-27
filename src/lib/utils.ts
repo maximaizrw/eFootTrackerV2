@@ -50,12 +50,21 @@ export function normalizeStyleName(style: string): string {
     return style;
 }
 
-export const BADGE_BONUSES = { HOT_STREAK: 3, CONSISTENT: 2, VERSATILE: 1, PROMISING: 1, GAME_CHANGER: 2, STALWART: 2, SPECIALIST: 3 };
+export const BADGE_BONUSES = { 
+  HOT_STREAK: 3, 
+  CONSISTENT: 2, 
+  VERSATILE: 1, 
+  PROMISING: 1, 
+  GAME_CHANGER: 2, 
+  STALWART: 2, 
+  SPECIALIST: 4 // Potenciado para favorecer roles definidos
+};
+
 export const LIVE_UPDATE_BONUSES: Record<LiveUpdateRating, number> = { A: 8, B: 4, C: 0, D: -5, E: -10 };
 
 /**
- * Calculates a balanced mix between Affinity and Rating Average.
- * 50/50 once consolidated (5+ matches).
+ * Optimized General Score Algorithm.
+ * Balances Tactical Fit vs. Real Performance with Experience Dampening.
  */
 export function calculateGeneralScore(
   affinityScore: number, 
@@ -66,28 +75,51 @@ export function calculateGeneralScore(
   skills: PlayerSkill[] = [],
   isSubstitute: boolean = false
 ): number {
-  const realityScore = average * 10; // Convert 0-10 to 0-100
-  const potentialScore = affinityScore;
+  // 1. Performance base (0-100 scale)
+  const performanceScore = average * 10;
   
-  // Dampening for new players (< 5 matches)
-  // More matches = more weight to real performance
-  const trustFactor = Math.min(5, matches) / 5;
-  const averageWeight = 0.5 * trustFactor;
-  const affinityWeight = 1 - averageWeight;
+  // 2. Match-based weighting (Dampening)
+  // We trust the average more as the player plays more matches.
+  // < 3 matches: Trust affinity 80%, Performance 20% (Avoid luck bias)
+  // 3-10 matches: Dynamic transition
+  // > 10 matches: Balanced 50/50 mix
+  let perfWeight = 0.5;
+  if (matches < 3) perfWeight = 0.2;
+  else if (matches < 10) perfWeight = 0.2 + (matches - 3) * (0.3 / 7);
   
-  let baseScore = (potentialScore * affinityWeight) + (realityScore * averageWeight);
+  const affinityWeight = 1 - perfWeight;
+  
+  let baseScore = (affinityScore * affinityWeight) + (performanceScore * perfWeight);
 
-  // Apply performance bonuses
+  // 3. Elite Performance Bonus
+  // Players that consistently deliver exceptional ratings are prioritized regardless of build fit
+  if (average >= 8.5) baseScore += 5;
+  else if (average >= 8.0) baseScore += 2;
+
+  // 4. Apply performance bonuses (Badges)
   if (performance.isHotStreak) baseScore += BADGE_BONUSES.HOT_STREAK;
+  if (performance.isSpecialist) baseScore += BADGE_BONUSES.SPECIALIST;
   if (performance.isConsistent) baseScore += BADGE_BONUSES.CONSISTENT;
+  if (performance.isStalwart) baseScore += BADGE_BONUSES.STALWART;
   if (performance.isVersatile) baseScore += BADGE_BONUSES.VERSATILE;
   if (performance.isPromising) baseScore += BADGE_BONUSES.PROMISING;
   if (performance.isGameChanger) baseScore += BADGE_BONUSES.GAME_CHANGER;
-  if (performance.isStalwart) baseScore += BADGE_BONUSES.STALWART;
-  if (performance.isSpecialist) baseScore += BADGE_BONUSES.SPECIALIST;
   
-  if (liveUpdateRating) baseScore += LIVE_UPDATE_BONUSES[liveUpdateRating] || 0;
-  if (isSubstitute && skills.includes('Super refuerzo')) baseScore += 2;
+  // 5. Condition / Live Update (Critical for weekly performance)
+  if (liveUpdateRating) {
+    baseScore += LIVE_UPDATE_BONUSES[liveUpdateRating] || 0;
+  }
+
+  // 6. Role-specific adjustments
+  if (isSubstitute && skills.includes('Super refuerzo')) {
+    baseScore += 3; // Boosted impact for bench players
+  }
+
+  // 7. Consistency Check
+  // Penalize high standard deviation after some experience (unreliable players)
+  if (matches >= 5 && performance.stats.stdDev > 1.2) {
+    baseScore -= 2;
+  }
 
   return Math.max(0, baseScore);
 }
