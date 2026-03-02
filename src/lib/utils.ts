@@ -28,6 +28,36 @@ export function calculateStats(numbers: number[]): PlayerRatingStats {
   return { average: calculateAverage(numbers), matches: numbers.length, stdDev: calculateStdDev(numbers) };
 }
 
+export function calculateRecencyWeightedAverage(
+  numbers: number[],
+  recentWindow: number = 3,
+  recentWeight: number = 2.5,
+  decayFactor: number = 0.9
+): number {
+  if (!numbers || numbers.length === 0) return 0;
+  const normalizedWindow = Math.max(1, recentWindow);
+  const normalizedDecay = Math.min(Math.max(decayFactor, 0.5), 0.99);
+  const windowStart = Math.max(0, numbers.length - normalizedWindow);
+
+  let weightedSum = 0;
+  let totalWeight = 0;
+
+  // Todos los partidos cuentan: los más antiguos tienen menos peso por decaimiento,
+  // y los recientes reciben un refuerzo adicional.
+  for (let i = 0; i < numbers.length; i++) {
+    const distanceFromMostRecent = (numbers.length - 1) - i;
+    const recencyWeight = Math.pow(normalizedDecay, distanceFromMostRecent);
+    const isRecent = i >= windowStart;
+    const finalWeight = recencyWeight * (isRecent ? recentWeight : 1);
+
+    weightedSum += numbers[i] * finalWeight;
+    totalWeight += finalWeight;
+  }
+
+  if (totalWeight === 0) return 0;
+  return weightedSum / totalWeight;
+}
+
 export function formatAverage(avg: number): string {
   return avg.toFixed(1);
 }
@@ -73,10 +103,18 @@ export function calculateGeneralScore(
   performance: PlayerPerformance,
   liveUpdateRating?: LiveUpdateRating | null,
   skills: PlayerSkill[] = [],
-  isSubstitute: boolean = false
+  isSubstitute: boolean = false,
+  recentAverage?: number,
+  prioritizeRecentForm: boolean = false
 ): number {
   // 1. Performance base (0-100 scale)
-  const performanceScore = average * 10;
+  // Use recent form as primary signal while keeping the long-term average as a stabilizer.
+  const effectiveRecentAverage = recentAverage ?? average;
+  const historicalWeight = prioritizeRecentForm ? 0.25 : 0.45;
+  const historicalWeightCap = matches > 20 ? 0.4 : 0.55;
+  const stabilizedHistoricalWeight = Math.min(historicalWeight, historicalWeightCap);
+  const formScore = (effectiveRecentAverage * (1 - stabilizedHistoricalWeight)) + (average * stabilizedHistoricalWeight);
+  const performanceScore = formScore * 10;
   
   // 2. Match-based weighting (Dampening)
   // We trust the average more as the player plays more matches.
@@ -93,8 +131,8 @@ export function calculateGeneralScore(
 
   // 3. Elite Performance Bonus
   // Players that consistently deliver exceptional ratings are prioritized regardless of build fit
-  if (average >= 8.5) baseScore += 5;
-  else if (average >= 8.0) baseScore += 2;
+  if (effectiveRecentAverage >= 8.5) baseScore += 5;
+  else if (effectiveRecentAverage >= 8.0 || average >= 8.0) baseScore += 2;
 
   // 4. Apply performance bonuses (Badges)
   if (performance.isHotStreak) baseScore += BADGE_BONUSES.HOT_STREAK;

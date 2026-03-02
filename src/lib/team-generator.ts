@@ -1,6 +1,6 @@
 import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, FormationSlot as FormationSlotType, IdealBuild, IdealBuildType } from './types';
 import { getAvailableStylesForPosition } from './types';
-import { calculateStats, calculateGeneralScore, getIdealBuildForPlayer, calculateProgressionStats, isSpecialCard, calculateAffinityWithBreakdown } from './utils';
+import { calculateStats, calculateGeneralScore, calculateRecencyWeightedAverage, getIdealBuildForPlayer, calculateProgressionStats, isSpecialCard, calculateAffinityWithBreakdown } from './utils';
 
 type CandidatePlayer = {
   player: Player;
@@ -23,7 +23,8 @@ export function generateIdealTeam(
   isFlexibleLaterals: boolean = false,
   isFlexibleWingers: boolean = false,
   targetIdealType: IdealBuildType = 'Contraataque largo',
-  selectionCriteria: 'general' | 'average' = 'general'
+  selectionCriteria: 'general' | 'average' = 'general',
+  prioritizeRecentForm: boolean = false
 ): IdealTeamSlot[] {
   const allPlayerCandidates: CandidatePlayer[] = players.flatMap(player => {
     if (nationality !== 'all' && player.nationality !== nationality) return [];
@@ -47,6 +48,7 @@ export function generateIdealTeam(
         const stats = calculateStats(ratings);
         const recentRatings = ratings.slice(-3);
         const recentStats = calculateStats(recentRatings);
+        const recentAverage = calculateRecencyWeightedAverage(ratings, 3, 2.5, 0.9);
         
         const performance: PlayerPerformance = {
             stats,
@@ -65,8 +67,8 @@ export function generateIdealTeam(
         const affinityBreakdown = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills);
         const affinityScore = affinityBreakdown.totalAffinityScore;
         
-        const generalScore = calculateGeneralScore(affinityScore, stats.average, stats.matches, performance, player.liveUpdateRating, card.skills, false);
-        const substituteScore = calculateGeneralScore(affinityScore, stats.average, stats.matches, performance, player.liveUpdateRating, card.skills, true);
+        const generalScore = calculateGeneralScore(affinityScore, stats.average, stats.matches, performance, player.liveUpdateRating, card.skills, false, recentAverage, prioritizeRecentForm);
+        const substituteScore = calculateGeneralScore(affinityScore, stats.average, stats.matches, performance, player.liveUpdateRating, card.skills, true, recentAverage, prioritizeRecentForm);
 
         return { player, card, position: pos, average: stats.average, affinityScore, generalScore, substituteScore, performance };
       }).filter((p): p is CandidatePlayer => p !== null);
