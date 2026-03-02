@@ -50,6 +50,14 @@ export function generateIdealTeam(
         const recentStats = calculateStats(recentRatings);
         const recentAverage = calculateRecencyWeightedAverage(ratings, 3, 2.5, 0.9);
         
+        const buildForPos = card.buildsByPosition?.[pos];
+        const specialCard = isSpecialCard(card.name);
+        const finalStats = specialCard || !buildForPos ? (card.attributeStats || {}) : calculateProgressionStats(card.attributeStats || {}, buildForPos, pos === 'PT');
+        const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds, targetIdealType, card.physicalAttributes?.height, buildForPos?.forcedBuildId);
+        const affinityBreakdown = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills);
+        const affinityScore = affinityBreakdown.totalAffinityScore;
+        const isSpecialist = !!bestBuild && bestBuild.profileName !== 'General' && affinityScore >= 92;
+
         const performance: PlayerPerformance = {
             stats,
             isHotStreak: stats.matches >= 3 && recentStats.average > stats.average + 0.5,
@@ -58,14 +66,8 @@ export function generateIdealTeam(
             isVersatile: averagesByPosition.size >= 3,
             isGameChanger: stats.matches >= 5 && stats.stdDev > 1.0 && stats.average >= 7.5,
             isStalwart: stats.matches >= 100 && stats.average >= 7.0,
+            isSpecialist,
         };
-        
-        const buildForPos = card.buildsByPosition?.[pos];
-        const specialCard = isSpecialCard(card.name);
-        const finalStats = specialCard || !buildForPos ? (card.attributeStats || {}) : calculateProgressionStats(card.attributeStats || {}, buildForPos, pos === 'PT');
-        const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds, targetIdealType, card.physicalAttributes?.height, buildForPos?.forcedBuildId);
-        const affinityBreakdown = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills);
-        const affinityScore = affinityBreakdown.totalAffinityScore;
         
         const generalScore = calculateGeneralScore(affinityScore, stats.average, stats.matches, performance, player.liveUpdateRating, card.skills, false, recentAverage, prioritizeRecentForm);
         const substituteScore = calculateGeneralScore(affinityScore, stats.average, stats.matches, performance, player.liveUpdateRating, card.skills, true, recentAverage, prioritizeRecentForm);
@@ -89,15 +91,36 @@ export function generateIdealTeam(
     return b.performance.stats.matches - a.performance.stats.matches;
   };
 
+  const getEffectiveSubstituteScore = (candidate: CandidatePlayer) => {
+    const matches = candidate.performance.stats.matches;
+    const average = candidate.performance.stats.average;
+    const testingBonus = matches > 0 && matches < 5 && average >= 7 ? 1.2 : 0;
+    const highVariancePenalty = matches > 0 && matches < 3 && candidate.performance.stats.stdDev > 1.2 ? 1.5 : 0;
+    return candidate.substituteScore + testingBonus - highVariancePenalty;
+  };
+
   const substituteSort = (a: CandidatePlayer, b: CandidatePlayer) => {
-    const isATesting = a.performance.stats.matches < 5;
-    const isBTesting = b.performance.stats.matches < 5;
-    if (isATesting && !isBTesting) return -1;
-    if (!isATesting && isBTesting) return 1;
-    
-    if (Math.abs(b.substituteScore - a.substituteScore) > 0.01) return b.substituteScore - a.substituteScore;
+    const effectiveA = getEffectiveSubstituteScore(a);
+    const effectiveB = getEffectiveSubstituteScore(b);
+    if (Math.abs(effectiveB - effectiveA) > 0.01) return effectiveB - effectiveA;
+
     if (Math.abs(b.affinityScore - a.affinityScore) > 0.01) return b.affinityScore - a.affinityScore;
     return b.performance.stats.matches - a.performance.stats.matches;
+  };
+
+  const passesLiveUpdateFilter = (candidate: CandidatePlayer, options: { isSub: boolean; relaxRatings: boolean }) => {
+    const rating = candidate.player.liveUpdateRating;
+    if (!rating) return true;
+    if (options.relaxRatings) return rating !== 'D' && rating !== 'E';
+
+    if (rating === 'A' || rating === 'B') return true;
+    if (rating === 'C') {
+      const scoreThreshold = options.isSub ? 83 : 86;
+      const baselineScore = options.isSub ? getEffectiveSubstituteScore(candidate) : candidate.generalScore;
+      return baselineScore >= scoreThreshold;
+    }
+
+    return false;
   };
 
   const findBestPlayer = (candidates: CandidatePlayer[], options: { isSub: boolean, minAffinity: number, relaxRatings: boolean, relaxAffinity: boolean }): CandidatePlayer | undefined => {
@@ -111,11 +134,7 @@ export function generateIdealTeam(
             if (!options.relaxAffinity && p.affinityScore < options.minAffinity) return false;
         }
         
-        if (!options.relaxRatings) {
-            if (p.player.liveUpdateRating !== 'A' && p.player.liveUpdateRating !== 'B') return false;
-        } else {
-            if (p.player.liveUpdateRating === 'D' || p.player.liveUpdateRating === 'E') return false;
-        }
+        if (!passesLiveUpdateFilter(p, { isSub: options.isSub, relaxRatings: options.relaxRatings })) return false;
         
         return true;
       });
