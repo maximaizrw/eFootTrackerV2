@@ -134,6 +134,7 @@ export default function Home() {
   const [isFlexibleLaterals, setFlexibleLaterals] = useState(false);
   const [isFlexibleWingers, setFlexibleWingers] = useState(false);
   const [selectionCriteria, setSelectionCriteria] = useState<'general' | 'average'>('general');
+  const [prioritizeRecentForm, setPrioritizeRecentForm] = useState(false);
   
   const [pagination, setPagination] = useState<Record<string, number>>({});
   
@@ -179,7 +180,8 @@ export default function Home() {
         isFlexibleLaterals, 
         isFlexibleWingers, 
         idealBuildType,
-        selectionCriteria
+        selectionCriteria,
+        prioritizeRecentForm
     ) : [];
 
     setIdealTeam(newTeam);
@@ -187,7 +189,7 @@ export default function Home() {
       title: "11 Ideal Generado",
       description: `Se ha generado un equipo para la formación "${formation.name}".`,
     });
-  }, [players, selectedFormationId, formations, idealBuilds, discardedCardIds, selectedLeague, selectedNationality, isFlexibleLaterals, isFlexibleWingers, idealBuildType, selectionCriteria, toast]);
+  }, [players, selectedFormationId, formations, idealBuilds, discardedCardIds, selectedLeague, selectedNationality, isFlexibleLaterals, isFlexibleWingers, idealBuildType, selectionCriteria, prioritizeRecentForm, toast]);
 
   useEffect(() => {
     if (idealTeam.length > 0) {
@@ -675,7 +677,7 @@ export default function Home() {
                <CardHeader>
                  <CardTitle className="flex items-center gap-2 text-accent"><Star />Generador de 11 Ideal</CardTitle>
                  <CardDescription>
-                   Configura tu táctica. El banquillo se llenará con jugadores en prueba (menos de 5 partidos) o rendimiento alto (>6 avg), siempre con >80 de afinidad.
+                   Configura tu táctica. El banquillo se llenará con jugadores en prueba (menos de 5 partidos) o rendimiento alto (&gt;6 avg), siempre con &gt;80 de afinidad.
                  </CardDescription>
                </CardHeader>
                <CardContent>
@@ -695,6 +697,8 @@ export default function Home() {
                     onFlexibleWingersChange={setFlexibleWingers}
                     selectionCriteria={selectionCriteria}
                     onSelectionCriteriaChange={setSelectionCriteria}
+                    prioritizeRecentForm={prioritizeRecentForm}
+                    onPrioritizeRecentFormChange={setPrioritizeRecentForm}
                   />
                   <div className="flex flex-wrap items-center gap-4 mt-6">
                     <Button onClick={handleGenerateTeam} disabled={!selectedFormationId}><Star className="mr-2 h-4 w-4" />Generar 11 Ideal</Button>
