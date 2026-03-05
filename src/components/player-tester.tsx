@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/
 import { Textarea } from "./ui/textarea";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { UploadCloud, Beaker, Star, Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, Check, ChevronsUpDown } from "lucide-react";
+import { UploadCloud, Beaker, Star, Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, Check, ChevronsUpDown, LayoutGrid } from "lucide-react";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "./ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import type { PlayerAttributeStats, IdealBuild, Position, PlayerStyle, BuildPosition, OutfieldBuild, GoalkeeperBuild, PlayerSkill } from "@/lib/types";
@@ -112,23 +112,46 @@ export function PlayerTester({ idealBuilds }: { idealBuilds: IdealBuild[] }) {
   const watchedHeight = useWatch({ control, name: "height" });
   const watchedWeight = useWatch({ control, name: "weight" });
 
-  React.useEffect(() => {
-    const available = getAvailableStylesForPosition(watchedPosition, true);
-    if (!available.includes(watchedStyle)) setValue('style', available[0] || 'Ninguno');
-  }, [watchedPosition, watchedStyle, setValue]);
+  const hasStats = React.useMemo(() => Object.keys(watchedStats || {}).length > 0, [watchedStats]);
 
-  React.useEffect(() => {
+  // Calculate affinities for ALL positions
+  const allPositionResults = React.useMemo(() => {
+    if (!hasStats) return [];
+    
     const base = getValues('stats');
-    if (Object.keys(base).length > 0) {
-        const { bestBuild, bestStyle } = getIdealBuildForPlayer(watchedStyle, watchedPosition, idealBuilds, 'Contraataque largo', watchedHeight);
-        const sugg = calculateProgressionSuggestions(base, bestBuild, watchedPosition === 'PT', progressionPoints);
-        const final = calculateProgressionStats(base, sugg, watchedPosition === 'PT');
+    return positions.map(pos => {
+        const { bestBuild, bestStyle } = getIdealBuildForPlayer(watchedStyle, pos, idealBuilds, 'Contraataque largo', watchedHeight);
+        // We use current points to calculate affinity per position
+        const sugg = calculateProgressionSuggestions(base, bestBuild, pos === 'PT', progressionPoints);
+        const final = calculateProgressionStats(base, sugg, pos === 'PT');
         const breakdown = calculateAffinityWithBreakdown(final, bestBuild, { height: watchedHeight, weight: watchedWeight }, watchedSkills as PlayerSkill[]);
-        setFinalPlayerStats(final); setProgressionSuggestions(sugg); setAffinityBreakdown(breakdown); setBestBuildStyle(bestStyle);
+        
+        return {
+            position: pos,
+            style: bestStyle,
+            affinity: breakdown.totalAffinityScore,
+            suggestions: sugg,
+            finalStats: final,
+            breakdown: breakdown
+        };
+    }).sort((a, b) => b.affinity - a.affinity);
+  }, [hasStats, watchedStyle, watchedSkills, watchedHeight, watchedWeight, idealBuilds, getValues, progressionPoints]);
+
+  // Sync selected detailed view when form position changes or when allPositionResults is recalculated
+  React.useEffect(() => {
+    const selectedResult = allPositionResults.find(r => r.position === watchedPosition);
+    if (selectedResult) {
+        setFinalPlayerStats(selectedResult.finalStats);
+        setProgressionSuggestions(selectedResult.suggestions);
+        setAffinityBreakdown(selectedResult.breakdown);
+        setBestBuildStyle(selectedResult.style);
     } else {
-        setFinalPlayerStats({}); setProgressionSuggestions({}); setAffinityBreakdown({ totalAffinityScore: 0, breakdown: [] }); setBestBuildStyle(null);
+        setFinalPlayerStats({});
+        setProgressionSuggestions({});
+        setAffinityBreakdown({ totalAffinityScore: 0, breakdown: [] });
+        setBestBuildStyle(null);
     }
-  }, [watchedStats, watchedPosition, watchedStyle, watchedSkills, watchedHeight, watchedWeight, idealBuilds, getValues, progressionPoints]);
+  }, [watchedPosition, allPositionResults]);
 
   const handleParse = () => {
     const lines = pastedText.split('\n').filter(l => l.trim() !== '');
@@ -154,61 +177,153 @@ export function PlayerTester({ idealBuilds }: { idealBuilds: IdealBuild[] }) {
     setValue('skills', cur.includes(s) ? cur.filter(x => x !== s) : [...cur, s], { shouldValidate: true });
   };
 
-  const hasStats = Object.keys(watchedStats).length > 0;
+  const handlePositionSelect = (pos: Position) => {
+    setValue('position', pos);
+  };
+
   const suggCats = watchedPosition === 'PT' ? goalkeeperCategories : outfieldCategories;
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-accent"><Beaker />Probador</CardTitle>
-        <CardDescription>Simula afinidades pegando estadísticas.</CardDescription>
+        <CardTitle className="flex items-center gap-2 text-accent"><Beaker />Probador Avanzado</CardTitle>
+        <CardDescription>Analiza el potencial de un jugador en todas las posiciones pegando sus estadísticas base.</CardDescription>
       </CardHeader>
-      <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="space-y-4 md:col-span-1">
-          <Textarea placeholder="Pega stats aquí..." value={pastedText} onChange={e => setPastedText(e.target.value)} className="min-h-[150px]" />
-          <Button onClick={handleParse} disabled={!pastedText}><UploadCloud className="mr-2 h-4 w-4" />Analizar</Button>
-          <Form {...form}>
-            <div className="space-y-4 pt-4">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="position" render={({ field }) => (
-                  <FormItem><FormLabel>Posición</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{positions.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select></FormItem>
-                )} />
-                <FormField control={form.control} name="style" render={({ field }) => (
-                  <FormItem><FormLabel>Estilo</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{getAvailableStylesForPosition(watchedPosition, true).map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></FormItem>
-                )} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="height" render={({ field }) => (<FormItem><FormLabel>Altura</FormLabel><FormControl><Input type="number" placeholder="cm" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
-                <FormField control={form.control} name="weight" render={({ field }) => (<FormItem><FormLabel>Peso</FormLabel><FormControl><Input type="number" placeholder="kg" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
-              </div>
-              <FormItem><FormLabel>Habilidades</FormLabel>
-                <Popover open={skillsPopoverOpen} onOpenChange={setSkillsPopoverOpen}>
-                  <PopoverTrigger asChild><Button variant="outline" className="w-full justify-between h-auto min-h-10"><div className="flex gap-1 flex-wrap">{watchedSkills.length > 0 ? watchedSkills.map(s => <Badge key={s} variant="secondary">{s}</Badge>) : <span className="text-muted-foreground text-xs">Seleccionar...</span>}</div><ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" /></Button></PopoverTrigger>
-                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0"><Command><CommandInput placeholder="Buscar..." /><CommandList><CommandEmpty>Sin resultados.</CommandEmpty>{playerSkillsList.map(s => <CommandItem key={s} value={s} onSelect={() => handleSkill(s)}><Check className={cn("mr-2 h-4 w-4", watchedSkills.includes(s) ? "opacity-100" : "opacity-0")} />{s}</CommandItem>)}</CommandList></Command></PopoverContent>
-                </Popover>
-              </FormItem>
-              <FormItem><FormLabel>Puntos de Progresión</FormLabel><Input type="number" placeholder="Ej: 50" value={progressionPoints ?? ''} onChange={e => setProgressionPoints(e.target.value ? parseInt(e.target.value, 10) : undefined)} /></FormItem>
+      <CardContent className="space-y-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* INPUT SECTION */}
+            <div className="space-y-4 md:col-span-1">
+                <Textarea placeholder="Pega stats aquí (formato texto o columna de números)..." value={pastedText} onChange={e => setPastedText(e.target.value)} className="min-h-[150px]" />
+                <Button onClick={handleParse} disabled={!pastedText} className="w-full"><UploadCloud className="mr-2 h-4 w-4" />Analizar Atributos</Button>
+                <Form {...form}>
+                    <div className="space-y-4 pt-4 border-t">
+                    <div className="grid grid-cols-1 gap-4">
+                        <FormField control={form.control} name="style" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Estilo de la Carta (Base)</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                <SelectContent>{playerStyles.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                            </Select>
+                        </FormItem>
+                        )} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField control={form.control} name="height" render={({ field }) => (<FormItem><FormLabel>Altura (cm)</FormLabel><FormControl><Input type="number" placeholder="cm" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
+                        <FormField control={form.control} name="weight" render={({ field }) => (<FormItem><FormLabel>Peso (kg)</FormLabel><FormControl><Input type="number" placeholder="kg" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
+                    </div>
+                    <FormItem>
+                        <FormLabel>Habilidades</FormLabel>
+                        <Popover open={skillsPopoverOpen} onOpenChange={setSkillsPopoverOpen}>
+                        <PopoverTrigger asChild><Button variant="outline" className="w-full justify-between h-auto min-h-10 text-left px-3"><div className="flex gap-1 flex-wrap">{watchedSkills.length > 0 ? watchedSkills.map(s => <Badge key={s} variant="secondary" className="text-[10px]">{s}</Badge>) : <span className="text-muted-foreground text-xs">Seleccionar...</span>}</div><ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" /></Button></PopoverTrigger>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0"><Command><CommandInput placeholder="Buscar habilidad..." /><CommandList><CommandEmpty>Sin resultados.</CommandEmpty>{playerSkillsList.map(s => <CommandItem key={s} value={s} onSelect={() => handleSkill(s)}><Check className={cn("mr-2 h-4 w-4", watchedSkills.includes(s) ? "opacity-100" : "opacity-0")} />{s}</CommandItem>)}</CommandList></Command></PopoverContent>
+                        </Popover>
+                    </FormItem>
+                    <FormItem>
+                        <FormLabel>Puntos de Progresión Disponibles</FormLabel>
+                        <Input type="number" placeholder="Ej: 50" value={progressionPoints ?? ''} onChange={e => setProgressionPoints(e.target.value ? parseInt(e.target.value, 10) : undefined)} />
+                    </FormItem>
+                    </div>
+                </Form>
             </div>
-          </Form>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 md:col-span-2 gap-6">
-            <div className="bg-muted/50 rounded-lg p-6 space-y-4">
-                <p className="text-lg font-semibold text-muted-foreground">Afinidad</p>
-                {hasStats ? <div className="text-center"><div className={cn("text-7xl font-bold flex items-center justify-center gap-2", getAverageColorClass(affinityBreakdown.totalAffinityScore/10))}><Star className="w-12 h-12" />{affinityBreakdown.totalAffinityScore.toFixed(2)}</div><p className="text-sm mt-1">Perfil: <span className="font-semibold text-primary">{bestBuildStyle || 'N/A'}</span></p></div> : <div className="text-5xl font-bold text-muted-foreground/50 text-center mt-8">-</div>}
-                {Object.values(progressionSuggestions).some(v => v && v > 0) && (
-                    <div className="w-full pt-4 mt-4 border-t"><p className="text-base font-semibold text-muted-foreground text-center mb-3">Sugerencias</p>
-                    <div className="space-y-2">{suggCats.map(c => { const v = (progressionSuggestions as any)[c.key]; return v > 0 ? (<div key={c.key} className="flex items-center justify-between p-2 bg-background/50 rounded-md"><span className="flex items-center gap-2 text-sm"><c.icon className="w-4 h-4" />{c.label}</span><span className="font-bold text-primary">{v}</span></div>) : null; })}</div></div>
+
+            {/* RESULTS SECTION */}
+            <div className="md:col-span-2 space-y-6">
+                {/* ALL POSITIONS GRID */}
+                <div className="space-y-3">
+                    <h3 className="text-sm font-bold text-muted-foreground uppercase flex items-center gap-2"><LayoutGrid className="h-4 w-4" /> Comparativa de Afinidades</h3>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-2">
+                        {hasStats ? (
+                            allPositionResults.map(res => {
+                                const isSelected = watchedPosition === res.position;
+                                return (
+                                    <button
+                                        key={res.position}
+                                        onClick={() => handlePositionSelect(res.position)}
+                                        className={cn(
+                                            "flex flex-col items-center justify-center p-2 rounded-lg border transition-all h-20",
+                                            isSelected ? "bg-primary border-primary text-primary-foreground shadow-lg scale-105" : "bg-muted/30 border-border hover:bg-muted/50 text-foreground"
+                                        )}
+                                    >
+                                        <span className="text-xs font-bold">{res.position}</span>
+                                        <div className="flex items-center gap-0.5 mt-1">
+                                            <Star className={cn("h-3 w-3", isSelected ? "text-primary-foreground" : "text-yellow-400")} />
+                                            <span className="text-sm font-black">{res.affinity.toFixed(0)}</span>
+                                        </div>
+                                        <span className={cn("text-[8px] mt-1 truncate w-full text-center", isSelected ? "text-primary-foreground/80" : "text-muted-foreground")}>
+                                            {res.style.split('(')[0]}
+                                        </span>
+                                    </button>
+                                );
+                            })
+                        ) : (
+                            <div className="col-span-full h-20 flex items-center justify-center border border-dashed rounded-lg text-muted-foreground text-xs">
+                                Ingresa estadísticas para ver la comparativa por posición
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* DETAILED VIEW FOR SELECTED POSITION */}
+                {hasStats && (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 border-t">
+                        <div className="bg-muted/50 rounded-lg p-6 space-y-4">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <p className="text-lg font-semibold text-muted-foreground">Posición: <span className="text-foreground">{watchedPosition}</span></p>
+                                    <p className="text-sm text-muted-foreground">Perfil: <span className="font-semibold text-primary">{bestBuildStyle || 'N/A'}</span></p>
+                                </div>
+                                <div className={cn("text-4xl font-bold flex items-center gap-1", getAverageColorClass(affinityBreakdown.totalAffinityScore/10))}>
+                                    <Star className="w-8 h-8" />
+                                    {affinityBreakdown.totalAffinityScore.toFixed(2)}
+                                </div>
+                            </div>
+                            
+                            {Object.values(progressionSuggestions).some(v => v && v > 0) && (
+                                <div className="w-full pt-4 mt-4 border-t">
+                                    <p className="text-sm font-bold text-muted-foreground uppercase mb-3">Entrenamiento Sugerido</p>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {suggCats.map(c => { 
+                                            const v = (progressionSuggestions as any)[c.key]; 
+                                            return v > 0 ? (
+                                                <div key={c.key} className="flex items-center justify-between p-2 bg-background/50 rounded-md border">
+                                                    <span className="flex items-center gap-2 text-xs truncate">
+                                                        <c.icon className="w-3 h-3 text-muted-foreground" />
+                                                        {c.label}
+                                                    </span>
+                                                    <span className="font-bold text-primary">{v}</span>
+                                                </div>
+                                            ) : null; 
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="bg-muted/50 rounded-lg p-6 space-y-4">
+                            <p className="text-sm font-bold text-muted-foreground uppercase">Stats Proyectados ({watchedPosition})</p>
+                            <div className="grid grid-cols-1 gap-1">
+                                {(watchedPosition === 'PT' ? goalkeeperStatsKeys : allStatsKeys).map(k => (
+                                    <StatDisplay key={k} label={statLabels[k]} value={finalPlayerStats[k]} />
+                                ))}
+                            </div>
+                        </div>
+                    </div>
                 )}
             </div>
-            <div className="bg-muted/50 rounded-lg p-6 space-y-4">
-                <p className="text-lg font-semibold text-muted-foreground">Stats Finales</p>
-                {hasStats ? <div className="w-full space-y-1">{(watchedPosition === 'PT' ? goalkeeperStatsKeys : allStatsKeys).map(k => <StatDisplay key={k} label={statLabels[k]} value={finalPlayerStats[k]} />)}</div> : <div className="text-5xl font-bold text-muted-foreground/50 text-center mt-8">-</div>}
-            </div>
-            {hasStats && <div className="md:col-span-2 pt-4"><p className="text-lg font-semibold text-muted-foreground text-center mb-3">Desglose</p><ScrollArea className="h-[400px]"><AffinityBreakdown breakdownResult={affinityBreakdown} /></ScrollArea></div>}
         </div>
+
+        {hasStats && (
+            <div className="pt-6 border-t">
+                <h3 className="text-sm font-bold text-muted-foreground uppercase mb-4 text-center">Desglose de Afinidad para {watchedPosition}</h3>
+                <ScrollArea className="h-[400px] border rounded-lg bg-background">
+                    <AffinityBreakdown breakdownResult={affinityBreakdown} tacticName={`Contraataque largo - ${watchedPosition}`} />
+                </ScrollArea>
+            </div>
+        )}
       </CardContent>
     </Card>
   );
 }
 
-const goalkeeperStatsKeys: (keyof PlayerAttributeStats)[] = ['goalkeeping', 'gkCatching', 'gkParrying', 'gkReflexes', 'gkReach'];
+const goalkeeperStatsKeys: (keyof PlayerAttributeStats)[] = ['goalkeeping', 'gkCatching', 'gkParrying', 'gkReflexes', 'gkReach', 'jump'];
