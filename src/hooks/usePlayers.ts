@@ -104,8 +104,9 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
                     if (ratingsForPos.length === 0) return null;
 
                     const stats = calculateStats(ratingsForPos);
-                    const recentRatings = ratingsForPos.slice(-3);
+                    const recentRatings = ratingsForPos.slice(-5);
                     const recentStats = calculateStats(recentRatings);
+                    const recentAverage = calculateRecencyWeightedAverage(ratingsForPos, 5, 2.5, 0.9);
 
                     const highPerfPositions = new Set<Position>();
                     for (const [p, avg] of averagesByPosition.entries()) {
@@ -148,8 +149,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
                     const affinityBreakdown = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills);
                     const affinityScore = affinityBreakdown.totalAffinityScore;
                     
-                    const formScore = calculateRecencyWeightedAverage(ratingsForPos, 3, 2.5, 0.9);
-                    const generalScore = calculateGeneralScore(affinityScore, stats.average, stats.matches, performance, player.liveUpdateRating, card.skills, false, formScore, false);
+                    const generalScore = calculateGeneralScore(affinityScore, stats.average, stats.matches, performance, player.liveUpdateRating, card.skills, false, recentAverage, false);
 
                     return { player, card, ratingsForPos, performance, affinityScore, generalScore, position: ratedPos, affinityBreakdown };
                 }).filter((p): p is FlatPlayer => p !== null);
@@ -402,7 +402,6 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
         if (cardToUpdate && !isSpecialCard(cardToUpdate.name)) {
             cardToUpdate.totalProgressionPoints = points;
             
-            // Trigger affinity recalculation for all rated positions
             if (cardToUpdate.buildsByPosition) {
                 for (const posKey in cardToUpdate.buildsByPosition) {
                     const pos = posKey as Position;

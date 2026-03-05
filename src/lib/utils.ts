@@ -30,7 +30,7 @@ export function calculateStats(numbers: number[]): PlayerRatingStats {
 
 export function calculateRecencyWeightedAverage(
   numbers: number[],
-  recentWindow: number = 3,
+  recentWindow: number = 5,
   recentWeight: number = 2.5,
   decayFactor: number = 0.9
 ): number {
@@ -42,8 +42,6 @@ export function calculateRecencyWeightedAverage(
   let weightedSum = 0;
   let totalWeight = 0;
 
-  // Todos los partidos cuentan: los más antiguos tienen menos peso por decaimiento,
-  // y los recientes reciben un refuerzo adicional.
   for (let i = 0; i < numbers.length; i++) {
     const distanceFromMostRecent = (numbers.length - 1) - i;
     const recencyWeight = Math.pow(normalizedDecay, distanceFromMostRecent);
@@ -87,18 +85,18 @@ export const BADGE_BONUSES = {
   PROMISING: 1, 
   GAME_CHANGER: 2, 
   STALWART: 2, 
-  SPECIALIST: 4 // Potenciado para favorecer roles definidos
+  SPECIALIST: 4 
 };
 
 export const LIVE_UPDATE_BONUSES: Record<LiveUpdateRating, number> = { A: 8, B: 4, C: 0, D: -5, E: -10 };
 
 /**
  * Optimized General Score Algorithm.
- * Balances Tactical Fit vs. Real Performance with Experience Dampening.
+ * Combines Tactical Affinity with a balanced mix of Global Average and Recent Performance.
  */
 export function calculateGeneralScore(
   affinityScore: number, 
-  average: number, 
+  overallAverage: number, 
   matches: number,
   performance: PlayerPerformance,
   liveUpdateRating?: LiveUpdateRating | null,
@@ -107,20 +105,19 @@ export function calculateGeneralScore(
   recentAverage?: number,
   prioritizeRecentForm: boolean = false
 ): number {
-  // 1. Performance base (0-100 scale)
-  // Use recent form as primary signal while keeping the long-term average as a stabilizer.
-  const effectiveRecentAverage = recentAverage ?? average;
-  const historicalWeight = prioritizeRecentForm ? 0.25 : 0.45;
-  const historicalWeightCap = matches > 20 ? 0.4 : 0.55;
-  const stabilizedHistoricalWeight = Math.min(historicalWeight, historicalWeightCap);
-  const formScore = (effectiveRecentAverage * (1 - stabilizedHistoricalWeight)) + (average * stabilizedHistoricalWeight);
-  const performanceScore = formScore * 10;
+  // 1. PERFORMANCE BLOCK (0-100 scale)
+  // Split between Historical Average and Recent (Last 5) Performance
+  const effectiveRecentAverage = recentAverage ?? overallAverage;
   
-  // 2. Match-based weighting (Dampening)
-  // We trust the average more as the player plays more matches.
-  // < 3 matches: Trust affinity 80%, Performance 20% (Avoid luck bias)
-  // 3-10 matches: Dynamic transition
-  // > 10 matches: Balanced 50/50 mix
+  // Weighting for the performance block itself
+  const recentWeight = prioritizeRecentForm ? 0.7 : 0.3;
+  const overallWeight = 1 - recentWeight;
+  
+  const combinedPerformanceAvg = (overallAverage * overallWeight) + (effectiveRecentAverage * recentWeight);
+  const performanceScore = combinedPerformanceAvg * 10;
+  
+  // 2. MIX BLOCK (Performance vs Affinity)
+  // Confidence Curve: Trust affinity more when matches are low.
   let perfWeight = 0.5;
   if (matches < 3) perfWeight = 0.2;
   else if (matches < 10) perfWeight = 0.2 + (matches - 3) * (0.3 / 7);
@@ -129,12 +126,10 @@ export function calculateGeneralScore(
   
   let baseScore = (affinityScore * affinityWeight) + (performanceScore * perfWeight);
 
-  // 3. Elite Performance Bonus
-  // Players that consistently deliver exceptional ratings are prioritized regardless of build fit
+  // 3. BONUSES
   if (effectiveRecentAverage >= 8.5) baseScore += 5;
-  else if (effectiveRecentAverage >= 8.0 || average >= 8.0) baseScore += 2;
+  else if (effectiveRecentAverage >= 8.0) baseScore += 2;
 
-  // 4. Apply performance bonuses (Badges)
   if (performance.isHotStreak) baseScore += BADGE_BONUSES.HOT_STREAK;
   if (performance.isSpecialist) baseScore += BADGE_BONUSES.SPECIALIST;
   if (performance.isConsistent) baseScore += BADGE_BONUSES.CONSISTENT;
@@ -143,18 +138,14 @@ export function calculateGeneralScore(
   if (performance.isPromising) baseScore += BADGE_BONUSES.PROMISING;
   if (performance.isGameChanger) baseScore += BADGE_BONUSES.GAME_CHANGER;
   
-  // 5. Condition / Live Update (Critical for weekly performance)
   if (liveUpdateRating) {
     baseScore += LIVE_UPDATE_BONUSES[liveUpdateRating] || 0;
   }
 
-  // 6. Role-specific adjustments
   if (isSubstitute && skills.includes('Super refuerzo')) {
-    baseScore += 3; // Boosted impact for bench players
+    baseScore += 3;
   }
 
-  // 7. Consistency Check
-  // Penalize high standard deviation after some experience (unreliable players)
   if (matches >= 5 && performance.stats.stdDev > 1.2) {
     baseScore -= 2;
   }
