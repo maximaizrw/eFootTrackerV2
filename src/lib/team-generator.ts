@@ -91,34 +91,24 @@ export function generateIdealTeam(
     return b.performance.stats.matches - a.performance.stats.matches;
   };
 
-  const getEffectiveSubstituteScore = (candidate: CandidatePlayer) => {
-    return candidate.substituteScore;
-  };
-
   const substituteSort = (a: CandidatePlayer, b: CandidatePlayer) => {
     // CRITERIO PRINCIPAL: MENOS PARTIDOS SIEMPRE (Priorizar rodaje)
     const matchGap = a.performance.stats.matches - b.performance.stats.matches;
     if (matchGap !== 0) return matchGap;
 
     // CRITERIO SECUNDARIO: PUNTAJE DE SUPLENTE (Rendimiento + Afinidad)
-    const scoreA = getEffectiveSubstituteScore(a);
-    const scoreB = getEffectiveSubstituteScore(b);
-    if (Math.abs(scoreB - scoreA) > 0.01) return scoreB - scoreA;
+    if (Math.abs(b.substituteScore - a.substituteScore) > 0.01) return b.substituteScore - a.substituteScore;
 
     return b.affinityScore - a.affinityScore;
   };
 
-  const passesLiveUpdateFilter = (candidate: CandidatePlayer, options: { isSub: boolean; relaxRatings: boolean }) => {
+  const passesLiveUpdateFilter = (candidate: CandidatePlayer, options: { relaxRatings: boolean }) => {
     const rating = candidate.player.liveUpdateRating;
     if (!rating) return true;
-    if (options.relaxRatings) return rating !== 'D' && rating !== 'E';
+    if (options.relaxRatings) return true; // In relaxation mode, we allow D/E as a last resort
 
-    if (rating === 'A' || rating === 'B') return true;
-    if (rating === 'C') {
-      const scoreThreshold = options.isSub ? 83 : 86;
-      const baselineScore = options.isSub ? getEffectiveSubstituteScore(candidate) : candidate.generalScore;
-      return baselineScore >= scoreThreshold;
-    }
+    // A, B and C are always allowed now.
+    if (rating === 'A' || rating === 'B' || rating === 'C') return true;
 
     return false;
   };
@@ -140,7 +130,7 @@ export function generateIdealTeam(
             if (!options.relaxAffinity && p.affinityScore < options.minAffinity) return false;
         }
         
-        if (!passesLiveUpdateFilter(p, { isSub: options.isSub, relaxRatings: options.relaxRatings })) return false;
+        if (!passesLiveUpdateFilter(p, { relaxRatings: options.relaxRatings })) return false;
         
         return true;
       });
@@ -184,20 +174,7 @@ export function generateIdealTeam(
     return filtered.sort(isSub ? substituteSort : starterSort);
   }
 
-  const formationPositions = new Set(formation.slots.map(s => s.position));
-  if (isFlexibleLaterals) {
-      if (formationPositions.has('LI') || formationPositions.has('LD')) {
-          formationPositions.add('LI');
-          formationPositions.add('LD');
-      }
-  }
-  if (isFlexibleWingers) {
-      if (formationPositions.has('EXI') || formationPositions.has('EXD')) {
-          formationPositions.add('EXI');
-          formationPositions.add('EXD');
-      }
-  }
-
+  // --- 1. SELECCIÓN DE TITULARES ---
   for (const slot of formation.slots) {
     let cand = getCandidatesForSlot(slot, true, false, false);
     let starter = findBestPlayer(cand, { isSub: false, minAffinity: 80, relaxRatings: false, relaxAffinity: false });
@@ -220,6 +197,21 @@ export function generateIdealTeam(
     finalTeamSlots.push({ starter: starter ? { ...starter, assignedPosition: slot.position } : null, substitute: null });
   }
   
+  // --- 2. SELECCIÓN DE SUPLENTES (Basado en posiciones de la formación) ---
+  const formationPositions = new Set(formation.slots.map(s => s.position));
+  if (isFlexibleLaterals) {
+      if (formationPositions.has('LI') || formationPositions.has('LD')) {
+          formationPositions.add('LI');
+          formationPositions.add('LD');
+      }
+  }
+  if (isFlexibleWingers) {
+      if (formationPositions.has('EXI') || formationPositions.has('EXD')) {
+          formationPositions.add('EXI');
+          formationPositions.add('EXD');
+      }
+  }
+
   const eligibleSubsList = allPlayerCandidates
     .filter(p => formationPositions.has(p.position))
     .sort(substituteSort);
@@ -230,11 +222,12 @@ export function generateIdealTeam(
           if (p.position !== pos) return false;
           if (p.affinityScore < 80) return false;
           if (!isEligibleSubstituteByPerformance(p)) return false;
-          if (!passesLiveUpdateFilter(p, { isSub: true, relaxRatings: true })) return false;
+          if (!passesLiveUpdateFilter(p, { relaxRatings: false })) return false;
           return true;
       });
   }
 
+  // Intentamos llenar 11 slots de suplentes basados en los puestos titulares
   finalTeamSlots.forEach((slot, i) => {
     const originalSlot = formation.slots[i];
     const subPos = (slot.starter && slot.starter.position !== originalSlot.position) ? slot.starter.position : originalSlot.position;
@@ -248,6 +241,7 @@ export function generateIdealTeam(
     }
   });
 
+  // Si faltan suplentes, buscamos cualquier jugador apto para las posiciones de la formación
   const remainingSubSlotsCount = finalTeamSlots.filter(s => s.substitute === null).length;
   if (remainingSubSlotsCount > 0) {
       const unfilledIndices = finalTeamSlots.map((s, i) => s.substitute === null ? i : -1).filter(i => i !== -1);
@@ -270,6 +264,7 @@ export function generateIdealTeam(
       });
   }
 
+  // 12º suplente (Extra)
   const extraSub = eligibleSubsList.find(p => {
       if (usedPlayerIds.has(p.player.id) || usedCardIds.has(p.card.id) || discardedCardIds.has(p.card.id)) return false;
       return true;
