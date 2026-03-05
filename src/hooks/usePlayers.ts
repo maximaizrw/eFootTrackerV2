@@ -10,7 +10,7 @@ import { getAvailableStylesForPosition, playerSkillsList } from '@/lib/types';
 import { normalizeText, normalizeStyleName, calculateProgressionStats, getIdealBuildForPlayer, isSpecialCard, calculateProgressionSuggestions, calculateAffinityWithBreakdown, calculateStats, calculateGeneralScore, calculateRecencyWeightedAverage } from '@/lib/utils';
 
 
-export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: IdealBuildType = 'Contraataque largo') {
+export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: IdealBuildType = 'Contraataque largo', prioritizeRecentForm: boolean = false) {
   const [players, setPlayers] = useState<Player[]>([]);
   const [flatPlayers, setFlatPlayers] = useState<FlatPlayer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -131,7 +131,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
                         isHotStreak: stats.matches >= 3 && recentStats.average > stats.average + 0.5,
                         isConsistent: stats.matches >= 5 && stats.stdDev < 0.5,
                         isPromising: stats.matches > 0 && stats.matches < 5 && stats.average >= 7.0,
-                        isVersatile: highPerfPositions.size >= 3,
+                        isVersatile: averagesByPosition.size >= 3,
                         isGameChanger: stats.matches >= 5 && stats.stdDev > 1.0 && stats.average >= 7.5,
                         isStalwart: stats.matches >= 100 && stats.average >= 7.0,
                         isSpecialist: isSpecialist,
@@ -149,7 +149,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
                     const affinityBreakdown = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills);
                     const affinityScore = affinityBreakdown.totalAffinityScore;
                     
-                    const generalScore = calculateGeneralScore(affinityScore, stats.average, stats.matches, performance, player.liveUpdateRating, card.skills, false, recentAverage, false);
+                    const generalScore = calculateGeneralScore(affinityScore, stats.average, stats.matches, performance, player.liveUpdateRating, card.skills, false, recentAverage, prioritizeRecentForm);
 
                     return { player, card, ratingsForPos, performance, affinityScore, generalScore, position: ratedPos, affinityBreakdown };
                 }).filter((p): p is FlatPlayer => p !== null);
@@ -157,7 +157,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
         );
         setFlatPlayers(allFlatPlayers);
     }
-  }, [players, idealBuilds]);
+  }, [players, idealBuilds, prioritizeRecentForm]);
 
 
   const addRating = async (values: AddRatingFormValues) => {

@@ -61,6 +61,9 @@ export default function Home() {
 
   const idealBuildType: IdealBuildType = 'Contraataque largo';
 
+  // State shared between setup and hook to keep scores consistent
+  const [prioritizeRecentForm, setPrioritizeRecentForm] = useState(false);
+
   const { 
     players, 
     flatPlayers,
@@ -79,7 +82,7 @@ export default function Home() {
     updateLiveUpdateRating,
     resetAllLiveUpdateRatings,
     updateProgressionPoints,
-  } = usePlayers(idealBuilds, idealBuildType);
+  } = usePlayers(idealBuilds, idealBuildType, prioritizeRecentForm);
 
   const {
     formations,
@@ -134,7 +137,6 @@ export default function Home() {
   const [isFlexibleLaterals, setFlexibleLaterals] = useState(false);
   const [isFlexibleWingers, setFlexibleWingers] = useState(false);
   const [selectionCriteria, setSelectionCriteria] = useState<'general' | 'average'>('general');
-  const [prioritizeRecentForm, setPrioritizeRecentForm] = useState(false);
   
   const [pagination, setPagination] = useState<Record<string, number>>({});
   
@@ -551,6 +553,7 @@ export default function Home() {
                 width={500}
                 height={500}
                 className="object-contain max-h-[80vh]"
+                unoptimized
               />
             )}
           </div>
