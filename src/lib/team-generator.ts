@@ -100,6 +100,10 @@ export function generateIdealTeam(
   };
 
   const substituteSort = (a: CandidatePlayer, b: CandidatePlayer) => {
+    const aIsTesting = a.performance.stats.matches < 5;
+    const bIsTesting = b.performance.stats.matches < 5;
+    if (aIsTesting !== bIsTesting) return aIsTesting ? -1 : 1;
+
     const effectiveA = getEffectiveSubstituteScore(a);
     const effectiveB = getEffectiveSubstituteScore(b);
     if (Math.abs(effectiveB - effectiveA) > 0.01) return effectiveB - effectiveA;
@@ -123,13 +127,19 @@ export function generateIdealTeam(
     return false;
   };
 
+  const isEligibleSubstituteByPerformance = (candidate: CandidatePlayer) => {
+    const { matches, average } = candidate.performance.stats;
+    if (matches < 5) return true;
+    return average > 6;
+  };
+
   const findBestPlayer = (candidates: CandidatePlayer[], options: { isSub: boolean, minAffinity: number, relaxRatings: boolean, relaxAffinity: boolean }): CandidatePlayer | undefined => {
       return candidates.find(p => {
         if (usedPlayerIds.has(p.player.id) || usedCardIds.has(p.card.id) || discardedCardIds.has(p.card.id)) return false;
         
         if (options.isSub) {
             if (p.affinityScore < 80) return false;
-            if (p.performance.stats.matches >= 5 && p.performance.stats.average <= 6) return false;
+            if (!isEligibleSubstituteByPerformance(p)) return false;
         } else {
             if (!options.relaxAffinity && p.affinityScore < options.minAffinity) return false;
         }
