@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from 'next/image';
@@ -236,6 +237,7 @@ const PlayerTableMemo = memo(function PlayerTable({
                             width={40}
                             height={40}
                             className="bg-transparent object-contain w-8 h-8 md:w-10 md:h-10"
+                            unoptimized
                           />
                         </button>
                       ) : (

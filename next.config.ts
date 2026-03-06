@@ -9,31 +9,21 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  experimental: {
+    allowedDevOrigins: [
+      '6000-firebase-studio-1756832756924.cluster-r7kbxfo3fnev2vskbkhhphetq6.cloudworkstations.dev',
+      '9000-firebase-studio-1756832756924.cluster-r7kbxfo3fnev2vskbkhhphetq6.cloudworkstations.dev',
+    ],
+  },
   images: {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'placehold.co',
-        port: '',
-        pathname: '/**',
+        hostname: '**',
       },
       {
-        protocol: 'https',
-        hostname: 'efootballhub.net',
-        port: '',
-        pathname: '/images/efootball24/players/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'i.ibb.co',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'ibb.co',
-        port: '',
-        pathname: '/**',
+        protocol: 'http',
+        hostname: '**',
       },
     ],
   },
