@@ -128,7 +128,7 @@ const MatchHistory = ({ matches, formationId, onDeleteMatchResult }: { matches: 
   )
 }
 
-const FormationCard = ({ formation, onAddMatch, onDeleteFormation, onEdit, onViewImage, onDeleteMatchResult, onGenerateIdealTeam }: Omit<FormationsDisplayProps, 'formations'> & { onGenerateIdealTeam: (id: string) => void }) => {
+const FormationCard = ({ formation, onAddMatch, onDeleteFormation, onEdit, onViewImage, onDeleteMatchResult, onGenerateIdealTeam }: any) => {
     const stats = calculateStats(formation.matches);
     const effectivenessColor = 
       stats.effectiveness >= 66 ? 'text-green-500' :
@@ -181,6 +181,8 @@ const FormationCard = ({ formation, onAddMatch, onDeleteFormation, onEdit, onVie
                           fill
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                           className="object-cover"
+                          unoptimized
+                          referrerPolicy="no-referrer"
                         />
                     </div>
                   </button>
@@ -197,6 +199,8 @@ const FormationCard = ({ formation, onAddMatch, onDeleteFormation, onEdit, onVie
                         fill
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         className="object-cover"
+                        unoptimized
+                        referrerPolicy="no-referrer"
                       />
                   </div>
                 </button>
@@ -299,7 +303,7 @@ const FormationCard = ({ formation, onAddMatch, onDeleteFormation, onEdit, onVie
     );
 };
 
-const FormationRow = ({ formation, onAddMatch, onEdit, onDeleteFormation, onGenerateIdealTeam }: Omit<FormationsDisplayProps, 'formations' | 'onViewImage' | 'onDeleteMatchResult' | 'onAddMatch'> & { onAddMatch: (id: string, name: string) => void, formation: FormationWithStats }) => {
+const FormationRow = ({ formation, onAddMatch, onEdit, onDeleteFormation, onGenerateIdealTeam }: any) => {
     const { stats } = formation;
     const effectivenessColor = 
       stats.effectiveness >= 66 ? 'text-green-500' :
@@ -381,12 +385,12 @@ const FormationRow = ({ formation, onAddMatch, onEdit, onDeleteFormation, onGene
     );
 };
 
-const FormationsDisplayMemo = memo(function FormationsDisplay({ formations, onAddMatch, onDeleteFormation, onEdit, onViewImage, onDeleteMatchResult, onGenerateIdealTeam }: FormationsDisplayProps) {
+const FormationsDisplayMemo = memo(function FormationsDisplay({ formations, onAddMatch, onDeleteFormation, onEdit, onViewImage, onDeleteMatchResult, onGenerateIdealTeam }: any) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [sortBy, setSortBy] = useState<SortByType>('effectiveness');
 
   const formationsWithStats: FormationWithStats[] = useMemo(() => {
-    return formations.map(f => ({
+    return formations.map((f: any) => ({
         ...f,
         stats: calculateStats(f.matches)
     }));
@@ -422,7 +426,7 @@ const FormationsDisplayMemo = memo(function FormationsDisplay({ formations, onAd
             {viewMode === 'list' && (
                 <div>
                      <label className="text-sm font-medium mr-2">Ordenar por:</label>
-                    <ToggleGroup type="single" size="sm" value={sortBy} onValueChange={(value: SortByType) => value && setSortBy(value)}>
+                    <ToggleGroup type="single" size="sm" value={sortBy} onValueChange={(value: any) => value && setSortBy(value)}>
                         <ToggleGroupItem value="effectiveness" aria-label="Ordenar por efectividad">
                             <BarChart className="h-4 w-4 mr-2"/> Efectividad
                         </ToggleGroupItem>
@@ -436,7 +440,7 @@ const FormationsDisplayMemo = memo(function FormationsDisplay({ formations, onAd
                 </div>
             )}
             <div className={cn(viewMode === 'list' ? 'flex-shrink-0' : 'w-full flex justify-end')}>
-                <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as 'grid' | 'list')}>
+                <ToggleGroup type="single" value={viewMode} onValueChange={(value: any) => value && setViewMode(value)}>
                     <ToggleGroupItem value="grid" aria-label="Vista de cuadrícula">
                         <LayoutGrid className="h-4 w-4" />
                     </ToggleGroupItem>

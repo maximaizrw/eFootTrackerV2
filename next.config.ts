@@ -16,7 +16,7 @@ const nextConfig: NextConfig = {
     ],
   },
   images: {
-    // Activamos unoptimized global para que cualquier URL externa cargue sin restricciones de dominio
+    // Forzamos el uso de etiquetas <img> estándar para evitar procesamientos del servidor que fallen con dominios externos
     unoptimized: true,
     remotePatterns: [
       {

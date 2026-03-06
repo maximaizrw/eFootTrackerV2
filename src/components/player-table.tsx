@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from 'next/image';
@@ -148,7 +149,15 @@ const PlayerTableMemo = memo(function PlayerTable({
                   <div className="flex items-center gap-2">
                     {card.imageUrl ? (
                       <button onClick={() => onViewImage(card.imageUrl!, `${player.name}`)} className="rounded-full overflow-hidden">
-                        <Image src={card.imageUrl} alt={card.name} width={40} height={40} className="w-8 h-8 md:w-10 md:h-10 object-contain" unoptimized />
+                        <Image 
+                          src={card.imageUrl} 
+                          alt={card.name} 
+                          width={40} 
+                          height={40} 
+                          className="w-8 h-8 md:w-10 md:h-10 object-contain" 
+                          unoptimized 
+                          referrerPolicy="no-referrer"
+                        />
                       </button>
                     ) : <div className="w-8 h-8 md:w-10 md:h-10 bg-muted rounded-full" />}
                     <div>
