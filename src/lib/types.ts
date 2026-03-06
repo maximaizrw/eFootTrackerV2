@@ -150,6 +150,8 @@ export type MatchResult = {
   date: string;
 };
 
+export const positionsList = positions;
+
 export const FormationSlotSchema = z.object({
   position: z.enum(positions),
   styles: z.array(z.string()).optional().default([]),
@@ -229,47 +231,6 @@ export function getAvailableStylesForPosition(position: Position, includeNone: b
             return [...playerStyles];
     }
 }
-
-export type AddRatingFormValues = {
-  playerId?: string;
-  playerName: string;
-  nationality: Nationality;
-  cardName: string;
-  position: Position;
-  style: PlayerStyle;
-  league?: League;
-  rating: number;
-};
-
-export type EditCardFormValues = {
-  playerId: string;
-  cardId: string;
-  currentCardName: string;
-  currentStyle: PlayerStyle;
-  league?: League;
-  imageUrl?: string;
-};
-
-export type EditPlayerFormValues = {
-  playerId: string;
-  currentPlayerName: string;
-  nationality: Nationality;
-  permanentLiveUpdateRating?: boolean;
-};
-
-export type AddFormationFormValues = {
-  name: string;
-  creator?: string;
-  playStyle: FormationPlayStyle;
-  slots: FormationSlot[];
-  imageUrl?: string;
-  secondaryImageUrl?: string;
-  sourceUrl?: string;
-};
-
-export type EditFormationFormValues = AddFormationFormValues & {
-  id: string;
-};
 
 export const positionLabels: Record<Position, string> = {
     'PT': 'PT',

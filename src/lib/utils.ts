@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { PlayerAttributeStats, PlayerBuild, Position, LiveUpdateRating, Tier } from "./types";
+import type { PlayerAttributeStats, Position, LiveUpdateRating, Tier } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -127,6 +127,7 @@ export function calculateFinalScore(
 export function getProxiedImageUrl(url: string | undefined): string {
   if (!url) return '';
   if (url.includes('placehold.co')) return url;
+  // Proxy para saltar bloqueos de origen (CORS/CORP)
   return `https://images.weserv.nl/?url=${encodeURIComponent(url)}&default=${encodeURIComponent(url)}`;
 }
 
@@ -152,3 +153,18 @@ export const symmetricalPositionMap: Record<Position, Position> = {
   SD: 'SD',
   DC: 'DC',
 };
+
+export const BADGE_BONUSES = {
+    HOT_STREAK: 2,
+    CONSISTENT: 1.5,
+    VERSATILE: 1,
+    PROMISING: 3,
+    GAME_CHANGER: 2.5,
+    STALWART: 2,
+    SPECIALIST: 4
+};
+
+export function isSpecialCard(name: string): boolean {
+  const n = name.toLowerCase();
+  return n.includes('potw') || n.includes('pots') || n.includes('potm');
+}

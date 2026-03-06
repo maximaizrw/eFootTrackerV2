@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, memo, useMemo } from 'react';
@@ -7,7 +6,7 @@ import Link from 'next/link';
 import type { FormationStats, MatchResult } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Trash2, Link as LinkIcon, Trophy, LayoutGrid, List, Pencil, History, Star, Target, BarChart, ArrowDownUp } from 'lucide-react';
+import { PlusCircle, Trash2, Link as LinkIcon, Trophy, LayoutGrid, List, Pencil, History, Star, Target, BarChart } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
@@ -21,7 +20,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { cn } from '@/lib/utils';
+import { cn, getProxiedImageUrl } from '@/lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,8 +36,7 @@ import {
 type FormationWithStats = FormationStats & { stats: ReturnType<typeof calculateStats> };
 type SortByType = 'effectiveness' | 'goals' | 'shots';
 
-
-const calculateStats = (matches: FormationStats['matches']) => {
+const calculateStats = (matches: MatchResult[]) => {
   const total = matches.length;
   if (total === 0) {
     return { wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, effectiveness: 0, total, shotsOnGoal: 0, shotsPerMatch: 0, goalsForPerMatch: 0 };
@@ -52,7 +50,6 @@ const calculateStats = (matches: FormationStats['matches']) => {
   const goalDifference = goalsFor - goalsAgainst;
   
   const goalsForPerMatch = goalsFor / total;
-
   const shotsOnGoal = matches.reduce((acc, m) => acc + (m.shotsOnGoal || 0), 0);
   const shotsPerMatch = shotsOnGoal / total;
 
@@ -128,7 +125,7 @@ const MatchHistory = ({ matches, formationId, onDeleteMatchResult }: { matches: 
   )
 }
 
-const FormationCard = ({ formation, onAddMatch, onDeleteFormation, onEdit, onViewImage, onDeleteMatchResult, onGenerateIdealTeam }: Omit<FormationsDisplayProps, 'formations'> & { onGenerateIdealTeam: (id: string) => void }) => {
+const FormationCard = ({ formation, onAddMatch, onDeleteFormation, onEdit, onViewImage, onDeleteMatchResult, onGenerateIdealTeam }: any) => {
     const stats = calculateStats(formation.matches);
     const effectivenessColor = 
       stats.effectiveness >= 66 ? 'text-green-500' :
@@ -176,11 +173,12 @@ const FormationCard = ({ formation, onAddMatch, onDeleteFormation, onEdit, onVie
                 >
                     <div className="aspect-video relative w-full bg-muted">
                         <Image
-                          src={formation.imageUrl}
+                          src={getProxiedImageUrl(formation.imageUrl)}
                           alt={`Táctica Principal de ${formation.name}`}
                           fill
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                           className="object-cover"
+                          unoptimized
                         />
                     </div>
                   </button>
@@ -192,11 +190,12 @@ const FormationCard = ({ formation, onAddMatch, onDeleteFormation, onEdit, onVie
                 >
                   <div className="aspect-video relative w-full bg-muted">
                       <Image
-                        src={formation.secondaryImageUrl}
+                        src={getProxiedImageUrl(formation.secondaryImageUrl)}
                         alt={`Táctica Secundaria de ${formation.name}`}
                         fill
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         className="object-cover"
+                        unoptimized
                       />
                   </div>
                 </button>
@@ -299,7 +298,7 @@ const FormationCard = ({ formation, onAddMatch, onDeleteFormation, onEdit, onVie
     );
 };
 
-const FormationRow = ({ formation, onAddMatch, onEdit, onDeleteFormation, onGenerateIdealTeam }: Omit<FormationsDisplayProps, 'formations' | 'onViewImage' | 'onDeleteMatchResult' | 'onAddMatch'> & { onAddMatch: (id: string, name: string) => void, formation: FormationWithStats }) => {
+const FormationRow = ({ formation, onAddMatch, onEdit, onDeleteFormation, onGenerateIdealTeam }: any) => {
     const { stats } = formation;
     const effectivenessColor = 
       stats.effectiveness >= 66 ? 'text-green-500' :
@@ -381,12 +380,12 @@ const FormationRow = ({ formation, onAddMatch, onEdit, onDeleteFormation, onGene
     );
 };
 
-const FormationsDisplayMemo = memo(function FormationsDisplay({ formations, onAddMatch, onDeleteFormation, onEdit, onViewImage, onDeleteMatchResult, onGenerateIdealTeam }: FormationsDisplayProps) {
+const FormationsDisplayMemo = memo(function FormationsDisplay({ formations, onAddMatch, onDeleteFormation, onEdit, onViewImage, onDeleteMatchResult, onGenerateIdealTeam }: any) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [sortBy, setSortBy] = useState<SortByType>('effectiveness');
 
   const formationsWithStats: FormationWithStats[] = useMemo(() => {
-    return formations.map(f => ({
+    return formations.map((f: any) => ({
         ...f,
         stats: calculateStats(f.matches)
     }));

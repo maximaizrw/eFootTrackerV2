@@ -5,7 +5,7 @@ import { db } from '@/lib/firebase-config';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, setDoc } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import { v4 as uuidv4 } from 'uuid';
-import type { Player, PlayerCard, Position, AddRatingFormValues, EditCardFormValues, EditPlayerFormValues, PlayerBuild, FlatPlayer, PlayerPerformance, LiveUpdateRating, Tier } from '@/lib/types';
+import type { Player, PlayerCard, Position, AddRatingFormValues, PlayerBuild, FlatPlayer, LiveUpdateRating, Tier } from '@/lib/types';
 import { getAvailableStylesForPosition, playerSkillsList } from '@/lib/types';
 import { normalizeText, normalizeStyleName, calculateStats, calculateFinalScore, calculateRecencyWeightedAverage } from '@/lib/utils';
 
@@ -81,6 +81,7 @@ export function usePlayers(prioritizeRecentForm: boolean = false) {
 
                 const stats = calculateStats(ratingsForPos);
                 const recentAverage = calculateRecencyWeightedAverage(ratingsForPos, 5, 2.5, 0.9);
+                
                 const manualTier: Tier = card.manualTiersByPosition?.[ratedPos] || 'D';
                 const finalScore = calculateFinalScore(manualTier, stats.average, stats.matches, player.liveUpdateRating, recentAverage, prioritizeRecentForm);
 
@@ -201,11 +202,76 @@ export function usePlayers(prioritizeRecentForm: boolean = false) {
     try {
       const snap = await getDocs(collection(db, 'players'));
       for (const d of snap.docs) {
-        if (!d.data().permanentLiveUpdateRating) await updateDoc(doc(db, 'players', d.id), { liveUpdateRating: null });
+        const data = d.data();
+        if (!data.permanentLiveUpdateRating) await updateDoc(doc(db, 'players', d.id), { liveUpdateRating: null });
       }
       toast({ title: "Letras reiniciadas" });
     } catch (e) {}
   };
 
-  return { players, flatPlayers, positionNotes, loading, error, addRating, updateManualTier, savePositionNote, savePlayerBuild, deletePositionRatings, updateLiveUpdateRating, resetAllLiveUpdateRatings };
+  const editCard = async (values: any) => {
+    if (!db) return;
+    try {
+      const playerRef = doc(db, 'players', values.playerId);
+      const playerDoc = await getDoc(playerRef);
+      const playerData = playerDoc.data() as Player;
+      const newCards = playerData.cards.map(c => 
+        c.id === values.cardId ? { ...c, name: values.currentCardName, style: values.currentStyle, league: values.league, imageUrl: values.imageUrl } : c
+      );
+      await updateDoc(playerRef, { cards: newCards });
+      toast({ title: "Carta actualizada" });
+    } catch (e) {}
+  };
+
+  const editPlayer = async (values: any) => {
+    if (!db) return;
+    try {
+      await updateDoc(doc(db, 'players', values.playerId), { name: values.currentPlayerName, nationality: values.nationality, permanentLiveUpdateRating: values.permanentLiveUpdateRating });
+      toast({ title: "Jugador actualizado" });
+    } catch (e) {}
+  };
+
+  const deleteRating = async (playerId: string, cardId: string, position: Position, index: number) => {
+    if (!db) return;
+    try {
+      const playerRef = doc(db, 'players', playerId);
+      const playerDoc = await getDoc(playerRef);
+      const playerData = playerDoc.data() as Player;
+      const newCards = JSON.parse(JSON.stringify(playerData.cards));
+      const card = newCards.find((c: any) => c.id === cardId);
+      if (card?.ratingsByPosition?.[position]) {
+        card.ratingsByPosition[position].splice(index, 1);
+        if (card.ratingsByPosition[position].length === 0) delete card.ratingsByPosition[position];
+        await updateDoc(playerRef, { cards: newCards });
+        toast({ title: "Valoración eliminada" });
+      }
+    } catch (e) {}
+  };
+
+  const downloadBackup = async () => {
+    if (!db) return null;
+    const snap = await getDocs(collection(db, 'players'));
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  };
+
+  const saveAttributeStats = async (playerId: string, cardId: string, stats: any, physical: any, skills: any) => {
+    if (!db) return;
+    try {
+      const playerRef = doc(db, 'players', playerId);
+      const playerDoc = await getDoc(playerRef);
+      const playerData = playerDoc.data() as Player;
+      const newCards = playerData.cards.map(c => 
+        c.id === cardId ? { ...c, attributeStats: stats, physicalAttributes: physical, skills: skills } : c
+      );
+      await updateDoc(playerRef, { cards: newCards });
+      toast({ title: "Atributos guardados" });
+    } catch (e) {}
+  };
+
+  return { 
+    players, flatPlayers, positionNotes, loading, error, 
+    addRating, updateManualTier, savePositionNote, savePlayerBuild, 
+    deletePositionRatings, updateLiveUpdateRating, resetAllLiveUpdateRatings,
+    editCard, editPlayer, deleteRating, downloadBackup, saveAttributeStats
+  };
 }
