@@ -317,7 +317,7 @@ export function usePlayers(prioritizeRecentForm: boolean = false) {
     }
   };
   
-  const savePlayerBuild = async (playerId: string, cardId: string, position: Position, build: PlayerBuild, totalProgressionPoints?: number) => {
+  const savePlayerBuild = async (playerId: string, cardId: string, position: Position, build: PlayerBuild) => {
     if (!db) return;
     const playerRef = doc(db, 'players', playerId);
     try {
@@ -329,8 +329,6 @@ export function usePlayers(prioritizeRecentForm: boolean = false) {
         const cardToUpdate = newCards.find(c => c.id === cardId);
 
         if (cardToUpdate) {
-            if (totalProgressionPoints !== undefined && !isSpecialCard(cardToUpdate.name)) cardToUpdate.totalProgressionPoints = totalProgressionPoints;
-            
             if (!cardToUpdate.buildsByPosition) cardToUpdate.buildsByPosition = {};
             cardToUpdate.buildsByPosition[position] = { ...build, updatedAt: new Date().toISOString() };
 
@@ -402,11 +400,6 @@ export function usePlayers(prioritizeRecentForm: boolean = false) {
       toast({ variant: "destructive", title: "Error en el Reseteo", description: `Ocurrió un error.` });
     }
   };
-
-  function isSpecialCard(name: string): boolean {
-    const n = name.toLowerCase();
-    return n.includes('potw') || n.includes('pots') || n.includes('potm');
-  }
 
   return { players, flatPlayers, loading, error, addRating, editCard, editPlayer, deleteRating, savePlayerBuild, saveAttributeStats, downloadBackup, deletePositionRatings, updateLiveUpdateRating, resetAllLiveUpdateRatings, updateManualTier };
 }

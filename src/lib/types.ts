@@ -93,6 +93,7 @@ export type PhysicalAttribute = {
 
 export type PlayerBuild = {
   updatedAt?: string;
+  notes?: string;
   shooting?: number;
   passing?: number;
   dribbling?: number;
@@ -116,7 +117,6 @@ export type PlayerCard = {
   buildsByPosition?: { [key in Position]?: PlayerBuild };
   attributeStats?: PlayerAttributeStats;
   physicalAttributes?: PhysicalAttribute;
-  totalProgressionPoints?: number;
   skills?: PlayerSkill[];
 };
 
