@@ -70,7 +70,66 @@ export function generateIdealTeam(
     return b.performance.stats.matches - a.performance.stats.matches;
   };
 
-  const getCandidatesForSlot = (formationSlot: FormationSlotType): CandidatePlayer[] => {
+  const getEffectiveSubstituteScore = (candidate: CandidatePlayer) => {
+    const matches = candidate.performance.stats.matches;
+    const average = candidate.performance.stats.average;
+    const testingBonus = matches > 0 && matches < 5 && average >= 7 ? 1.2 : 0;
+    const highVariancePenalty = matches > 0 && matches < 3 && candidate.performance.stats.stdDev > 1.2 ? 1.5 : 0;
+    return candidate.substituteScore + testingBonus - highVariancePenalty;
+  };
+
+  const substituteSort = (a: CandidatePlayer, b: CandidatePlayer) => {
+    const aIsTesting = a.performance.stats.matches < 5;
+    const bIsTesting = b.performance.stats.matches < 5;
+    if (aIsTesting !== bIsTesting) return aIsTesting ? -1 : 1;
+
+    const effectiveA = getEffectiveSubstituteScore(a);
+    const effectiveB = getEffectiveSubstituteScore(b);
+    if (Math.abs(effectiveB - effectiveA) > 0.01) return effectiveB - effectiveA;
+
+    if (Math.abs(b.affinityScore - a.affinityScore) > 0.01) return b.affinityScore - a.affinityScore;
+    return b.performance.stats.matches - a.performance.stats.matches;
+  };
+
+  const passesLiveUpdateFilter = (candidate: CandidatePlayer, options: { isSub: boolean; relaxRatings: boolean }) => {
+    const rating = candidate.player.liveUpdateRating;
+    if (!rating) return true;
+    if (options.relaxRatings) return rating !== 'D' && rating !== 'E';
+
+    if (rating === 'A' || rating === 'B') return true;
+    if (rating === 'C') {
+      const scoreThreshold = options.isSub ? 83 : 86;
+      const baselineScore = options.isSub ? getEffectiveSubstituteScore(candidate) : candidate.generalScore;
+      return baselineScore >= scoreThreshold;
+    }
+
+    return false;
+  };
+
+  const isEligibleSubstituteByPerformance = (candidate: CandidatePlayer) => {
+    const { matches, average } = candidate.performance.stats;
+    if (matches < 5) return true;
+    return average > 6;
+  };
+
+  const findBestPlayer = (candidates: CandidatePlayer[], options: { isSub: boolean, minAffinity: number, relaxRatings: boolean, relaxAffinity: boolean }): CandidatePlayer | undefined => {
+      return candidates.find(p => {
+        if (usedPlayerIds.has(p.player.id) || usedCardIds.has(p.card.id) || discardedCardIds.has(p.card.id)) return false;
+        
+        if (options.isSub) {
+            if (p.affinityScore < 80) return false;
+            if (!isEligibleSubstituteByPerformance(p)) return false;
+        } else {
+            if (!options.relaxAffinity && p.affinityScore < options.minAffinity) return false;
+        }
+        
+        if (!passesLiveUpdateFilter(p, { isSub: options.isSub, relaxRatings: options.relaxRatings })) return false;
+        
+        return true;
+      });
+  };
+  
+  const getCandidatesForSlot = (formationSlot: FormationSlotType, applyFlex: boolean, ignoreStyle: boolean, isSub: boolean): CandidatePlayer[] => {
     const targetPosition = formationSlot.position;
     let targetPositions: Position[] = [targetPosition];
     
@@ -84,7 +143,7 @@ export function generateIdealTeam(
 
   // 1. STARTERS
   for (const slot of formation.slots) {
-    const candidates = getCandidatesForSlot(slot);
+    const candidates = getCandidatesForSlot(slot, false, false, false);
     const starter = candidates.find(p => 
         !usedPlayerIds.has(p.player.id) && 
         !usedCardIds.has(p.card.id) && 
