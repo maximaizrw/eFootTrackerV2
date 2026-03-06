@@ -10,7 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Trash2, X, Wrench, Pencil, Search, SlidersHorizontal, Dumbbell } from 'lucide-react';
 import { cn, formatAverage, getAverageColorClass, getTierColorClass } from '@/lib/utils';
-import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating } from '@/lib/types';
+import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating, Tier } from '@/lib/types';
+import { tiers } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import { LiveUpdateRatingSelector } from './live-update-rating-selector';
 import {
@@ -37,6 +38,7 @@ type PlayerTableProps = {
   onDeletePositionRatings: (playerId: string, cardId: string, position: Position) => void;
   onDeleteRating: (playerId: string, cardId: string, position: Position, ratingIndex: number) => void;
   onUpdateLiveUpdateRating: (playerId: string, rating: LiveUpdateRating | null) => void;
+  onUpdateManualTier: (playerId: string, cardId: string, position: Position, tier: Tier) => void;
 };
 
 const Filters = memo(({
@@ -81,7 +83,7 @@ const Filters = memo(({
             <Select value={sortCriteria} onValueChange={onSortCriteriaChange}>
                 <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                    <SelectItem value="general">Ordenar por Tier</SelectItem>
+                    <SelectItem value="general">Ordenar por Puntaje</SelectItem>
                     <SelectItem value="average">Ordenar por Notas</SelectItem>
                 </SelectContent>
             </Select>
@@ -113,6 +115,7 @@ const PlayerTableMemo = memo(function PlayerTable({
   onDeletePositionRatings,
   onDeleteRating,
   onUpdateLiveUpdateRating,
+  onUpdateManualTier,
 }: PlayerTableProps) {
   
   if (flatPlayers.length === 0) return <div className="p-10 text-center text-muted-foreground">Sin jugadores en esta posición.</div>;
@@ -124,15 +127,16 @@ const PlayerTableMemo = memo(function PlayerTable({
           <TableRow>
             <TableHead>Jugador</TableHead>
             <TableHead className="hidden md:table-cell">Estilo</TableHead>
-            <TableHead>Tier</TableHead>
+            <TableHead>Tier Manual</TableHead>
             <TableHead>Prom.</TableHead>
+            <TableHead>Puntaje</TableHead>
             <TableHead className="hidden md:table-cell">Últimas Notas</TableHead>
             <TableHead className="text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {flatPlayers.map((flatPlayer) => {
-            const { player, card, ratingsForPos, performance, tier } = flatPlayer;
+            const { player, card, ratingsForPos, performance, tier, score } = flatPlayer;
             const cardAverage = performance.stats.average;
             
             return (
@@ -157,10 +161,25 @@ const PlayerTableMemo = memo(function PlayerTable({
                   {card.style !== "Ninguno" ? <Badge variant="secondary">{card.style}</Badge> : '-'}
                 </TableCell>
                 <TableCell>
-                  <div className={cn("text-xl font-black", getTierColorClass(tier))}>{tier}</div>
+                  <Select 
+                    value={tier} 
+                    onValueChange={(val) => onUpdateManualTier(player.id, card.id, position, val as Tier)}
+                  >
+                    <SelectTrigger className={cn("w-[70px] h-9 font-black text-center border-none bg-transparent focus:ring-0", getTierColorClass(tier))}>
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {tiers.map(t => (
+                            <SelectItem key={t} value={t} className={cn("font-black", getTierColorClass(t))}>{t}</SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
                 </TableCell>
                 <TableCell>
                   <div className={cn("text-base font-bold", getAverageColorClass(cardAverage))}>{formatAverage(cardAverage)}</div>
+                </TableCell>
+                <TableCell>
+                  <div className="text-base font-black text-primary">{score.toFixed(1)}</div>
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
                   <div className="flex gap-1">

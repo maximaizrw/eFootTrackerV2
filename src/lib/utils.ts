@@ -89,37 +89,47 @@ export function normalizeStyleName(style: string): string {
     return style;
 }
 
+export const TIER_BASE_SCORE: Record<Tier, number> = {
+    'S+': 100,
+    'S': 80,
+    'A': 60,
+    'B': 40,
+    'C': 20,
+    'D': 0
+};
+
 export const LIVE_UPDATE_BONUSES: Record<LiveUpdateRating, number> = { A: 8, B: 4, C: 0, D: -5, E: -10 };
 
 /**
- * Calculates a Tier Score (0-100) and assigns a Tier Letter.
+ * Calculates the Final Score for 11 Ideal selection.
+ * Score = Manual Tier Base Points + Performance Average + Live Update Bonus.
  */
-export function calculateTierInfo(
+export function calculateFinalScore(
+  manualTier: Tier,
   overallAverage: number, 
   matches: number,
   liveUpdateRating?: LiveUpdateRating | null,
   recentAverage?: number,
   prioritizeRecentForm: boolean = false
-): { score: number; tier: Tier } {
+): number {
   const effectiveRecentAverage = recentAverage ?? overallAverage;
   const recentWeight = prioritizeRecentForm ? 0.7 : 0.3;
   const overallWeight = 1 - recentWeight;
   
-  const performanceScore = ((overallAverage * overallWeight) + (effectiveRecentAverage * recentWeight)) * 10;
-  let finalScore = performanceScore + (liveUpdateRating ? LIVE_UPDATE_BONUSES[liveUpdateRating] : 0);
+  const performanceAverage = (overallAverage * overallWeight) + (effectiveRecentAverage * recentWeight);
+  const liveUpdateBonus = liveUpdateRating ? LIVE_UPDATE_BONUSES[liveUpdateRating] : 0;
+  
+  // Base points from the manual tier you assigned
+  const tierBase = TIER_BASE_SCORE[manualTier];
 
-  // Confidence adjustment
-  if (matches < 3) finalScore *= 0.8;
-  else if (matches < 5) finalScore *= 0.9;
+  // Final Score: Tier dictates the bracket, average and live update decide within that bracket
+  let finalScore = tierBase + performanceAverage + liveUpdateBonus;
 
-  let tier: Tier = 'D';
-  if (finalScore >= 90) tier = 'S+';
-  else if (finalScore >= 80) tier = 'S';
-  else if (finalScore >= 70) tier = 'A';
-  else if (finalScore >= 60) tier = 'B';
-  else if (finalScore >= 50) tier = 'C';
+  // Confidence adjustment for players with very few matches
+  if (matches < 3) finalScore -= 10;
+  else if (matches < 5) finalScore -= 5;
 
-  return { score: finalScore, tier };
+  return finalScore;
 }
 
 export function isSpecialCard(cardName: string): boolean {
@@ -127,8 +137,6 @@ export function isSpecialCard(cardName: string): boolean {
   const n = cardName.toLowerCase();
   return n.includes('potw') || n.includes('pots') || n.includes('potm');
 }
-
-const MAX_STAT_VALUE = 99;
 
 export const statLabels: Record<string, string> = {
     offensiveAwareness: 'Act. Ofensiva', 
@@ -174,43 +182,43 @@ export function calculateProgressionStats(baseStats: PlayerAttributeStats, build
 
   if (!isGoalkeeper) {
     const sP = build.shooting || 0;
-    newStats.finishing = Math.min(MAX_STAT_VALUE, getBase('finishing', 'baseFinishing') + sP);
-    newStats.placeKicking = Math.min(MAX_STAT_VALUE, getBase('placeKicking', 'basePlaceKicking') + sP);
-    newStats.curl = Math.min(MAX_STAT_VALUE, getBase('curl', 'baseCurl') + sP);
+    newStats.finishing = (getBase('finishing', 'baseFinishing' as any) || 0) + sP;
+    newStats.placeKicking = (getBase('placeKicking', 'basePlaceKicking' as any) || 0) + sP;
+    newStats.curl = (getBase('curl', 'baseCurl' as any) || 0) + sP;
     const pP = build.passing || 0;
-    newStats.lowPass = Math.min(MAX_STAT_VALUE, getBase('lowPass', 'baseLowPass') + pP);
-    newStats.loftedPass = Math.min(MAX_STAT_VALUE, getBase('loftedPass', 'baseLoftedPass') + pP);
+    newStats.lowPass = (getBase('lowPass', 'baseLowPass' as any) || 0) + pP;
+    newStats.loftedPass = (getBase('loftedPass', 'baseLoftedPass' as any) || 0) + pP;
     const dP = build.dribbling || 0;
-    newStats.ballControl = Math.min(MAX_STAT_VALUE, getBase('ballControl', 'baseBallControl') + dP);
-    newStats.dribbling = Math.min(MAX_STAT_VALUE, getBase('dribbling', 'baseDribbling') + dP);
-    newStats.tightPossession = Math.min(MAX_STAT_VALUE, getBase('tightPossession', 'baseTightPossession') + dP);
+    newStats.ballControl = (getBase('ballControl', 'baseBallControl' as any) || 0) + dP;
+    newStats.dribbling = (getBase('dribbling', 'baseDribbling' as any) || 0) + dP;
+    newStats.tightPossession = (getBase('tightPossession', 'baseTightPossession' as any) || 0) + dP;
     const dxP = build.dexterity || 0;
-    newStats.offensiveAwareness = Math.min(MAX_STAT_VALUE, getBase('offensiveAwareness', 'baseOffensiveAwareness') + dxP);
-    newStats.acceleration = Math.min(MAX_STAT_VALUE, getBase('acceleration', 'baseAcceleration') + dxP);
-    newStats.balance = Math.min(MAX_STAT_VALUE, getBase('balance', 'baseBalance') + dxP);
+    newStats.offensiveAwareness = (getBase('offensiveAwareness', 'baseOffensiveAwareness' as any) || 0) + dxP;
+    newStats.acceleration = (getBase('acceleration', 'baseAcceleration' as any) || 0) + dxP;
+    newStats.balance = (getBase('balance', 'baseBalance' as any) || 0) + dxP;
     const lbP = build.lowerBodyStrength || 0;
-    newStats.speed = Math.min(MAX_STAT_VALUE, getBase('speed', 'baseSpeed') + lbP);
-    newStats.kickingPower = Math.min(MAX_STAT_VALUE, getBase('kickingPower', 'baseKickingPower') + lbP);
-    newStats.stamina = Math.min(MAX_STAT_VALUE, getBase('stamina', 'baseStamina') + lbP);
+    newStats.speed = (getBase('speed', 'baseSpeed' as any) || 0) + lbP;
+    newStats.kickingPower = (getBase('kickingPower', 'baseKickingPower' as any) || 0) + lbP;
+    newStats.stamina = (getBase('stamina', 'baseStamina' as any) || 0) + lbP;
     const aP = build.aerialStrength || 0;
-    newStats.heading = Math.min(MAX_STAT_VALUE, getBase('heading', 'baseHeading') + aP);
-    newStats.jump = Math.min(MAX_STAT_VALUE, getBase('jump', 'baseJump') + aP);
-    newStats.physicalContact = Math.min(MAX_STAT_VALUE, getBase('physicalContact', 'basePhysicalContact') + aP);
+    newStats.heading = (getBase('heading', 'baseHeading' as any) || 0) + aP;
+    newStats.jump = (getBase('jump', 'baseJump' as any) || 0) + aP;
+    newStats.physicalContact = (getBase('physicalContact', 'basePhysicalContact' as any) || 0) + aP;
     const dfP = build.defending || 0;
-    newStats.defensiveAwareness = Math.min(MAX_STAT_VALUE, getBase('defensiveAwareness', 'baseDefensiveAwareness') + dfP);
-    newStats.defensiveEngagement = Math.min(MAX_STAT_VALUE, getBase('defensiveEngagement', 'baseDefensiveEngagement') + dfP);
-    newStats.tackling = Math.min(MAX_STAT_VALUE, getBase('tackling', 'baseTackling') + dfP);
-    newStats.aggression = Math.min(MAX_STAT_VALUE, getBase('aggression', 'baseAggression') + dfP);
+    newStats.defensiveAwareness = (getBase('defensiveAwareness', 'baseDefensiveAwareness' as any) || 0) + dfP;
+    newStats.defensiveEngagement = (getBase('defensiveEngagement', 'baseDefensiveEngagement' as any) || 0) + dfP;
+    newStats.tackling = (getBase('tackling', 'baseTackling' as any) || 0) + dfP;
+    newStats.aggression = (getBase('aggression', 'baseAggression' as any) || 0) + dfP;
   } else {
     const gk1 = build.gk1 || 0;
-    newStats.goalkeeping = Math.min(MAX_STAT_VALUE, getBase('goalkeeping', 'baseGoalkeeping') + gk1);
-    newStats.jump = Math.min(MAX_STAT_VALUE, getBase('jump', 'baseJump') + gk1);
+    newStats.goalkeeping = (getBase('goalkeeping', 'baseGoalkeeping' as any) || 0) + gk1;
+    newStats.jump = (getBase('jump', 'baseJump' as any) || 0) + gk1;
     const gk2 = build.gk2 || 0;
-    newStats.gkParrying = Math.min(MAX_STAT_VALUE, getBase('gkParrying', 'baseGkParrying') + gk2);
-    newStats.gkReach = Math.min(MAX_STAT_VALUE, getBase('gkReach', 'baseGkReach') + gk2);
+    newStats.gkParrying = (getBase('gkParrying', 'baseGkParrying' as any) || 0) + gk2;
+    newStats.gkReach = (getBase('gkReach', 'baseGkReach' as any) || 0) + gk2;
     const gk3 = build.gk3 || 0;
-    newStats.gkCatching = Math.min(MAX_STAT_VALUE, getBase('gkCatching', 'baseGkCatching') + gk3);
-    newStats.gkReflexes = Math.min(MAX_STAT_VALUE, getBase('gkReflexes', 'baseGkReflexes') + gk3);
+    newStats.gkCatching = (getBase('gkCatching', 'baseGkCatching' as any) || 0) + gk3;
+    newStats.gkReflexes = (getBase('gkReflexes', 'baseGkReflexes' as any) || 0) + gk3;
   }
   return newStats;
 }

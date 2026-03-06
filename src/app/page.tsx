@@ -63,6 +63,7 @@ export default function Home() {
     deletePositionRatings,
     updateLiveUpdateRating,
     resetAllLiveUpdateRatings,
+    updateManualTier,
   } = usePlayers(prioritizeRecentForm);
 
   const {
@@ -281,6 +282,7 @@ export default function Home() {
             if (Math.abs(b.performance.stats.average - a.performance.stats.average) > 0.01) return b.performance.stats.average - a.performance.stats.average;
             return b.performance.stats.matches - a.performance.stats.matches;
           }
+          // Sort by defining score (Manual Tier + Average)
           return b.score - a.score;
         });
     }
@@ -456,6 +458,7 @@ export default function Home() {
                       onDeletePositionRatings={deletePositionRatings}
                       onDeleteRating={deleteRating}
                       onUpdateLiveUpdateRating={updateLiveUpdateRating}
+                      onUpdateManualTier={updateManualTier}
                     />
                     <PlayerTable.Pagination
                       currentPage={currentPage}
@@ -471,7 +474,7 @@ export default function Home() {
              <Card>
                <CardHeader>
                  <CardTitle className="flex items-center gap-2 text-accent"><Star />Generador de 11 Ideal</CardTitle>
-                 <CardDescription>Selecciona a los mejores jugadores por su Tier de rendimiento.</CardDescription>
+                 <CardDescription>Selecciona a los mejores jugadores según su Tier manual y promedio.</CardDescription>
                </CardHeader>
                <CardContent>
                   <IdealTeamSetup 

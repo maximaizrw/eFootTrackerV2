@@ -57,35 +57,6 @@ export type PlayerSkill = typeof playerSkillsList[number];
 export const liveUpdateRatings = ['A', 'B', 'C', 'D', 'E'] as const;
 export type LiveUpdateRating = typeof liveUpdateRatings[number];
 
-export type OutfieldBuild = {
-  shooting?: number;
-  passing?: number;
-  dribbling?: number;
-  dexterity?: number;
-  lowerBodyStrength?: number;
-  aerialStrength?: number;
-  defending?: number;
-};
-
-export type GoalkeeperBuild = {
-  gk1?: number;
-  gk2?: number;
-  gk3?: number;
-};
-
-export type PlayerBuild = (OutfieldBuild & GoalkeeperBuild) & {
-  updatedAt?: string;
-};
-
-export const formationPlayStyles = [
-  'Contraataque rápido', 
-  'Contraataque largo', 
-  'Por las bandas', 
-  'Balones largos', 
-  'Posesión'
-] as const;
-export type FormationPlayStyle = typeof formationPlayStyles[number];
-
 export type PlayerAttributeStats = {
   offensiveAwareness?: number;
   ballControl?: number;
@@ -113,39 +84,26 @@ export type PlayerAttributeStats = {
   physicalContact?: number;
   balance?: number;
   stamina?: number;
-
-  baseOffensiveAwareness?: number;
-  baseBallControl?: number;
-  baseDribbling?: number;
-  baseTightPossession?: number;
-  baseLowPass?: number;
-  baseLoftedPass?: number;
-  baseFinishing?: number;
-  baseHeading?: number;
-  basePlaceKicking?: number;
-  baseCurl?: number;
-  baseDefensiveAwareness?: number;
-  baseDefensiveEngagement?: number;
-  baseTackling?: number;
-  baseAggression?: number;
-  baseGoalkeeping?: number;
-  baseGkCatching?: number;
-  baseGkParrying?: number;
-  baseGkReflexes?: number;
-  baseGkReach?: number;
-  baseSpeed?: number;
-  baseAcceleration?: number;
-  baseKickingPower?: number;
-  baseJump?: number;
-  basePhysicalContact?: number;
-  baseBalance?: number;
-  baseStamina?: number;
 };
 
 export type PhysicalAttribute = {
   height?: number;
   weight?: number;
 }
+
+export type PlayerBuild = {
+  updatedAt?: string;
+  shooting?: number;
+  passing?: number;
+  dribbling?: number;
+  dexterity?: number;
+  lowerBodyStrength?: number;
+  aerialStrength?: number;
+  defending?: number;
+  gk1?: number;
+  gk2?: number;
+  gk3?: number;
+};
 
 export type PlayerCard = {
   id: string;
@@ -154,6 +112,7 @@ export type PlayerCard = {
   league?: League;
   imageUrl?: string;
   ratingsByPosition: { [key in Position]?: number[] };
+  manualTiersByPosition?: { [key in Position]?: Tier };
   buildsByPosition?: { [key in Position]?: PlayerBuild };
   attributeStats?: PlayerAttributeStats;
   physicalAttributes?: PhysicalAttribute;
@@ -197,14 +156,14 @@ export type MatchResult = {
 export const FormationSlotSchema = z.object({
   position: z.enum(positions),
   styles: z.array(z.string()).optional().default([]),
-  profileName: z.string().optional(),
-  minHeight: z.number().optional(),
-  secondaryPosition: z.enum(positions).optional(),
   top: z.number().optional(),
   left: z.number().optional(),
 });
 
 export type FormationSlot = z.infer<typeof FormationSlotSchema>;
+
+export const formationPlayStyles = ['Contraataque rápido', 'Contraataque largo', 'Por las bandas', 'Balones largos', 'Posesión'] as const;
+export type FormationPlayStyle = typeof formationPlayStyles[number];
 
 export type FormationStats = {
   id: string;
@@ -230,9 +189,6 @@ export type PlayerPerformance = {
     isConsistent: boolean;
     isPromising: boolean;
     isVersatile: boolean;
-    isGameChanger?: boolean;
-    isStalwart?: boolean;
-    isSpecialist?: boolean;
 };
 
 export type FlatPlayer = {
@@ -245,7 +201,7 @@ export type FlatPlayer = {
   position: Position;
 };
 
-export function getAvailableStylesForPosition(position: Position | 'LAT' | 'INT' | 'EXT', includeNone: boolean = false): PlayerStyle[] {
+export function getAvailableStylesForPosition(position: Position, includeNone: boolean = false): PlayerStyle[] {
     const baseStyles: PlayerStyle[] = includeNone ? ['Ninguno'] : [];
 
     switch (position) {
@@ -255,7 +211,6 @@ export function getAvailableStylesForPosition(position: Position | 'LAT' | 'INT'
             return [...baseStyles, 'El destructor', 'Atacante extra', 'Creador de juego'];
         case 'LI':
         case 'LD':
-        case 'LAT':
             return [...baseStyles, 'Lateral defensivo', 'Lateral ofensivo', 'Lateral finalizador', 'Especialista en centros'];
         case 'MCD':
             return [...baseStyles, 'El destructor', 'Medio escudo', 'Omnipresente', 'Organizador', 'Creador de jugadas', 'Atacante extra'];
@@ -263,13 +218,11 @@ export function getAvailableStylesForPosition(position: Position | 'LAT' | 'INT'
             return [...baseStyles, 'Jugador de huecos', 'Omnipresente', 'Creador de jugadas', 'Organizador', 'El destructor', 'Medio escudo', 'Creador de juego'];
         case 'MDI':
         case 'MDD':
-        case 'INT':
             return [...baseStyles, 'Omnipresente', 'Especialista en centros', 'Creador de jugadas', 'Jugador de huecos', 'Extremo móvil', 'Organizador', 'Creador de juego'];
         case 'MO':
             return [...baseStyles, 'Jugador de huecos', 'Creador de jugadas', 'Diez Clasico', 'Extremo móvil', 'Creador de juego', 'Organizador'];
         case 'EXI':
         case 'EXD':
-        case 'EXT':
             return [...baseStyles, 'Extremo móvil', 'Extremo prolífico', 'Especialista en centros', 'Creador de jugadas', 'Jugador de huecos', 'Segundo delantero'];
         case 'SD':
             return [...baseStyles, 'Cazagoles', 'Jugador de huecos', 'Hombre objetivo', 'Diez Clasico', 'Extremo móvil', 'Creador de jugadas', 'Segundo delantero', 'Creador de juego'];
@@ -279,3 +232,60 @@ export function getAvailableStylesForPosition(position: Position | 'LAT' | 'INT'
             return [...playerStyles];
     }
 }
+
+export type AddRatingFormValues = {
+  playerId?: string;
+  playerName: string;
+  nationality: Nationality;
+  cardName: string;
+  position: Position;
+  style: PlayerStyle;
+  league?: League;
+  rating: number;
+};
+
+export type EditCardFormValues = {
+  playerId: string;
+  cardId: string;
+  currentCardName: string;
+  currentStyle: PlayerStyle;
+  league?: League;
+  imageUrl?: string;
+};
+
+export type EditPlayerFormValues = {
+  playerId: string;
+  currentPlayerName: string;
+  nationality: Nationality;
+  permanentLiveUpdateRating?: boolean;
+};
+
+export type AddFormationFormValues = {
+  name: string;
+  creator?: string;
+  playStyle: FormationPlayStyle;
+  slots: FormationSlot[];
+  imageUrl?: string;
+  secondaryImageUrl?: string;
+  sourceUrl?: string;
+};
+
+export type EditFormationFormValues = AddFormationFormValues & {
+  id: string;
+};
+
+export const positionLabels: Record<Position, string> = {
+    'PT': 'PT',
+    'DFC': 'DFC',
+    'LI': 'LI',
+    'LD': 'LD',
+    'MCD': 'MCD',
+    'MC': 'MC',
+    'MDI': 'MDI',
+    'MDD': 'MDD',
+    'MO': 'MO',
+    'EXI': 'EXI',
+    'EXD': 'EXD',
+    'SD': 'SD',
+    'DC': 'DC',
+};
