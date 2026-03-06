@@ -3,8 +3,6 @@ import * as z from "zod";
 export const playerStyles = ['Ninguno', 'Cazagoles', 'Hombre de área', 'Segundo delantero', 'Hombre objetivo', 'Creador de juego', 'Creador de jugadas', 'El destructor', 'Portero defensivo', 'Portero ofensivo', 'Atacante extra', 'Lateral defensivo', 'Lateral ofensivo', 'Lateral finalizador', 'Especialista en centros', 'Omnipresente', 'Medio escudo', 'Organizador', 'Jugador de huecos', 'Extremo móvil', 'Extremo prolífico', 'Diez Clasico'] as const;
 export type PlayerStyle = typeof playerStyles[number];
 
-export const playerStylesUI = playerStyles;
-
 export const positions = ['PT', 'DFC', 'LI', 'LD', 'MCD', 'MC', 'MDI', 'MDD', 'MO', 'EXI', 'EXD', 'SD', 'DC'] as const;
 export type Position = typeof positions[number];
 
@@ -93,7 +91,6 @@ export type PhysicalAttribute = {
 
 export type PlayerBuild = {
   updatedAt?: string;
-  notes?: string;
   shooting?: number;
   passing?: number;
   dribbling?: number;

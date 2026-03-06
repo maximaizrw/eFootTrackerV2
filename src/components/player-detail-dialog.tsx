@@ -16,6 +16,7 @@ import { Slider } from "./ui/slider";
 import { ScrollArea } from "./ui/scroll-area";
 import { Textarea } from "./ui/textarea";
 import { Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, Dumbbell, StickyNote } from "lucide-react";
+import { usePlayers } from "@/hooks/usePlayers";
 
 type PlayerDetailDialogProps = {
   open: boolean;
@@ -41,7 +42,9 @@ const goalkeeperCategories: { key: keyof GoalkeeperBuild; label: string, icon: R
 ];
 
 export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlayerBuild }: PlayerDetailDialogProps) {
+  const { positionNotes, savePositionNote } = usePlayers();
   const [build, setBuild] = React.useState<PlayerBuild>({});
+  const [localNote, setLocalNote] = React.useState('');
 
   const position = flatPlayer?.position;
   const card = flatPlayer?.card;
@@ -51,12 +54,14 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
   React.useEffect(() => {
     if (open && flatPlayer && position && card) {
       setBuild(card.buildsByPosition?.[position] || {});
+      setLocalNote(positionNotes[position] || '');
     }
-  }, [open, flatPlayer, card, position]);
+  }, [open, flatPlayer, card, position, positionNotes]);
 
   const handleSave = () => {
     if (player && card && position) {
       onSavePlayerBuild(player.id, card.id, position, { ...build, updatedAt: new Date().toISOString() });
+      savePositionNote(position, localNote);
       onOpenChange(false);
     }
   };
@@ -65,22 +70,18 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
     setBuild(prev => ({ ...prev, [category]: value }));
   }
 
-  const handleNotesChange = (notes: string) => {
-    setBuild(prev => ({ ...prev, notes }));
-  }
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><Dumbbell className="h-5 w-5 text-accent" /> Entrenamiento de {player?.name} en {position}</DialogTitle>
-          <DialogDescription>Asigna los puntos de entrenamiento y guarda anotaciones específicas para esta posición.</DialogDescription>
+          <DialogDescription>Asigna los puntos de entrenamiento y guarda requisitos tácticos compartidos para esta posición.</DialogDescription>
         </DialogHeader>
         
         <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-8 overflow-hidden mt-4">
             <ScrollArea className="pr-4">
                 <div className="space-y-6">
-                    <p className="font-medium text-xs text-muted-foreground uppercase tracking-widest flex items-center gap-2"><Dumbbell className="h-3 w-3" /> Distribución de Puntos</p>
+                    <p className="font-medium text-xs text-muted-foreground uppercase tracking-widest flex items-center gap-2"><Dumbbell className="h-3 w-3" /> Distribución de Puntos ({card?.name})</p>
                     {(isGoalkeeper ? goalkeeperCategories : outfieldCategories).map(({key, label, icon: Icon}) => (
                         <div key={key} className="space-y-2">
                             <Label className="flex items-center justify-between">
@@ -94,20 +95,20 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
             </ScrollArea>
             <div className="md:border-l md:pl-8 flex flex-col h-full">
                 <Label className="font-medium text-sm text-muted-foreground mb-4 uppercase tracking-widest flex items-center gap-2">
-                    <StickyNote className="h-4 w-4" /> Anotaciones de la Posición
+                    <StickyNote className="h-4 w-4" /> Anotaciones Globales ({position})
                 </Label>
                 <Textarea 
-                    placeholder="Escribe aquí los stats clave o notas de esta build (ej: Aceleración +88, Pase +90...)" 
+                    placeholder="Escribe requisitos para esta posición (ej: Aceleración +88, Pase +90...)" 
                     className="flex-grow resize-none text-base"
-                    value={build.notes || ''}
-                    onChange={(e) => handleNotesChange(e.target.value)}
+                    value={localNote}
+                    onChange={(e) => setLocalNote(e.target.value)}
                 />
-                <p className="text-[10px] text-muted-foreground mt-2 italic">Estas notas son específicas para {position}.</p>
+                <p className="text-[10px] text-muted-foreground mt-2 italic">Cualquier nota aquí será visible para todos los jugadores en la posición {position}.</p>
             </div>
         </div>
 
         <DialogFooter className="pt-4 border-t mt-4">
-          <Button onClick={handleSave}>Guardar Entrenamiento</Button>
+          <Button onClick={handleSave}>Guardar Todo</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

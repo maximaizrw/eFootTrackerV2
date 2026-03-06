@@ -4,12 +4,11 @@ import Image from 'next/image';
 import React, { memo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, X, Wrench, Pencil, Search, SlidersHorizontal, Dumbbell } from 'lucide-react';
-import { cn, formatAverage, getAverageColorClass, getTierColorClass } from '@/lib/utils';
+import { PlusCircle, Trash2, Search, SlidersHorizontal, Dumbbell } from 'lucide-react';
+import { cn, formatAverage, getAverageColorClass, getTierColorClass, getProxiedImageUrl } from '@/lib/utils';
 import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating, Tier } from '@/lib/types';
 import { tiers } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
@@ -107,13 +106,9 @@ const PlayerTableMemo = memo(function PlayerTable({
   players: flatPlayers,
   position,
   onOpenAddRating,
-  onOpenEditCard,
-  onOpenEditPlayer,
-  onOpenEditStats,
   onOpenPlayerDetail,
   onViewImage,
   onDeletePositionRatings,
-  onDeleteRating,
   onUpdateLiveUpdateRating,
   onUpdateManualTier,
 }: PlayerTableProps) {
@@ -138,8 +133,6 @@ const PlayerTableMemo = memo(function PlayerTable({
           {flatPlayers.map((flatPlayer) => {
             const { player, card, ratingsForPos, performance, tier, score } = flatPlayer;
             const cardAverage = performance.stats.average;
-            
-            // If Tier is 'D', we assume it has NEVER been assigned manually
             const isTierUnassigned = tier === 'D';
 
             return (
@@ -147,24 +140,24 @@ const PlayerTableMemo = memo(function PlayerTable({
                 <TableCell className="p-2 md:p-4">
                   <div className="flex items-center gap-2">
                     {card.imageUrl ? (
-                      <button onClick={() => onViewImage(card.imageUrl!, `${player.name}`)} className="rounded-full overflow-hidden">
-                        <Image src={card.imageUrl} alt={card.name} width={40} height={40} className="w-8 h-8 md:w-10 md:h-10 object-contain" unoptimized />
+                      <button onClick={() => onViewImage(card.imageUrl!, `${player.name}`)} className="rounded-full overflow-hidden flex-shrink-0">
+                        <Image src={getProxiedImageUrl(card.imageUrl)} alt={card.name} width={40} height={40} className="w-8 h-8 md:w-10 md:h-10 object-contain" unoptimized />
                       </button>
-                    ) : <div className="w-8 h-8 md:w-10 md:h-10 bg-muted rounded-full" />}
-                    <div>
+                    ) : <div className="w-8 h-8 md:w-10 md:h-10 bg-muted rounded-full flex-shrink-0" />}
+                    <div className="min-w-0">
                       <div className="flex items-center gap-2">
                           <LiveUpdateRatingSelector value={player.liveUpdateRating} onValueChange={(v) => onUpdateLiveUpdateRating(player.id, v)} />
                           <button 
                             onClick={() => onOpenPlayerDetail(flatPlayer)} 
                             className={cn(
-                                "font-medium text-sm md:text-base hover:underline",
+                                "font-medium text-sm md:text-base hover:underline truncate",
                                 isTierUnassigned && "text-red-600 dark:text-red-500 font-bold"
                             )}
                           >
                             {player.name}
                           </button>
                       </div>
-                      <span className="text-xs text-muted-foreground">{card.name} ({performance.stats.matches} P.)</span>
+                      <span className="text-xs text-muted-foreground truncate block">{card.name} ({performance.stats.matches} P.)</span>
                     </div>
                   </div>
                 </TableCell>
@@ -203,9 +196,8 @@ const PlayerTableMemo = memo(function PlayerTable({
                   <div className="flex items-center justify-end gap-1">
                     <Button variant="ghost" size="icon" onClick={() => onOpenAddRating({ playerId: player.id, playerName: player.name, cardName: card.name, position, style: card.style })}><PlusCircle className="h-4 w-4 text-primary" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => onOpenPlayerDetail(flatPlayer)}><Dumbbell className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" className="hidden md:flex" onClick={() => onOpenEditStats(player, card)}><SlidersHorizontal className="h-4 w-4" /></Button>
                     <AlertDialog>
-                        <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="hidden md:flex"><Trash2 className="h-4 w-4 text-destructive" /></Button></AlertDialogTrigger>
+                        <AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button></AlertDialogTrigger>
                         <AlertDialogContent>
                             <AlertDialogHeader><AlertDialogTitle>¿Eliminar posición?</AlertDialogTitle></AlertDialogHeader>
                             <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-destructive" onClick={() => onDeletePositionRatings(player.id, card.id, position)}>Eliminar</AlertDialogAction></AlertDialogFooter>

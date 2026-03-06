@@ -2,11 +2,11 @@
 
 import type { IdealTeamPlayer, IdealTeamSlot, FormationStats, Position, LiveUpdateRating } from '@/lib/types';
 import Image from 'next/image';
-import { Users, Shirt, X, ArrowRightLeft } from 'lucide-react';
+import { Users, Shirt, X } from 'lucide-react';
 import { Button } from './ui/button';
 import { FootballPitch } from './football-pitch';
-import { cn, getTierColorClass } from '@/lib/utils';
-import { memo, useState, useCallback } from 'react';
+import { cn, getTierColorClass, getProxiedImageUrl } from '@/lib/utils';
+import { memo, useState } from 'react';
 import { LiveUpdateRatingSelector } from './live-update-rating-selector';
 
 const PlayerToken = memo(function PlayerToken({
@@ -40,7 +40,7 @@ const PlayerToken = memo(function PlayerToken({
 
       <div className="relative w-12 h-12 md:w-14 md:h-14 drop-shadow-lg">
         {player.card.imageUrl ? (
-          <Image src={player.card.imageUrl} alt={player.card.name} fill sizes="56px" className="object-contain" unoptimized />
+          <Image src={getProxiedImageUrl(player.card.imageUrl)} alt={player.card.name} fill sizes="56px" className="object-contain" unoptimized />
         ) : <div className="w-full h-full flex items-center justify-center bg-black/30 rounded-full"><Users className="w-6 h-6 text-white/50" /></div>}
         <div className={cn("absolute -bottom-1 left-1/2 -translate-x-1/2 px-1.5 py-px rounded-full text-[10px] font-bold shadow-md bg-sky-500 text-white")}>
           {player.assignedPosition}
@@ -76,8 +76,8 @@ const BenchCard = memo(function BenchCard({ player, onDiscard, onUpdateLiveUpdat
         <X className="h-2.5 w-2.5" />
       </Button>
 
-      <div className="relative w-8 h-8">
-        {player.card.imageUrl ? <Image src={player.card.imageUrl} alt={player.card.name} fill sizes="32px" className="object-contain" unoptimized /> 
+      <div className="relative w-8 h-8 flex-shrink-0">
+        {player.card.imageUrl ? <Image src={getProxiedImageUrl(player.card.imageUrl)} alt={player.card.name} fill sizes="32px" className="object-contain" unoptimized /> 
         : <div className="w-full h-full flex items-center justify-center bg-muted rounded-full"><Users className="w-3.5 h-3.5" /></div>}
       </div>
 
