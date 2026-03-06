@@ -139,6 +139,9 @@ const PlayerTableMemo = memo(function PlayerTable({
             const { player, card, ratingsForPos, performance, tier, score } = flatPlayer;
             const cardAverage = performance.stats.average;
             
+            // If Tier is 'D', we assume it has NEVER been assigned manually
+            const isTierUnassigned = tier === 'D';
+
             return (
               <TableRow key={`${player.id}-${card.id}-${position}`} className="hover:bg-muted/50">
                 <TableCell className="p-2 md:p-4">
@@ -151,7 +154,15 @@ const PlayerTableMemo = memo(function PlayerTable({
                     <div>
                       <div className="flex items-center gap-2">
                           <LiveUpdateRatingSelector value={player.liveUpdateRating} onValueChange={(v) => onUpdateLiveUpdateRating(player.id, v)} />
-                          <button onClick={() => onOpenPlayerDetail(flatPlayer)} className="font-medium text-sm md:text-base hover:underline">{player.name}</button>
+                          <button 
+                            onClick={() => onOpenPlayerDetail(flatPlayer)} 
+                            className={cn(
+                                "font-medium text-sm md:text-base hover:underline",
+                                isTierUnassigned && "text-red-600 dark:text-red-500 font-bold"
+                            )}
+                          >
+                            {player.name}
+                          </button>
                       </div>
                       <span className="text-xs text-muted-foreground">{card.name} ({performance.stats.matches} P.)</span>
                     </div>

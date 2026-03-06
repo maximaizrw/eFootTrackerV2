@@ -23,7 +23,6 @@ import { AddFormationDialog } from '@/components/add-formation-dialog';
 import { EditFormationDialog } from '@/components/edit-formation-dialog';
 import { AddMatchDialog, type AddMatchFormValues } from '@/components/add-match-dialog';
 import { PlayerDetailDialog } from '@/components/player-detail-dialog';
-import { PlayerTester } from '@/components/player-tester';
 
 import { FormationsDisplay } from '@/components/formations-display';
 import { IdealTeamDisplay } from '@/components/ideal-team-display';
@@ -41,7 +40,7 @@ import { positions, leagues, nationalities } from '@/lib/types';
 import { normalizeText } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Beaker } from 'lucide-react';
+import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -405,7 +404,6 @@ export default function Home() {
               <TabsTrigger value="formations" className="py-2 px-3 text-sm"><Trophy className="mr-2 h-5 w-5"/>Formaciones</TabsTrigger>
               <TabsTrigger value="ideal-11" className="py-2 px-3 text-sm"><Star className="mr-2 h-5 w-5"/>11 Ideal</TabsTrigger>
               <TabsTrigger value="nationalities" className="py-2 px-3 text-sm"><Globe className="mr-2 h-5 w-5"/>Nacionalidades</TabsTrigger>
-              <TabsTrigger value="tester" className="py-2 px-3 text-sm"><Beaker className="mr-2 h-5 w-5"/>Probador</TabsTrigger>
             </TabsList>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
@@ -513,10 +511,6 @@ export default function Home() {
           
           <TabsContent value="nationalities" className="mt-6">
             <NationalityDistribution players={allPlayers} />
-          </TabsContent>
-          
-          <TabsContent value="tester" className="mt-6">
-            <PlayerTester />
           </TabsContent>
         </Tabs>
       </main>
