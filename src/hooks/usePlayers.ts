@@ -5,12 +5,12 @@ import { db } from '@/lib/firebase-config';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, query, where, setDoc } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import { v4 as uuidv4 } from 'uuid';
-import type { Player, PlayerCard, Position, AddRatingFormValues, EditCardFormValues, EditPlayerFormValues, PlayerBuild, League, Nationality, PlayerAttributeStats, IdealBuild, PhysicalAttribute, FlatPlayer, PlayerPerformance, PlayerSkill, LiveUpdateRating, IdealBuildType } from '@/lib/types';
+import type { Player, PlayerCard, Position, AddRatingFormValues, EditCardFormValues, EditPlayerFormValues, PlayerBuild, FlatPlayer, PlayerPerformance, PlayerSkill, LiveUpdateRating } from '@/lib/types';
 import { getAvailableStylesForPosition, playerSkillsList } from '@/lib/types';
-import { normalizeText, normalizeStyleName, calculateProgressionStats, getIdealBuildForPlayer, isSpecialCard, calculateProgressionSuggestions, calculateAffinityWithBreakdown, calculateStats, calculateGeneralScore, calculateRecencyWeightedAverage } from '@/lib/utils';
+import { normalizeText, normalizeStyleName, calculateStats, calculateTierInfo, calculateRecencyWeightedAverage } from '@/lib/utils';
 
 
-export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: IdealBuildType = 'Contraataque largo', prioritizeRecentForm: boolean = false) {
+export function usePlayers(prioritizeRecentForm: boolean = false) {
   const [players, setPlayers] = useState<Player[]>([]);
   const [flatPlayers, setFlatPlayers] = useState<FlatPlayer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -88,7 +88,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
   }, [validSkillsSet]);
 
   useEffect(() => {
-    if (players.length > 0 && idealBuilds) {
+    if (players.length > 0) {
         const allFlatPlayers = players.flatMap(player => 
             (player.cards || []).flatMap(card => {
                 const playerPositions = Object.keys(card.ratingsByPosition || {}) as Position[];
@@ -108,56 +108,27 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
                     const recentStats = calculateStats(recentRatings);
                     const recentAverage = calculateRecencyWeightedAverage(ratingsForPos, 5, 2.5, 0.9);
 
-                    const highPerfPositions = new Set<Position>();
-                    for (const [p, avg] of averagesByPosition.entries()) {
-                        if (avg >= 7.0) highPerfPositions.add(p);
-                    }
-
-                    let isSpecialist = false;
-                    const currentAvg = averagesByPosition.get(ratedPos);
-                    if (currentAvg && currentAvg >= 8.5 && averagesByPosition.size > 1) {
-                        let otherPositionsWeaker = true;
-                        for (const [p, avg] of averagesByPosition.entries()) {
-                            if (p !== ratedPos && avg >= currentAvg - 1.5) {
-                                otherPositionsWeaker = false;
-                                break;
-                            }
-                        }
-                        isSpecialist = otherPositionsWeaker;
-                    }
-                    
                     const performance: PlayerPerformance = {
                         stats,
                         isHotStreak: stats.matches >= 3 && recentStats.average > stats.average + 0.5,
                         isConsistent: stats.matches >= 5 && stats.stdDev < 0.5,
                         isPromising: stats.matches > 0 && stats.matches < 5 && stats.average >= 7.0,
                         isVersatile: averagesByPosition.size >= 3,
-                        isGameChanger: stats.matches >= 5 && stats.stdDev > 1.0 && stats.average >= 7.5,
-                        isStalwart: stats.matches >= 100 && stats.average >= 7.0,
-                        isSpecialist: isSpecialist,
                     };
                     
-                    const isGoalkeeper = ratedPos === 'PT';
-                    const specialCard = isSpecialCard(card.name);
-                    
-                    const currentBuild = card.buildsByPosition?.[ratedPos];
-                    const finalStats = specialCard || !currentBuild
-                        ? (card.attributeStats || {})
-                        : calculateProgressionStats(card.attributeStats || {}, currentBuild, isGoalkeeper);
+                    const tierInfo = calculateTierInfo(stats.average, stats.matches, player.liveUpdateRating, recentAverage, prioritizeRecentForm);
 
-                    const { bestBuild } = getIdealBuildForPlayer(card.style, ratedPos, idealBuilds, 'Contraataque largo', card.physicalAttributes?.height, currentBuild?.forcedBuildId);
-                    const affinityBreakdown = calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills);
-                    const affinityScore = affinityBreakdown.totalAffinityScore;
-                    
-                    const generalScore = calculateGeneralScore(affinityScore, stats.average, stats.matches, performance, player.liveUpdateRating, card.skills, false, recentAverage, prioritizeRecentForm);
-
-                    return { player, card, ratingsForPos, performance, affinityScore, generalScore, position: ratedPos, affinityBreakdown };
+                    return { 
+                        player, card, ratingsForPos, performance, 
+                        tier: tierInfo.tier, score: tierInfo.score, 
+                        position: ratedPos 
+                    };
                 }).filter((p): p is FlatPlayer => p !== null);
             })
         );
         setFlatPlayers(allFlatPlayers);
     }
-  }, [players, idealBuilds, prioritizeRecentForm]);
+  }, [players, prioritizeRecentForm]);
 
 
   const addRating = async (values: AddRatingFormValues) => {
@@ -189,8 +160,6 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
           if (!card.ratingsByPosition[position]) card.ratingsByPosition[position] = [];
           card.ratingsByPosition[position]!.push(rating);
           card.league = league || card.league || 'Sin Liga';
-          if (!card.buildsByPosition) card.buildsByPosition = {};
-          if (!card.buildsByPosition[position]) card.buildsByPosition[position] = { manualAffinity: 0 };
         } else {
           card = { 
               id: uuidv4(), 
@@ -199,7 +168,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
               league: league || 'Sin Liga',
               imageUrl: '',
               ratingsByPosition: { [position]: [rating] },
-              buildsByPosition: { [position]: { manualAffinity: 0 } },
+              buildsByPosition: {},
               attributeStats: {},
               physicalAttributes: {},
               skills: [],
@@ -219,7 +188,7 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
               league: league || 'Sin Liga',
               imageUrl: '',
               ratingsByPosition: { [position]: [rating] },
-              buildsByPosition: { [position]: { manualAffinity: 0 } },
+              buildsByPosition: {},
               attributeStats: {},
               physicalAttributes: {},
               skills: [],
@@ -342,14 +311,14 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
             cardToUpdate.buildsByPosition[position] = { ...build, updatedAt: new Date().toISOString() };
 
             await updateDoc(playerRef, { cards: newCards });
-            toast({ title: "Build Guardada", description: `Build para ${position} actualizada.` });
+            toast({ title: "Build Guardada", description: `Entrenamiento para ${position} actualizado.` });
         }
     } catch (error) {
         toast({ variant: "destructive", title: "Error al Guardar", description: "No se pudo guardar la build." });
     }
   };
 
-  const saveAttributeStats = async (playerId: string, cardId: string, stats: PlayerAttributeStats, physical: PhysicalAttribute, skills: PlayerSkill[]) => {
+  const saveAttributeStats = async (playerId: string, cardId: string, stats: any, physical: any, skills: any) => {
      if (!db) return;
     const playerRef = doc(db, 'players', playerId);
     try {
@@ -365,65 +334,13 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
           cardToUpdate.skills = skills;
           cardToUpdate.attributeStats = { ...stats };
           
-          if(cardToUpdate.buildsByPosition) {
-              for (const posKey in cardToUpdate.buildsByPosition) {
-                  const pos = posKey as Position;
-                  const bld = cardToUpdate.buildsByPosition[pos];
-                  if(bld) {
-                      const isGK = pos === 'PT';
-                      const special = isSpecialCard(cardToUpdate.name);
-                      const final = special ? cardToUpdate.attributeStats : calculateProgressionStats(cardToUpdate.attributeStats || {}, bld, isGK);
-                      const { bestBuild } = getIdealBuildForPlayer(cardToUpdate.style, pos, idealBuilds, 'Contraataque largo', physical.height, bld.forcedBuildId);
-                      const newAffinity = calculateAffinityWithBreakdown(final, bestBuild, physical, skills).totalAffinityScore;
-                      bld.manualAffinity = newAffinity;
-                      bld.updatedAt = new Date().toISOString();
-                  }
-              }
-           }
           await setDoc(playerRef, { ...playerData, cards: newCards });
-          toast({ title: "Atributos Guardados", description: `Atributos y afinidades recalculados.` });
+          toast({ title: "Atributos Guardados", description: `Atributos actualizados correctamente.` });
         }
     } catch (error) {
       toast({ variant: "destructive", title: "Error al Guardar", description: "No se pudieron guardar los atributos." });
     }
   };
-
-  const updateProgressionPoints = async (playerId: string, cardId: string, points: number) => {
-    if (!db) return;
-    const playerRef = doc(db, 'players', playerId);
-    try {
-        const playerDoc = await getDoc(playerRef);
-        if (!playerDoc.exists()) return;
-
-        const playerData = playerDoc.data() as Player;
-        const newCards: PlayerCard[] = JSON.parse(JSON.stringify(playerData.cards || []));
-        const cardToUpdate = newCards.find(c => c.id === cardId);
-
-        if (cardToUpdate && !isSpecialCard(cardToUpdate.name)) {
-            cardToUpdate.totalProgressionPoints = points;
-            
-            if (cardToUpdate.buildsByPosition) {
-                for (const posKey in cardToUpdate.buildsByPosition) {
-                    const pos = posKey as Position;
-                    const bld = cardToUpdate.buildsByPosition[pos];
-                    if (bld && cardToUpdate.attributeStats) {
-                        const isGK = pos === 'PT';
-                        const final = calculateProgressionStats(cardToUpdate.attributeStats, bld, isGK);
-                        const { bestBuild } = getIdealBuildForPlayer(cardToUpdate.style, pos, idealBuilds, 'Contraataque largo', cardToUpdate.physicalAttributes?.height, bld.forcedBuildId);
-                        bld.manualAffinity = calculateAffinityWithBreakdown(final, bestBuild, cardToUpdate.physicalAttributes, cardToUpdate.skills).totalAffinityScore;
-                        bld.updatedAt = new Date().toISOString();
-                    }
-                }
-            }
-
-            await updateDoc(playerRef, { cards: newCards });
-            toast({ title: "Puntos Actualizados", description: `Puntos de progresión para ${cardToUpdate.name} actualizados a ${points}.` });
-        }
-    } catch (error) {
-        console.error("Error updating progression points:", error);
-    }
-  };
-
 
   const downloadBackup = async () => {
     if (!db) return null;
@@ -433,90 +350,6 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
       return playerSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
       return null;
-    }
-  };
-
-  const recalculateAllAffinities = async () => {
-    if (!db) return;
-    toast({ title: "Iniciando Recálculo...", description: `Actualizando afinidades para Contraataque largo.` });
-    let updatedCount = 0;
-    try {
-        const playersSnapshot = await getDocs(collection(db, 'players'));
-        for (const playerDoc of playersSnapshot.docs) {
-            const player = { id: playerDoc.id, ...playerDoc.data() } as Player;
-            let playerWasUpdated = false;
-            const newCards: PlayerCard[] = JSON.parse(JSON.stringify(player.cards || []));
-
-            for (const card of newCards) {
-                if (card.buildsByPosition) {
-                    for (const posKey in card.buildsByPosition) {
-                        const pos = posKey as Position;
-                        const build = card.buildsByPosition[pos];
-                        if (build && card.attributeStats) {
-                           const isGK = pos === 'PT';
-                           const special = isSpecialCard(card.name);
-                           const final = special ? card.attributeStats : calculateProgressionStats(card.attributeStats, build, isGK);
-                           const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds, 'Contraataque largo', card.physicalAttributes?.height, build.forcedBuildId);
-                           const newAffinity = calculateAffinityWithBreakdown(final, bestBuild, card.physicalAttributes, card.skills).totalAffinityScore;
-                           if (Math.abs(build.manualAffinity - newAffinity) > 0.01) {
-                                build.manualAffinity = newAffinity;
-                                build.updatedAt = new Date().toISOString();
-                                playerWasUpdated = true;
-                           }
-                        }
-                    }
-                }
-            }
-            if (playerWasUpdated) {
-                await setDoc(doc(db, 'players', player.id), { ...player, cards: newCards });
-                updatedCount++;
-            }
-        }
-        toast({ title: "Recálculo Completado", description: `Se actualizaron ${updatedCount} jugadores.` });
-    } catch (recalcError) {
-        toast({ variant: "destructive", title: "Error en el Recálculo", description: `Ocurrió un error.` });
-    }
-  };
-
-  const suggestAllBuilds = async () => {
-    if (!db) return;
-    toast({ title: "Iniciando Sugerencias Masivas...", description: `Optimizando builds para Contraataque largo.` });
-    let updatedPlayers = 0;
-    try {
-      const playersSnapshot = await getDocs(collection(db, 'players'));
-      for (const playerDoc of playersSnapshot.docs) {
-        const player = { id: playerDoc.id, ...playerDoc.data() } as Player;
-        let playerWasUpdated = false;
-        const newCards: PlayerCard[] = JSON.parse(JSON.stringify(player.cards || []));
-
-        for (const card of newCards) {
-          if (!isSpecialCard(card.name) && card.totalProgressionPoints && card.buildsByPosition) {
-            for (const posKey in card.buildsByPosition) {
-              const pos = posKey as Position;
-              const buildForPos = card.buildsByPosition[pos];
-              const { bestBuild } = getIdealBuildForPlayer(card.style, pos, idealBuilds, 'Contraataque largo', card.physicalAttributes?.height, buildForPos?.forcedBuildId);
-              if (bestBuild) {
-                const suggested = calculateProgressionSuggestions(card.attributeStats || {}, bestBuild, pos === 'PT', card.totalProgressionPoints);
-                const currentBuild = card.buildsByPosition[pos] || {};
-                const newBuild: PlayerBuild = { ...currentBuild, ...suggested };
-                const newFinal = calculateProgressionStats(card.attributeStats || {}, newBuild, pos === 'PT');
-                const newAffinity = calculateAffinityWithBreakdown(newFinal, bestBuild, card.physicalAttributes, card.skills).totalAffinityScore;
-                newBuild.manualAffinity = newAffinity;
-                newBuild.updatedAt = new Date().toISOString();
-                card.buildsByPosition[pos] = newBuild;
-                playerWasUpdated = true;
-              }
-            }
-          }
-        }
-        if (playerWasUpdated) {
-          await setDoc(doc(db, 'players', player.id), { ...player, cards: newCards });
-          updatedPlayers++;
-        }
-      }
-      toast({ title: "Proceso Completado", description: `Se optimizaron las builds de ${updatedPlayers} jugadores.` });
-    } catch (error) {
-      toast({ variant: "destructive", title: "Error en la Sugerencia Masiva", description: "Ocurrió un error." });
     }
   };
 
@@ -546,5 +379,10 @@ export function usePlayers(idealBuilds: IdealBuild[] = [], targetIdealType: Idea
     }
   };
 
-  return { players, flatPlayers, loading, error, addRating, editCard, editPlayer, deleteRating, savePlayerBuild, saveAttributeStats, downloadBackup, deletePositionRatings, recalculateAllAffinities, suggestAllBuilds, updateLiveUpdateRating, resetAllLiveUpdateRatings, updateProgressionPoints };
+  function isSpecialCard(name: string): boolean {
+    const n = name.toLowerCase();
+    return n.includes('potw') || n.includes('pots') || n.includes('potm');
+  }
+
+  return { players, flatPlayers, loading, error, addRating, editCard, editPlayer, deleteRating, savePlayerBuild, saveAttributeStats, downloadBackup, deletePositionRatings, updateLiveUpdateRating, resetAllLiveUpdateRatings };
 }

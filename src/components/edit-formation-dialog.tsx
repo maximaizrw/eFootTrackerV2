@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -30,7 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import type { EditFormationFormValues, FormationStats, FormationSlot, IdealBuild } from "@/lib/types";
+import type { EditFormationFormValues, FormationStats, FormationSlot } from "@/lib/types";
 import { formationPlayStyles, FormationSlotSchema } from "@/lib/types";
 import { VisualFormationEditor } from "./visual-formation-editor";
 import { formationPresets } from "@/lib/formation-presets";
@@ -56,10 +56,9 @@ type EditFormationDialogProps = {
   onOpenChange: (open: boolean) => void;
   onEditFormation: (values: EditFormationFormValues) => void;
   initialData?: FormationStats;
-  idealBuilds: IdealBuild[];
 };
 
-export function EditFormationDialog({ open, onOpenChange, onEditFormation, initialData, idealBuilds }: EditFormationDialogProps) {
+export function EditFormationDialog({ open, onOpenChange, onEditFormation, initialData }: EditFormationDialogProps) {
   const form = useForm<EditFormationFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -84,7 +83,6 @@ export function EditFormationDialog({ open, onOpenChange, onEditFormation, initi
         slots: (initialData.slots && initialData.slots.length === 11 ? initialData.slots : defaultSlots).map(s => ({
           ...s,
           styles: s.styles || [],
-          profileName: s.profileName,
           top: s.top ?? 50,
           left: s.left ?? 50,
         })),
@@ -106,7 +104,7 @@ export function EditFormationDialog({ open, onOpenChange, onEditFormation, initi
         <DialogHeader className="flex-shrink-0">
           <DialogTitle>Editar Formación Táctica</DialogTitle>
           <DialogDescription>
-            Modifica la plantilla, especificando posición y estilo de juego para cada puesto.
+            Modifica la plantilla y ajusta las posiciones en el campo.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -173,8 +171,7 @@ export function EditFormationDialog({ open, onOpenChange, onEditFormation, initi
                                     <FormControl>
                                         <VisualFormationEditor 
                                             value={field.value as FormationSlot[]} 
-                                            onChange={field.onChange} 
-                                            idealBuilds={idealBuilds}
+                                            onChange={field.onChange}
                                         />
                                     </FormControl>
                                     <FormMessage />

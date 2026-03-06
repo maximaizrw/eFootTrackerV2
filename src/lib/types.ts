@@ -8,8 +8,8 @@ export const playerStylesUI = playerStyles;
 export const positions = ['PT', 'DFC', 'LI', 'LD', 'MCD', 'MC', 'MDI', 'MDD', 'MO', 'EXI', 'EXD', 'SD', 'DC'] as const;
 export type Position = typeof positions[number];
 
-export const buildPositions = [...positions, 'LAT', 'INT', 'EXT'] as const;
-export type BuildPosition = typeof buildPositions[number];
+export const tiers = ['S+', 'S', 'A', 'B', 'C', 'D'] as const;
+export type Tier = typeof tiers[number];
 
 export const leagues = [
     "Sin Liga", "Premier League", "Ligue 1 Uber Eats", "Serie A TIM", "LaLiga EA SPORTS",
@@ -74,14 +74,7 @@ export type GoalkeeperBuild = {
 };
 
 export type PlayerBuild = (OutfieldBuild & GoalkeeperBuild) & {
-  manualAffinity?: number;
   updatedAt?: string;
-  forcedBuildId?: string;
-};
-
-type MinMaxRange = {
-    min?: number;
-    max?: number;
 };
 
 export const formationPlayStyles = [
@@ -92,22 +85,6 @@ export const formationPlayStyles = [
   'Posesión'
 ] as const;
 export type FormationPlayStyle = typeof formationPlayStyles[number];
-
-export const idealBuildTypes = ['Contraataque largo'] as const;
-export type IdealBuildType = typeof idealBuildTypes[number];
-
-export type IdealBuild = {
-  id?: string;
-  playStyle: IdealBuildType;
-  position: BuildPosition;
-  style: PlayerStyle;
-  profileName?: string;
-  build: PlayerAttributeStats;
-  height?: MinMaxRange;
-  weight?: MinMaxRange;
-  primarySkills?: PlayerSkill[];
-  secondarySkills?: PlayerSkill[];
-};
 
 export type PlayerAttributeStats = {
   offensiveAwareness?: number;
@@ -165,25 +142,6 @@ export type PlayerAttributeStats = {
   baseStamina?: number;
 };
 
-export const positionLabels: Record<BuildPosition, string> = {
-    PT: 'Portero',
-    DFC: 'Defensa Central',
-    LI: 'Lateral Izquierdo',
-    LD: 'Lateral Derecho',
-    MCD: 'Pivote Defensivo',
-    MC: 'Mediocentro',
-    MDI: 'Interior Izquierdo',
-    MDD: 'Interior Derecho',
-    MO: 'Mediapunta',
-    EXI: 'Extremo Izquierdo',
-    EXD: 'Extremo Derecho',
-    SD: 'Segundo Delantero',
-    DC: 'Delantero Centro',
-    LAT: 'Lateral (LI/LD)',
-    INT: 'Interior (MDI/MDD)',
-    EXT: 'Extremo (EXI/EXD)',
-};
-
 export type PhysicalAttribute = {
   height?: number;
   weight?: number;
@@ -212,41 +170,14 @@ export type Player = {
   permanentLiveUpdateRating?: boolean;
 };
 
-export type AddRatingFormValues = {
-    playerId?: string;
-    playerName: string;
-    nationality: Nationality;
-    cardName: string;
-    position: Position;
-    style: PlayerStyle;
-    league?: League;
-    rating: number;
-}
-
-export type EditCardFormValues = {
-    playerId: string;
-    cardId: string;
-    currentCardName: string;
-    currentStyle: PlayerStyle;
-    league?: League;
-    imageUrl?: string;
-};
-
-export type EditPlayerFormValues = {
-    playerId: string;
-    currentPlayerName: string;
-    nationality: Nationality;
-    permanentLiveUpdateRating?: boolean;
-};
-
 export type IdealTeamPlayer = {
   player: Player;
   card: PlayerCard;
   position: Position;
   assignedPosition: Position;
   average: number;
-  affinityScore: number;
-  generalScore: number;
+  tier: Tier;
+  score: number;
   performance: PlayerPerformance;
 };
 
@@ -287,34 +218,6 @@ export type FormationStats = {
   matches: MatchResult[];
 };
 
-export type AddFormationFormValues = {
-  name: string;
-  creator?: string;
-  playStyle: FormationPlayStyle;
-  slots: FormationSlot[];
-  imageUrl?: string;
-  secondaryImageUrl?: string;
-  sourceUrl?: string;
-};
-
-export type EditFormationFormValues = {
-  id: string;
-  name: string;
-  creator?: string;
-  playStyle: FormationPlayStyle;
-  slots: FormationSlot[];
-  imageUrl?: string;
-  secondaryImageUrl?: string;
-  sourceUrl?: string;
-};
-
-export type AddMatchFormValues = {
-  formationId: string;
-  goalsFor: number;
-  goalsAgainst: number;
-  shotsOnGoal?: number;
-}
-
 export type PlayerRatingStats = {
     average: number;
     matches: number;
@@ -337,17 +240,12 @@ export type FlatPlayer = {
   card: PlayerCard;
   ratingsForPos: number[];
   performance: PlayerPerformance;
-  affinityScore: number;
-  generalScore: number;
+  tier: Tier;
+  score: number;
   position: Position;
-  affinityBreakdown: {
-    totalAffinityScore: number;
-    breakdown: any[];
-    skillsBreakdown?: any[];
-  };
 };
 
-export function getAvailableStylesForPosition(position: BuildPosition, includeNone: boolean = false): PlayerStyle[] {
+export function getAvailableStylesForPosition(position: Position | 'LAT' | 'INT' | 'EXT', includeNone: boolean = false): PlayerStyle[] {
     const baseStyles: PlayerStyle[] = includeNone ? ['Ninguno'] : [];
 
     switch (position) {
@@ -378,6 +276,6 @@ export function getAvailableStylesForPosition(position: BuildPosition, includeNo
         case 'DC':
             return [...baseStyles, 'Cazagoles', 'Hombre de área', 'Hombre objetivo', 'Jugador de huecos', 'Extremo móvil', 'Segundo delantero'];
         default:
-            return [...playerStylesUI];
+            return [...playerStyles];
     }
 }

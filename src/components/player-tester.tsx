@@ -9,321 +9,95 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/
 import { Textarea } from "./ui/textarea";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { UploadCloud, Beaker, Star, Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, Check, ChevronsUpDown, LayoutGrid } from "lucide-react";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "./ui/form";
+import { UploadCloud, Beaker, Star, Target, Check, ChevronsUpDown, LayoutGrid } from "lucide-react";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "./ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import type { PlayerAttributeStats, IdealBuild, Position, PlayerStyle, BuildPosition, OutfieldBuild, GoalkeeperBuild, PlayerSkill } from "@/lib/types";
-import { positions, playerStyles, getAvailableStylesForPosition, playerSkillsList } from "@/lib/types";
-import { calculateProgressionStats, getIdealBuildForPlayer, statLabels, calculateProgressionSuggestions, calculateAffinityWithBreakdown, type AffinityBreakdownResult, allStatsKeys, getAverageColorClass } from "@/lib/utils";
+import type { PlayerAttributeStats, Position, PlayerStyle, LiveUpdateRating, Tier } from "@/lib/types";
+import { positions, playerStyles, playerSkillsList } from "@/lib/types";
+import { calculateStats, calculateTierInfo, allStatsKeys, statLabels, getAverageColorClass, getTierColorClass } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import { Label } from "./ui/label";
-import { AffinityBreakdown } from "./affinity-breakdown";
 import { ScrollArea } from "./ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "./ui/command";
 import { Badge } from "./ui/badge";
 
-const statSchema = z.coerce.number().min(0).max(99).optional();
-
 const testerSchema = z.object({
   position: z.enum(positions),
   style: z.enum(playerStyles),
   skills: z.array(z.string()).optional(),
-  height: z.coerce.number().min(0).optional(),
-  weight: z.coerce.number().min(0).optional(),
-  stats: z.object({
-    offensiveAwareness: statSchema, ballControl: statSchema, dribbling: statSchema, tightPossession: statSchema,
-    lowPass: statSchema, loftedPass: statSchema, finishing: statSchema, heading: statSchema, placeKicking: statSchema, curl: statSchema,
-    defensiveAwareness: statSchema, defensiveEngagement: statSchema, tackling: statSchema, aggression: statSchema,
-    goalkeeping: statSchema, gkCatching: statSchema, gkParrying: statSchema, gkReflexes: statSchema, gkReach: statSchema,
-    speed: statSchema, acceleration: statSchema, kickingPower: statSchema, jump: statSchema, physicalContact: statSchema,
-    balance: statSchema, stamina: statSchema,
-  }),
+  liveUpdate: z.enum(['A', 'B', 'C', 'D', 'E']).optional(),
+  stats: z.record(z.string(), z.coerce.number().min(0).max(99).optional()),
 });
 
-type PlayerTesterFormValues = z.infer<typeof testerSchema>;
-
-const nameToSchemaKeyMap: Record<string, keyof PlayerAttributeStats> = {
-    "offensive awareness": "offensiveAwareness", "ball control": "ballControl", "dribbling": "dribbling",
-    "tight possession": "tightPossession", "low pass": "lowPass", "lofted pass": "loftedPass",
-    "finishing": "finishing", "heading": "heading", "place kicking": "placeKicking", "curl": "curl",
-    "actitud defensiva": "defensiveAwareness", "defensive awareness": "defensiveAwareness", 
-    "dedicacion defensiva": "defensiveEngagement", "dedicacion": "defensiveEngagement",
-    "entrada": "tackling", "tackling": "tackling",
-    "agresividad": "aggression", "aggression": "aggression",
-    "goalkeeping": "goalkeeping", "gk catching": "gkCatching", "gk parrying": "gkParrying", "parada": "gkParrying",
-    "gk reflexes": "gkReflexes", "gk reach": "gkReach", "cobertura": "gkReach", "speed": "speed", "acceleration": "acceleration",
-    "kicking power": "kickingPower", "jump": "jump", "physical contact": "physicalContact", "balance": "balance", "stamina": "stamina",
-};
-
-const orderedStatFields: (keyof PlayerAttributeStats)[] = allStatsKeys;
-
-const outfieldCategories: { key: keyof OutfieldBuild; label: string, icon: React.ElementType }[] = [
-    { key: 'shooting', label: 'Tiro', icon: Target },
-    { key: 'passing', label: 'Pase', icon: Footprints },
-    { key: 'dribbling', label: 'Regate', icon: Dribbble },
-    { key: 'dexterity', label: 'Destreza', icon: Zap },
-    { key: 'lowerBodyStrength', label: 'Fuerza tren inferior', icon: Beef },
-    { key: 'aerialStrength', label: 'Juego aéreo', icon: ChevronsUp },
-    { key: 'defending', label: 'Defensa', icon: Shield },
-];
-
-const goalkeeperCategories: { key: keyof GoalkeeperBuild; label: string, icon: React.ElementType }[] = [
-    { key: 'gk1', label: 'Portero 1', icon: Hand },
-    { key: 'gk2', label: 'Parada', icon: Hand },
-    { key: 'gk3', label: 'Portero 3', icon: Hand },
-];
-
-const StatDisplay = ({ label, value }: { label: string; value?: number; }) => {
-    if (value === undefined || value === 0) return null;
-    return (
-        <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">{label}</span>
-            <span className={cn(
-                "font-bold",
-                value >= 90 && "text-sky-400",
-                value >= 85 && value < 90 && "text-green-400",
-                value >= 80 && value < 85 && "text-yellow-400",
-            )}>{value}</span>
-        </div>
-    );
-  };
-
-export function PlayerTester({ idealBuilds }: { idealBuilds: IdealBuild[] }) {
+export function PlayerTester() {
   const [pastedText, setPastedText] = React.useState('');
-  const [affinityBreakdown, setAffinityBreakdown] = React.useState<AffinityBreakdownResult>({ totalAffinityScore: 0, breakdown: [], skillsBreakdown: [] });
-  const [bestBuildStyle, setBestBuildStyle] = React.useState<string | null>(null);
-  const [progressionSuggestions, setProgressionSuggestions] = React.useState<Partial<OutfieldBuild & GoalkeeperBuild>>({});
-  const [progressionPoints, setProgressionPoints] = React.useState<number | undefined>(undefined);
-  const [finalPlayerStats, setFinalPlayerStats] = React.useState<PlayerAttributeStats>({});
-  const [skillsPopoverOpen, setSkillsPopoverOpen] = React.useState(false);
-
   const { toast } = useToast();
-  const form = useForm<PlayerTesterFormValues>({
+  const form = useForm<z.infer<typeof testerSchema>>({
     resolver: zodResolver(testerSchema),
-    defaultValues: { position: "DC", style: "Cazagoles", skills: [], stats: {} },
+    defaultValues: { position: "DC", style: "Cazagoles", skills: [], liveUpdate: 'C', stats: {} },
   });
 
   const { control, setValue, getValues } = form;
-  const watchedPosition = useWatch({ control, name: "position" });
-  const watchedStyle = useWatch({ control, name: "style" });
   const watchedStats = useWatch({ control, name: "stats" });
-  const watchedSkills = useWatch({ control, name: 'skills' }) || [];
-  const watchedHeight = useWatch({ control, name: "height" });
-  const watchedWeight = useWatch({ control, name: "weight" });
+  const watchedLiveUpdate = useWatch({ control, name: "liveUpdate" });
 
   const hasStats = React.useMemo(() => Object.keys(watchedStats || {}).length > 0, [watchedStats]);
 
-  // Calculate affinities for ALL positions
-  const allPositionResults = React.useMemo(() => {
-    if (!hasStats) return [];
-    
-    const base = getValues('stats');
-    return positions.map(pos => {
-        const { bestBuild, bestStyle } = getIdealBuildForPlayer(watchedStyle, pos, idealBuilds, 'Contraataque largo', watchedHeight);
-        // We use current points to calculate affinity per position
-        const sugg = calculateProgressionSuggestions(base, bestBuild, pos === 'PT', progressionPoints);
-        const final = calculateProgressionStats(base, sugg, pos === 'PT');
-        const breakdown = calculateAffinityWithBreakdown(final, bestBuild, { height: watchedHeight, weight: watchedWeight }, watchedSkills as PlayerSkill[]);
-        
-        return {
-            position: pos,
-            style: bestStyle,
-            affinity: breakdown.totalAffinityScore,
-            suggestions: sugg,
-            finalStats: final,
-            breakdown: breakdown
-        };
-    }).sort((a, b) => b.affinity - a.affinity);
-  }, [hasStats, watchedStyle, watchedSkills, watchedHeight, watchedWeight, idealBuilds, getValues, progressionPoints]);
-
-  // Sync selected detailed view when form position changes or when allPositionResults is recalculated
-  React.useEffect(() => {
-    const selectedResult = allPositionResults.find(r => r.position === watchedPosition);
-    if (selectedResult) {
-        setFinalPlayerStats(selectedResult.finalStats);
-        setProgressionSuggestions(selectedResult.suggestions);
-        setAffinityBreakdown(selectedResult.breakdown);
-        setBestBuildStyle(selectedResult.style);
-    } else {
-        setFinalPlayerStats({});
-        setProgressionSuggestions({});
-        setAffinityBreakdown({ totalAffinityScore: 0, breakdown: [] });
-        setBestBuildStyle(null);
-    }
-  }, [watchedPosition, allPositionResults]);
+  const results = React.useMemo(() => {
+    if (!hasStats) return null;
+    const statsArray = Object.values(getValues('stats')).filter((v): v is number => v !== undefined);
+    const stats = calculateStats(statsArray);
+    return calculateTierInfo(stats.average, stats.matches || 10, watchedLiveUpdate as LiveUpdateRating);
+  }, [hasStats, watchedLiveUpdate, watchedStats, getValues]);
 
   const handleParse = () => {
     const lines = pastedText.split('\n').filter(l => l.trim() !== '');
-    const newStats: Partial<PlayerAttributeStats> = {};
+    const newStats: any = {};
     let count = 0;
-    if (lines.every(l => /^\d+\s*$/.test(l.trim())) && lines.length > 25) {
-        orderedStatFields.forEach((key, i) => { if (lines[i]) { newStats[key] = parseInt(lines[i].trim(), 10); count++; } });
-    } else {
-        lines.forEach(l => {
-            const p = l.split(/\s+/).filter(Boolean);
-            if (p.length < 2) return;
-            const v = parseInt(p[p.length - 1], 10); if (isNaN(v)) return;
-            const key = nameToSchemaKeyMap[p.slice(0, -1).join(' ').replace('●', '').trim().toLowerCase()];
-            if (key) { newStats[key] = v; count++; }
-        });
+    const isNumericOnly = lines.every(l => /^\d+/.test(l.trim()));
+
+    if (isNumericOnly) {
+        allStatsKeys.forEach((key, i) => { if (lines[i]) { newStats[key] = parseInt(lines[i].trim(), 10); count++; } });
     }
-    if (count > 0) { form.setValue('stats', newStats as PlayerAttributeStats); toast({ title: "Cargado", description: `${count} atributos.` }); }
+    if (count > 0) { form.setValue('stats', newStats); toast({ title: "Cargado", description: `${count} atributos.` }); }
     else toast({ variant: "destructive", title: "Error", description: "Formato no reconocido." });
   };
-
-  const handleSkill = (s: string) => {
-    const cur = getValues('skills') || [];
-    setValue('skills', cur.includes(s) ? cur.filter(x => x !== s) : [...cur, s], { shouldValidate: true });
-  };
-
-  const handlePositionSelect = (pos: Position) => {
-    setValue('position', pos);
-  };
-
-  const suggCats = watchedPosition === 'PT' ? goalkeeperCategories : outfieldCategories;
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-accent"><Beaker />Probador Avanzado</CardTitle>
-        <CardDescription>Analiza el potencial de un jugador en todas las posiciones pegando sus estadísticas base.</CardDescription>
+        <CardTitle className="flex items-center gap-2 text-accent"><Beaker />Probador de Rendimiento</CardTitle>
+        <CardDescription>Analiza el Tier de un jugador pegando sus estadísticas.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* INPUT SECTION */}
-            <div className="space-y-4 md:col-span-1">
-                <Textarea placeholder="Pega stats aquí (formato texto o columna de números)..." value={pastedText} onChange={e => setPastedText(e.target.value)} className="min-h-[150px]" />
-                <Button onClick={handleParse} disabled={!pastedText} className="w-full"><UploadCloud className="mr-2 h-4 w-4" />Analizar Atributos</Button>
+      <CardContent className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-4">
+                <Textarea placeholder="Pega columna de números..." value={pastedText} onChange={e => setPastedText(e.target.value)} className="min-h-[150px]" />
+                <Button onClick={handleParse} disabled={!pastedText} className="w-full"><UploadCloud className="mr-2 h-4 w-4" />Analizar</Button>
                 <Form {...form}>
-                    <div className="space-y-4 pt-4 border-t">
-                    <div className="grid grid-cols-1 gap-4">
-                        <FormField control={form.control} name="style" render={({ field }) => (
+                    <FormField control={form.control} name="liveUpdate" render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Estilo de la Carta (Base)</FormLabel>
+                            <FormLabel>Letra (Live Update)</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value}>
                                 <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                <SelectContent>{playerStyles.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                                <SelectContent>{['A', 'B', 'C', 'D', 'E'].map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
                             </Select>
                         </FormItem>
-                        )} />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <FormField control={form.control} name="height" render={({ field }) => (<FormItem><FormLabel>Altura (cm)</FormLabel><FormControl><Input type="number" placeholder="cm" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
-                        <FormField control={form.control} name="weight" render={({ field }) => (<FormItem><FormLabel>Peso (kg)</FormLabel><FormControl><Input type="number" placeholder="kg" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl></FormItem>)} />
-                    </div>
-                    <FormItem>
-                        <FormLabel>Habilidades</FormLabel>
-                        <Popover open={skillsPopoverOpen} onOpenChange={setSkillsPopoverOpen}>
-                        <PopoverTrigger asChild><Button variant="outline" className="w-full justify-between h-auto min-h-10 text-left px-3"><div className="flex gap-1 flex-wrap">{watchedSkills.length > 0 ? watchedSkills.map(s => <Badge key={s} variant="secondary" className="text-[10px]">{s}</Badge>) : <span className="text-muted-foreground text-xs">Seleccionar...</span>}</div><ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" /></Button></PopoverTrigger>
-                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0"><Command><CommandInput placeholder="Buscar habilidad..." /><CommandList><CommandEmpty>Sin resultados.</CommandEmpty>{playerSkillsList.map(s => <CommandItem key={s} value={s} onSelect={() => handleSkill(s)}><Check className={cn("mr-2 h-4 w-4", watchedSkills.includes(s) ? "opacity-100" : "opacity-0")} />{s}</CommandItem>)}</CommandList></Command></PopoverContent>
-                        </Popover>
-                    </FormItem>
-                    <FormItem>
-                        <FormLabel>Puntos de Progresión Disponibles</FormLabel>
-                        <Input type="number" placeholder="Ej: 50" value={progressionPoints ?? ''} onChange={e => setProgressionPoints(e.target.value ? parseInt(e.target.value, 10) : undefined)} />
-                    </FormItem>
-                    </div>
+                    )} />
                 </Form>
             </div>
 
-            {/* RESULTS SECTION */}
-            <div className="md:col-span-2 space-y-6">
-                {/* ALL POSITIONS GRID */}
-                <div className="space-y-3">
-                    <h3 className="text-sm font-bold text-muted-foreground uppercase flex items-center gap-2"><LayoutGrid className="h-4 w-4" /> Comparativa de Afinidades</h3>
-                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-2">
-                        {hasStats ? (
-                            allPositionResults.map(res => {
-                                const isSelected = watchedPosition === res.position;
-                                return (
-                                    <button
-                                        key={res.position}
-                                        onClick={() => handlePositionSelect(res.position)}
-                                        className={cn(
-                                            "flex flex-col items-center justify-center p-2 rounded-lg border transition-all h-20",
-                                            isSelected ? "bg-primary border-primary text-primary-foreground shadow-lg scale-105" : "bg-muted/30 border-border hover:bg-muted/50 text-foreground"
-                                        )}
-                                    >
-                                        <span className="text-xs font-bold">{res.position}</span>
-                                        <div className="flex items-center gap-0.5 mt-1">
-                                            <Star className={cn("h-3 w-3", isSelected ? "text-primary-foreground" : "text-yellow-400")} />
-                                            <span className="text-sm font-black">{res.affinity.toFixed(0)}</span>
-                                        </div>
-                                        <span className={cn("text-[8px] mt-1 truncate w-full text-center", isSelected ? "text-primary-foreground/80" : "text-muted-foreground")}>
-                                            {res.style.split('(')[0]}
-                                        </span>
-                                    </button>
-                                );
-                            })
-                        ) : (
-                            <div className="col-span-full h-20 flex items-center justify-center border border-dashed rounded-lg text-muted-foreground text-xs">
-                                Ingresa estadísticas para ver la comparativa por posición
-                            </div>
-                        )}
-                    </div>
+            {results ? (
+                <div className="flex flex-col items-center justify-center p-8 bg-muted/30 rounded-lg border">
+                    <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-2">Tier Calculado</p>
+                    <div className={cn("text-9xl font-black mb-4", getTierColorClass(results.tier))}>{results.tier}</div>
+                    <div className="text-2xl font-bold">Puntuación: {results.score.toFixed(1)}</div>
                 </div>
-
-                {/* DETAILED VIEW FOR SELECTED POSITION */}
-                {hasStats && (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 border-t">
-                        <div className="bg-muted/50 rounded-lg p-6 space-y-4">
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <p className="text-lg font-semibold text-muted-foreground">Posición: <span className="text-foreground">{watchedPosition}</span></p>
-                                    <p className="text-sm text-muted-foreground">Perfil: <span className="font-semibold text-primary">{bestBuildStyle || 'N/A'}</span></p>
-                                </div>
-                                <div className={cn("text-4xl font-bold flex items-center gap-1", getAverageColorClass(affinityBreakdown.totalAffinityScore/10))}>
-                                    <Star className="w-8 h-8" />
-                                    {affinityBreakdown.totalAffinityScore.toFixed(2)}
-                                </div>
-                            </div>
-                            
-                            {Object.values(progressionSuggestions).some(v => v && v > 0) && (
-                                <div className="w-full pt-4 mt-4 border-t">
-                                    <p className="text-sm font-bold text-muted-foreground uppercase mb-3">Entrenamiento Sugerido</p>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        {suggCats.map(c => { 
-                                            const v = (progressionSuggestions as any)[c.key]; 
-                                            return v > 0 ? (
-                                                <div key={c.key} className="flex items-center justify-between p-2 bg-background/50 rounded-md border">
-                                                    <span className="flex items-center gap-2 text-xs truncate">
-                                                        <c.icon className="w-3 h-3 text-muted-foreground" />
-                                                        {c.label}
-                                                    </span>
-                                                    <span className="font-bold text-primary">{v}</span>
-                                                </div>
-                                            ) : null; 
-                                        })}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="bg-muted/50 rounded-lg p-6 space-y-4">
-                            <p className="text-sm font-bold text-muted-foreground uppercase">Stats Proyectados ({watchedPosition})</p>
-                            <div className="grid grid-cols-1 gap-1">
-                                {(watchedPosition === 'PT' ? goalkeeperStatsKeys : allStatsKeys).map(k => (
-                                    <StatDisplay key={k} label={statLabels[k]} value={finalPlayerStats[k]} />
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </div>
+            ) : (
+                <div className="flex items-center justify-center border border-dashed rounded-lg text-muted-foreground p-8">Ingresa estadísticas para ver el resultado</div>
+            )}
         </div>
-
-        {hasStats && (
-            <div className="pt-6 border-t">
-                <h3 className="text-sm font-bold text-muted-foreground uppercase mb-4 text-center">Desglose de Afinidad para {watchedPosition}</h3>
-                <ScrollArea className="h-[400px] border rounded-lg bg-background">
-                    <AffinityBreakdown breakdownResult={affinityBreakdown} tacticName={`Contraataque largo - ${watchedPosition}`} />
-                </ScrollArea>
-            </div>
-        )}
       </CardContent>
     </Card>
   );
 }
-
-const goalkeeperStatsKeys: (keyof PlayerAttributeStats)[] = ['goalkeeping', 'gkCatching', 'gkParrying', 'gkReflexes', 'gkReach', 'jump'];

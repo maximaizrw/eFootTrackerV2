@@ -30,7 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import type { AddFormationFormValues, IdealBuild } from "@/lib/types";
+import type { AddFormationFormValues } from "@/lib/types";
 import { formationPlayStyles, FormationSlotSchema } from "@/lib/types";
 import { VisualFormationEditor } from "./visual-formation-editor";
 import { formationPresets } from "@/lib/formation-presets";
@@ -50,12 +50,11 @@ type AddFormationDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAddFormation: (values: AddFormationFormValues) => void;
-  idealBuilds: IdealBuild[];
 };
 
 const defaultSlots = formationPresets.find(p => p.name === '4-3-3')?.slots || Array(11).fill({ position: 'DC', styles: [] });
 
-export function AddFormationDialog({ open, onOpenChange, onAddFormation, idealBuilds }: AddFormationDialogProps) {
+export function AddFormationDialog({ open, onOpenChange, onAddFormation }: AddFormationDialogProps) {
   const [preset, setPreset] = useState('4-3-3 (Clásico)');
   
   const form = useForm<AddFormationFormValues>({
@@ -109,7 +108,7 @@ export function AddFormationDialog({ open, onOpenChange, onAddFormation, idealBu
         <DialogHeader className="flex-shrink-0">
           <DialogTitle>Añadir Nueva Formación Táctica</DialogTitle>
           <DialogDescription>
-            Elige una plantilla, ajusta las posiciones y estilos de juego en el campo visual.
+            Elige una plantilla y ajusta las posiciones en el campo visual.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -192,8 +191,7 @@ export function AddFormationDialog({ open, onOpenChange, onAddFormation, idealBu
                                 <FormControl>
                                     <VisualFormationEditor 
                                         value={field.value} 
-                                        onChange={field.onChange} 
-                                        idealBuilds={idealBuilds}
+                                        onChange={field.onChange}
                                     />
                                 </FormControl>
                                 <FormMessage />

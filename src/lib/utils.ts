@@ -1,7 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { PlayerAttributeStats, PlayerBuild, OutfieldBuild, GoalkeeperBuild, IdealBuild, PlayerStyle, Position, BuildPosition, PhysicalAttribute, PlayerSkill, PlayerPerformance, LiveUpdateRating, IdealBuildType, PlayerCard } from "./types";
-import { getAvailableStylesForPosition } from "./types";
+import type { PlayerAttributeStats, PlayerBuild, Position, LiveUpdateRating, Tier } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -67,6 +66,18 @@ export function getAverageColorClass(average: number): string {
   return 'text-orange-400';
 }
 
+export function getTierColorClass(tier: Tier): string {
+    switch (tier) {
+        case 'S+': return 'text-yellow-400 drop-shadow-[0_0_5px_rgba(250,204,21,0.5)]';
+        case 'S': return 'text-orange-400';
+        case 'A': return 'text-purple-400';
+        case 'B': return 'text-sky-400';
+        case 'C': return 'text-green-400';
+        case 'D': return 'text-muted-foreground';
+        default: return 'text-foreground';
+    }
+}
+
 export function normalizeText(text: string): string {
   if (!text) return '';
   return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
@@ -78,79 +89,37 @@ export function normalizeStyleName(style: string): string {
     return style;
 }
 
-export const BADGE_BONUSES = { 
-  HOT_STREAK: 3, 
-  CONSISTENT: 2, 
-  VERSATILE: 1, 
-  PROMISING: 1, 
-  GAME_CHANGER: 2, 
-  STALWART: 2, 
-  SPECIALIST: 4 
-};
-
 export const LIVE_UPDATE_BONUSES: Record<LiveUpdateRating, number> = { A: 8, B: 4, C: 0, D: -5, E: -10 };
 
 /**
- * Optimized General Score Algorithm.
- * Combines Tactical Affinity with a balanced mix of Global Average and Recent Performance.
+ * Calculates a Tier Score (0-100) and assigns a Tier Letter.
  */
-export function calculateGeneralScore(
-  affinityScore: number, 
+export function calculateTierInfo(
   overallAverage: number, 
   matches: number,
-  performance: PlayerPerformance,
   liveUpdateRating?: LiveUpdateRating | null,
-  skills: PlayerSkill[] = [],
-  isSubstitute: boolean = false,
   recentAverage?: number,
   prioritizeRecentForm: boolean = false
-): number {
-  // 1. PERFORMANCE BLOCK (0-100 scale)
-  // Split between Historical Average and Recent (Last 5) Performance
+): { score: number; tier: Tier } {
   const effectiveRecentAverage = recentAverage ?? overallAverage;
-  
-  // Weighting for the performance block itself
   const recentWeight = prioritizeRecentForm ? 0.7 : 0.3;
   const overallWeight = 1 - recentWeight;
   
-  const combinedPerformanceAvg = (overallAverage * overallWeight) + (effectiveRecentAverage * recentWeight);
-  const performanceScore = combinedPerformanceAvg * 10;
-  
-  // 2. MIX BLOCK (Performance vs Affinity)
-  // Confidence Curve: Trust affinity more when matches are low.
-  let perfWeight = 0.5;
-  if (matches < 3) perfWeight = 0.2;
-  else if (matches < 10) perfWeight = 0.2 + (matches - 3) * (0.3 / 7);
-  
-  const affinityWeight = 1 - perfWeight;
-  
-  let baseScore = (affinityScore * affinityWeight) + (performanceScore * perfWeight);
+  const performanceScore = ((overallAverage * overallWeight) + (effectiveRecentAverage * recentWeight)) * 10;
+  let finalScore = performanceScore + (liveUpdateRating ? LIVE_UPDATE_BONUSES[liveUpdateRating] : 0);
 
-  // 3. BONUSES
-  if (effectiveRecentAverage >= 8.5) baseScore += 5;
-  else if (effectiveRecentAverage >= 8.0) baseScore += 2;
+  // Confidence adjustment
+  if (matches < 3) finalScore *= 0.8;
+  else if (matches < 5) finalScore *= 0.9;
 
-  if (performance.isHotStreak) baseScore += BADGE_BONUSES.HOT_STREAK;
-  if (performance.isSpecialist) baseScore += BADGE_BONUSES.SPECIALIST;
-  if (performance.isConsistent) baseScore += BADGE_BONUSES.CONSISTENT;
-  if (performance.isStalwart) baseScore += BADGE_BONUSES.STALWART;
-  if (performance.isVersatile) baseScore += BADGE_BONUSES.VERSATILE;
-  if (performance.isPromising) baseScore += BADGE_BONUSES.PROMISING;
-  if (performance.isGameChanger) baseScore += BADGE_BONUSES.GAME_CHANGER;
-  
-  if (liveUpdateRating) {
-    baseScore += LIVE_UPDATE_BONUSES[liveUpdateRating] || 0;
-  }
+  let tier: Tier = 'D';
+  if (finalScore >= 90) tier = 'S+';
+  else if (finalScore >= 80) tier = 'S';
+  else if (finalScore >= 70) tier = 'A';
+  else if (finalScore >= 60) tier = 'B';
+  else if (finalScore >= 50) tier = 'C';
 
-  if (isSubstitute && skills.includes('Super refuerzo')) {
-    baseScore += 3;
-  }
-
-  if (matches >= 5 && performance.stats.stdDev > 1.2) {
-    baseScore -= 2;
-  }
-
-  return Math.max(0, baseScore);
+  return { score: finalScore, tier };
 }
 
 export function isSpecialCard(cardName: string): boolean {
@@ -159,17 +128,9 @@ export function isSpecialCard(cardName: string): boolean {
   return n.includes('potw') || n.includes('pots') || n.includes('potm');
 }
 
-export function isProfileIncomplete(card: PlayerCard): boolean {
-  if (!card) return true;
-  const hasStats = card.attributeStats && Object.keys(card.attributeStats).length > 0;
-  const hasPhysical = card.physicalAttributes?.height !== undefined && card.physicalAttributes?.weight !== undefined;
-  const hasSkills = card.skills && card.skills.length > 0;
-  return !hasStats || !hasPhysical || !hasSkills;
-}
-
 const MAX_STAT_VALUE = 99;
 
-export const statLabels: Record<keyof PlayerAttributeStats | keyof PhysicalAttribute, string> = {
+export const statLabels: Record<string, string> = {
     offensiveAwareness: 'Act. Ofensiva', 
     ballControl: 'Control del Balón', 
     dribbling: 'Regate', 
@@ -200,15 +161,12 @@ export const statLabels: Record<keyof PlayerAttributeStats | keyof PhysicalAttri
     weight: 'Peso',
 };
 
-const outfieldStatsKeys: (keyof PlayerAttributeStats)[] = [
+export const allStatsKeys: (keyof PlayerAttributeStats)[] = [
     'offensiveAwareness', 'ballControl', 'dribbling', 'tightPossession', 'lowPass', 'loftedPass', 'finishing', 'heading', 'placeKicking', 'curl',
     'defensiveAwareness', 'defensiveEngagement', 'tackling', 'aggression',
-    'speed', 'acceleration', 'kickingPower', 'jump', 'physicalContact', 'balance', 'stamina'
+    'speed', 'acceleration', 'kickingPower', 'jump', 'physicalContact', 'balance', 'stamina',
+    'goalkeeping', 'gkCatching', 'gkParrying', 'gkReflexes', 'gkReach'
 ];
-
-const goalkeeperStatsKeys: (keyof PlayerAttributeStats)[] = ['goalkeeping', 'gkCatching', 'gkParrying', 'gkReflexes', 'gkReach'];
-
-export const allStatsKeys: (keyof PlayerAttributeStats)[] = [...new Set([...outfieldStatsKeys, ...goalkeeperStatsKeys])];
 
 export function calculateProgressionStats(baseStats: PlayerAttributeStats, build: PlayerBuild, isGoalkeeper: boolean = false): PlayerAttributeStats {
   const newStats: PlayerAttributeStats = { ...baseStats };
@@ -257,150 +215,18 @@ export function calculateProgressionStats(baseStats: PlayerAttributeStats, build
   return newStats;
 }
 
-export const symmetricalPositionMap: Record<Position, BuildPosition | undefined> = {
-    'LI': 'LAT', 'LD': 'LAT', 'MDI': 'INT', 'MDD': 'INT', 'EXI': 'EXT', 'EXD': 'EXT',
-    'PT': undefined, 'DFC': undefined, 'MCD': undefined, 'MC': undefined, 'MO': undefined, 'SD': undefined, 'DC': undefined,
+export const symmetricalPositionMap: Record<Position, Position> = {
+  PT: 'PT',
+  DFC: 'DFC',
+  LI: 'LD',
+  LD: 'LI',
+  MCD: 'MCD',
+  MC: 'MC',
+  MDI: 'MDD',
+  MDD: 'MDI',
+  MO: 'MO',
+  EXI: 'EXD',
+  EXD: 'EXI',
+  SD: 'SD',
+  DC: 'DC',
 };
-
-export function getIdealBuildForPlayer(playerStyle: PlayerStyle, position: Position, idealBuilds: IdealBuild[], targetType: IdealBuildType = 'Contraataque largo', height?: number, forcedBuildId?: string) {
-    if (forcedBuildId) {
-        const match = idealBuilds.find(b => b.id === forcedBuildId);
-        if (match) return { bestBuild: match, bestStyle: match.profileName ? `${match.style} (${match.profileName})` : match.style };
-    }
-
-    const baseStyle = normalizeStyleName(playerStyle);
-    const activeStyles = getAvailableStylesForPosition(position, true);
-    const effectiveStyle = activeStyles.includes(baseStyle as any) ? baseStyle : 'Ninguno';
-    const archetype = symmetricalPositionMap[position];
-    
-    const candidates = idealBuilds.filter(b => (b.position === position || (archetype && b.position === archetype)) && normalizeStyleName(b.style) === effectiveStyle);
-    if (candidates.length === 0) {
-        const fallbacks = idealBuilds.filter(b => (b.position === position || (archetype && b.position === archetype)) && normalizeStyleName(b.style) === 'Ninguno');
-        return findBestBuildByRange(fallbacks.length > 0 ? fallbacks : [], height, 'Ninguno');
-    }
-    return findBestBuildByRange(candidates, height, effectiveStyle);
-}
-
-function findBestBuildByRange(builds: IdealBuild[], height: number | undefined, styleLabel: string) {
-    if (!builds || builds.length === 0) return { bestBuild: null, bestStyle: styleLabel };
-    if (height && height > 0) {
-        const match = builds.find(b => {
-            const min = b.height?.min || 0;
-            const max = b.height?.max || 0;
-            if (min === 0 && max === 0) return false;
-            return (min > 0 ? height >= min : true) && (max > 0 ? height <= max : true);
-        });
-        if (match) return { bestBuild: match, bestStyle: match.profileName ? `${styleLabel} (${match.profileName})` : styleLabel };
-    }
-    const base = builds.find(b => (!b.height?.min || b.height.min === 0) && (!b.height?.max || b.height.max === 0)) || builds[0];
-    return { bestBuild: base, bestStyle: base.profileName ? `${styleLabel} (${base.profileName})` : styleLabel };
-}
-
-export type AffinityBreakdownResult = {
-    totalAffinityScore: number;
-    breakdown: any[];
-    skillsBreakdown?: any[];
-};
-
-export function calculateAffinityWithBreakdown(playerStats: PlayerAttributeStats, idealBuild: IdealBuild | null, physicalAttributes?: PhysicalAttribute, playerSkills?: PlayerSkill[]): AffinityBreakdownResult {
-    if (!idealBuild) return { totalAffinityScore: 0, breakdown: [], skillsBreakdown: [] };
-    let score = 100;
-    const breakdown: any[] = [];
-    const skillsBreakdown: any[] = [];
-    const { build: iS, primarySkills = [], secondarySkills = [] } = idealBuild;
-    const keys = idealBuild.position === 'PT' ? goalkeeperStatsKeys : outfieldStatsKeys;
-
-    keys.forEach(k => {
-        const pV = playerStats[k];
-        const iV = iS[k];
-        let s = 0;
-        if (k !== 'placeKicking' && pV !== undefined && iV !== undefined && iV >= 70) {
-            const d = pV - iV;
-            if (d >= 0) s = d * 0.25;
-            else s = iV >= 90 ? d * 0.5 : iV >= 80 ? d * 0.3 : d * 0.2;
-            s = Math.max(-10, s);
-            score += s;
-        }
-        breakdown.push({ stat: k, label: statLabels[k], playerValue: pV, idealValue: iV, score: s });
-    });
-
-    if (idealBuild.position === 'PT' && physicalAttributes?.height && physicalAttributes.height < 188 && (playerStats.jump || 0) <= 85) {
-        score -= 10;
-        breakdown.push({ stat: 'jump', label: 'Requisito: Salto > 85 (H < 188cm)', playerValue: playerStats.jump, idealValue: 86, score: -10 });
-    }
-
-    const physicalKeys: (keyof PhysicalAttribute)[] = ['height', 'weight'];
-    physicalKeys.forEach(k => {
-        const pV = physicalAttributes?.[k];
-        const range = idealBuild[k];
-        let s = 0;
-        if (range && pV) {
-            const min = range.min || 0;
-            const max = range.max || 0;
-            if (min > 0 || max > 0) {
-                if ((min === 0 || pV >= min) && (max === 0 || pV <= max)) s = 2.5;
-                else s = min > 0 && pV < min ? -(min - pV) * 0.5 : -(pV - max) * 0.25;
-            }
-        }
-        score += s;
-        breakdown.push({ stat: k, label: statLabels[k], playerValue: pV, idealValue: range, score: s });
-    });
-
-    const pSSet = new Set(playerSkills || []);
-    primarySkills.forEach(sk => {
-        const has = pSSet.has(sk);
-        const s = has ? 1.0 : -0.5;
-        score += s;
-        skillsBreakdown.push({ skill: sk, hasSkill: has, score: s, type: 'primary' });
-    });
-    secondarySkills.forEach(sk => {
-        const has = pSSet.has(sk);
-        const s = has ? 0.5 : -0.25;
-        score += s;
-        skillsBreakdown.push({ skill: sk, hasSkill: has, score: s, type: 'secondary' });
-    });
-
-    return { totalAffinityScore: score, breakdown, skillsBreakdown };
-}
-
-export function calculatePointsForLevel(l: number): number {
-  if (l <= 0) return 0;
-  if (l <= 4) return l;
-  if (l <= 8) return 4 + (l - 4) * 2;
-  if (l <= 12) return 12 + (l - 8) * 3;
-  return 24 + (l - 12) * 4;
-}
-
-const categoryStatsMap: Record<string, (keyof PlayerAttributeStats)[]> = {
-    shooting: ['finishing', 'placeKicking', 'curl'], passing: ['lowPass', 'loftedPass'],
-    dribbling: ['ballControl', 'dribbling', 'tightPossession'], dexterity: ['offensiveAwareness', 'acceleration', 'balance'],
-    lowerBodyStrength: ['speed', 'kickingPower', 'stamina'], aerialStrength: ['heading', 'jump', 'physicalContact'],
-    defending: ['defensiveAwareness', 'defensiveEngagement', 'tackling', 'aggression'],
-    gk1: ['goalkeeping', 'jump'], gk2: ['gkParrying', 'gkReach'], gk3: ['gkCatching', 'gkReflexes'],
-};
-
-export function calculateProgressionSuggestions(base: PlayerAttributeStats, ideal: IdealBuild | null, isGK: boolean, total: number = 50) {
-  if (!ideal || total <= 0) return {};
-  const cats = isGK ? ['gk1', 'gk2', 'gk3'] : ['shooting', 'passing', 'dribbling', 'dexterity', 'lowerBodyStrength', 'aerialStrength', 'defending'];
-  const b: any = {}; cats.forEach(c => b[c] = 0);
-  let spent = 0;
-  while (spent < total) {
-    let best = null, maxV = -Infinity;
-    for (const c of cats) {
-      if (b[c] >= 16) continue;
-      const cost = calculatePointsForLevel(b[c] + 1) - calculatePointsForLevel(b[c]);
-      if (spent + cost > total) continue;
-      const proj = calculateProgressionStats(base, { ...b, [c]: b[c] + 1 }, isGK);
-      let v = 0;
-      for (const s of categoryStatsMap[c]) {
-        const iV = ideal.build[s] ?? 0;
-        if (iV >= 70 && (proj[s] ?? 0) <= iV) v += iV >= 90 ? 3 : iV >= 80 ? 2 : 1;
-      }
-      const vPP = v / cost;
-      if (vPP > maxV) { maxV = vPP; best = c; }
-    }
-    if (best && maxV > 0) { spent += calculatePointsForLevel(b[best] + 1) - calculatePointsForLevel(b[best]); b[best]++; }
-    else break;
-  }
-  return b;
-}

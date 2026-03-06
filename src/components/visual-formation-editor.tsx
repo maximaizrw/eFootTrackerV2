@@ -22,7 +22,6 @@ import {
   Shield,
   Crosshair,
   Swords,
-  User,
   Ruler,
   MapPin,
   Settings2,
@@ -31,14 +30,11 @@ import type {
   FormationSlot,
   Position,
   PlayerStyle,
-  IdealBuild,
 } from "@/lib/types";
 import { positions, getAvailableStylesForPosition } from "@/lib/types";
-import { cn, symmetricalPositionMap } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { FootballPitch } from "./football-pitch";
 import { formationPresets } from "@/lib/formation-presets";
-
-// --- Zone color helpers ---
 
 type PositionZone = "PT" | "DEF" | "MED" | "ATQ";
 
@@ -90,15 +86,10 @@ function ZoneColorDot({ position }: { position: Position }) {
   );
 }
 
-// --- Types ---
-
 type VisualFormationEditorProps = {
   value: FormationSlot[];
   onChange: (value: FormationSlot[]) => void;
-  idealBuilds: IdealBuild[];
 };
-
-// --- PlayerToken ---
 
 const PlayerToken = ({
   slot,
@@ -107,7 +98,6 @@ const PlayerToken = ({
   style,
   isSelected,
   onPointerDown,
-  idealBuilds,
 }: {
   slot: FormationSlot;
   index: number;
@@ -115,10 +105,8 @@ const PlayerToken = ({
   style: React.CSSProperties;
   isSelected: boolean;
   onPointerDown: (e: React.PointerEvent) => void;
-  idealBuilds: IdealBuild[];
 }) => {
   const [isPopoverOpen, setIsPopoverOpen] = React.useState(false);
-  const [isProfileOpen, setIsProfileOpen] = React.useState(false);
   const [isAdvancedOpen, setIsAdvancedOpen] = React.useState(false);
 
   const zone = getPositionZone(slot.position);
@@ -130,7 +118,7 @@ const PlayerToken = ({
     const newValues = isAlreadySelected
       ? currentValues.filter((s) => s !== styleToToggle)
       : [...currentValues, styleToToggle];
-    onSlotChange({ ...slot, styles: newValues, profileName: undefined });
+    onSlotChange({ ...slot, styles: newValues });
   };
 
   const handlePositionChange = (newPos: Position) => {
@@ -138,27 +126,8 @@ const PlayerToken = ({
       ...slot,
       position: newPos,
       styles: [],
-      profileName: undefined,
     });
   };
-
-  const availableProfiles = React.useMemo(() => {
-    if (!idealBuilds) return [];
-    const archetype = symmetricalPositionMap[slot.position];
-    const stylesToSearch =
-      slot.styles && slot.styles.length > 0 ? slot.styles : ["Ninguno"];
-    const profiles = new Set<string>();
-    idealBuilds.forEach((b) => {
-      const posMatch =
-        b.position === slot.position ||
-        (archetype && b.position === archetype);
-      const styleMatch = stylesToSearch.includes(b.style);
-      if (posMatch && styleMatch && b.profileName) {
-        profiles.add(b.profileName);
-      }
-    });
-    return Array.from(profiles).sort();
-  }, [slot.position, slot.styles, idealBuilds]);
 
   const displayPosition = slot.position;
   const availableStyles: PlayerStyle[] = [
@@ -166,7 +135,6 @@ const PlayerToken = ({
     ...getAvailableStylesForPosition(slot.position, false),
   ];
   const hasStyles = slot.styles && slot.styles.length > 0;
-  const hasProfile = !!slot.profileName;
   const hasAdvanced = !!slot.minHeight || !!slot.secondaryPosition;
 
   return (
@@ -226,7 +194,6 @@ const PlayerToken = ({
             align="start"
           >
             <div className="p-4 space-y-4">
-              {/* Position selector */}
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center gap-2">
                   <ZoneColorDot position={slot.position} />
@@ -254,9 +221,8 @@ const PlayerToken = ({
                 </Select>
               </div>
 
-              {/* Styles */}
               <div className="space-y-2">
-                <label className="text-sm font-medium">Estilos de Juego</label>
+                <label className="text-sm font-medium">Estilos de Juego Sugeridos</label>
                 <div className="flex flex-wrap gap-1.5">
                   {availableStyles.map((s) => {
                     const isActive = slot.styles?.includes(s);
@@ -280,45 +246,6 @@ const PlayerToken = ({
                 </div>
               </div>
 
-              {/* Profile */}
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setIsProfileOpen(!isProfileOpen)}
-                  className="flex items-center justify-between w-full text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-1"
-                >
-                  <span className="flex items-center gap-1.5">
-                    <User className="w-3.5 h-3.5" />
-                    Perfil Tactico
-                  </span>
-                  <Settings2 className={cn("w-3.5 h-3.5 transition-transform", isProfileOpen && "rotate-180")} />
-                </button>
-                {isProfileOpen && (
-                  <div className="pt-2">
-                    <Select
-                      value={slot.profileName || "General"}
-                      onValueChange={(val) =>
-                        onSlotChange({
-                          ...slot,
-                          profileName: val === "General" ? undefined : val,
-                        })
-                      }
-                    >
-                      <SelectTrigger className="h-9">
-                        <SelectValue placeholder="Selecciona perfil..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="General">General (Auto)</SelectItem>
-                        {availableProfiles.map((p) => (
-                          <SelectItem key={p} value={p}>{p}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </div>
-
-              {/* Advanced Requirements */}
               <div>
                 <button
                   type="button"
@@ -327,7 +254,7 @@ const PlayerToken = ({
                 >
                   <span className="flex items-center gap-1.5">
                     <Settings2 className="w-3.5 h-3.5" />
-                    Requisitos Extra
+                    Requisitos Especiales
                   </span>
                   <Settings2 className={cn("w-3.5 h-3.5 transition-transform", isAdvancedOpen && "rotate-180")} />
                 </button>
@@ -382,16 +309,11 @@ const PlayerToken = ({
         </Popover>
       </div>
 
-      {(hasStyles || hasProfile || hasAdvanced) && (
+      {(hasStyles || hasAdvanced) && (
         <div className="flex items-center gap-0.5 max-w-[60px] sm:max-w-[72px]">
           {hasStyles && (
             <span className="truncate text-[8px] sm:text-[9px] font-medium text-white/80 bg-black/40 px-1 py-px rounded backdrop-blur-sm">
               {slot.styles![0].substring(0, 4)}
-            </span>
-          )}
-          {hasProfile && (
-            <span className="text-[8px] sm:text-[9px] font-medium text-white/80 bg-black/40 px-1 py-px rounded backdrop-blur-sm">
-              {slot.profileName!.substring(0, 4)}
             </span>
           )}
           {hasAdvanced && (
@@ -404,8 +326,6 @@ const PlayerToken = ({
     </div>
   );
 };
-
-// --- Zone Counter ---
 
 function ZoneCounter({ slots }: { slots: FormationSlot[] }) {
   const counts = React.useMemo(() => {
@@ -449,12 +369,9 @@ function ZoneCounter({ slots }: { slots: FormationSlot[] }) {
   );
 }
 
-// --- Main Editor ---
-
 export function VisualFormationEditor({
   value,
   onChange,
-  idealBuilds,
 }: VisualFormationEditorProps) {
   const editorRef = React.useRef<HTMLDivElement>(null);
   const [movingTokenIndex, setMovingTokenIndex] = React.useState<number | null>(
@@ -588,7 +505,6 @@ export function VisualFormationEditor({
               style={tokenStyle}
               isSelected={movingTokenIndex === index}
               onPointerDown={(e) => handleTokenPointerDown(e, index)}
-              idealBuilds={idealBuilds}
             />
           );
         })}

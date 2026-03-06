@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import type { Position, FlatPlayer, PlayerBuild, OutfieldBuild, GoalkeeperBuild, PlayerAttributeStats, IdealBuild, IdealBuildType } from "@/lib/types";
+import type { Position, FlatPlayer, PlayerBuild, OutfieldBuild, GoalkeeperBuild, PlayerAttributeStats } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -13,29 +13,16 @@ import {
 import { Button } from '@/components/ui/button';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { Slider } from "./ui/slider";
 import { ScrollArea } from "./ui/scroll-area";
-import { Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, BrainCircuit, RefreshCw, Info, Dna, Dumbbell } from "lucide-react";
-import { calculateProgressionStats, getIdealBuildForPlayer, calculateAffinityWithBreakdown, type AffinityBreakdownResult, statLabels, calculateProgressionSuggestions, isSpecialCard, isProfileIncomplete, symmetricalPositionMap } from "@/lib/utils";
-import { cn } from "@/lib/utils";
-import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { AffinityBreakdown } from "./affinity-breakdown";
-import { useToast } from "@/hooks/use-toast";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
-
+import { Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, Dumbbell } from "lucide-react";
+import { calculateProgressionStats, statLabels, cn } from "@/lib/utils";
 
 type PlayerDetailDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   flatPlayer: FlatPlayer | null;
   onSavePlayerBuild: (playerId: string, cardId: string, position: Position, build: PlayerBuild, totalProgressionPoints?: number) => void;
-  idealBuilds: IdealBuild[];
-  idealBuildType?: IdealBuildType;
-  initialIsManual?: boolean;
 };
 
 const outfieldCategories: { key: keyof OutfieldBuild; label: string, icon: React.ElementType }[] = [
@@ -54,318 +41,86 @@ const goalkeeperCategories: { key: keyof GoalkeeperBuild; label: string, icon: R
     { key: 'gk3', label: 'Portero 3', icon: Hand },
 ];
 
-
-export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlayerBuild, idealBuilds, idealBuildType = 'Contraataque largo', initialIsManual = false }: PlayerDetailDialogProps) {
-  const [build, setBuild] = React.useState<PlayerBuild>({ manualAffinity: 0 });
+export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlayerBuild }: PlayerDetailDialogProps) {
+  const [build, setBuild] = React.useState<PlayerBuild>({});
   const [totalProgressionPoints, setTotalProgressionPoints] = React.useState<number | undefined>(undefined);
-  const [isManualMode, setIsManualMode] = React.useState(initialIsManual);
 
-  const { toast } = useToast();
-  
   const position = flatPlayer?.position;
   const card = flatPlayer?.card;
   const player = flatPlayer?.player;
   const isGoalkeeper = position === 'PT';
-  const specialCard = isSpecialCard(card?.name || '');
 
   const baseStats = React.useMemo(() => card?.attributeStats || {}, [card?.attributeStats]);
-  
-  const availableBuildsForPos = React.useMemo(() => {
-    if (!position) return [];
-    const archetype = symmetricalPositionMap[position];
-    return idealBuilds.filter(b => b.position === position || (archetype && b.position === archetype));
-  }, [position, idealBuilds]);
-
-  const { bestBuild, bestBuildStyle } = React.useMemo(() => {
-    if (!card || !position) return { bestBuild: null, bestBuildStyle: null };
-    const result = getIdealBuildForPlayer(card.style, position, idealBuilds, 'Contraataque largo', card.physicalAttributes?.height, build.forcedBuildId);
-    return { bestBuild: result.bestBuild, bestBuildStyle: result.bestStyle };
-  }, [card?.style, position, idealBuilds, card?.physicalAttributes?.height, build.forcedBuildId]);
 
   React.useEffect(() => {
     if (open && flatPlayer && position && card) {
-      setBuild(card.buildsByPosition?.[position] || { manualAffinity: 0 });
+      setBuild(card.buildsByPosition?.[position] || {});
       setTotalProgressionPoints(card.totalProgressionPoints);
-      setIsManualMode(initialIsManual);
     }
-  }, [open, flatPlayer, card, position, initialIsManual]);
+  }, [open, flatPlayer, card, position]);
 
   const finalStats = React.useMemo(() => {
     if (!card || !position) return {};
-    return specialCard ? baseStats : calculateProgressionStats(baseStats, build, isGoalkeeper);
-  }, [build, baseStats, card, position, specialCard, isGoalkeeper]);
-
-  const localAffinityResult = React.useMemo<AffinityBreakdownResult>(() => {
-    if (!card || !bestBuild) return { totalAffinityScore: 0, breakdown: [] };
-    return calculateAffinityWithBreakdown(finalStats, bestBuild, card.physicalAttributes, card.skills);
-  }, [finalStats, bestBuild, card]);
+    return calculateProgressionStats(baseStats, build, isGoalkeeper);
+  }, [build, baseStats, card, position, isGoalkeeper]);
 
   const handleSave = () => {
     if (player && card && position) {
-      const buildToSave = { ...build, manualAffinity: localAffinityResult.totalAffinityScore, updatedAt: new Date().toISOString() };
-      onSavePlayerBuild(player.id, card.id, position, buildToSave, totalProgressionPoints);
+      onSavePlayerBuild(player.id, card.id, position, { ...build, updatedAt: new Date().toISOString() }, totalProgressionPoints);
       onOpenChange(false);
     }
   };
-  
-  const handleUpdateAffinity = () => {
-    if (player && card && position) {
-      const buildToSave = { ...build, manualAffinity: localAffinityResult.totalAffinityScore, updatedAt: new Date().toISOString() };
-      onSavePlayerBuild(player.id, card.id, position, buildToSave, totalProgressionPoints);
-    }
-  };
 
-  const handleSuggestBuild = () => {
-    if (!card || !position || !bestBuild) {
-        toast({
-            variant: "destructive",
-            title: "No se encontró Build Ideal",
-            description: `No hay una build ideal definida para ${position} con estilo ${card?.style || ''}.`,
-        });
-        return;
-    }
-    
-    const pointsToUse = totalProgressionPoints || 50; 
-    const suggestions = calculateProgressionSuggestions(baseStats, bestBuild, isGoalkeeper, pointsToUse);
-    
-    setBuild(prev => ({ ...prev, ...suggestions }));
-    toast({ title: "Sugerencias Cargadas", description: `Se han distribuido ${pointsToUse} puntos basados en Contraataque largo.` });
-  };
-
-  const updatedAt = build?.updatedAt;
-  const formattedDate = updatedAt 
-    ? format(new Date(updatedAt), "d 'de' MMMM 'de' yyyy 'a las' HH:mm", { locale: es }) 
-    : 'N/A';
-
-  const handleSliderChange = (category: keyof OutfieldBuild | keyof GoalkeeperBuild, value: number) => {
+  const handleSliderChange = (category: string, value: number) => {
     setBuild(prev => ({ ...prev, [category]: value }));
   }
 
   const StatDisplay = ({ label, value, baseValue }: { label: string; value?: number; baseValue?: number }) => {
-    const hasIncreased = value !== undefined && baseValue !== undefined && value > baseValue;
     if (value === undefined || value === 0) return null;
+    const isIncreased = value > (baseValue || 0);
     return (
         <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">{label}</span>
-            <span className={cn(
-                "font-bold",
-                hasIncreased && "text-primary",
-                !hasIncreased && value >= 90 && "text-sky-400",
-                !hasIncreased && value >= 85 && value < 90 && "text-green-400",
-                !hasIncreased && value >= 80 && value < 85 && "text-yellow-400",
-            )}>{value}</span>
+            <span className={cn("font-bold", isIncreased && "text-primary")}>{value}</span>
         </div>
     );
   };
-  
-  const getBaseValue = (stat: keyof PlayerAttributeStats, baseStat: keyof PlayerAttributeStats) => {
-      return baseStats[baseStat] !== undefined ? baseStats[baseStat] : baseStats[stat];
-  }
-
-  const incomplete = card ? isProfileIncomplete(card) : false;
-  const titleColorClass = incomplete ? "text-red-500" : "";
-
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[85vh] flex flex-col">
-        <DialogHeader className="flex-shrink-0">
-          <DialogTitle className={cn("flex items-center gap-2", titleColorClass)}>
-            {isManualMode ? <Dumbbell className="h-5 w-5 text-accent" /> : <Dna className="h-5 w-5 text-primary" />}
-            {isManualMode ? "Entrenamiento Libre" : "Configuración Táctica"} para {player?.name} en <span className="text-primary">{position}</span>
-          </DialogTitle>
-          <div className="flex items-center gap-4 mt-2">
-              <div className="space-y-1">
-                <Label className="text-[10px] text-muted-foreground uppercase font-bold">Tipo de Entrenamiento</Label>
-                <ToggleGroup type="single" value={isManualMode ? 'manual' : 'tactical'} onValueChange={(v) => v && setIsManualMode(v === 'manual')}>
-                    <ToggleGroupItem value="tactical" className="text-xs h-8 px-3">Táctico (Auto)</ToggleGroupItem>
-                    <ToggleGroupItem value="manual" className="text-xs h-8 px-3">Manual (Libre)</ToggleGroupItem>
-                </ToggleGroup>
-              </div>
-              {!isManualMode && (
-                <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-full w-fit border text-xs text-muted-foreground self-end mb-1">
-                    <Dna className="h-3 w-3 text-primary" />
-                    <span>Contexto: <span className="text-foreground font-semibold">{bestBuildStyle}</span></span>
-                </div>
-              )}
-          </div>
+      <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><Dumbbell className="h-5 w-5 text-accent" /> Entrenamiento de {player?.name} en {position}</DialogTitle>
+          <DialogDescription>Distribuye los puntos de progresión manualmente para ajustar las estadísticas.</DialogDescription>
         </DialogHeader>
         
-        <Tabs defaultValue="build" className="flex-grow overflow-hidden flex flex-col">
-          <TabsList className={cn("grid w-full flex-shrink-0", isManualMode ? "grid-cols-1" : "grid-cols-2")}>
-            <TabsTrigger value="build">Distribución de Puntos</TabsTrigger>
-            {!isManualMode && <TabsTrigger value="affinity">Detalle de Afinidad</TabsTrigger>}
-          </TabsList>
-          
-          <TabsContent value="build" className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-8 overflow-hidden mt-4">
-              <ScrollArea className="flex-grow pr-4 -mr-4">
-                  <div className="space-y-4">
-                      {!isManualMode && (
-                        <div className="space-y-2">
-                            <Label>Perfil Táctico Aplicado</Label>
-                            <Select
-                                value={build.forcedBuildId || "auto"}
-                                onValueChange={(val) => setBuild(prev => ({ ...prev, forcedBuildId: val === "auto" ? undefined : val }))}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Automático (Recomendado)" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="auto">Automático (Detectado)</SelectItem>
-                                    {availableBuildsForPos.map(b => (
-                                        <SelectItem key={b.id} value={b.id!}>
-                                            {b.style} {b.profileName ? `(${b.profileName})` : ''}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+        <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-8 overflow-hidden mt-4">
+            <ScrollArea className="pr-4">
+                <div className="space-y-6">
+                    <div className="space-y-2">
+                        <Label>Puntos de Progresión Totales</Label>
+                        <Input type="number" value={totalProgressionPoints || ''} onChange={(e) => setTotalProgressionPoints(e.target.value ? parseInt(e.target.value, 10) : undefined)} />
+                    </div>
+                    {(isGoalkeeper ? goalkeeperCategories : outfieldCategories).map(({key, label, icon: Icon}) => (
+                        <div key={key} className="space-y-2">
+                            <Label className="flex items-center gap-2"><Icon className="w-4 h-4" /> {label}: <span className="font-bold text-primary">{(build as any)[key] || 0}</span></Label>
+                            <Slider value={[(build as any)[key] || 0]} onValueChange={(v) => handleSliderChange(key, v[0])} max={16} step={1} />
                         </div>
-                      )}
+                    ))}
+                </div>
+            </ScrollArea>
+            <ScrollArea className="md:border-l md:pl-8">
+                <p className="font-medium text-sm text-muted-foreground mb-4 uppercase tracking-widest">Estadísticas Proyectadas</p>
+                <div className="space-y-4">
+                    {Object.entries(statLabels).map(([key, label]) => (
+                        <StatDisplay key={key} label={label} value={(finalStats as any)[key]} baseValue={(baseStats as any)[`base${key.charAt(0).toUpperCase()}${key.slice(1)}`] || (baseStats as any)[key]} />
+                    ))}
+                </div>
+            </ScrollArea>
+        </div>
 
-                      {!isManualMode && (
-                        <div className="space-y-2">
-                            <Label>Afinidad Calculada</Label>
-                            <div className="flex items-center gap-2">
-                                <div className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-base md:text-sm text-foreground/80 font-bold items-center">
-                                    {localAffinityResult.totalAffinityScore.toFixed(2)}
-                                </div>
-                                <Button variant="outline" size="icon" onClick={handleUpdateAffinity}>
-                                    <RefreshCw className="h-4 w-4" />
-                                </Button>
-                            </div>
-                            <p className="text-xs text-muted-foreground text-center">Últ. actualización: <span className="font-semibold text-foreground">{formattedDate}</span></p>
-                        </div>
-                      )}
-                      
-                      {specialCard ? (
-                          <Alert>
-                              <Info className="h-4 w-4" />
-                              <AlertTitle>Carta Especial</AlertTitle>
-                              <AlertDescription>
-                                  Las cartas especiales no tienen puntos de progresión ajustables.
-                              </AlertDescription>
-                          </Alert>
-                      ) : (
-                          <>
-                              <div className="flex items-end gap-2 pt-2">
-                                <div className="flex-grow space-y-2">
-                                  <Label htmlFor="progression-points">Puntos de Progresión Totales</Label>
-                                  <Input 
-                                    id="progression-points"
-                                    type="number"
-                                    placeholder="Ej: 50"
-                                    value={totalProgressionPoints || ''}
-                                    onChange={(e) => setTotalProgressionPoints(e.target.value ? parseInt(e.target.value, 10) : undefined)}
-                                    disabled={specialCard}
-                                  />
-                                </div>
-                                {!isManualMode && (
-                                    <Button variant="outline" onClick={handleSuggestBuild} disabled={specialCard}>
-                                        <BrainCircuit className="mr-2 h-4 w-4" />
-                                        Sugerir
-                                    </Button>
-                                )}
-                              </div>
-
-                              {(isGoalkeeper ? goalkeeperCategories : outfieldCategories).map(({key, label, icon: Icon}) => (
-                                  <div key={key} className="space-y-2 pt-2">
-                                      <Label className="flex items-center gap-2">{<Icon className="w-4 h-4" />} {label}: <span className="font-bold text-primary">{(build as any)[key] || 0}</span></Label>
-                                      <Slider 
-                                          value={[(build as any)[key] || 0]}
-                                          onValueChange={(v) => handleSliderChange(key as any, v[0])}
-                                          max={16}
-                                          step={1}
-                                          disabled={specialCard}
-                                      />
-                                  </div>
-                              ))}
-                          </>
-                      )}
-                  </div>
-              </ScrollArea>
-              <ScrollArea className="flex-grow pr-4 -mr-4 md:border-l md:pl-8 md:-ml-8">
-                   <p className="font-medium text-sm text-muted-foreground mb-4">Estadísticas Finales Proyectadas</p>
-                   <div className="space-y-4">
-                      {!isGoalkeeper && (
-                          <div>
-                               <h4 className="font-semibold mb-2 flex items-center gap-2"><Target className="w-4 h-4"/>Ataque</h4>
-                               <div className="space-y-1 pl-6">
-                                  {Object.keys(statLabels)
-                                    .filter(key => ['offensiveAwareness', 'ballControl', 'dribbling', 'tightPossession', 'lowPass', 'loftedPass', 'finishing', 'heading', 'placeKicking', 'curl'].includes(key))
-                                    .map(key => (
-                                      <StatDisplay 
-                                        key={key} 
-                                        label={statLabels[key as keyof PlayerAttributeStats]} 
-                                        value={finalStats[key as keyof PlayerAttributeStats]} 
-                                        baseValue={getBaseValue(key as keyof PlayerAttributeStats, `base${key.charAt(0).toUpperCase() + key.slice(1)}` as keyof PlayerAttributeStats)} 
-                                      />
-                                    ))
-                                  }
-                               </div>
-                          </div>
-                      )}
-                       <div>
-                           <h4 className="font-semibold mb-2 flex items-center gap-2"><Shield className="w-4 h-4"/>Defensa</h4>
-                           <div className="space-y-1 pl-6">
-                              {Object.keys(statLabels)
-                                .filter(key => ['defensiveAwareness', 'defensiveEngagement', 'tackling', 'aggression'].includes(key))
-                                .map(key => (
-                                  <StatDisplay 
-                                    key={key} 
-                                    label={statLabels[key as keyof PlayerAttributeStats]} 
-                                    value={finalStats[key as keyof PlayerAttributeStats]} 
-                                    baseValue={getBaseValue(key as keyof PlayerAttributeStats, `base${key.charAt(0).toUpperCase() + key.slice(1)}` as keyof PlayerAttributeStats)} 
-                                  />
-                                ))
-                              }
-                           </div>
-                      </div>
-                       <div>
-                           <h4 className="font-semibold mb-2 flex items-center gap-2"><Hand className="w-4 h-4"/>Portería</h4>
-                           <div className="space-y-1 pl-6">
-                             {Object.keys(statLabels)
-                                .filter(key => ['goalkeeping', 'gkCatching', 'gkParrying', 'gkReflexes', 'gkReach'].includes(key))
-                                .map(key => (
-                                  <StatDisplay 
-                                    key={key} 
-                                    label={statLabels[key as keyof PlayerAttributeStats]} 
-                                    value={finalStats[key as keyof PlayerAttributeStats]} 
-                                    baseValue={getBaseValue(key as keyof PlayerAttributeStats, `base${key.charAt(0).toUpperCase() + key.slice(1)}` as keyof PlayerAttributeStats)} 
-                                  />
-                                ))
-                              }
-                           </div>
-                      </div>
-                       <div>
-                           <h4 className="font-semibold mb-2 flex items-center gap-2"><Zap className="w-4 h-4"/>Físico</h4>
-                           <div className="space-y-1 pl-6">
-                              {Object.keys(statLabels)
-                                .filter(key => ['speed', 'acceleration', 'kickingPower', 'jump', 'physicalContact', 'balance', 'stamina'].includes(key))
-                                .map(key => (
-                                  <StatDisplay 
-                                    key={key} 
-                                    label={statLabels[key as keyof PlayerAttributeStats]} 
-                                    value={finalStats[key as keyof PlayerAttributeStats]} 
-                                    baseValue={getBaseValue(key as keyof PlayerAttributeStats, `base${key.charAt(0).toUpperCase() + key.slice(1)}` as keyof PlayerAttributeStats)} 
-                                  />
-                                ))
-                              }
-                           </div>
-                      </div>
-                   </div>
-              </ScrollArea>
-          </TabsContent>
-          <TabsContent value="affinity" className="flex-grow overflow-hidden mt-4">
-              <ScrollArea className="h-full pr-4 -mr-4">
-                <AffinityBreakdown breakdownResult={localAffinityResult} tacticName="Contraataque largo" />
-              </ScrollArea>
-          </TabsContent>
-        </Tabs>
-
-        <DialogFooter className="pt-4 border-t mt-4 flex-shrink-0">
-          <Button onClick={handleSave}>
-            {isManualMode ? "Guardar Entrenamiento Manual" : "Guardar Configuración Táctica"}
-          </Button>
+        <DialogFooter className="pt-4 border-t mt-4">
+          <Button onClick={handleSave}>Guardar Entrenamiento</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
