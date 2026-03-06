@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -13,6 +14,7 @@ import { normalizeText, normalizeStyleName, calculateStats, calculateFinalScore,
 export function usePlayers(prioritizeRecentForm: boolean = false) {
   const [players, setPlayers] = useState<Player[]>([]);
   const [flatPlayers, setFlatPlayers] = useState<FlatPlayer[]>([]);
+  const [positionNotes, setPositionNotes] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -77,7 +79,7 @@ export function usePlayers(prioritizeRecentForm: boolean = false) {
       } catch (err) {
           setError("No se pudieron procesar los datos de los jugadores.");
       } finally {
-        setLoading(false);
+        if (loading) setLoading(false);
       }
     }, (err) => {
         setError("No se pudo conectar a la base de datos.");
@@ -85,7 +87,18 @@ export function usePlayers(prioritizeRecentForm: boolean = false) {
         setLoading(false);
     });
 
-    return () => unsubPlayers();
+    const unsubNotes = onSnapshot(collection(db, "positionNotes"), (snapshot) => {
+      const notes: Record<string, string> = {};
+      snapshot.docs.forEach(doc => {
+        notes[doc.id] = doc.data().content || '';
+      });
+      setPositionNotes(notes);
+    });
+
+    return () => {
+      unsubPlayers();
+      unsubNotes();
+    };
   }, [validSkillsSet]);
 
   useEffect(() => {
@@ -105,7 +118,7 @@ export function usePlayers(prioritizeRecentForm: boolean = false) {
 
                     const performance: PlayerPerformance = {
                         stats,
-                        isHotStreak: stats.matches >= 3 && recentStats.average > stats.average + 0.5,
+                        isHotStreak: stats.matches >= 3 && (calculateStats(ratingsForPos.slice(-5)).average > stats.average + 0.5),
                         isConsistent: stats.matches >= 5 && stats.stdDev < 0.5,
                         isPromising: stats.matches > 0 && stats.matches < 5 && stats.average >= 7.0,
                         isVersatile: playerPositions.length >= 3,
@@ -330,13 +343,24 @@ export function usePlayers(prioritizeRecentForm: boolean = false) {
 
         if (cardToUpdate) {
             if (!cardToUpdate.buildsByPosition) cardToUpdate.buildsByPosition = {};
-            cardToUpdate.buildsByPosition[position] = { ...build, updatedAt: new Date().toISOString() };
+            // Remove notes from local build since it's now global
+            const { notes, ...buildWithoutNotes } = build as any;
+            cardToUpdate.buildsByPosition[position] = { ...buildWithoutNotes, updatedAt: new Date().toISOString() };
 
             await updateDoc(playerRef, { cards: newCards });
             toast({ title: "Build Guardada", description: `Entrenamiento para ${position} actualizado.` });
         }
     } catch (error) {
         toast({ variant: "destructive", title: "Error al Guardar", description: "No se pudo guardar la build." });
+    }
+  };
+
+  const savePositionNote = async (position: Position, content: string) => {
+    if (!db) return;
+    try {
+      await setDoc(doc(db, 'positionNotes', position), { content });
+    } catch (error) {
+      console.error("Error saving position note:", error);
     }
   };
 
@@ -401,5 +425,23 @@ export function usePlayers(prioritizeRecentForm: boolean = false) {
     }
   };
 
-  return { players, flatPlayers, loading, error, addRating, editCard, editPlayer, deleteRating, savePlayerBuild, saveAttributeStats, downloadBackup, deletePositionRatings, updateLiveUpdateRating, resetAllLiveUpdateRatings, updateManualTier };
+  return { 
+    players, 
+    flatPlayers, 
+    positionNotes,
+    loading, 
+    error, 
+    addRating, 
+    editCard, 
+    editPlayer, 
+    deleteRating, 
+    savePlayerBuild, 
+    savePositionNote,
+    saveAttributeStats, 
+    downloadBackup, 
+    deletePositionRatings, 
+    updateLiveUpdateRating, 
+    resetAllLiveUpdateRatings, 
+    updateManualTier 
+  };
 }

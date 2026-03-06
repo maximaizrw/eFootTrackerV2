@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -35,7 +36,7 @@ import { usePlayers } from '@/hooks/usePlayers';
 import { useFormations } from '@/hooks/useFormations';
 import { useToast } from "@/hooks/use-toast";
 
-import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, League, Nationality } from '@/lib/types';
+import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, League, Nationality, PlayerBuild } from '@/lib/types';
 import { positions, leagues, nationalities } from '@/lib/types';
 import { normalizeText } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
@@ -50,6 +51,7 @@ export default function Home() {
   const { 
     players, 
     flatPlayers,
+    positionNotes,
     loading: playersLoading, 
     error: playersError,
     addRating,
@@ -58,6 +60,7 @@ export default function Home() {
     deleteRating,
     downloadBackup: downloadPlayersBackup,
     savePlayerBuild,
+    savePositionNote,
     saveAttributeStats,
     deletePositionRatings,
     updateLiveUpdateRating,
@@ -363,6 +366,8 @@ export default function Home() {
         onOpenChange={setPlayerDetailDialogOpen}
         flatPlayer={selectedFlatPlayer}
         onSavePlayerBuild={savePlayerBuild}
+        onSavePositionNote={savePositionNote}
+        positionNote={selectedFlatPlayer ? positionNotes[selectedFlatPlayer.position] || '' : ''}
       />
       <AlertDialog open={isImageViewerOpen} onOpenChange={setImageViewerOpen}>
         <AlertDialogContent className="max-w-xl p-0">

@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -22,6 +23,8 @@ type PlayerDetailDialogProps = {
   onOpenChange: (open: boolean) => void;
   flatPlayer: FlatPlayer | null;
   onSavePlayerBuild: (playerId: string, cardId: string, position: Position, build: PlayerBuild) => void;
+  onSavePositionNote: (position: Position, content: string) => void;
+  positionNote: string;
 };
 
 const outfieldCategories: { key: keyof OutfieldBuild; label: string, icon: React.ElementType }[] = [
@@ -40,8 +43,9 @@ const goalkeeperCategories: { key: keyof GoalkeeperBuild; label: string, icon: R
     { key: 'gk3', label: 'Portero 3', icon: Hand },
 ];
 
-export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlayerBuild }: PlayerDetailDialogProps) {
+export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlayerBuild, onSavePositionNote, positionNote }: PlayerDetailDialogProps) {
   const [build, setBuild] = React.useState<PlayerBuild>({});
+  const [localNote, setLocalNote] = React.useState('');
 
   const position = flatPlayer?.position;
   const card = flatPlayer?.card;
@@ -51,12 +55,16 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
   React.useEffect(() => {
     if (open && flatPlayer && position && card) {
       setBuild(card.buildsByPosition?.[position] || {});
+      setLocalNote(positionNote);
     }
-  }, [open, flatPlayer, card, position]);
+  }, [open, flatPlayer, card, position, positionNote]);
 
   const handleSave = () => {
     if (player && card && position) {
+      // Save specific player build (points distribution)
       onSavePlayerBuild(player.id, card.id, position, { ...build, updatedAt: new Date().toISOString() });
+      // Save global position note
+      onSavePositionNote(position, localNote);
       onOpenChange(false);
     }
   };
@@ -66,7 +74,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
   }
 
   const handleNotesChange = (notes: string) => {
-    setBuild(prev => ({ ...prev, notes }));
+    setLocalNote(notes);
   }
 
   return (
@@ -74,7 +82,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
       <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><Dumbbell className="h-5 w-5 text-accent" /> Entrenamiento de {player?.name} en {position}</DialogTitle>
-          <DialogDescription>Asigna los puntos de entrenamiento y guarda anotaciones específicas para esta posición.</DialogDescription>
+          <DialogDescription>Asigna los puntos de entrenamiento y guarda requisitos globales para la posición.</DialogDescription>
         </DialogHeader>
         
         <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-8 overflow-hidden mt-4">
@@ -94,20 +102,20 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
             </ScrollArea>
             <div className="md:border-l md:pl-8 flex flex-col h-full">
                 <Label className="font-medium text-sm text-muted-foreground mb-4 uppercase tracking-widest flex items-center gap-2">
-                    <StickyNote className="h-4 w-4" /> Anotaciones de la Posición
+                    <StickyNote className="h-4 w-4" /> Requisitos de {position} (Global)
                 </Label>
                 <Textarea 
-                    placeholder="Escribe aquí los stats clave o notas de esta build (ej: Aceleración +88, Pase +90...)" 
+                    placeholder={`Escribe aquí los requisitos ideales para ${position} (ej: Aceleración +88, Pase +90...)\n\nEsta nota es compartida por todos los jugadores en esta posición.`} 
                     className="flex-grow resize-none text-base"
-                    value={build.notes || ''}
+                    value={localNote}
                     onChange={(e) => handleNotesChange(e.target.value)}
                 />
-                <p className="text-[10px] text-muted-foreground mt-2 italic">Estas notas son específicas para {position}.</p>
+                <p className="text-[10px] text-muted-foreground mt-2 italic">Estas notas se aplican a todos los jugadores en la posición {position}.</p>
             </div>
         </div>
 
         <DialogFooter className="pt-4 border-t mt-4">
-          <Button onClick={handleSave}>Guardar Entrenamiento</Button>
+          <Button onClick={handleSave}>Guardar Todo</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
