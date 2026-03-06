@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -12,7 +11,6 @@ import {
   AlertDialogTitle,
   AlertDialogFooter,
   AlertDialogCancel,
-  AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 
@@ -38,7 +36,7 @@ import { useToast } from "@/hooks/use-toast";
 
 import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, League, Nationality, PlayerBuild } from '@/lib/types';
 import { positions, leagues, nationalities } from '@/lib/types';
-import { normalizeText } from '@/lib/utils';
+import { normalizeText, getProxiedImageUrl } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe } from 'lucide-react';
@@ -284,7 +282,6 @@ export default function Home() {
             if (Math.abs(b.performance.stats.average - a.performance.stats.average) > 0.01) return b.performance.stats.average - a.performance.stats.average;
             return b.performance.stats.matches - a.performance.stats.matches;
           }
-          // Sort by defining score (Manual Tier + Average)
           return b.score - a.score;
         });
     }
@@ -376,7 +373,15 @@ export default function Home() {
           </AlertDialogHeader>
           <div className="p-4 flex justify-center items-center">
             {viewingImageUrl && (
-              <Image src={viewingImageUrl} alt="Tactic" width={500} height={500} className="object-contain max-h-[80vh]" unoptimized />
+              <Image 
+                src={getProxiedImageUrl(viewingImageUrl)} 
+                alt="Tactic" 
+                width={500} 
+                height={500} 
+                className="object-contain max-h-[80vh]" 
+                unoptimized 
+                referrerPolicy="no-referrer"
+              />
             )}
           </div>
           <AlertDialogFooter className="p-4 border-t"><AlertDialogCancel>Cerrar</AlertDialogCancel></AlertDialogFooter>

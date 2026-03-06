@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, memo, useMemo } from 'react';
@@ -21,7 +20,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { cn } from '@/lib/utils';
+import { cn, getProxiedImageUrl } from '@/lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -176,7 +175,7 @@ const FormationCard = ({ formation, onAddMatch, onDeleteFormation, onEdit, onVie
                 >
                     <div className="aspect-video relative w-full bg-muted">
                         <Image
-                          src={formation.imageUrl}
+                          src={getProxiedImageUrl(formation.imageUrl)}
                           alt={`Táctica Principal de ${formation.name}`}
                           fill
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -194,7 +193,7 @@ const FormationCard = ({ formation, onAddMatch, onDeleteFormation, onEdit, onVie
                 >
                   <div className="aspect-video relative w-full bg-muted">
                       <Image
-                        src={formation.secondaryImageUrl}
+                        src={getProxiedImageUrl(formation.secondaryImageUrl)}
                         alt={`Táctica Secundaria de ${formation.name}`}
                         fill
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"

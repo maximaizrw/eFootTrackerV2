@@ -1,4 +1,3 @@
-
 "use client";
 
 import Image from 'next/image';
@@ -10,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Trash2, X, Wrench, Pencil, Search, SlidersHorizontal, Dumbbell } from 'lucide-react';
-import { cn, formatAverage, getAverageColorClass, getTierColorClass } from '@/lib/utils';
+import { cn, formatAverage, getAverageColorClass, getTierColorClass, getProxiedImageUrl } from '@/lib/utils';
 import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating, Tier } from '@/lib/types';
 import { tiers } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
@@ -140,7 +139,6 @@ const PlayerTableMemo = memo(function PlayerTable({
             const { player, card, ratingsForPos, performance, tier, score } = flatPlayer;
             const cardAverage = performance.stats.average;
             
-            // If Tier is 'D', we assume it has NEVER been assigned manually
             const isTierUnassigned = tier === 'D';
 
             return (
@@ -150,7 +148,7 @@ const PlayerTableMemo = memo(function PlayerTable({
                     {card.imageUrl ? (
                       <button onClick={() => onViewImage(card.imageUrl!, `${player.name}`)} className="rounded-full overflow-hidden">
                         <Image 
-                          src={card.imageUrl} 
+                          src={getProxiedImageUrl(card.imageUrl)} 
                           alt={card.name} 
                           width={40} 
                           height={40} 

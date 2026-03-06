@@ -89,6 +89,16 @@ export function normalizeStyleName(style: string): string {
     return style;
 }
 
+/**
+ * Bypasses CORP/CORS restrictions by proxying images through images.weserv.nl
+ */
+export function getProxiedImageUrl(url: string | undefined): string {
+  if (!url) return '';
+  if (url.startsWith('data:')) return url;
+  // Use images.weserv.nl as a proxy to bypass NotSameOrigin issues
+  return `https://images.weserv.nl/?url=${encodeURIComponent(url)}&default=${encodeURIComponent(url)}`;
+}
+
 export const TIER_BASE_SCORE: Record<Tier, number> = {
     'S+': 100,
     'S': 80,
@@ -100,10 +110,6 @@ export const TIER_BASE_SCORE: Record<Tier, number> = {
 
 export const LIVE_UPDATE_BONUSES: Record<LiveUpdateRating, number> = { A: 8, B: 4, C: 0, D: -5, E: -10 };
 
-/**
- * Calculates the Final Score for 11 Ideal selection.
- * Score = Manual Tier Base Points + Performance Average + Live Update Bonus.
- */
 export function calculateFinalScore(
   manualTier: Tier,
   overallAverage: number, 
@@ -119,55 +125,14 @@ export function calculateFinalScore(
   const performanceAverage = (overallAverage * overallWeight) + (effectiveRecentAverage * recentWeight);
   const liveUpdateBonus = liveUpdateRating ? LIVE_UPDATE_BONUSES[liveUpdateRating] : 0;
   
-  // Base points from the manual tier you assigned
   const tierBase = TIER_BASE_SCORE[manualTier];
-
-  // Final Score: Tier dictates the bracket, average and live update decide within that bracket
   let finalScore = tierBase + performanceAverage + liveUpdateBonus;
 
-  // Confidence adjustment for players with very few matches
   if (matches < 3) finalScore -= 10;
   else if (matches < 5) finalScore -= 5;
 
   return finalScore;
 }
-
-export function isSpecialCard(cardName: string): boolean {
-  if (!cardName) return false;
-  const n = cardName.toLowerCase();
-  return n.includes('potw') || n.includes('pots') || n.includes('potm');
-}
-
-export const statLabels: Record<string, string> = {
-    offensiveAwareness: 'Act. Ofensiva', 
-    ballControl: 'Control del Balón', 
-    dribbling: 'Regate', 
-    tightPossession: 'Posesión Estrecha',
-    lowPass: 'Pase Raso', 
-    loftedPass: 'Pase Bombeado', 
-    finishing: 'Finalización', 
-    heading: 'Cabeceo', 
-    placeKicking: 'Balón Parado', 
-    curl: 'Efecto',
-    defensiveAwareness: 'Actitud defensiva', 
-    defensiveEngagement: 'Dedicación defensiva', 
-    tackling: 'Entrada', 
-    aggression: 'Agresividad',
-    goalkeeping: 'Act. de Portero', 
-    gkCatching: 'Atajar', 
-    gkParrying: 'Parada', 
-    gkReflexes: 'Reflejos', 
-    gkReach: 'Cobertura',
-    speed: 'Velocidad', 
-    acceleration: 'Aceleración', 
-    kickingPower: 'Potencia de Tiro', 
-    jump: 'Salto', 
-    physicalContact: 'Contacto Físico',
-    balance: 'Equilibrio', 
-    stamina: 'Resistencia',
-    height: 'Altura', 
-    weight: 'Peso',
-};
 
 export const allStatsKeys: (keyof PlayerAttributeStats)[] = [
     'offensiveAwareness', 'ballControl', 'dribbling', 'tightPossession', 'lowPass', 'loftedPass', 'finishing', 'heading', 'placeKicking', 'curl',
@@ -175,53 +140,6 @@ export const allStatsKeys: (keyof PlayerAttributeStats)[] = [
     'speed', 'acceleration', 'kickingPower', 'jump', 'physicalContact', 'balance', 'stamina',
     'goalkeeping', 'gkCatching', 'gkParrying', 'gkReflexes', 'gkReach'
 ];
-
-export function calculateProgressionStats(baseStats: PlayerAttributeStats, build: PlayerBuild, isGoalkeeper: boolean = false): PlayerAttributeStats {
-  const newStats: PlayerAttributeStats = { ...baseStats };
-  const getBase = (s: keyof PlayerAttributeStats, b: keyof PlayerAttributeStats) => baseStats[b] !== undefined ? baseStats[b] : baseStats[s] || 0;
-
-  if (!isGoalkeeper) {
-    const sP = build.shooting || 0;
-    newStats.finishing = (getBase('finishing', 'baseFinishing' as any) || 0) + sP;
-    newStats.placeKicking = (getBase('placeKicking', 'basePlaceKicking' as any) || 0) + sP;
-    newStats.curl = (getBase('curl', 'baseCurl' as any) || 0) + sP;
-    const pP = build.passing || 0;
-    newStats.lowPass = (getBase('lowPass', 'baseLowPass' as any) || 0) + pP;
-    newStats.loftedPass = (getBase('loftedPass', 'baseLoftedPass' as any) || 0) + pP;
-    const dP = build.dribbling || 0;
-    newStats.ballControl = (getBase('ballControl', 'baseBallControl' as any) || 0) + dP;
-    newStats.dribbling = (getBase('dribbling', 'baseDribbling' as any) || 0) + dP;
-    newStats.tightPossession = (getBase('tightPossession', 'baseTightPossession' as any) || 0) + dP;
-    const dxP = build.dexterity || 0;
-    newStats.offensiveAwareness = (getBase('offensiveAwareness', 'baseOffensiveAwareness' as any) || 0) + dxP;
-    newStats.acceleration = (getBase('acceleration', 'baseAcceleration' as any) || 0) + dxP;
-    newStats.balance = (getBase('balance', 'baseBalance' as any) || 0) + dxP;
-    const lbP = build.lowerBodyStrength || 0;
-    newStats.speed = (getBase('speed', 'baseSpeed' as any) || 0) + lbP;
-    newStats.kickingPower = (getBase('kickingPower', 'baseKickingPower' as any) || 0) + lbP;
-    newStats.stamina = (getBase('stamina', 'baseStamina' as any) || 0) + lbP;
-    const aP = build.aerialStrength || 0;
-    newStats.heading = (getBase('heading', 'baseHeading' as any) || 0) + aP;
-    newStats.jump = (getBase('jump', 'baseJump' as any) || 0) + aP;
-    newStats.physicalContact = (getBase('physicalContact', 'basePhysicalContact' as any) || 0) + aP;
-    const dfP = build.defending || 0;
-    newStats.defensiveAwareness = (getBase('defensiveAwareness', 'baseDefensiveAwareness' as any) || 0) + dfP;
-    newStats.defensiveEngagement = (getBase('defensiveEngagement', 'baseDefensiveEngagement' as any) || 0) + dfP;
-    newStats.tackling = (getBase('tackling', 'baseTackling' as any) || 0) + dfP;
-    newStats.aggression = (getBase('aggression', 'baseAggression' as any) || 0) + dfP;
-  } else {
-    const gk1 = build.gk1 || 0;
-    newStats.goalkeeping = (getBase('goalkeeping', 'baseGoalkeeping' as any) || 0) + gk1;
-    newStats.jump = (getBase('jump', 'baseJump' as any) || 0) + gk1;
-    const gk2 = build.gk2 || 0;
-    newStats.gkParrying = (getBase('gkParrying', 'baseGkParrying' as any) || 0) + gk2;
-    newStats.gkReach = (getBase('gkReach', 'baseGkReach' as any) || 0) + gk2;
-    const gk3 = build.gk3 || 0;
-    newStats.gkCatching = (getBase('gkCatching', 'baseGkCatching' as any) || 0) + gk3;
-    newStats.gkReflexes = (getBase('gkReflexes', 'baseGkReflexes' as any) || 0) + gk3;
-  }
-  return newStats;
-}
 
 export const symmetricalPositionMap: Record<Position, Position> = {
   PT: 'PT',

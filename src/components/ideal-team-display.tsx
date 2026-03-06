@@ -1,4 +1,3 @@
-
 "use client";
 
 import type { IdealTeamPlayer, IdealTeamSlot, FormationStats, Position, LiveUpdateRating } from '@/lib/types';
@@ -6,7 +5,7 @@ import Image from 'next/image';
 import { Users, Shirt, X, ArrowRightLeft } from 'lucide-react';
 import { Button } from './ui/button';
 import { FootballPitch } from './football-pitch';
-import { cn, getTierColorClass } from '@/lib/utils';
+import { cn, getTierColorClass, getProxiedImageUrl } from '@/lib/utils';
 import { memo, useState, useCallback } from 'react';
 import { LiveUpdateRatingSelector } from './live-update-rating-selector';
 
@@ -42,7 +41,7 @@ const PlayerToken = memo(function PlayerToken({
       <div className="relative w-12 h-12 md:w-14 md:h-14 drop-shadow-lg">
         {player.card.imageUrl ? (
           <Image 
-            src={player.card.imageUrl} 
+            src={getProxiedImageUrl(player.card.imageUrl)} 
             alt={player.card.name} 
             fill 
             sizes="56px" 
@@ -88,7 +87,7 @@ const BenchCard = memo(function BenchCard({ player, onDiscard, onUpdateLiveUpdat
       <div className="relative w-8 h-8">
         {player.card.imageUrl ? (
           <Image 
-            src={player.card.imageUrl} 
+            src={getProxiedImageUrl(player.card.imageUrl)} 
             alt={player.card.name} 
             fill 
             sizes="32px" 
