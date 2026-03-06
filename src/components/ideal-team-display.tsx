@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { IdealTeamPlayer, IdealTeamSlot, FormationStats, Position, LiveUpdateRating } from '@/lib/types';
@@ -78,6 +79,7 @@ const PlayerToken = memo(function PlayerToken({
             fill
             sizes="56px"
             className="object-contain"
+            unoptimized
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-black/30 rounded-full">
@@ -178,6 +180,7 @@ const BenchCard = memo(function BenchCard({
             fill
             sizes="32px"
             className="object-contain"
+            unoptimized
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-muted rounded-full">
@@ -292,7 +295,7 @@ const IdealTeamDisplayMemo = memo(function IdealTeamDisplay({
               };
               return (
                 <PlayerToken
-                  key={starter?.card.id || `starter-${index}`}
+                  key={starter ? `starter-${starter.card.id}-${index}` : `empty-${index}`}
                   player={starter}
                   style={style}
                   index={index}
@@ -321,7 +324,7 @@ const IdealTeamDisplayMemo = memo(function IdealTeamDisplay({
           <div className="grid grid-cols-2 lg:grid-cols-1 gap-1 lg:max-h-[calc(100vh-12rem)] lg:overflow-y-auto lg:pr-1 scrollbar-thin">
             {finalSubstitutes.map((sub, index) => (
               <BenchCard
-                key={sub?.card.id || `sub-${index}`}
+                key={sub ? `sub-${sub.card.id}-${index}` : `vacante-${index}`}
                 player={sub}
                 index={index}
                 onDiscard={onDiscardPlayer}

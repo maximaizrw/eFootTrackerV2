@@ -16,6 +16,8 @@ const nextConfig: NextConfig = {
     ],
   },
   images: {
+    // Activamos unoptimized global para que cualquier URL externa cargue sin restricciones de dominio
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
