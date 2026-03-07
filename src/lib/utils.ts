@@ -127,8 +127,8 @@ export function getScoreBreakdown(
 
   let experiencePenalty = 0;
   if (matches > 0) {
-    if (matches < 3) experiencePenalty = -10;
-    else if (matches < 5) experiencePenalty = -5;
+    if (matches < 3) experiencePenalty = -15;
+    else if (matches < 5) experiencePenalty = -8;
   }
 
   return {

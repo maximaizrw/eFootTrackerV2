@@ -1,5 +1,5 @@
 
-import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, FormationSlot as FormationSlotType, Tier } from './types';
+import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, Tier } from './types';
 import { calculateStats, calculateFinalScore, calculateRecencyWeightedAverage } from './utils';
 
 type CandidatePlayer = {
@@ -23,13 +23,14 @@ export function generateIdealTeam(
   selectionCriteria: 'general' | 'average' = 'general',
   prioritizeRecentForm: boolean = false
 ): IdealTeamSlot[] {
-  const formationPositions = new Set(formation.slots.map(s => s.position));
+  const formationPositions = formation.slots.map(s => s.position);
   
   const allPlayerCandidates: CandidatePlayer[] = players.flatMap(player => {
     if (nationality !== 'all' && player.nationality !== nationality) return [];
     
     return (player.cards || []).flatMap(card => {
       if (league !== 'all' && card.league !== league) return [];
+      if (discardedCardIds.has(card.id)) return [];
       
       const positionsWithRatings = Object.keys(card.ratingsByPosition || {}) as Position[];
 
@@ -42,7 +43,7 @@ export function generateIdealTeam(
         
         const manualTier: Tier = card.manualTiersByPosition?.[pos] || 'D';
         
-        // If selection criteria is purely average, we ignore the Tier bonus base for the score
+        // Si el criterio es solo promedio, ignoramos el bono base de Tier para el cálculo del score
         const effectiveTier = selectionCriteria === 'average' ? 'D' : manualTier;
         const finalScore = calculateFinalScore(effectiveTier, stats.average, stats.matches, player.liveUpdateRating, recentAverage, prioritizeRecentForm);
 
@@ -68,15 +69,12 @@ export function generateIdealTeam(
   const finalTeamSlots: IdealTeamSlot[] = [];
   
   const candidateSort = (a: CandidatePlayer, b: CandidatePlayer) => {
-    // Primary sort: Final Score
     if (Math.abs(b.score - a.score) > 0.01) return b.score - a.score;
-    // Secondary sort: Number of matches (experience)
     return b.performance.stats.matches - a.performance.stats.matches;
   };
 
-  const getCandidatesForSlot = (targetPosition: Position): CandidatePlayer[] => {
+  const getCandidatesForPosition = (targetPosition: Position): CandidatePlayer[] => {
     let targetPositions: Position[] = [targetPosition];
-    
     if (isFlexibleLaterals && (targetPosition === 'LI' || targetPosition === 'LD')) targetPositions = ['LI', 'LD'];
     if (isFlexibleWingers && (targetPosition === 'EXI' || targetPosition === 'EXD')) targetPositions = ['EXI', 'EXD'];
     
@@ -85,45 +83,43 @@ export function generateIdealTeam(
         .sort(candidateSort);
   };
 
-  // 1. STARTERS (11 positions from formation)
-  for (const slot of formation.slots) {
-    const candidates = getCandidatesForSlot(slot.position);
-    const starter = candidates.find(p => 
-        !usedPlayerIds.has(p.player.id) && 
-        !usedCardIds.has(p.card.id) && 
-        !discardedCardIds.has(p.card.id)
-    );
+  // 1. ASIGNAR TITULARES
+  const tempStarters: (IdealTeamPlayer | null)[] = formation.slots.map(slot => {
+    const candidates = getCandidatesForPosition(slot.position);
+    const starter = candidates.find(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id));
 
     if (starter) {
         usedPlayerIds.add(starter.player.id);
         usedCardIds.add(starter.card.id);
+        return { ...starter, assignedPosition: slot.position } as any;
     }
-    finalTeamSlots.push({ starter: starter ? { ...starter, assignedPosition: slot.position } as any : null, substitute: null });
-  }
-  
-  // 2. SUBSTITUTES (12 spots for testing/backup)
-  // Logic: Candidates that can play in ANY of the formation's positions, prioritized by score.
-  const eligibleSubsList = allPlayerCandidates
-    .filter(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id) && !discardedCardIds.has(p.card.id))
-    .filter(p => formationPositions.has(p.position))
+    return null;
+  });
+
+  // 2. ASIGNAR SUPLENTES (Siguiendo las posiciones de la formación)
+  const tempSubs: (IdealTeamPlayer | null)[] = formation.slots.map(slot => {
+    const candidates = getCandidatesForPosition(slot.position);
+    const sub = candidates.find(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id));
+
+    if (sub) {
+        usedPlayerIds.add(sub.player.id);
+        usedCardIds.add(sub.card.id);
+        return { ...sub, assignedPosition: slot.position } as any;
+    }
+    return null;
+  });
+
+  // 3. COMPLETAR HASTA 12 SUPLENTES (Si la formación tiene menos slots o faltan jugadores)
+  // En eFootball las formaciones son de 11, así que tenemos 11 suplentes naturales. Añadimos 1 comodín.
+  const eligibleExtraSubs = allPlayerCandidates
+    .filter(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id))
+    .filter(p => formationPositions.includes(p.position))
     .sort(candidateSort);
 
-  let subIndex = 0;
-  for (let i = 0; i < 12; i++) {
-      const candidate = eligibleSubsList[subIndex];
-      if (candidate) {
-          usedPlayerIds.add(candidate.player.id);
-          usedCardIds.add(candidate.card.id);
-          if (i < finalTeamSlots.length) {
-              finalTeamSlots[i].substitute = { ...candidate, assignedPosition: candidate.position } as any;
-          } else {
-              finalTeamSlots.push({ starter: null, substitute: { ...candidate, assignedPosition: candidate.position } as any });
-          }
-          subIndex++;
-      }
-  }
+  const extraSubs = eligibleExtraSubs.slice(0, 12 - tempSubs.filter(s => s !== null).length);
+  const finalSubs = [...tempSubs.filter(s => s !== null), ...extraSubs].slice(0, 12);
 
-  // Placeholder generator for empty slots
+  // Placeholder generator
   const ph = (id: string, pos: Position) => ({ 
       player: { id, name: 'Vacante', cards: [], nationality: 'Sin Nacionalidad' }, 
       card: { id: `card-${id}`, name: 'N/A', style: 'Ninguno' as any, ratingsByPosition: {} }, 
@@ -131,15 +127,12 @@ export function generateIdealTeam(
       performance: { stats: { average: 0, matches: 0, stdDev: 0 }, isHotStreak: false, isConsistent: false, isPromising: false, isVersatile: false } 
   } as any);
 
-  // Return exactly 12 slots (the component will map them)
-  return Array.from({ length: Math.max(11, finalTeamSlots.length) }).map((_, i) => {
-    const slot = finalTeamSlots[i] || { starter: null, substitute: null };
-    const formationSlot = i < formation.slots.length ? formation.slots[i] : null;
-    const assigned = formationSlot?.position || 'DFC';
-    
-    return { 
-        starter: slot.starter || (i < 11 ? ph(`ph-s-${i}`, assigned) : null), 
-        substitute: slot.substitute || (i < 12 ? ph(`ph-sub-${i}`, assigned) : null)
+  // Mapear a la estructura de slots (11 titulares + el resto como banquillo)
+  return Array.from({ length: 11 }).map((_, i) => {
+    const slot = formation.slots[i];
+    return {
+        starter: tempStarters[i] || ph(`ph-s-${i}`, slot.position),
+        substitute: finalSubs[i] || (i < finalSubs.length ? null : ph(`ph-sub-${i}`, slot.position))
     };
-  });
+  }).concat(finalSubs.length > 11 ? [{ starter: null, substitute: finalSubs[11] }] : []);
 }
