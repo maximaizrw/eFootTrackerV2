@@ -126,8 +126,10 @@ export function getScoreBreakdown(
   const tierBase = TIER_BASE_SCORE[manualTier];
 
   let experiencePenalty = 0;
-  if (matches < 3) experiencePenalty = -10;
-  else if (matches < 5) experiencePenalty = -5;
+  if (matches > 0) {
+    if (matches < 3) experiencePenalty = -10;
+    else if (matches < 5) experiencePenalty = -5;
+  }
 
   return {
     tierBase,
@@ -161,22 +163,6 @@ export const allStatsKeys: (keyof PlayerAttributeStats)[] = [
     'speed', 'acceleration', 'kickingPower', 'jump', 'physicalContact', 'balance', 'stamina',
     'goalkeeping', 'gkCatching', 'gkParrying', 'gkReflexes', 'gkReach'
 ];
-
-export const symmetricalPositionMap: Record<Position, Position> = {
-  PT: 'PT',
-  DFC: 'DFC',
-  LI: 'LD',
-  LD: 'LI',
-  MCD: 'MCD',
-  MC: 'MC',
-  MDI: 'MDD',
-  MDD: 'MDI',
-  MO: 'MO',
-  EXI: 'EXD',
-  EXD: 'EXI',
-  SD: 'SD',
-  DC: 'DC',
-};
 
 export const BADGE_BONUSES = {
     HOT_STREAK: 2,

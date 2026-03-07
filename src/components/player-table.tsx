@@ -181,7 +181,6 @@ const PlayerTableMemo = memo(function PlayerTable({
             const cardAverage = performance.stats.average;
             const isTierUnassigned = tier === 'D';
             
-            // Recalculate breakdown for tooltip
             const recentAverage = calculateRecencyWeightedAverage(ratingsForPos, 5, 2.5, 0.9);
             const breakdown = getScoreBreakdown(
               tier, 
@@ -189,7 +188,7 @@ const PlayerTableMemo = memo(function PlayerTable({
               performance.stats.matches, 
               player.liveUpdateRating, 
               recentAverage, 
-              false // Default to false unless we track prioritizeRecentForm here too
+              false
             );
 
             return (
@@ -198,7 +197,7 @@ const PlayerTableMemo = memo(function PlayerTable({
                   <div className="flex items-center gap-2">
                     {card.imageUrl ? (
                       <button onClick={() => onViewImage(card.imageUrl!, `${player.name}`)} className="rounded-full overflow-hidden flex-shrink-0">
-                        <Image src={getProxiedImageUrl(card.imageUrl)} alt={card.name} width={40} height={40} className="w-8 h-8 md:w-10 md:h-10 object-contain" unoptimized />
+                        <Image src={getProxiedImageUrl(card.imageUrl)} alt={card.name} width={40} height={40} className="w-8 h-8 md:w-10 md:h-10 object-contain" unoptimized referrerPolicy="no-referrer" />
                       </button>
                     ) : <div className="w-8 h-8 md:w-10 md:h-10 bg-muted rounded-full flex-shrink-0" />}
                     <div className="min-w-0">
