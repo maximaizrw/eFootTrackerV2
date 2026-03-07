@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase-config';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, setDoc } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import { v4 as uuidv4 } from 'uuid';
-import type { Player, PlayerCard, Position, AddRatingFormValues, PlayerBuild, FlatPlayer, LiveUpdateRating, Tier } from '@/lib/types';
+import type { Player, PlayerCard, Position, AddRatingFormValues, PlayerBuild, FlatPlayer, LiveUpdateRating, Tier, PlayerSkill, PlayerAttributeStats, PhysicalAttribute } from '@/lib/types';
 import { getAvailableStylesForPosition, playerSkillsList } from '@/lib/types';
 import { normalizeText, normalizeStyleName, calculateStats, calculateFinalScore, calculateRecencyWeightedAverage } from '@/lib/utils';
 
@@ -173,6 +173,43 @@ export function usePlayers(prioritizeRecentForm: boolean = false) {
     } catch (e) { toast({ variant: "destructive", title: "Error al guardar build" }); }
   };
 
+  const updateFullPlayerData = async (playerId: string, cardId: string, position: Position, data: {
+    build: PlayerBuild;
+    imageUrl?: string;
+    stats: PlayerAttributeStats;
+    physical: PhysicalAttribute;
+    skills: PlayerSkill[];
+  }) => {
+    if (!db) return;
+    try {
+      const playerRef = doc(db, 'players', playerId);
+      const playerDoc = await getDoc(playerRef);
+      if (!playerDoc.exists()) return;
+      
+      const playerData = playerDoc.data() as Player;
+      const newCards = playerData.cards.map(card => {
+        if (card.id === cardId) {
+          const updatedBuilds = { ...card.buildsByPosition, [position]: data.build };
+          return {
+            ...card,
+            imageUrl: data.imageUrl || card.imageUrl,
+            attributeStats: data.stats,
+            physicalAttributes: data.physical,
+            skills: data.skills,
+            buildsByPosition: updatedBuilds,
+          };
+        }
+        return card;
+      });
+
+      await updateDoc(playerRef, { cards: newCards });
+      toast({ title: "Datos actualizados", description: "Se han guardado todos los cambios manuales." });
+    } catch (e) {
+      console.error(e);
+      toast({ variant: "destructive", title: "Error al actualizar" });
+    }
+  };
+
   const deletePositionRatings = async (playerId: string, cardId: string, position: Position) => {
     if (!db) return;
     try {
@@ -273,6 +310,6 @@ export function usePlayers(prioritizeRecentForm: boolean = false) {
     players, flatPlayers, positionNotes, loading, error, 
     addRating, updateManualTier, savePositionNote, savePlayerBuild, 
     deletePositionRatings, updateLiveUpdateRating, resetAllLiveUpdateRatings,
-    editCard, editPlayer, deleteRating, downloadBackup, saveAttributeStats
+    editCard, editPlayer, deleteRating, downloadBackup, saveAttributeStats, updateFullPlayerData
   };
 }

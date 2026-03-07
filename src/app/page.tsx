@@ -12,7 +12,6 @@ import {
   AlertDialogTitle,
   AlertDialogFooter,
   AlertDialogCancel,
-  AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 
@@ -64,6 +63,7 @@ export default function Home() {
     updateLiveUpdateRating,
     resetAllLiveUpdateRatings,
     updateManualTier,
+    updateFullPlayerData,
   } = usePlayers(prioritizeRecentForm);
 
   const {
@@ -130,9 +130,9 @@ export default function Home() {
     }
   }, [formations, selectedFormationId]);
 
-  const handleGenerateTeam = useCallback(() => {
+  const handleGenerateTeam = useCallback((silent: boolean = false) => {
     if (!players || !selectedFormationId) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Por favor, selecciona una formación.' });
+      if (!silent) toast({ variant: 'destructive', title: 'Error', description: 'Por favor, selecciona una formación.' });
       return;
     }
 
@@ -152,8 +152,17 @@ export default function Home() {
     );
 
     setIdealTeam(newTeam);
-    toast({ title: "Equipo Generado", description: `Se ha generado una convocatoria para "${formation.name}".` });
+    if (!silent) {
+      toast({ title: "Equipo Generado", description: `Se ha generado una convocatoria para "${formation.name}".` });
+    }
   }, [players, selectedFormationId, formations, discardedCardIds, selectedLeague, selectedNationality, isFlexibleLaterals, isFlexibleWingers, selectionCriteria, prioritizeRecentForm, toast]);
+
+  // Automatically refresh team if it's already showing and discards or filters change
+  useEffect(() => {
+    if (idealTeam.length > 0) {
+      handleGenerateTeam(true);
+    }
+  }, [discardedCardIds, selectedLeague, selectedNationality, isFlexibleLaterals, isFlexibleWingers, selectionCriteria, prioritizeRecentForm, handleGenerateTeam, idealTeam.length]);
 
   const handleOpenAddRating = useCallback((initialData?: Partial<AddRatingFormValues>) => {
     setAddDialogInitialData(initialData);
@@ -363,7 +372,7 @@ export default function Home() {
         open={isPlayerDetailDialogOpen}
         onOpenChange={setPlayerDetailDialogOpen}
         flatPlayer={selectedFlatPlayer}
-        onSavePlayerBuild={savePlayerBuild}
+        onSaveFullData={updateFullPlayerData}
       />
       <AlertDialog open={isImageViewerOpen} onOpenChange={setImageViewerOpen}>
         <AlertDialogContent className="max-w-xl p-0">
@@ -497,7 +506,7 @@ export default function Home() {
                     onPrioritizeRecentFormChange={setPrioritizeRecentForm}
                   />
                   <div className="flex flex-wrap items-center gap-4 mt-6">
-                    <Button onClick={handleGenerateTeam} disabled={!selectedFormationId}><Star className="mr-2 h-4 w-4" />Generar 11 Ideal</Button>
+                    <Button onClick={() => handleGenerateTeam()} disabled={!selectedFormationId}><Star className="mr-2 h-4 w-4" />Generar 11 Ideal</Button>
                     <Button onClick={handleResetDiscards} variant="outline" disabled={discardedCardIds.size === 0}><RotateCcw className="mr-2 h-4 w-4" />Reiniciar Descartados</Button>
                     <Button onClick={() => resetAllLiveUpdateRatings()} variant="outline"><RotateCcw className="mr-2 h-4 w-4" />Resetear Letras</Button>
                   </div>

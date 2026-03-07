@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import type { Position, FlatPlayer, PlayerBuild, OutfieldBuild, GoalkeeperBuild } from "@/lib/types";
+import type { Position, FlatPlayer, PlayerBuild, OutfieldBuild, GoalkeeperBuild, PlayerSkill, PlayerAttributeStats, PhysicalAttribute } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -16,14 +16,26 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "./ui/slider";
 import { ScrollArea } from "./ui/scroll-area";
 import { Textarea } from "./ui/textarea";
-import { Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, Dumbbell, StickyNote } from "lucide-react";
+import { Input } from "./ui/input";
+import { Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, Dumbbell, StickyNote, Image as ImageIcon, SlidersHorizontal, Check, ChevronsUpDown } from "lucide-react";
 import { usePlayers } from "@/hooks/usePlayers";
+import { Badge } from "./ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "./ui/command";
+import { playerSkillsList } from "@/lib/types";
+import { cn, allStatsKeys } from "@/lib/utils";
 
 type PlayerDetailDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   flatPlayer: FlatPlayer | null;
-  onSavePlayerBuild: (playerId: string, cardId: string, position: Position, build: PlayerBuild) => void;
+  onSaveFullData: (playerId: string, cardId: string, position: Position, data: {
+    build: PlayerBuild;
+    imageUrl?: string;
+    stats: PlayerAttributeStats;
+    physical: PhysicalAttribute;
+    skills: PlayerSkill[];
+  }) => void;
 };
 
 const outfieldCategories: { key: keyof OutfieldBuild; label: string, icon: React.ElementType }[] = [
@@ -42,10 +54,23 @@ const goalkeeperCategories: { key: keyof GoalkeeperBuild; label: string, icon: R
     { key: 'gk3', label: 'Portero 3', icon: Hand },
 ];
 
-export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlayerBuild }: PlayerDetailDialogProps) {
+const statFields: { category: string, fields: { name: keyof PlayerAttributeStats, label: string }[] }[] = [
+    { category: 'Ataque', fields: [{ name: 'offensiveAwareness', label: 'Act. Ofensiva' }, { name: 'ballControl', label: 'Control' }, { name: 'dribbling', label: 'Regate' }, { name: 'tightPossession', label: 'Posesión' }, { name: 'lowPass', label: 'P. Raso' }, { name: 'loftedPass', label: 'P. Bombeado' }, { name: 'finishing', label: 'Finalización' }, { name: 'heading', label: 'Cabeceo' }, { name: 'placeKicking', label: 'B. Parado' }, { name: 'curl', label: 'Efecto' }] },
+    { category: 'Defensa', fields: [{ name: 'defensiveAwareness', label: 'Act. Defensiva' }, { name: 'defensiveEngagement', label: 'Dedicación' }, { name: 'tackling', label: 'Entrada' }, { name: 'aggression', label: 'Agresividad' }] },
+    { category: 'Atletismo', fields: [{ name: 'speed', label: 'Velocidad' }, { name: 'acceleration', label: 'Aceleración' }, { name: 'kickingPower', label: 'Potencia' }, { name: 'jump', label: 'Salto' }, { name: 'physicalContact', label: 'Físico' }, { name: 'balance', label: 'Equilibrio' }, { name: 'stamina', label: 'Resistencia' }] },
+    { category: 'Portería', fields: [{ name: 'goalkeeping', label: 'Act. Portero' }, { name: 'gkCatching', label: 'Atajar' }, { name: 'gkParrying', label: 'Parada' }, { name: 'gkReflexes', label: 'Reflejos' }, { name: 'gkReach', label: 'Cobertura' }] }
+];
+
+export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullData }: PlayerDetailDialogProps) {
   const { positionNotes, savePositionNote } = usePlayers();
   const [build, setBuild] = React.useState<PlayerBuild>({});
+  const [imageUrl, setImageUrl] = React.useState('');
+  const [height, setHeight] = React.useState<number | ''>('');
+  const [weight, setWeight] = React.useState<number | ''>('');
+  const [skills, setSkills] = React.useState<PlayerSkill[]>([]);
+  const [stats, setStats] = React.useState<PlayerAttributeStats>({});
   const [localNote, setLocalNote] = React.useState('');
+  const [skillsPopoverOpen, setSkillsPopoverOpen] = React.useState(false);
 
   const position = flatPlayer?.position;
   const card = flatPlayer?.card;
@@ -55,61 +80,167 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSavePlaye
   React.useEffect(() => {
     if (open && flatPlayer && position && card) {
       setBuild(card.buildsByPosition?.[position] || {});
+      setImageUrl(card.imageUrl || '');
+      setHeight(card.physicalAttributes?.height ?? '');
+      setWeight(card.physicalAttributes?.weight ?? '');
+      setSkills(card.skills || []);
+      setStats(card.attributeStats || {});
       setLocalNote(positionNotes[position] || '');
     }
   }, [open, flatPlayer, card, position, positionNotes]);
 
   const handleSave = () => {
     if (player && card && position) {
-      onSavePlayerBuild(player.id, card.id, position, { ...build, updatedAt: new Date().toISOString() });
+      onSaveFullData(player.id, card.id, position, {
+        build: { ...build, updatedAt: new Date().toISOString() },
+        imageUrl,
+        stats,
+        physical: { height: height === '' ? undefined : Number(height), weight: weight === '' ? undefined : Number(weight) },
+        skills,
+      });
       savePositionNote(position, localNote);
       onOpenChange(false);
     }
   };
 
-  const handleSliderChange = (category: string, value: number) => {
-    setBuild(prev => ({ ...prev, [category]: value }));
-  }
+  const handleSkillToggle = (skillToToggle: string) => {
+    setSkills(prev => prev.includes(skillToToggle as PlayerSkill) 
+        ? prev.filter(s => s !== skillToToggle) 
+        : [...prev, skillToToggle as PlayerSkill]
+    );
+  };
+
+  const handleStatChange = (key: keyof PlayerAttributeStats, value: string) => {
+    setStats(prev => ({ ...prev, [key]: value === '' ? undefined : Number(value) }));
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><Dumbbell className="h-5 w-5 text-accent" /> Entrenamiento de {player?.name} en {position}</DialogTitle>
-          <DialogDescription>Asigna los puntos de entrenamiento y guarda requisitos tácticos compartidos para esta posición.</DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden">
+        <div className="p-6 pb-2">
+            <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-2xl"><Dumbbell className="h-6 w-6 text-accent" /> Ficha de {player?.name}</DialogTitle>
+            <DialogDescription>Modifica todos los datos manuales de esta carta en {position}. Los atributos son opcionales y visuales.</DialogDescription>
+            </DialogHeader>
+        </div>
         
-        <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-8 overflow-hidden mt-4">
-            <ScrollArea className="pr-4">
-                <div className="space-y-6">
-                    <p className="font-medium text-xs text-muted-foreground uppercase tracking-widest flex items-center gap-2"><Dumbbell className="h-3 w-3" /> Distribución de Puntos ({card?.name})</p>
-                    {(isGoalkeeper ? goalkeeperCategories : outfieldCategories).map(({key, label, icon: Icon}) => (
-                        <div key={key} className="space-y-2">
-                            <Label className="flex items-center justify-between">
-                                <span className="flex items-center gap-2"><Icon className="w-4 h-4" /> {label}</span>
-                                <span className="font-bold text-primary">{(build as any)[key] || 0}</span>
-                            </Label>
-                            <Slider value={[(build as any)[key] || 0]} onValueChange={(v) => handleSliderChange(key, v[0])} max={16} step={1} />
+        <div className="flex-grow flex flex-col md:flex-row overflow-hidden border-t">
+            <ScrollArea className="flex-grow p-6 h-full">
+                <div className="space-y-8 pb-10">
+                    {/* Sección de Imagen y Físico */}
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-bold text-primary uppercase tracking-widest flex items-center gap-2">
+                            <ImageIcon className="h-4 w-4" /> Datos Básicos de la Carta
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>URL de Imagen</Label>
+                                <Input placeholder="https://..." value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-2">
+                                    <Label>Altura (cm)</Label>
+                                    <Input type="number" value={height} onChange={(e) => setHeight(e.target.value === '' ? '' : Number(e.target.value))} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Peso (kg)</Label>
+                                    <Input type="number" value={weight} onChange={(e) => setWeight(e.target.value === '' ? '' : Number(e.target.value))} />
+                                </div>
+                            </div>
                         </div>
-                    ))}
+                    </div>
+
+                    {/* Habilidades */}
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-bold text-primary uppercase tracking-widest flex items-center gap-2">
+                            <Check className="h-4 w-4" /> Habilidades del Jugador
+                        </h3>
+                        <Popover open={skillsPopoverOpen} onOpenChange={setSkillsPopoverOpen}>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" className="w-full justify-between h-auto min-h-10">
+                                    <div className="flex gap-1 flex-wrap">
+                                        {skills.length > 0 ? skills.map(s => <Badge key={s} variant="secondary" className="text-[10px]">{s}</Badge>) : <span className="text-muted-foreground text-xs">Seleccionar habilidades...</span>}
+                                    </div>
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                <Command>
+                                    <CommandInput placeholder="Buscar habilidad..." />
+                                    <CommandList>
+                                        <CommandEmpty>No encontrada.</CommandEmpty>
+                                        {playerSkillsList.map(s => (
+                                            <CommandItem key={s} value={s} onSelect={() => handleSkillToggle(s)}>
+                                                <Check className={cn("mr-2 h-4 w-4", skills.includes(s) ? "opacity-100" : "opacity-0")} />{s}
+                                            </CommandItem>
+                                        ))}
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+
+                    {/* Entrenamiento (Progression) */}
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-bold text-primary uppercase tracking-widest flex items-center gap-2">
+                            <Dumbbell className="h-4 w-4" /> Puntos de Entrenamiento ({position})
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                            {(isGoalkeeper ? goalkeeperCategories : outfieldCategories).map(({key, label, icon: Icon}) => (
+                                <div key={key} className="space-y-2">
+                                    <Label className="flex items-center justify-between text-xs">
+                                        <span className="flex items-center gap-2"><Icon className="w-3.5 h-3.5" /> {label}</span>
+                                        <span className="font-bold text-primary">{(build as any)[key] || 0}</span>
+                                    </Label>
+                                    <Slider value={[(build as any)[key] || 0]} onValueChange={(v) => setBuild(p => ({...p, [key]: v[0]}))} max={16} step={1} />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Estadísticas Detalladas */}
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-bold text-primary uppercase tracking-widest flex items-center gap-2">
+                            <SlidersHorizontal className="h-4 w-4" /> Atributos (Stats Base)
+                        </h3>
+                        <div className="space-y-6">
+                            {statFields.map(cat => (
+                                <div key={cat.category} className="space-y-2">
+                                    <Label className="text-[10px] font-black opacity-50 uppercase">{cat.category}</Label>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                                        {cat.fields.map(f => (
+                                            <div key={f.name} className="space-y-1">
+                                                <Label className="text-[10px] truncate block">{f.label}</Label>
+                                                <Input type="number" value={(stats as any)[f.name] ?? ''} onChange={(e) => handleStatChange(f.name, e.target.value)} className="h-8 text-xs" min={0} max={99} />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </ScrollArea>
-            <div className="md:border-l md:pl-8 flex flex-col h-full">
-                <Label className="font-medium text-sm text-muted-foreground mb-4 uppercase tracking-widest flex items-center gap-2">
-                    <StickyNote className="h-4 w-4" /> Anotaciones Globales ({position})
+
+            {/* Notas Globales (Panel Lateral Derecho) */}
+            <div className="w-full md:w-80 border-l bg-muted/10 p-6 flex flex-col h-full shrink-0">
+                <Label className="font-bold text-sm text-primary mb-4 uppercase tracking-widest flex items-center gap-2">
+                    <StickyNote className="h-4 w-4" /> Notas Globales ({position})
                 </Label>
                 <Textarea 
-                    placeholder="Escribe requisitos para esta posición (ej: Aceleración +88, Pase +90...)" 
-                    className="flex-grow resize-none text-base"
+                    placeholder={`Escribe requisitos tácticos para todos los jugadores en la posición ${position}...`} 
+                    className="flex-grow resize-none text-base border-primary/20 focus:border-primary"
                     value={localNote}
                     onChange={(e) => setLocalNote(e.target.value)}
                 />
-                <p className="text-[10px] text-muted-foreground mt-2 italic">Cualquier nota aquí será visible para todos los jugadores en la posición {position}.</p>
+                <p className="text-[10px] text-muted-foreground mt-4 italic leading-tight">
+                    Estas notas son compartidas. Cualquier cambio se aplicará a todas las cartas de tu lista que jueguen como {position}.
+                </p>
             </div>
         </div>
 
-        <DialogFooter className="pt-4 border-t mt-4">
-          <Button onClick={handleSave}>Guardar Todo</Button>
+        <DialogFooter className="p-6 border-t bg-background">
+          <Button onClick={handleSave} className="w-full md:w-auto px-10">Guardar Todo</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
