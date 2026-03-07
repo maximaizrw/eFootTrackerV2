@@ -8,8 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, Search, SlidersHorizontal, Dumbbell, Pencil, Copy, CheckCircle2 } from 'lucide-react';
-import { cn, formatAverage, getAverageColorClass, getTierColorClass, getProxiedImageUrl } from '@/lib/utils';
+import { PlusCircle, Trash2, Search, SlidersHorizontal, Dumbbell, Pencil, Copy, CheckCircle2, Info } from 'lucide-react';
+import { cn, formatAverage, getAverageColorClass, getTierColorClass, getProxiedImageUrl, getScoreBreakdown, calculateRecencyWeightedAverage } from '@/lib/utils';
 import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating, Tier } from '@/lib/types';
 import { tiers } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
@@ -26,6 +26,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type PlayerTableProps = {
   players: FlatPlayer[];
@@ -174,6 +180,17 @@ const PlayerTableMemo = memo(function PlayerTable({
             const { player, card, ratingsForPos, performance, tier, score } = flatPlayer;
             const cardAverage = performance.stats.average;
             const isTierUnassigned = tier === 'D';
+            
+            // Recalculate breakdown for tooltip
+            const recentAverage = calculateRecencyWeightedAverage(ratingsForPos, 5, 2.5, 0.9);
+            const breakdown = getScoreBreakdown(
+              tier, 
+              cardAverage, 
+              performance.stats.matches, 
+              player.liveUpdateRating, 
+              recentAverage, 
+              false // Default to false unless we track prioritizeRecentForm here too
+            );
 
             return (
               <TableRow key={`${player.id}-${card.id}-${position}`} className="hover:bg-muted/50">
@@ -223,7 +240,45 @@ const PlayerTableMemo = memo(function PlayerTable({
                   <div className={cn("text-base font-bold", getAverageColorClass(cardAverage))}>{formatAverage(cardAverage)}</div>
                 </TableCell>
                 <TableCell>
-                  <div className="text-base font-black text-primary">{score.toFixed(1)}</div>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center gap-1 cursor-help group">
+                          <div className="text-base font-black text-primary group-hover:underline decoration-dotted">{score.toFixed(1)}</div>
+                          <Info className="h-3 w-3 text-muted-foreground opacity-50 group-hover:opacity-100" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent className="w-64 p-3" side="top">
+                        <div className="space-y-2">
+                          <p className="font-bold border-b pb-1 text-xs uppercase tracking-wider">Desglose de Puntaje</p>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">Puntos de Tier ({tier}):</span>
+                            <span className="font-mono font-bold text-green-400">+{breakdown.tierBase}</span>
+                          </div>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">Rendimiento (Promedio):</span>
+                            <span className="font-mono font-bold text-green-400">+{breakdown.performanceAverage.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">Bono Live Update ({player.liveUpdateRating || 'C'}):</span>
+                            <span className={cn("font-mono font-bold", breakdown.liveUpdateBonus >= 0 ? "text-green-400" : "text-red-400")}>
+                              {breakdown.liveUpdateBonus >= 0 ? '+' : ''}{breakdown.liveUpdateBonus}
+                            </span>
+                          </div>
+                          {breakdown.experiencePenalty !== 0 && (
+                            <div className="flex justify-between text-xs">
+                              <span className="text-muted-foreground">Penalización Experiencia:</span>
+                              <span className="font-mono font-bold text-red-400">{breakdown.experiencePenalty}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between text-sm font-black border-t pt-1 mt-1 text-primary">
+                            <span>PUNTUACIÓN FINAL:</span>
+                            <span className="font-mono">{score.toFixed(1)}</span>
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
                   <div className="flex gap-1">

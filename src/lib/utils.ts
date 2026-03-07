@@ -101,14 +101,22 @@ export const TIER_BASE_SCORE: Record<Tier, number> = {
 
 export const LIVE_UPDATE_BONUSES: Record<LiveUpdateRating, number> = { A: 8, B: 4, C: 0, D: -5, E: -10 };
 
-export function calculateFinalScore(
+export type ScoreBreakdown = {
+  tierBase: number;
+  performanceAverage: number;
+  liveUpdateBonus: number;
+  experiencePenalty: number;
+  total: number;
+};
+
+export function getScoreBreakdown(
   manualTier: Tier,
   overallAverage: number, 
   matches: number,
   liveUpdateRating?: LiveUpdateRating | null,
   recentAverage?: number,
   prioritizeRecentForm: boolean = false
-): number {
+): ScoreBreakdown {
   const effectiveRecentAverage = recentAverage ?? overallAverage;
   const recentWeight = prioritizeRecentForm ? 0.7 : 0.3;
   const overallWeight = 1 - recentWeight;
@@ -117,12 +125,28 @@ export function calculateFinalScore(
   const liveUpdateBonus = liveUpdateRating ? LIVE_UPDATE_BONUSES[liveUpdateRating] : 0;
   const tierBase = TIER_BASE_SCORE[manualTier];
 
-  let finalScore = tierBase + performanceAverage + liveUpdateBonus;
+  let experiencePenalty = 0;
+  if (matches < 3) experiencePenalty = -10;
+  else if (matches < 5) experiencePenalty = -5;
 
-  if (matches < 3) finalScore -= 10;
-  else if (matches < 5) finalScore -= 5;
+  return {
+    tierBase,
+    performanceAverage,
+    liveUpdateBonus,
+    experiencePenalty,
+    total: tierBase + performanceAverage + liveUpdateBonus + experiencePenalty
+  };
+}
 
-  return finalScore;
+export function calculateFinalScore(
+  manualTier: Tier,
+  overallAverage: number, 
+  matches: number,
+  liveUpdateRating?: LiveUpdateRating | null,
+  recentAverage?: number,
+  prioritizeRecentForm: boolean = false
+): number {
+  return getScoreBreakdown(manualTier, overallAverage, matches, liveUpdateRating, recentAverage, prioritizeRecentForm).total;
 }
 
 export function getProxiedImageUrl(url: string | undefined): string {
