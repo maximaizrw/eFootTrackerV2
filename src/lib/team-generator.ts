@@ -43,9 +43,12 @@ export function generateIdealTeam(
         
         const manualTier: Tier = card.manualTiersByPosition?.[pos] || 'D';
         
-        // Si el criterio es solo promedio, ignoramos el bono base de Tier para el cálculo del score
-        const effectiveTier = selectionCriteria === 'average' ? 'D' : manualTier;
-        const finalScore = calculateFinalScore(effectiveTier, stats.average, stats.matches, player.liveUpdateRating, recentAverage, prioritizeRecentForm);
+        // El score que usaremos para ordenar. 
+        // Si el criterio es 'average', usamos solo el promedio puro.
+        // Si es 'general', usamos la fórmula completa (Tier + Promedio + Letra).
+        const scoreForSelection = selectionCriteria === 'average'
+            ? stats.average
+            : calculateFinalScore(manualTier, stats.average, stats.matches, player.liveUpdateRating, recentAverage, prioritizeRecentForm);
 
         const performance: PlayerPerformance = {
             stats,
@@ -57,7 +60,7 @@ export function generateIdealTeam(
 
         return { 
             player, card, position: pos, average: stats.average, 
-            score: finalScore, tier: manualTier, 
+            score: scoreForSelection, tier: manualTier, 
             performance 
         };
       }).filter((p): p is CandidatePlayer => p !== null);
@@ -66,10 +69,9 @@ export function generateIdealTeam(
 
   const usedPlayerIds = new Set<string>();
   const usedCardIds = new Set<string>();
-  const finalTeamSlots: IdealTeamSlot[] = [];
   
   const candidateSort = (a: CandidatePlayer, b: CandidatePlayer) => {
-    if (Math.abs(b.score - a.score) > 0.01) return b.score - a.score;
+    if (Math.abs(b.score - a.score) > 0.001) return b.score - a.score;
     return b.performance.stats.matches - a.performance.stats.matches;
   };
 
@@ -96,7 +98,7 @@ export function generateIdealTeam(
     return null;
   });
 
-  // 2. ASIGNAR SUPLENTES (Siguiendo las posiciones de la formación)
+  // 2. ASIGNAR SUPLENTES (Directos por posición de la formación para rotación coherente)
   const tempSubs: (IdealTeamPlayer | null)[] = formation.slots.map(slot => {
     const candidates = getCandidatesForPosition(slot.position);
     const sub = candidates.find(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id));
@@ -109,8 +111,7 @@ export function generateIdealTeam(
     return null;
   });
 
-  // 3. COMPLETAR HASTA 12 SUPLENTES (Si la formación tiene menos slots o faltan jugadores)
-  // En eFootball las formaciones son de 11, así que tenemos 11 suplentes naturales. Añadimos 1 comodín.
+  // 3. COMPLETAR HASTA 12 SUPLENTES (Relleno con mejores restantes que encajen en CUALQUIER puesto de la formación)
   const eligibleExtraSubs = allPlayerCandidates
     .filter(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id))
     .filter(p => formationPositions.includes(p.position))
@@ -119,7 +120,6 @@ export function generateIdealTeam(
   const extraSubs = eligibleExtraSubs.slice(0, 12 - tempSubs.filter(s => s !== null).length);
   const finalSubs = [...tempSubs.filter(s => s !== null), ...extraSubs].slice(0, 12);
 
-  // Placeholder generator
   const ph = (id: string, pos: Position) => ({ 
       player: { id, name: 'Vacante', cards: [], nationality: 'Sin Nacionalidad' }, 
       card: { id: `card-${id}`, name: 'N/A', style: 'Ninguno' as any, ratingsByPosition: {} }, 
@@ -127,7 +127,6 @@ export function generateIdealTeam(
       performance: { stats: { average: 0, matches: 0, stdDev: 0 }, isHotStreak: false, isConsistent: false, isPromising: false, isVersatile: false } 
   } as any);
 
-  // Mapear a la estructura de slots (11 titulares + el resto como banquillo)
   return Array.from({ length: 11 }).map((_, i) => {
     const slot = formation.slots[i];
     return {

@@ -175,6 +175,7 @@ export const BADGE_BONUSES = {
 };
 
 export function isSpecialCard(name: string): boolean {
+  if (!name) return false;
   const n = name.toLowerCase();
-  return n.includes('potw') || n.includes('pots') || n.includes('potm');
+  return n.includes('potw') || n.includes('pots') || n.includes('potm') || n.includes('shining stars');
 }
