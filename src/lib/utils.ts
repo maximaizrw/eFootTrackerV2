@@ -1,3 +1,4 @@
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { PlayerAttributeStats, Position, LiveUpdateRating, Tier } from "./types";
@@ -126,9 +127,8 @@ export function calculateFinalScore(
 
 export function getProxiedImageUrl(url: string | undefined): string {
   if (!url) return '';
-  if (url.includes('placehold.co')) return url;
-  // Proxy para saltar bloqueos de origen (CORS/CORP)
-  return `https://images.weserv.nl/?url=${encodeURIComponent(url)}&default=${encodeURIComponent(url)}`;
+  if (url.includes('placehold.co') || url.startsWith('/api/')) return url;
+  return `/api/proxy-image?url=${encodeURIComponent(url)}`;
 }
 
 export const allStatsKeys: (keyof PlayerAttributeStats)[] = [

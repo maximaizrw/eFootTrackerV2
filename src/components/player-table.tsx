@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from 'next/image';
@@ -7,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, Search, SlidersHorizontal, Dumbbell } from 'lucide-react';
+import { PlusCircle, Trash2, Search, SlidersHorizontal, Dumbbell, Pencil } from 'lucide-react';
 import { cn, formatAverage, getAverageColorClass, getTierColorClass, getProxiedImageUrl } from '@/lib/utils';
 import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating, Tier } from '@/lib/types';
 import { tiers } from '@/lib/types';
@@ -106,6 +107,9 @@ const PlayerTableMemo = memo(function PlayerTable({
   players: flatPlayers,
   position,
   onOpenAddRating,
+  onOpenEditCard,
+  onOpenEditPlayer,
+  onOpenEditStats,
   onOpenPlayerDetail,
   onViewImage,
   onDeletePositionRatings,
@@ -150,8 +154,8 @@ const PlayerTableMemo = memo(function PlayerTable({
                           <button 
                             onClick={() => onOpenPlayerDetail(flatPlayer)} 
                             className={cn(
-                                "font-medium text-sm md:text-base hover:underline truncate",
-                                isTierUnassigned && "text-red-600 dark:text-red-500 font-bold"
+                                "font-medium text-sm md:text-base hover:underline truncate transition-colors",
+                                isTierUnassigned ? "text-red-600 dark:text-red-500 font-bold" : "text-foreground"
                             )}
                           >
                             {player.name}
@@ -195,7 +199,9 @@ const PlayerTableMemo = memo(function PlayerTable({
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
                     <Button variant="ghost" size="icon" onClick={() => onOpenAddRating({ playerId: player.id, playerName: player.name, cardName: card.name, position, style: card.style })}><PlusCircle className="h-4 w-4 text-primary" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => onOpenPlayerDetail(flatPlayer)}><Dumbbell className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => onOpenPlayerDetail(flatPlayer)} title="Entrenamiento y Notas"><Dumbbell className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => onOpenEditStats(player, card)} title="Atributos y Habilidades"><SlidersHorizontal className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => onOpenEditCard(player, card)} title="Editar Carta"><Pencil className="h-4 w-4" /></Button>
                     <AlertDialog>
                         <AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button></AlertDialogTrigger>
                         <AlertDialogContent>
