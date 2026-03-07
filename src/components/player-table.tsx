@@ -8,12 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, Search, SlidersHorizontal, Dumbbell, Pencil } from 'lucide-react';
+import { PlusCircle, Trash2, Search, SlidersHorizontal, Dumbbell, Pencil, Copy, CheckCircle2 } from 'lucide-react';
 import { cn, formatAverage, getAverageColorClass, getTierColorClass, getProxiedImageUrl } from '@/lib/utils';
 import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating, Tier } from '@/lib/types';
 import { tiers } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import { LiveUpdateRatingSelector } from './live-update-rating-selector';
+import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,45 +53,80 @@ const Filters = memo(({
   uniqueCardNames,
   sortCriteria,
   onSortCriteriaChange,
-}: any) => (
-  <div className="space-y-4">
-    <div className="flex flex-col md:flex-row gap-2">
-        <div className="relative flex-grow">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-            placeholder={`Buscar por nombre de jugador...`}
-            value={searchTerm}
-            onChange={(e) => onSearchTermChange(e.target.value)}
-            className="pl-10 w-full"
-        />
-        </div>
-    </div>
+  filteredPlayers,
+}: any) => {
+  const [copied, setCopied] = React.useState(false);
+  const { toast } = useToast();
+
+  const handleCopyList = () => {
+    if (!filteredPlayers || filteredPlayers.length === 0) return;
     
-    <div className="flex flex-wrap gap-2 items-center">
-        <Select value={styleFilter} onValueChange={onStyleFilterChange}>
-            <SelectTrigger className="w-full md:w-[180px]"><SelectValue placeholder="Estilo" /></SelectTrigger>
-            <SelectContent>
-                {uniqueStyles.map((s: string) => <SelectItem key={s} value={s}>{s === 'all' ? 'Todos los Estilos' : s}</SelectItem>)}
-            </SelectContent>
-        </Select>
-        <Select value={cardFilter} onValueChange={onCardFilterChange}>
-            <SelectTrigger className="w-full md:w-[180px]"><SelectValue placeholder="Carta" /></SelectTrigger>
-            <SelectContent>
-                {uniqueCardNames.map((n: string) => <SelectItem key={n} value={n}>{n === 'all' ? 'Todas las Cartas' : n}</SelectItem>)}
-            </SelectContent>
-        </Select>
-        <div className="flex items-center gap-2 ml-auto">
-            <Select value={sortCriteria} onValueChange={onSortCriteriaChange}>
-                <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="general">Ordenar por Puntaje</SelectItem>
-                    <SelectItem value="average">Ordenar por Notas</SelectItem>
-                </SelectContent>
-            </Select>
-        </div>
+    const listText = filteredPlayers
+      .map((p: FlatPlayer) => `${p.player.name} - ${p.card.name}`)
+      .join('\n');
+    
+    navigator.clipboard.writeText(listText).then(() => {
+      setCopied(true);
+      toast({
+        title: "Lista Copiada",
+        description: `Se han copiado ${filteredPlayers.length} jugadores al portapapeles.`,
+      });
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col md:flex-row gap-2">
+          <div className="relative flex-grow">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+              placeholder={`Buscar por nombre de jugador...`}
+              value={searchTerm}
+              onChange={(e) => onSearchTermChange(e.target.value)}
+              className="pl-10 w-full"
+          />
+          </div>
+      </div>
+      
+      <div className="flex flex-wrap gap-2 items-center">
+          <Select value={styleFilter} onValueChange={onStyleFilterChange}>
+              <SelectTrigger className="w-full md:w-[180px]"><SelectValue placeholder="Estilo" /></SelectTrigger>
+              <SelectContent>
+                  {uniqueStyles.map((s: string) => <SelectItem key={s} value={s}>{s === 'all' ? 'Todos los Estilos' : s}</SelectItem>)}
+              </SelectContent>
+          </Select>
+          <Select value={cardFilter} onValueChange={onCardFilterChange}>
+              <SelectTrigger className="w-full md:w-[180px]"><SelectValue placeholder="Carta" /></SelectTrigger>
+              <SelectContent>
+                  {uniqueCardNames.map((n: string) => <SelectItem key={n} value={n}>{n === 'all' ? 'Todas las Cartas' : n}</SelectItem>)}
+              </SelectContent>
+          </Select>
+          
+          <div className="flex items-center gap-2 ml-auto">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleCopyList} 
+                className="h-8 gap-2 border-primary/30 hover:border-primary hover:bg-primary/5"
+                disabled={!filteredPlayers || filteredPlayers.length === 0}
+              >
+                {copied ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                <span className="hidden sm:inline">Copiar Listado</span>
+              </Button>
+
+              <Select value={sortCriteria} onValueChange={onSortCriteriaChange}>
+                  <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                      <SelectItem value="general">Ordenar por Puntaje</SelectItem>
+                      <SelectItem value="average">Ordenar por Notas</SelectItem>
+                  </SelectContent>
+              </Select>
+          </div>
+      </div>
     </div>
-  </div>
-));
+  );
+});
 
 const Pagination = memo(({ currentPage, totalPages, onPageChange }: any) => {
     if (totalPages <= 1) return null;
@@ -154,7 +190,7 @@ const PlayerTableMemo = memo(function PlayerTable({
                           <button 
                             onClick={() => onOpenPlayerDetail(flatPlayer)} 
                             className={cn(
-                                "font-medium text-sm md:text-base hover:underline truncate transition-colors",
+                                "font-medium text-sm md:text-base hover:underline truncate transition-colors text-left",
                                 isTierUnassigned ? "text-red-600 dark:text-red-500 font-bold" : "text-foreground"
                             )}
                           >

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -442,6 +443,7 @@ export default function Home() {
                           uniqueCardNames={uniqueCardNames}
                           sortCriteria={listSortCriteria}
                           onSortCriteriaChange={setListSortCriteria}
+                          filteredPlayers={filteredPlayerList}
                         />
                     </CardHeader>
                     <PlayerTable
