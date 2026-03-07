@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, Search, SlidersHorizontal, Dumbbell, Pencil, Copy, CheckCircle2, Info } from 'lucide-react';
+import { PlusCircle, Trash2, Search, SlidersHorizontal, Dumbbell, Pencil, Copy, CheckCircle2, Info, History, X } from 'lucide-react';
 import { cn, formatAverage, getAverageColorClass, getTierColorClass, getProxiedImageUrl, getScoreBreakdown, calculateRecencyWeightedAverage } from '@/lib/utils';
 import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating, Tier } from '@/lib/types';
 import { tiers } from '@/lib/types';
@@ -31,6 +31,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { ScrollArea } from './ui/scroll-area';
 
 type PlayerTableProps = {
   players: FlatPlayer[];
@@ -154,6 +156,7 @@ const PlayerTableMemo = memo(function PlayerTable({
   onOpenPlayerDetail,
   onViewImage,
   onDeletePositionRatings,
+  onDeleteRating,
   onUpdateLiveUpdateRating,
   onUpdateManualTier,
 }: PlayerTableProps) {
@@ -279,23 +282,53 @@ const PlayerTableMemo = memo(function PlayerTable({
                   </TooltipProvider>
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
-                  <div className="flex gap-1">
-                    {ratingsForPos.slice(-3).map((r, i) => (
-                      <Badge key={i} variant="outline" className="text-[10px]">{r.toFixed(1)}</Badge>
-                    ))}
+                  <div className="flex gap-1 items-center">
+                    <div className="flex gap-1">
+                      {ratingsForPos.slice(-3).map((r, i) => (
+                        <Badge key={i} variant="outline" className="text-[10px]">{r.toFixed(1)}</Badge>
+                      ))}
+                    </div>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 ml-1">
+                          <History className="h-3 w-3 text-muted-foreground" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-48 p-0">
+                        <div className="p-2 border-b bg-muted/50 text-[10px] font-bold uppercase tracking-widest text-center">Historial de Notas</div>
+                        <ScrollArea className="h-48">
+                          <div className="p-1 space-y-1">
+                            {[...ratingsForPos].reverse().map((r, idx) => {
+                              const originalIndex = ratingsForPos.length - 1 - idx;
+                              return (
+                                <div key={originalIndex} className="flex items-center justify-between p-1.5 rounded hover:bg-muted text-xs group">
+                                  <span className="font-mono font-bold">{r.toFixed(1)}</span>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity" 
+                                    onClick={() => onDeleteRating(player.id, card.id, position, originalIndex)}
+                                  >
+                                    <X className="h-3 w-3 text-destructive" />
+                                  </Button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </ScrollArea>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
                     <Button variant="ghost" size="icon" onClick={() => onOpenAddRating({ playerId: player.id, playerName: player.name, cardName: card.name, position, style: card.style })}><PlusCircle className="h-4 w-4 text-primary" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => onOpenPlayerDetail(flatPlayer)} title="Entrenamiento y Notas"><Dumbbell className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => onOpenEditStats(player, card)} title="Atributos y Habilidades"><SlidersHorizontal className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => onOpenEditCard(player, card)} title="Editar Carta"><Pencil className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => onOpenPlayerDetail(flatPlayer)} title="Ficha Completa"><Dumbbell className="h-4 w-4" /></Button>
                     <AlertDialog>
                         <AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button></AlertDialogTrigger>
                         <AlertDialogContent>
-                            <AlertDialogHeader><AlertDialogTitle>¿Eliminar posición?</AlertDialogTitle></AlertDialogHeader>
-                            <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-destructive" onClick={() => onDeletePositionRatings(player.id, card.id, position)}>Eliminar</AlertDialogAction></AlertDialogFooter>
+                            <AlertDialogHeader><AlertDialogTitle>¿Eliminar posición?</AlertDialogTitle><AlertDialogDescription>Se borrarán todas las notas de {player.name} en {position}.</AlertDialogDescription></AlertDialogHeader>
+                            <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-destructive" onClick={() => onDeletePositionRatings(player.id, card.id, position)}>Eliminar Todo</AlertDialogAction></AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>
                   </div>
