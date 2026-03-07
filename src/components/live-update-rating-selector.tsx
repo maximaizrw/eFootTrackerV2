@@ -42,6 +42,9 @@ export function LiveUpdateRatingSelector({ value, onValueChange }: LiveUpdateRat
     onValueChange(rating);
   }
 
+  // Filtrar para que D y E no sean seleccionables según requerimiento del usuario
+  const selectableRatings = liveUpdateRatings.filter(r => r !== 'D' && r !== 'E');
+
   return (
     <TooltipProvider>
       <DropdownMenu>
@@ -51,7 +54,7 @@ export function LiveUpdateRatingSelector({ value, onValueChange }: LiveUpdateRat
               <Button 
                 variant="ghost"
                 className={cn(
-                  "h-auto w-auto p-0 text-base font-bold flex-shrink-0",
+                  "h-auto w-auto p-0 text-base font-bold flex-shrink-0 focus-visible:ring-0",
                   currentStyle.color
                 )}
               >
@@ -64,7 +67,7 @@ export function LiveUpdateRatingSelector({ value, onValueChange }: LiveUpdateRat
           </TooltipContent>
         </Tooltip>
         <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-          {liveUpdateRatings.map(rating => (
+          {selectableRatings.map(rating => (
             <DropdownMenuItem key={rating} onSelect={(e) => handleSelect(e, rating)}>
               <div className={cn("w-3 h-3 rounded-full mr-2", ratingBgColors[rating])} />
               <span className={cn(ratingStyles[rating].color, 'font-bold w-4')}>{rating}</span>

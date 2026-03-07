@@ -1,4 +1,3 @@
-
 import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, Tier } from './types';
 import { calculateStats, calculateFinalScore, calculateRecencyWeightedAverage } from './utils';
 
