@@ -22,7 +22,7 @@ import { Badge } from "./ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "./ui/command";
 import { playerSkillsList } from "@/lib/types";
-import { cn, allStatsKeys } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 type PlayerDetailDialogProps = {
   open: boolean;
@@ -118,8 +118,8 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
       <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden">
         <div className="p-6 pb-2">
             <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-2xl"><Dumbbell className="h-6 w-6 text-accent" /> Ficha de {player?.name}</DialogTitle>
-            <DialogDescription>Modifica todos los datos manuales de esta carta en {position}. Los atributos son opcionales y visuales.</DialogDescription>
+            <DialogTitle className="flex items-center gap-2 text-2xl"><Dumbbell className="h-6 w-6 text-accent" /> Ficha Maestra de {player?.name}</DialogTitle>
+            <DialogDescription>Edita todos los datos manuales de esta carta para la posición {position}. Los atributos son visuales y opcionales.</DialogDescription>
             </DialogHeader>
         </div>
         
@@ -129,11 +129,11 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
                     {/* Sección de Imagen y Físico */}
                     <div className="space-y-4">
                         <h3 className="text-sm font-bold text-primary uppercase tracking-widest flex items-center gap-2">
-                            <ImageIcon className="h-4 w-4" /> Datos Básicos de la Carta
+                            <ImageIcon className="h-4 w-4" /> Datos Visuales de la Carta
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label>URL de Imagen</Label>
+                                <Label>URL de Imagen (eFootballHub / ImgBB)</Label>
                                 <Input placeholder="https://..." value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
                             </div>
                             <div className="grid grid-cols-2 gap-2">
@@ -182,7 +182,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
                     {/* Entrenamiento (Progression) */}
                     <div className="space-y-4">
                         <h3 className="text-sm font-bold text-primary uppercase tracking-widest flex items-center gap-2">
-                            <Dumbbell className="h-4 w-4" /> Puntos de Entrenamiento ({position})
+                            <Dumbbell className="h-4 w-4" /> Entrenamiento / Build ({position})
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                             {(isGoalkeeper ? goalkeeperCategories : outfieldCategories).map(({key, label, icon: Icon}) => (
@@ -200,7 +200,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
                     {/* Estadísticas Detalladas */}
                     <div className="space-y-4">
                         <h3 className="text-sm font-bold text-primary uppercase tracking-widest flex items-center gap-2">
-                            <SlidersHorizontal className="h-4 w-4" /> Atributos (Stats Base)
+                            <SlidersHorizontal className="h-4 w-4" /> Atributos Técnicos (Stats)
                         </h3>
                         <div className="space-y-6">
                             {statFields.map(cat => (
@@ -227,19 +227,19 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
                     <StickyNote className="h-4 w-4" /> Notas Globales ({position})
                 </Label>
                 <Textarea 
-                    placeholder={`Escribe requisitos tácticos para todos los jugadores en la posición ${position}...`} 
+                    placeholder={`Define aquí los requisitos para todos los jugadores en ${position}...`} 
                     className="flex-grow resize-none text-base border-primary/20 focus:border-primary"
                     value={localNote}
                     onChange={(e) => setLocalNote(e.target.value)}
                 />
                 <p className="text-[10px] text-muted-foreground mt-4 italic leading-tight">
-                    Estas notas son compartidas. Cualquier cambio se aplicará a todas las cartas de tu lista que jueguen como {position}.
+                    Estas notas son compartidas por posición. Cualquier cambio se aplicará a todas las cartas de tu lista que jueguen en este puesto.
                 </p>
             </div>
         </div>
 
         <DialogFooter className="p-6 border-t bg-background">
-          <Button onClick={handleSave} className="w-full md:w-auto px-10">Guardar Todo</Button>
+          <Button onClick={handleSave} className="w-full md:w-auto px-10">Guardar Cambios</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

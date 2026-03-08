@@ -1,4 +1,4 @@
-import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, Tier } from './types';
+import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, Tier, FormationSlot } from './types';
 import { calculateStats, calculateFinalScore, calculateRecencyWeightedAverage } from './utils';
 
 type CandidatePlayer = {
@@ -42,9 +42,6 @@ export function generateIdealTeam(
         
         const manualTier: Tier = card.manualTiersByPosition?.[pos] || 'D';
         
-        // El score que usaremos para ordenar. 
-        // Si el criterio es 'average', usamos solo el promedio puro.
-        // Si es 'general', usamos la fórmula completa (Tier + Promedio + Letra).
         const scoreForSelection = selectionCriteria === 'average'
             ? stats.average
             : calculateFinalScore(manualTier, stats.average, stats.matches, player.liveUpdateRating, recentAverage, prioritizeRecentForm);
@@ -74,25 +71,46 @@ export function generateIdealTeam(
     return b.performance.stats.matches - a.performance.stats.matches;
   };
 
-  const getCandidatesForPosition = (targetPosition: Position): CandidatePlayer[] => {
-    let targetPositions: Position[] = [targetPosition];
-    if (isFlexibleLaterals && (targetPosition === 'LI' || targetPosition === 'LD')) targetPositions = ['LI', 'LD'];
-    if (isFlexibleWingers && (targetPosition === 'EXI' || targetPosition === 'EXD')) targetPositions = ['EXI', 'EXD'];
+  const getCandidatesForSlot = (slot: FormationSlot): CandidatePlayer[] => {
+    const primaryPos = slot.position;
+    const secondaryPos = slot.secondaryPosition;
+    const minHeight = slot.minHeight;
     
-    return allPlayerCandidates
-        .filter(p => targetPositions.includes(p.position))
-        .sort(candidateSort);
+    let targetPositions: Position[] = [primaryPos];
+    if (isFlexibleLaterals && (primaryPos === 'LI' || primaryPos === 'LD')) targetPositions = ['LI', 'LD'];
+    if (isFlexibleWingers && (primaryPos === 'EXI' || primaryPos === 'EXD')) targetPositions = ['EXI', 'EXD'];
+    
+    return allPlayerCandidates.filter(p => {
+        // 1. Primary Position Check (with flexibility)
+        let primaryMatches = targetPositions.includes(p.position);
+        if (!primaryMatches) return false;
+
+        // 2. Secondary Position Check (Strict: card must have both loaded)
+        if (secondaryPos) {
+            const hasSecondaryRating = p.card.ratingsByPosition && 
+                                       p.card.ratingsByPosition[secondaryPos] && 
+                                       p.card.ratingsByPosition[secondaryPos]!.length > 0;
+            if (!hasSecondaryRating) return false;
+        }
+
+        // 3. Min Height Check
+        if (minHeight) {
+            const playerHeight = p.card.physicalAttributes?.height || 0;
+            if (playerHeight < minHeight) return false;
+        }
+
+        return true;
+    }).sort(candidateSort);
   };
 
   // 1. ASIGNAR TITULARES
   const tempStarters: (IdealTeamPlayer | null)[] = formation.slots.map(slot => {
-    const candidates = getCandidatesForPosition(slot.position);
+    const candidates = getCandidatesForSlot(slot);
     const starter = candidates.find(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id));
 
     if (starter) {
         usedPlayerIds.add(starter.player.id);
         usedCardIds.add(starter.card.id);
-        // Use custom role name if provided, otherwise position name
         return { ...starter, assignedPosition: slot.profileName || slot.position } as any;
     }
     return null;
@@ -100,7 +118,7 @@ export function generateIdealTeam(
 
   // 2. ASIGNAR SUPLENTES (Directos por posición de la formación para rotación coherente)
   const tempSubs: (IdealTeamPlayer | null)[] = formation.slots.map((slot, index) => {
-    const candidates = getCandidatesForPosition(slot.position);
+    const candidates = getCandidatesForSlot(slot);
     const sub = candidates.find(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id));
 
     if (sub) {
