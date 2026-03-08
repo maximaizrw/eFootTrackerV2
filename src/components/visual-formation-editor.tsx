@@ -25,6 +25,7 @@ import {
   Ruler,
   MapPin,
   Settings2,
+  Tag,
 } from "lucide-react";
 import type {
   FormationSlot,
@@ -107,7 +108,7 @@ const PlayerToken = ({
   onPointerDown: (e: React.PointerEvent) => void;
 }) => {
   const [isPopoverOpen, setIsPopoverOpen] = React.useState(false);
-  const [isAdvancedOpen, setIsAdvancedOpen] = React.useState(false);
+  const [isAdvancedOpen, setIsAdvancedOpen] = React.useState(true);
 
   const zone = getPositionZone(slot.position);
   const config = zoneConfig[zone];
@@ -129,13 +130,13 @@ const PlayerToken = ({
     });
   };
 
-  const displayPosition = slot.position;
+  const displayLabel = slot.profileName || slot.position;
   const availableStyles: PlayerStyle[] = [
     "Ninguno",
     ...getAvailableStylesForPosition(slot.position, false),
   ];
   const hasStyles = slot.styles && slot.styles.length > 0;
-  const hasAdvanced = !!slot.minHeight || !!slot.secondaryPosition;
+  const hasAdvanced = !!slot.minHeight || !!slot.secondaryPosition || !!slot.profileName;
 
   return (
     <div
@@ -163,8 +164,8 @@ const PlayerToken = ({
         <span className="text-[9px] sm:text-[10px] font-medium text-white/70 leading-none">
           {index + 1}
         </span>
-        <span className="font-bold text-xs sm:text-sm text-white leading-none">
-          {displayPosition}
+        <span className="font-bold text-[10px] sm:text-xs text-white leading-none text-center px-1 truncate w-full">
+          {displayLabel}
         </span>
 
         <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
@@ -187,7 +188,7 @@ const PlayerToken = ({
             </button>
           </PopoverTrigger>
           <PopoverContent
-            className="w-72 p-0 max-h-[80vh] overflow-y-auto"
+            className="w-72 p-0 max-h-[80vh] overflow-y-auto shadow-2xl border-primary/20"
             onClick={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
             side="right"
@@ -195,9 +196,9 @@ const PlayerToken = ({
           >
             <div className="p-4 space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium flex items-center gap-2">
+                <label className="text-sm font-bold flex items-center gap-2 text-primary">
                   <ZoneColorDot position={slot.position} />
-                  Posicion Principal
+                  Posición Principal
                 </label>
                 <Select
                   value={slot.position}
@@ -222,6 +223,19 @@ const PlayerToken = ({
               </div>
 
               <div className="space-y-2">
+                <label className="text-sm font-medium flex items-center gap-2">
+                    <Tag className="w-3.5 h-3.5" /> Alias / Rol Especial
+                </label>
+                <Input 
+                    placeholder="Ej: Falso 9, Carrilero..." 
+                    value={slot.profileName || ''} 
+                    onChange={(e) => onSlotChange({ ...slot, profileName: e.target.value })}
+                    className="h-9 text-sm"
+                />
+                <p className="text-[10px] text-muted-foreground italic">Este nombre reemplazará visualmente a la posición.</p>
+              </div>
+
+              <div className="space-y-2">
                 <label className="text-sm font-medium">Estilos de Juego Sugeridos</label>
                 <div className="flex flex-wrap gap-1.5">
                   {availableStyles.map((s) => {
@@ -232,13 +246,13 @@ const PlayerToken = ({
                         type="button"
                         onClick={() => handleStyleToggle(s)}
                         className={cn(
-                          "inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors border",
+                          "inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors border",
                           isActive
                             ? "bg-primary text-primary-foreground border-primary"
                             : "bg-secondary/50 text-secondary-foreground border-border hover:bg-secondary"
                         )}
                       >
-                        {isActive && <Check className="w-3 h-3" />}
+                        {isActive && <Check className="w-2.5 h-2.5" />}
                         {s}
                       </button>
                     );
@@ -246,63 +260,49 @@ const PlayerToken = ({
                 </div>
               </div>
 
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
-                  className="flex items-center justify-between w-full text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-1 border-t mt-2 pt-2"
-                >
-                  <span className="flex items-center gap-1.5">
-                    <Settings2 className="w-3.5 h-3.5" />
-                    Requisitos Especiales
-                  </span>
-                  <Settings2 className={cn("w-3.5 h-3.5 transition-transform", isAdvancedOpen && "rotate-180")} />
-                </button>
-                {isAdvancedOpen && (
-                  <div className="pt-2 space-y-3">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-medium flex items-center gap-1.5">
-                        <Ruler className="w-3 h-3" /> Altura Minima (cm)
-                      </label>
-                      <Input
-                        type="number"
-                        placeholder="Ej: 185"
-                        value={slot.minHeight || ""}
-                        onChange={(e) =>
-                          onSlotChange({
-                            ...slot,
-                            minHeight: e.target.value ? parseInt(e.target.value, 10) : undefined,
-                          })
-                        }
-                        className="h-8 text-xs"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-medium flex items-center gap-1.5">
-                        <MapPin className="w-3 h-3" /> 2ª Posicion Requerida
-                      </label>
-                      <Select
-                        value={slot.secondaryPosition || "none"}
-                        onValueChange={(val) =>
-                          onSlotChange({
-                            ...slot,
-                            secondaryPosition: val === "none" ? undefined : (val as Position),
-                          })
-                        }
-                      >
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue placeholder="Ninguna" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">Ninguna</SelectItem>
-                          {positions.map((p) => (
-                            <SelectItem key={p} value={p}>{p}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                )}
+              <div className="pt-2 border-t space-y-3">
+                <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Requisitos Técnicos</label>
+                <div className="space-y-1.5">
+                    <label className="text-xs font-medium flex items-center gap-1.5">
+                    <Ruler className="w-3 h-3" /> Altura Mínima (cm)
+                    </label>
+                    <Input
+                    type="number"
+                    placeholder="Ej: 185"
+                    value={slot.minHeight || ""}
+                    onChange={(e) =>
+                        onSlotChange({
+                        ...slot,
+                        minHeight: e.target.value ? parseInt(e.target.value, 10) : undefined,
+                        })
+                    }
+                    className="h-8 text-xs"
+                    />
+                </div>
+                <div className="space-y-1.5">
+                    <label className="text-xs font-medium flex items-center gap-1.5">
+                    <MapPin className="w-3 h-3" /> 2ª Posición Requerida
+                    </label>
+                    <Select
+                    value={slot.secondaryPosition || "none"}
+                    onValueChange={(val) =>
+                        onSlotChange({
+                        ...slot,
+                        secondaryPosition: val === "none" ? undefined : (val as Position),
+                        })
+                    }
+                    >
+                    <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Ninguna" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="none">Ninguna</SelectItem>
+                        {positions.map((p) => (
+                        <SelectItem key={p} value={p}>{p}</SelectItem>
+                        ))}
+                    </SelectContent>
+                    </Select>
+                </div>
               </div>
             </div>
           </PopoverContent>

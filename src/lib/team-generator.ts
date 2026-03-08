@@ -92,20 +92,21 @@ export function generateIdealTeam(
     if (starter) {
         usedPlayerIds.add(starter.player.id);
         usedCardIds.add(starter.card.id);
-        return { ...starter, assignedPosition: slot.position } as any;
+        // Use custom role name if provided, otherwise position name
+        return { ...starter, assignedPosition: slot.profileName || slot.position } as any;
     }
     return null;
   });
 
   // 2. ASIGNAR SUPLENTES (Directos por posición de la formación para rotación coherente)
-  const tempSubs: (IdealTeamPlayer | null)[] = formation.slots.map(slot => {
+  const tempSubs: (IdealTeamPlayer | null)[] = formation.slots.map((slot, index) => {
     const candidates = getCandidatesForPosition(slot.position);
     const sub = candidates.find(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id));
 
     if (sub) {
         usedPlayerIds.add(sub.player.id);
         usedCardIds.add(sub.card.id);
-        return { ...sub, assignedPosition: slot.position } as any;
+        return { ...sub, assignedPosition: slot.profileName || slot.position } as any;
     }
     return null;
   });
@@ -119,18 +120,18 @@ export function generateIdealTeam(
   const extraSubs = eligibleExtraSubs.slice(0, 12 - tempSubs.filter(s => s !== null).length);
   const finalSubs = [...tempSubs.filter(s => s !== null), ...extraSubs].slice(0, 12);
 
-  const ph = (id: string, pos: Position) => ({ 
+  const ph = (id: string, pos: string) => ({ 
       player: { id, name: 'Vacante', cards: [], nationality: 'Sin Nacionalidad' }, 
       card: { id: `card-${id}`, name: 'N/A', style: 'Ninguno' as any, ratingsByPosition: {} }, 
-      position: pos, assignedPosition: pos, average: 0, tier: 'D', score: 0, 
+      position: pos as any, assignedPosition: pos, average: 0, tier: 'D', score: 0, 
       performance: { stats: { average: 0, matches: 0, stdDev: 0 }, isHotStreak: false, isConsistent: false, isPromising: false, isVersatile: false } 
   } as any);
 
   return Array.from({ length: 11 }).map((_, i) => {
     const slot = formation.slots[i];
     return {
-        starter: tempStarters[i] || ph(`ph-s-${i}`, slot.position),
-        substitute: finalSubs[i] || (i < finalSubs.length ? null : ph(`ph-sub-${i}`, slot.position))
+        starter: tempStarters[i] || ph(`ph-s-${i}`, slot.profileName || slot.position),
+        substitute: finalSubs[i] || (i < finalSubs.length ? null : ph(`ph-sub-${i}`, slot.profileName || slot.position))
     };
   }).concat(finalSubs.length > 11 ? [{ starter: null, substitute: finalSubs[11] }] : []);
 }

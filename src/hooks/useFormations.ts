@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -20,8 +19,8 @@ const sanitizeSlots = (slots: FormationSlot[]) => {
       styles: slot.styles || [],
     };
     // Only add properties if they are explicitly defined to avoid Firebase undefined errors
-    if (slot.profileName !== undefined && slot.profileName !== null) s.profileName = slot.profileName;
-    if (slot.minHeight !== undefined && slot.minHeight !== null) s.minHeight = Number(slot.minHeight);
+    if (slot.profileName !== undefined && slot.profileName !== null && slot.profileName !== '') s.profileName = slot.profileName;
+    if (slot.minHeight !== undefined && slot.minHeight !== null && slot.minHeight !== 0) s.minHeight = Number(slot.minHeight);
     if (slot.secondaryPosition !== undefined && slot.secondaryPosition !== null) s.secondaryPosition = slot.secondaryPosition;
     if (slot.top !== undefined && slot.top !== null) s.top = Number(slot.top);
     if (slot.left !== undefined && slot.left !== null) s.left = Number(slot.left);

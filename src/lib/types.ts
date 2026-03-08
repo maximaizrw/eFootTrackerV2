@@ -101,6 +101,7 @@ export type PlayerBuild = {
   gk1?: number;
   gk2?: number;
   gk3?: number;
+  manualAffinity?: number;
 };
 
 export type PlayerCard = {
@@ -130,7 +131,7 @@ export type IdealTeamPlayer = {
   player: Player;
   card: PlayerCard;
   position: Position;
-  assignedPosition: Position;
+  assignedPosition: Position | string;
   average: number;
   tier: Tier;
   score: number;
@@ -157,6 +158,9 @@ export const FormationSlotSchema = z.object({
   styles: z.array(z.string()).optional().default([]),
   top: z.number().optional(),
   left: z.number().optional(),
+  profileName: z.string().optional(),
+  secondaryPosition: z.enum(positions).optional(),
+  minHeight: z.number().optional(),
 });
 
 export type FormationSlot = z.infer<typeof FormationSlotSchema>;
@@ -176,6 +180,9 @@ export type FormationStats = {
   matches: MatchResult[];
 };
 
+export type AddFormationFormValues = Omit<FormationStats, 'id' | 'matches'>;
+export type EditFormationFormValues = Omit<FormationStats, 'matches'>;
+
 export type PlayerRatingStats = {
     average: number;
     matches: number;
@@ -188,6 +195,9 @@ export type PlayerPerformance = {
     isConsistent: boolean;
     isPromising: boolean;
     isVersatile: boolean;
+    isGameChanger?: boolean;
+    isStalwart?: boolean;
+    isSpecialist?: boolean;
 };
 
 export type FlatPlayer = {
