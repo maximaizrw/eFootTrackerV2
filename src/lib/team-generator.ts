@@ -25,9 +25,14 @@ export function generateIdealTeam(
   const formationPositions = formation.slots.map(s => s.position);
   
   const allPlayerCandidates: CandidatePlayer[] = players.flatMap(player => {
+    // 1. Filtrar por nacionalidad
     if (nationality !== 'all' && player.nationality !== nationality) return [];
     
+    // 2. RESTRICCIÓN ESTRICTA: Jugadores con letra D o E nunca son seleccionables
+    if (player.liveUpdateRating === 'D' || player.liveUpdateRating === 'E') return [];
+    
     return (player.cards || []).flatMap(card => {
+      // 3. Filtrar por liga y descartes manuales
       if (league !== 'all' && card.league !== league) return [];
       if (discardedCardIds.has(card.id)) return [];
       
