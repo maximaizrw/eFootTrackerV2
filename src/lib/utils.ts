@@ -1,4 +1,3 @@
-
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { PlayerAttributeStats, Position, LiveUpdateRating, Tier } from "./types";
@@ -86,7 +85,6 @@ export function normalizeText(text: string): string {
 
 export function normalizeStyleName(style: string): string {
     if (!style) return 'Ninguno';
-    if (style === 'Señuelo') return 'Segundo delantero';
     return style;
 }
 

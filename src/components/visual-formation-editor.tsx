@@ -32,7 +32,7 @@ import type {
   Position,
   PlayerStyle,
 } from "@/lib/types";
-import { positions, getAvailableStylesForPosition } from "@/lib/types";
+import { positions, playerStyles } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { FootballPitch } from "./football-pitch";
 import { formationPresets } from "@/lib/formation-presets";
@@ -108,7 +108,6 @@ const PlayerToken = ({
   onPointerDown: (e: React.PointerEvent) => void;
 }) => {
   const [isPopoverOpen, setIsPopoverOpen] = React.useState(false);
-  const [isAdvancedOpen, setIsAdvancedOpen] = React.useState(true);
 
   const zone = getPositionZone(slot.position);
   const config = zoneConfig[zone];
@@ -131,10 +130,9 @@ const PlayerToken = ({
   };
 
   const displayLabel = slot.profileName || slot.position;
-  const availableStyles: PlayerStyle[] = [
-    "Ninguno",
-    ...getAvailableStylesForPosition(slot.position, false),
-  ];
+  // Use ALL player styles for the tactical editor as requested
+  const allStyles: PlayerStyle[] = [...playerStyles];
+  
   const hasStyles = slot.styles && slot.styles.length > 0;
   const hasAdvanced = !!slot.minHeight || !!slot.secondaryPosition || !!slot.profileName;
 
@@ -238,7 +236,7 @@ const PlayerToken = ({
               <div className="space-y-2">
                 <label className="text-sm font-medium">Estilos de Juego Sugeridos</label>
                 <div className="flex flex-wrap gap-1.5">
-                  {availableStyles.map((s) => {
+                  {allStyles.map((s) => {
                     const isActive = slot.styles?.includes(s);
                     return (
                       <button
