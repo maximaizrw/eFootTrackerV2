@@ -30,7 +30,7 @@ export type PlayerStyle = typeof playerStyles[number];
 export const positions = ['PT', 'DFC', 'LI', 'LD', 'MCD', 'MC', 'MDI', 'MDD', 'MO', 'EXI', 'EXD', 'SD', 'DC'] as const;
 export type Position = typeof positions[number];
 
-export const tiers = ['S+', 'S', 'A', 'B', 'C', 'D'] as const;
+export const tiers = ['S', 'A', 'B', 'C', 'D'] as const;
 export type Tier = typeof tiers[number];
 
 export const leagues = [

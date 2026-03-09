@@ -68,8 +68,7 @@ export function getAverageColorClass(average: number): string {
 
 export function getTierColorClass(tier: Tier): string {
     switch (tier) {
-        case 'S+': return 'text-yellow-400 drop-shadow-[0_0_5px_rgba(250,204,21,0.5)]';
-        case 'S': return 'text-orange-400';
+        case 'S': return 'text-orange-400 drop-shadow-[0_0_5px_rgba(251,146,60,0.5)]';
         case 'A': return 'text-purple-400';
         case 'B': return 'text-sky-400';
         case 'C': return 'text-green-400';
@@ -89,7 +88,6 @@ export function normalizeStyleName(style: string): string {
 }
 
 export const TIER_BASE_SCORE: Record<Tier, number> = {
-    'S+': 100,
     'S': 80,
     'A': 60,
     'B': 40,
