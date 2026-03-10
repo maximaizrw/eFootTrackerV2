@@ -1,4 +1,3 @@
-
 "use client";
 
 import type { IdealTeamPlayer, IdealTeamSlot, FormationStats, Position, LiveUpdateRating } from '@/lib/types';
@@ -83,11 +82,14 @@ const BenchCard = memo(function BenchCard({ player, onDiscard, onUpdateLiveUpdat
       </div>
 
       <div className="flex-grow min-w-0">
-        <div className="flex items-center gap-1">
-          <span className="text-[10px] font-bold text-sky-500">{player.assignedPosition}</span>
-          <LiveUpdateRatingSelector value={player.player.liveUpdateRating} onValueChange={(v) => onUpdateLiveUpdateRating(player.player.id, v)} />
-          <span className="text-[10px] font-semibold truncate">{player.player.name}</span>
-          <span className={cn("text-[10px] font-black ml-auto", getTierColorClass(player.tier))}>{player.tier}</span>
+        <div className="flex flex-col">
+          <div className="flex items-center gap-1">
+            <span className="text-[10px] font-bold text-sky-500">{player.assignedPosition}</span>
+            <LiveUpdateRatingSelector value={player.player.liveUpdateRating} onValueChange={(v) => onUpdateLiveUpdateRating(player.player.id, v)} />
+            <span className="text-[10px] font-semibold truncate">{player.player.name}</span>
+            <span className={cn("text-[10px] font-black ml-auto", getTierColorClass(player.tier))}>{player.tier}</span>
+          </div>
+          <p className="text-[8px] text-muted-foreground leading-none">Convocado como {player.assignedPosition}</p>
         </div>
       </div>
     </div>
@@ -112,9 +114,9 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onUpda
           })}
         </FootballPitch>
       </div>
-      <div className="lg:w-64 flex-shrink-0">
-        <h3 className="text-sm font-semibold mb-2">Banquillo (Rotación)</h3>
-        <div className="grid grid-cols-2 lg:grid-cols-1 gap-1">
+      <div className="lg:w-72 flex-shrink-0">
+        <h3 className="text-sm font-semibold mb-2 px-1">Banquillo (Rotación Jerárquica)</h3>
+        <div className="grid grid-cols-2 lg:grid-cols-1 gap-1.5">
           {substitutes.map((sub: any, index: number) => (
             <BenchCard key={sub?.card.id ? `sub-${sub.card.id}-${index}` : `vacante-${index}`} player={sub} onDiscard={onDiscardPlayer} onUpdateLiveUpdateRating={onUpdateLiveUpdateRating} />
           ))}

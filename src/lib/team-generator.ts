@@ -1,5 +1,5 @@
 import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, Tier, FormationSlot } from './types';
-import { calculateStats, calculateFinalScore, calculateRecencyWeightedAverage } from './utils';
+import { calculateStats, calculateFinalScore, calculateRecencyWeightedAverage, positionPriority } from './utils';
 
 type CandidatePlayer = {
   player: Player;
@@ -22,17 +22,17 @@ export function generateIdealTeam(
   selectionCriteria: 'general' | 'average' = 'general',
   prioritizeRecentForm: boolean = false
 ): IdealTeamSlot[] {
-  const formationPositions = formation.slots.map(s => s.position);
   
+  // Create sorted list of candidates once
   const allPlayerCandidates: CandidatePlayer[] = players.flatMap(player => {
-    // 1. Filtrar por nacionalidad
+    // 1. Filter by nationality
     if (nationality !== 'all' && player.nationality !== nationality) return [];
     
-    // 2. RESTRICCIÓN ESTRICTA: Jugadores con letra D o E nunca son seleccionables
+    // 2. STRICT RESTRICTION: D or E live updates are NEVER selectable
     if (player.liveUpdateRating === 'D' || player.liveUpdateRating === 'E') return [];
     
     return (player.cards || []).flatMap(card => {
-      // 3. Filtrar por liga y descartes manuales
+      // 3. Filter by league and manual discards
       if (league !== 'all' && card.league !== league) return [];
       if (discardedCardIds.has(card.id)) return [];
       
@@ -87,8 +87,7 @@ export function generateIdealTeam(
     
     return allPlayerCandidates.filter(p => {
         // 1. Primary Position Check (with flexibility)
-        let primaryMatches = targetPositions.includes(p.position);
-        if (!primaryMatches) return false;
+        if (!targetPositions.includes(p.position)) return false;
 
         // 2. Secondary Position Check (Strict: player must have ratings in BOTH positions)
         if (secondaryPos) {
@@ -109,53 +108,66 @@ export function generateIdealTeam(
     }).sort(candidateSort);
   };
 
-  // 1. ASIGNAR TITULARES (Respetando el orden de la formación)
-  const tempStarters: (IdealTeamPlayer | null)[] = formation.slots.map(slot => {
+  // Sort formation slots based on target priority: PT, DFC, LI/LD, MCD, MC, MDI/MDD, MO, EXI/EXD, SD, DC
+  const sortedFormationSlots = [...formation.slots].sort((a, b) => positionPriority[a.position] - positionPriority[b.position]);
+
+  // 1. ASSIGN STARTERS (Respecting tactical order)
+  const starters: (IdealTeamPlayer | null)[] = formation.slots.map(slot => {
     const candidates = getCandidatesForSlot(slot);
     const starter = candidates.find(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id));
 
     if (starter) {
         usedPlayerIds.add(starter.player.id);
         usedCardIds.add(starter.card.id);
-        return { ...starter, assignedPosition: slot.profileName || slot.position } as any;
+        return { ...starter, assignedPosition: slot.profileName || slot.position } as IdealTeamPlayer;
     }
     return null;
   });
 
-  // 2. ASIGNAR SUPLENTES (Siguiendo estrictamente las posiciones de la formación)
-  const tempSubs: (IdealTeamPlayer | null)[] = formation.slots.map((slot) => {
+  // 2. ASSIGN BENCH (Strictly following formation positions for 12 slots)
+  // We go through the sorted slots to pick backups in priority order
+  const benchAssignments: (IdealTeamPlayer | null)[] = [];
+  
+  // First pass: try to get a direct backup for every slot in priority order
+  for (const slot of sortedFormationSlots) {
+    if (benchAssignments.length >= 12) break;
     const candidates = getCandidatesForSlot(slot);
-    const sub = candidates.find(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id));
-
-    if (sub) {
-        usedPlayerIds.add(sub.player.id);
-        usedCardIds.add(sub.card.id);
-        return { ...sub, assignedPosition: slot.profileName || slot.position } as any;
+    const backup = candidates.find(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id));
+    if (backup) {
+        usedPlayerIds.add(backup.player.id);
+        usedCardIds.add(backup.card.id);
+        benchAssignments.push({ ...backup, assignedPosition: slot.profileName || slot.position } as IdealTeamPlayer);
     }
-    return null;
-  });
+  }
 
-  // 3. COMPLETAR HASTA 12 SUPLENTES SI SOBRA ESPACIO
-  const eligibleExtraSubs = allPlayerCandidates
-    .filter(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id))
-    .filter(p => formationPositions.includes(p.position))
-    .sort(candidateSort);
+  // Second pass: if bench is not full, add remaining best players that fit ANY formation position
+  if (benchAssignments.length < 12) {
+    const formationPositions = formation.slots.map(s => s.position);
+    const remainingCandidates = allPlayerCandidates
+        .filter(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id))
+        .filter(p => formationPositions.includes(p.position))
+        .sort(candidateSort);
+    
+    for (const p of remainingCandidates) {
+        if (benchAssignments.length >= 12) break;
+        usedPlayerIds.add(p.player.id);
+        usedCardIds.add(p.card.id);
+        benchAssignments.push({ ...p, assignedPosition: p.position } as IdealTeamPlayer);
+    }
+  }
 
-  const extraSubs = eligibleExtraSubs.slice(0, 12 - tempSubs.filter(s => s !== null).length);
-  const finalSubs = [...tempSubs.filter(s => s !== null), ...extraSubs].slice(0, 12);
-
-  const ph = (id: string, pos: string) => ({ 
+  const placeholder = (id: string, pos: string) => ({ 
       player: { id, name: 'Vacante', cards: [], nationality: 'Sin Nacionalidad' }, 
       card: { id: `card-${id}`, name: 'N/A', style: 'Ninguno' as any, ratingsByPosition: {} }, 
       position: pos as any, assignedPosition: pos, average: 0, tier: 'D', score: 0, 
       performance: { stats: { average: 0, matches: 0, stdDev: 0 }, isHotStreak: false, isConsistent: false, isPromising: false, isVersatile: false } 
-  } as any);
+  } as IdealTeamPlayer);
 
-  return Array.from({ length: 11 }).map((_, i) => {
-    const slot = formation.slots[i];
+  // Map everything back to IdealTeamSlot[]
+  return Array.from({ length: 12 }).map((_, i) => {
     return {
-        starter: tempStarters[i] || ph(`ph-s-${i}`, slot.profileName || slot.position),
-        substitute: finalSubs[i] || (i < finalSubs.length ? null : ph(`ph-sub-${i}`, slot.profileName || slot.position))
+        starter: i < 11 ? (starters[i] || placeholder(`ph-s-${i}`, formation.slots[i].profileName || formation.slots[i].position)) : null,
+        substitute: benchAssignments[i] || (i < 12 ? placeholder(`ph-sub-${i}`, 'Suplente') : null)
     };
-  }).concat(finalSubs.length > 11 ? [{ starter: null, substitute: finalSubs[11] }] : []);
+  });
 }

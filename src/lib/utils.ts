@@ -160,14 +160,20 @@ export const allStatsKeys: (keyof PlayerAttributeStats)[] = [
     'goalkeeping', 'gkCatching', 'gkParrying', 'gkReflexes', 'gkReach'
 ];
 
-export const BADGE_BONUSES = {
-    HOT_STREAK: 2,
-    CONSISTENT: 1.5,
-    VERSATILE: 1,
-    PROMISING: 3,
-    GAME_CHANGER: 2.5,
-    STALWART: 2,
-    SPECIALIST: 4
+export const positionPriority: Record<Position, number> = {
+    'PT': 0,
+    'DFC': 1,
+    'LI': 2,
+    'LD': 3,
+    'MCD': 4,
+    'MC': 5,
+    'MDI': 6,
+    'MDD': 7,
+    'MO': 8,
+    'EXI': 9,
+    'EXD': 10,
+    'SD': 11,
+    'DC': 12
 };
 
 export function isSpecialCard(name: string): boolean {

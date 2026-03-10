@@ -155,7 +155,7 @@ export type IdealTeamPlayer = {
   player: Player;
   card: PlayerCard;
   position: Position;
-  assignedPosition: Position | string;
+  assignedPosition: string; // The role/position name in the tactical scheme
   average: number;
   tier: Tier;
   score: number;
@@ -280,4 +280,21 @@ export const positionLabels: Record<Position, string> = {
     'EXD': 'EXD',
     'SD': 'SD',
     'DC': 'DC',
+};
+
+// Hierarchy order for sorting: PT, DFC, LAT (LI/LD), MCD, MC, INT (MDI/MDD), MO, EXT (EXI/EXD), SD, DC
+export const positionPriority: Record<Position, number> = {
+    'PT': 0,
+    'DFC': 1,
+    'LI': 2,
+    'LD': 3,
+    'MCD': 4,
+    'MC': 5,
+    'MDI': 6,
+    'MDD': 7,
+    'MO': 8,
+    'EXI': 9,
+    'EXD': 10,
+    'SD': 11,
+    'DC': 12
 };
