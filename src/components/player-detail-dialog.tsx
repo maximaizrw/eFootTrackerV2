@@ -1,7 +1,8 @@
+
 "use client";
 
 import * as React from "react";
-import type { Position, FlatPlayer, PlayerBuild, OutfieldBuild, GoalkeeperBuild, PlayerSkill, PlayerAttributeStats, PhysicalAttribute } from "@/lib/types";
+import type { Position, FlatPlayer, PlayerBuild, OutfieldBuild, GoalkeeperBuild, PlayerSkill, PlayerAttributeStats, PhysicalAttribute, Nationality, League } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -16,12 +17,13 @@ import { Slider } from "./ui/slider";
 import { ScrollArea } from "./ui/scroll-area";
 import { Textarea } from "./ui/textarea";
 import { Input } from "./ui/input";
-import { Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, Dumbbell, StickyNote, Image as ImageIcon, SlidersHorizontal, Check, ChevronsUpDown } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, Dumbbell, StickyNote, Image as ImageIcon, SlidersHorizontal, Check, ChevronsUpDown, Globe, Trophy } from "lucide-react";
 import { usePlayers } from "@/hooks/usePlayers";
 import { Badge } from "./ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "./ui/command";
-import { playerSkillsList } from "@/lib/types";
+import { playerSkillsList, nationalities, leagues } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type PlayerDetailDialogProps = {
@@ -34,6 +36,8 @@ type PlayerDetailDialogProps = {
     stats: PlayerAttributeStats;
     physical: PhysicalAttribute;
     skills: PlayerSkill[];
+    nationality?: Nationality;
+    league?: League;
   }) => void;
 };
 
@@ -68,6 +72,8 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
   const [weight, setWeight] = React.useState<number | ''>('');
   const [skills, setSkills] = React.useState<PlayerSkill[]>([]);
   const [stats, setStats] = React.useState<PlayerAttributeStats>({});
+  const [nationality, setNationality] = React.useState<Nationality>('Sin Nacionalidad');
+  const [league, setLeague] = React.useState<League>('Sin Liga');
   const [localNote, setLocalNote] = React.useState('');
   const [skillsPopoverOpen, setSkillsPopoverOpen] = React.useState(false);
 
@@ -84,9 +90,11 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
       setWeight(card.physicalAttributes?.weight ?? '');
       setSkills(card.skills || []);
       setStats(card.attributeStats || {});
+      setNationality(player?.nationality || 'Sin Nacionalidad');
+      setLeague(card.league || 'Sin Liga');
       setLocalNote(positionNotes[position] || '');
     }
-  }, [open, flatPlayer, card, position, positionNotes]);
+  }, [open, flatPlayer, card, position, positionNotes, player]);
 
   const handleSave = () => {
     if (player && card && position) {
@@ -96,6 +104,8 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
         stats,
         physical: { height: height === '' ? undefined : Number(height), weight: weight === '' ? undefined : Number(weight) },
         skills,
+        nationality,
+        league,
       });
       savePositionNote(position, localNote);
       onOpenChange(false);
@@ -126,17 +136,44 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
         <div className="flex-grow flex flex-col md:flex-row overflow-hidden border-t">
             <ScrollArea className="flex-grow p-6 h-full">
                 <div className="space-y-8 pb-10">
-                    {/* Sección de Imagen y Físico */}
+                    {/* Sección de Metadatos: Imagen, Liga, País y Físico */}
                     <div className="space-y-4">
                         <h3 className="text-sm font-bold text-primary uppercase tracking-widest flex items-center gap-2">
-                            <ImageIcon className="h-4 w-4" /> Datos Visuales de la Carta
+                            <ImageIcon className="h-4 w-4" /> Datos de Identidad y Carta
                         </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label>URL de Imagen (eFootballHub / ImgBB)</Label>
-                                <Input placeholder="https://..." value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label>URL de Imagen (eFootballHub / ImgBB)</Label>
+                                    <Input placeholder="https://..." value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="space-y-2">
+                                        <Label className="flex items-center gap-1"><Globe className="h-3 w-3" /> País</Label>
+                                        <Select value={nationality} onValueChange={(v) => setNationality(v as Nationality)}>
+                                            <SelectTrigger className="h-9 text-xs">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {nationalities.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="flex items-center gap-1"><Trophy className="h-3 w-3" /> Liga</Label>
+                                        <Select value={league} onValueChange={(v) => setLeague(v as League)}>
+                                            <SelectTrigger className="h-9 text-xs">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {leagues.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-2">
+                            
+                            <div className="grid grid-cols-2 gap-4 items-end pb-1">
                                 <div className="space-y-2">
                                     <Label>Altura (cm)</Label>
                                     <Input type="number" value={height} onChange={(e) => setHeight(e.target.value === '' ? '' : Number(e.target.value))} />
@@ -156,9 +193,9 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
                         </h3>
                         <Popover open={skillsPopoverOpen} onOpenChange={setSkillsPopoverOpen}>
                             <PopoverTrigger asChild>
-                                <Button variant="outline" className="w-full justify-between h-auto min-h-10">
+                                <Button variant="outline" className="w-full justify-between h-auto min-h-10 text-left">
                                     <div className="flex gap-1 flex-wrap">
-                                        {skills.length > 0 ? skills.map(s => <Badge key={s} variant="secondary" className="text-[10px]">{s}</Badge>) : <span className="text-muted-foreground text-xs">Seleccionar habilidades...</span>}
+                                        {skills.length > 0 ? skills.map(s => <Badge key={s} variant="secondary" className="text-[10px]">{s}</Badge>) : <span className="text-muted-foreground text-xs font-normal">Seleccionar habilidades...</span>}
                                     </div>
                                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                 </Button>

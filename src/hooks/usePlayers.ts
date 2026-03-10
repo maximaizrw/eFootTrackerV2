@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -5,7 +6,7 @@ import { db } from '@/lib/firebase-config';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, setDoc } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import { v4 as uuidv4 } from 'uuid';
-import type { Player, PlayerCard, Position, AddRatingFormValues, PlayerBuild, FlatPlayer, LiveUpdateRating, Tier, PlayerSkill, PlayerAttributeStats, PhysicalAttribute } from '@/lib/types';
+import type { Player, PlayerCard, Position, AddRatingFormValues, PlayerBuild, FlatPlayer, LiveUpdateRating, Tier, PlayerSkill, PlayerAttributeStats, PhysicalAttribute, Nationality, League } from '@/lib/types';
 import { getAvailableStylesForPosition, playerSkillsList } from '@/lib/types';
 import { normalizeText, normalizeStyleName, calculateStats, calculateFinalScore, calculateRecencyWeightedAverage } from '@/lib/utils';
 
@@ -178,6 +179,8 @@ export function usePlayers(prioritizeRecentForm: boolean = false) {
     stats: PlayerAttributeStats;
     physical: PhysicalAttribute;
     skills: PlayerSkill[];
+    nationality?: Nationality;
+    league?: League;
   }) => {
     if (!db) return;
     try {
@@ -196,12 +199,18 @@ export function usePlayers(prioritizeRecentForm: boolean = false) {
             physicalAttributes: data.physical,
             skills: data.skills,
             buildsByPosition: updatedBuilds,
+            league: data.league || card.league,
           };
         }
         return card;
       });
 
-      await updateDoc(playerRef, { cards: newCards });
+      const updatePayload: any = { cards: newCards };
+      if (data.nationality) {
+        updatePayload.nationality = data.nationality;
+      }
+
+      await updateDoc(playerRef, updatePayload);
       toast({ title: "Datos actualizados", description: "Se han guardado todos los cambios manuales." });
     } catch (e) {
       console.error(e);
