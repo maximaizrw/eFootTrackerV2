@@ -92,8 +92,6 @@ export function generateIdealTeam(
 
         // 2. Secondary Position Check (Strict: player must have ratings in BOTH positions)
         if (secondaryPos) {
-            // Check if the current candidate position matches primary, then verify card has secondary
-            // Or if flexibility is on, verify card has the explicit secondaryPos required by formation
             const hasSecondaryRating = p.card.ratingsByPosition && 
                                        p.card.ratingsByPosition[secondaryPos] && 
                                        p.card.ratingsByPosition[secondaryPos]!.length > 0;
@@ -111,7 +109,7 @@ export function generateIdealTeam(
     }).sort(candidateSort);
   };
 
-  // 1. ASIGNAR TITULARES
+  // 1. ASIGNAR TITULARES (Respetando el orden de la formación)
   const tempStarters: (IdealTeamPlayer | null)[] = formation.slots.map(slot => {
     const candidates = getCandidatesForSlot(slot);
     const starter = candidates.find(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id));
@@ -124,8 +122,8 @@ export function generateIdealTeam(
     return null;
   });
 
-  // 2. ASIGNAR SUPLENTES (Directos por posición de la formación)
-  const tempSubs: (IdealTeamPlayer | null)[] = formation.slots.map((slot, index) => {
+  // 2. ASIGNAR SUPLENTES (Siguiendo estrictamente las posiciones de la formación)
+  const tempSubs: (IdealTeamPlayer | null)[] = formation.slots.map((slot) => {
     const candidates = getCandidatesForSlot(slot);
     const sub = candidates.find(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id));
 
@@ -137,7 +135,7 @@ export function generateIdealTeam(
     return null;
   });
 
-  // 3. COMPLETAR HASTA 12 SUPLENTES
+  // 3. COMPLETAR HASTA 12 SUPLENTES SI SOBRA ESPACIO
   const eligibleExtraSubs = allPlayerCandidates
     .filter(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id))
     .filter(p => formationPositions.includes(p.position))
