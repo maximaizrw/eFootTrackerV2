@@ -37,6 +37,7 @@ type PlayerDetailDialogProps = {
     skills: PlayerSkill[];
     nationality?: Nationality;
     league?: League;
+    availableTrainingPoints?: number;
   }) => void;
 };
 
@@ -74,6 +75,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
   const [stats, setStats] = React.useState<PlayerAttributeStats>({});
   const [nationality, setNationality] = React.useState<Nationality>('Sin Nacionalidad');
   const [league, setLeague] = React.useState<League>('Sin Liga');
+  const [availablePoints, setAvailablePoints] = React.useState<number | ''>('');
   const [skillsPopoverOpen, setSkillsPopoverOpen] = React.useState(false);
 
   const position = flatPlayer?.position;
@@ -91,6 +93,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
       setStats(card.attributeStats || {});
       setNationality(player?.nationality || 'Sin Nacionalidad');
       setLeague(card.league || 'Sin Liga');
+      setAvailablePoints(card.availableTrainingPoints ?? '');
     }
   }, [open, flatPlayer, card, position, player]);
 
@@ -104,6 +107,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
         skills,
         nationality,
         league,
+        availableTrainingPoints: availablePoints === '' ? undefined : Number(availablePoints),
       });
       onOpenChange(false);
     }
@@ -122,7 +126,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
 
   const isUntrainable = (card?.name || '').toUpperCase().startsWith("POT");
   const idealBuild = flatPlayer?.idealBuild;
-  const maxPoints = card?.availableTrainingPoints || 0;
+  const maxPoints = typeof availablePoints === 'number' ? availablePoints : 0;
   const spentPoints = calculatePointsSpent(build);
   const calculatedFinalStats = calculateFinalStats(stats, build);
 
@@ -296,12 +300,23 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
                         <div className="space-y-4">
                             <h3 className="text-sm font-bold text-primary uppercase tracking-widest flex items-center gap-2">
                                 <Dumbbell className="h-4 w-4" /> Entrenamiento / Build ({position})
-                                {(maxPoints !== undefined) && (
-                                   <Badge variant="outline" className={cn("ml-auto font-mono", maxPoints > 0 && spentPoints > maxPoints ? "bg-destructive/10 text-destructive border-destructive" : "bg-muted/50")}>
-                                      Puntos: {maxPoints > 0 ? `${maxPoints - spentPoints}/${maxPoints}` : spentPoints}
+                                {maxPoints > 0 && (
+                                   <Badge variant="outline" className={cn("ml-auto font-mono", spentPoints > maxPoints ? "bg-destructive/10 text-destructive border-destructive" : "bg-muted/50")}>
+                                      Puntos: {maxPoints - spentPoints}/{maxPoints}
                                    </Badge>
                                 )}
                             </h3>
+                            <div className="flex items-center gap-2 mb-2">
+                                <Label className="text-xs whitespace-nowrap">Puntos Disponibles:</Label>
+                                <Input 
+                                    type="number" 
+                                    className="h-8 w-28 text-xs" 
+                                    placeholder="Ej: 52" 
+                                    min={0} 
+                                    value={availablePoints} 
+                                    onChange={(e) => setAvailablePoints(e.target.value === '' ? '' : Number(e.target.value))} 
+                                />
+                            </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                                 {(isGoalkeeper ? goalkeeperCategories : outfieldCategories).map(({key, label, icon: Icon}) => (
                                     <div key={String(key)} className="space-y-2">

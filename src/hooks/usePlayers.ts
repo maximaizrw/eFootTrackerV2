@@ -171,6 +171,7 @@ export function usePlayers(idealBuilds: IdealRoleBuild[], prioritizeRecentForm: 
     skills: PlayerSkill[];
     nationality?: Nationality;
     league?: League;
+    availableTrainingPoints?: number;
   }) => {
     if (!db) return;
     try {
@@ -190,6 +191,7 @@ export function usePlayers(idealBuilds: IdealRoleBuild[], prioritizeRecentForm: 
             skills: data.skills,
             buildsByPosition: updatedBuilds,
             league: data.league || card.league,
+            availableTrainingPoints: data.availableTrainingPoints,
           };
         }
         return card;
@@ -252,7 +254,7 @@ export function usePlayers(idealBuilds: IdealRoleBuild[], prioritizeRecentForm: 
       const playerDoc = await getDoc(playerRef);
       const playerData = playerDoc.data() as Player;
       const newCards = playerData.cards.map(c => 
-        c.id === values.cardId ? { ...c, name: values.currentCardName, style: values.currentStyle, league: values.league, imageUrl: values.imageUrl } : c
+        c.id === values.cardId ? { ...c, name: values.currentCardName, style: values.currentStyle, league: values.league, imageUrl: values.imageUrl, availableTrainingPoints: values.availableTrainingPoints } : c
       );
       await updateDoc(playerRef, { cards: newCards });
       toast({ title: "Carta actualizada" });
