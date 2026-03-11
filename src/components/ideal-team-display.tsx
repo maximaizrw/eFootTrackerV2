@@ -102,7 +102,17 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onUpda
   if (teamSlots.length === 0 || !formation) return <div className="mt-8 text-center text-muted-foreground p-8 bg-card border border-dashed rounded-lg">Configura tu táctica y genera el equipo.</div>;
 
   const starters = teamSlots.slice(0, 11).map((s: any) => s.starter);
-  const substitutes = teamSlots.map((s: any) => s.substitute).filter((s: any) => s !== null).slice(0, 12);
+  
+  const positionOrder: Record<string, number> = {
+    PT: 1, DFC: 2, LI: 3, LD: 4, MCD: 5, MC: 6, II: 7, ID: 8, MO: 9, EXI: 10, EXD: 11, SD: 12, DC: 13
+  };
+
+  const rawSubs = teamSlots.map((s: any) => s.substitute).filter((s: any) => s !== null);
+  const validSubs = rawSubs.filter((s: any) => !s.player.id.startsWith('ph'));
+  validSubs.sort((a: any, b: any) => (positionOrder[a.assignedPosition] || 99) - (positionOrder[b.assignedPosition] || 99));
+  
+  const emptySlotsCount = Math.max(0, 12 - validSubs.length);
+  const substitutes = [...validSubs, ...Array(emptySlotsCount).fill(null)].slice(0, 12);
 
   return (
     <div className="mt-4 flex flex-col lg:flex-row gap-3">
