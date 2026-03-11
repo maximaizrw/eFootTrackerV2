@@ -125,6 +125,39 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
     setStats(prev => ({ ...prev, [key]: value === '' ? undefined : Number(value) }));
   };
 
+  const isUntrainable = (card?.name || '').toUpperCase().startsWith("POT");
+  const idealBuild = flatPlayer?.idealBuild;
+
+  const missingStats: { label: string, diff: number }[] = [];
+  const missingSkills: string[] = [];
+
+  if (!isUntrainable && idealBuild) {
+    Object.entries(idealBuild.targetStats || {}).forEach(([key, targetValue]) => {
+      if (targetValue !== undefined && typeof targetValue === 'number') {
+        let label = key;
+        for (const cat of statFields) {
+          const field = cat.fields.find(f => f.name === key);
+          if (field) {
+            label = field.label;
+            break;
+          }
+        }
+        
+        const currentVal = (stats as any)[key] || 0;
+        const diff = targetValue - currentVal;
+        if (diff > 0) {
+          missingStats.push({ label, diff });
+        }
+      }
+    });
+
+    (idealBuild.targetSkills || []).forEach(reqSkill => {
+      if (!skills.includes(reqSkill)) {
+        missingSkills.push(reqSkill);
+      }
+    });
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden">
@@ -269,6 +302,56 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
                             ))}
                         </div>
                     </div>
+
+                    {/* Progresión Faltante (Comparativa Ideal) */}
+                    {idealBuild && (
+                        <div className="space-y-4 pt-4 border-t border-primary/10">
+                            <h3 className="text-sm font-bold text-primary uppercase tracking-widest flex items-center gap-2">
+                                <Target className="h-4 w-4" /> Progresión Faltante (Build Ideal: {idealBuild.role})
+                            </h3>
+                            {isUntrainable ? (
+                                <div className="p-4 bg-muted/30 rounded-md border border-muted flex items-center gap-2 text-sm text-muted-foreground">
+                                    <Shield className="h-4 w-4 text-primary" />
+                                    Esta carta (POT...) no se puede entrenar, por lo tanto no se aplican puntos de progresión.
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black opacity-50 uppercase">Estadísticas Faltantes para Meta</Label>
+                                        {missingStats.length > 0 ? (
+                                            <div className="flex flex-wrap gap-2">
+                                                {missingStats.map(s => (
+                                                    <Badge key={s.label} variant="outline" className="text-xs font-mono bg-destructive/10 text-destructive border-destructive/20">
+                                                        +{s.diff} {s.label}
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="p-3 bg-green-500/10 rounded border border-green-500/20 text-green-600 dark:text-green-400 text-xs flex items-center gap-2">
+                                                <Check className="h-4 w-4" /> Cumple con todas las estadísticas de la build ideal.
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black opacity-50 uppercase">Habilidades Faltantes para Meta</Label>
+                                        {missingSkills.length > 0 ? (
+                                            <div className="flex flex-wrap gap-2">
+                                                {missingSkills.map(s => (
+                                                    <Badge key={s} variant="outline" className="text-xs bg-amber-500/10 text-amber-500 border-amber-500/20">
+                                                        +{s}
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="p-3 bg-green-500/10 rounded border border-green-500/20 text-green-600 dark:text-green-400 text-xs flex items-center gap-2">
+                                                <Check className="h-4 w-4" /> Tiene todas las habilidades clave para este rol.
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </ScrollArea>
 

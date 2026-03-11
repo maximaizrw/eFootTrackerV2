@@ -245,6 +245,7 @@ export type FlatPlayer = {
   roleRating: number;
   overall: number;
   position: Position;
+  idealBuild?: IdealRoleBuild | null;
 };
 
 export function getAvailableStylesForPosition(position: Position, includeNone: boolean = false): PlayerStyle[] {

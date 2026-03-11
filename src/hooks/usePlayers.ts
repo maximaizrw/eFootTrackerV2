@@ -91,8 +91,8 @@ export function usePlayers(idealBuilds: IdealRoleBuild[], prioritizeRecentForm: 
 
                 return { 
                     player, card, ratingsForPos, performance: { stats, isHotStreak: false, isConsistent: false, isPromising: false, isVersatile: playerPositions.length >= 3 }, 
-                    roleRating, overall, position: ratedPos 
-                };
+                    roleRating, overall, position: ratedPos, idealBuild 
+                } as FlatPlayer;
             }).filter((p): p is FlatPlayer => p !== null);
         })
     );
