@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type { Player, PlayerCard, Position, PlayerBuild, FlatPlayer, LiveUpdateRating, PlayerSkill, PlayerAttributeStats, PhysicalAttribute, Nationality, League, IdealRoleBuild } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import { getAvailableStylesForPosition, playerSkillsList } from '@/lib/types';
-import { normalizeText, normalizeStyleName, calculateStats, calculateRoleRating, calculateOverall, calculateRecencyWeightedAverage, resolveIdealBuild } from '@/lib/utils';
+import { normalizeText, normalizeStyleName, calculateStats, calculateRoleRating, calculateOverall, calculateRecencyWeightedAverage, resolveIdealBuild, calculateFinalStats } from '@/lib/utils';
 
 export function usePlayers(idealBuilds: IdealRoleBuild[], prioritizeRecentForm: boolean = false) {
   const [players, setPlayers] = useState<Player[]>([]);
@@ -86,7 +86,10 @@ export function usePlayers(idealBuilds: IdealRoleBuild[], prioritizeRecentForm: 
                 const availableStylesForPos = getAvailableStylesForPosition(ratedPos, false);
                 const effectiveRole = availableStylesForPos.includes(card.style) ? card.style : 'Ninguno';
                 const idealBuild = resolveIdealBuild(ratedPos, effectiveRole, idealBuilds);
-                const roleRating = calculateRoleRating(card.attributeStats, card.skills || [], idealBuild);
+                
+                const buildForPos = card.buildsByPosition?.[ratedPos] || {};
+                const effectiveStats = calculateFinalStats(card.attributeStats || {}, buildForPos);
+                const roleRating = calculateRoleRating(effectiveStats, card.skills || [], idealBuild);
                 const overall = calculateOverall(roleRating, stats.average, stats.matches, player.liveUpdateRating, recentAverage, prioritizeRecentForm);
 
                 return { 
