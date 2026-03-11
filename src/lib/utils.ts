@@ -95,9 +95,47 @@ export function calculateRoleRating(
 
   const targetStats = idealBuild.targetStats;
   const targetStatKeys = Object.keys(targetStats) as (keyof PlayerAttributeStats)[];
+  const targetSkills = idealBuild.targetSkills;
   
-  if (targetStatKeys.length === 0 && idealBuild.targetSkills.length === 0) return 100;
+  if (targetStatKeys.length === 0 && targetSkills.length === 0) return 100;
 
+  // NEW PRIORITY-BASED LOGIC
+  if (idealBuild.priorityList && idealBuild.priorityList.length > 0) {
+    const list = idealBuild.priorityList;
+    const n = list.length;
+    let totalScore = 0;
+    let maxTotalScore = 0;
+
+    for (let i = 0; i < n; i++) {
+      const item = list[i];
+      const weight = n - i; // first item has weight n, last item has weight 1
+      maxTotalScore += (100 * weight);
+
+      if (item.type === 'stat') {
+         const targetVal = targetStats[item.key as keyof PlayerAttributeStats];
+         if (targetVal !== undefined && targetVal > 0) {
+           const playerVal = playerStats[item.key as keyof PlayerAttributeStats] || 0;
+           if (playerVal >= targetVal) {
+             totalScore += (100 * weight);
+           } else {
+             const diff = targetVal - playerVal;
+             const percentage = Math.max(0, 100 - (diff * 2.5)); // penalty
+             totalScore += (percentage * weight);
+           }
+         } else {
+           // Fallback if target is not defined (shouldn't happen with valid priority list)
+           totalScore += (100 * weight);
+         }
+      } else if (item.type === 'skill') {
+         const hasSkill = playerSkills.includes(item.key as PlayerSkill);
+         totalScore += ((hasSkill ? 100 : 0) * weight);
+      }
+    }
+
+    return maxTotalScore > 0 ? Math.round((totalScore / maxTotalScore) * 100) : 100;
+  }
+
+  // LEGACY LOGIC
   let statScore = 0;
   let maxStatScore = 0;
 
@@ -120,7 +158,6 @@ export function calculateRoleRating(
   const statRating = maxStatScore > 0 ? (statScore / maxStatScore) * 100 : 100;
 
   // Skills calculation
-  const targetSkills = idealBuild.targetSkills;
   let skillRating = 100;
   if (targetSkills.length > 0) {
       const matchCount = targetSkills.filter(s => playerSkills.includes(s)).length;

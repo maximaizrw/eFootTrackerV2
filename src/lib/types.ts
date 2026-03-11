@@ -112,12 +112,19 @@ export type PhysicalAttribute = {
   weight?: number;
 }
 
+export type PriorityItem = {
+  id: string;
+  type: 'stat' | 'skill';
+  key: string;
+};
+
 export type IdealRoleBuild = {
   id: string; // position-role (e.g., 'DC-Cazagoles')
   position: Position;
   role: PlayerStyle;
   targetStats: PlayerAttributeStats;
   targetSkills: PlayerSkill[];
+  priorityList?: PriorityItem[];
 };
 
 export type PlayerBuild = {

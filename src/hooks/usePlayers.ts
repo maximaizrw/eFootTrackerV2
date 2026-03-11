@@ -83,7 +83,9 @@ export function usePlayers(idealBuilds: IdealRoleBuild[], prioritizeRecentForm: 
                 const stats = calculateStats(ratingsForPos);
                 const recentAverage = calculateRecencyWeightedAverage(ratingsForPos, 5, 2.5, 0.9);
                 
-                const idealBuild = idealBuilds.find(b => b.position === ratedPos && b.role === card.style) || null;
+                const availableStylesForPos = getAvailableStylesForPosition(ratedPos, false);
+                const effectiveRole = availableStylesForPos.includes(card.style) ? card.style : 'Ninguno';
+                const idealBuild = idealBuilds.find(b => b.position === ratedPos && b.role === effectiveRole) || null;
                 const roleRating = calculateRoleRating(card.attributeStats, card.skills || [], idealBuild);
                 const overall = calculateOverall(roleRating, stats.average, stats.matches, player.liveUpdateRating, recentAverage, prioritizeRecentForm);
 
