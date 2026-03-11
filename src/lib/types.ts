@@ -148,6 +148,7 @@ export type PlayerCard = {
   style: PlayerStyle;
   league?: League;
   imageUrl?: string;
+  availableTrainingPoints?: number;
   ratingsByPosition: { [key in Position]?: number[] };
   buildsByPosition?: { [key in Position]?: PlayerBuild };
   attributeStats?: PlayerAttributeStats;
@@ -245,6 +246,7 @@ export type FlatPlayer = {
   roleRating: number;
   overall: number;
   position: Position;
+  availableTrainingPoints?: number;
   idealBuild?: IdealRoleBuild | null;
 };
 

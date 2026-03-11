@@ -41,6 +41,7 @@ const formSchema = z.object({
   currentStyle: z.enum(playerStyles),
   league: z.enum(leagues).optional(),
   imageUrl: z.string().url("Debe ser una URL válida.").optional().or(z.literal('')),
+  availableTrainingPoints: z.number().min(0, "Debe ser al menos 0.").optional(),
 });
 
 export type FormValues = z.infer<typeof formSchema>;
@@ -62,6 +63,7 @@ export function EditCardDialog({ open, onOpenChange, onEditCard, initialData }: 
       form.reset({
           ...initialData,
           league: initialData.league || 'Sin Liga',
+          availableTrainingPoints: initialData.availableTrainingPoints ?? undefined,
       });
     }
   }, [open, initialData, form]);
@@ -147,6 +149,28 @@ export function EditCardDialog({ open, onOpenChange, onEditCard, initialData }: 
                   <FormLabel>URL de la Imagen de la Carta (Opcional)</FormLabel>
                   <FormControl>
                     <Input placeholder="https://ejemplo.com/imagen_carta.png" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="availableTrainingPoints"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Puntos de Entrenamiento Disponibles (Opcional)</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      placeholder="Ej: 56" 
+                      min="0"
+                      value={field.value ?? ''} 
+                      onChange={e => {
+                        const val = e.target.value;
+                        field.onChange(val === '' ? undefined : Number(val));
+                      }} 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

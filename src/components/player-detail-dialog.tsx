@@ -18,13 +18,12 @@ import { ScrollArea } from "./ui/scroll-area";
 import { Textarea } from "./ui/textarea";
 import { Input } from "./ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, Dumbbell, StickyNote, Image as ImageIcon, SlidersHorizontal, Check, ChevronsUpDown, Globe, Trophy } from "lucide-react";
-import { usePlayers } from "@/hooks/usePlayers";
+import { Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, Dumbbell, Image as ImageIcon, SlidersHorizontal, Check, ChevronsUpDown, Globe, Trophy } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "./ui/command";
 import { playerSkillsList, nationalities, leagues } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, calculatePointsSpent, calculateFinalStats } from "@/lib/utils";
 
 type PlayerDetailDialogProps = {
   open: boolean;
@@ -67,7 +66,6 @@ const statFields: { category: string, fields: { name: keyof PlayerAttributeStats
 const EMPTY_IDEAL_BUILDS: any[] = [];
 
 export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullData }: PlayerDetailDialogProps) {
-  const { positionNotes, savePositionNote } = usePlayers(EMPTY_IDEAL_BUILDS, false);
   const [build, setBuild] = React.useState<PlayerBuild>({});
   const [imageUrl, setImageUrl] = React.useState('');
   const [height, setHeight] = React.useState<number | ''>('');
@@ -76,7 +74,6 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
   const [stats, setStats] = React.useState<PlayerAttributeStats>({});
   const [nationality, setNationality] = React.useState<Nationality>('Sin Nacionalidad');
   const [league, setLeague] = React.useState<League>('Sin Liga');
-  const [localNote, setLocalNote] = React.useState('');
   const [skillsPopoverOpen, setSkillsPopoverOpen] = React.useState(false);
 
   const position = flatPlayer?.position;
@@ -94,9 +91,8 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
       setStats(card.attributeStats || {});
       setNationality(player?.nationality || 'Sin Nacionalidad');
       setLeague(card.league || 'Sin Liga');
-      setLocalNote(positionNotes[position] || '');
     }
-  }, [open, flatPlayer, card, position, positionNotes, player]);
+  }, [open, flatPlayer, card, position, player]);
 
   const handleSave = () => {
     if (player && card && position) {
@@ -109,7 +105,6 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
         nationality,
         league,
       });
-      savePositionNote(position, localNote);
       onOpenChange(false);
     }
   };
@@ -127,6 +122,37 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
 
   const isUntrainable = (card?.name || '').toUpperCase().startsWith("POT");
   const idealBuild = flatPlayer?.idealBuild;
+  const maxPoints = card?.availableTrainingPoints || 0;
+  const spentPoints = calculatePointsSpent(build);
+  const calculatedFinalStats = calculateFinalStats(stats, build);
+
+  const handleBuildChange = (key: keyof PlayerBuild, newValue: number) => {
+    if (maxPoints > 0) {
+      const currentLevel = (build as any)[key] || 0;
+      
+      // If we are reducing the level, always allow it
+      if (newValue <= currentLevel) {
+        setBuild(p => ({ ...p, [key]: newValue }));
+        return;
+      }
+
+      // If increasing the level, check if we exceed max points
+      let allowedValue = newValue;
+      while (allowedValue > currentLevel) {
+        const testBuild = { ...build, [key]: allowedValue };
+        const testCost = calculatePointsSpent(testBuild);
+        if (testCost <= maxPoints) {
+           break; // Found the highest possible level that fits the budget
+        }
+        allowedValue--;
+      }
+
+      setBuild(p => ({ ...p, [key]: allowedValue }));
+    } else {
+      // If no maxPoints limit, allow any change
+      setBuild(p => ({ ...p, [key]: newValue }));
+    }
+  };
 
   const missingStats: { label: string, diff: number }[] = [];
   const missingSkills: string[] = [];
@@ -145,7 +171,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
           }
         }
         
-        const currentVal = (stats as any)[key] || 0;
+        const currentVal = (calculatedFinalStats as any)[key] || 0;
         const diff = targetValue - currentVal;
         if (diff > 0) {
           missingStats.push({ label, diff });
@@ -270,6 +296,11 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
                         <div className="space-y-4">
                             <h3 className="text-sm font-bold text-primary uppercase tracking-widest flex items-center gap-2">
                                 <Dumbbell className="h-4 w-4" /> Entrenamiento / Build ({position})
+                                {(maxPoints !== undefined) && (
+                                   <Badge variant="outline" className={cn("ml-auto font-mono", maxPoints > 0 && spentPoints > maxPoints ? "bg-destructive/10 text-destructive border-destructive" : "bg-muted/50")}>
+                                      Puntos: {maxPoints > 0 ? `${maxPoints - spentPoints}/${maxPoints}` : spentPoints}
+                                   </Badge>
+                                )}
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                                 {(isGoalkeeper ? goalkeeperCategories : outfieldCategories).map(({key, label, icon: Icon}) => (
@@ -278,7 +309,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
                                             <span className="flex items-center gap-2"><Icon className="w-3.5 h-3.5" /> {label}</span>
                                             <span className="font-bold text-primary">{(build as any)[key] || 0}</span>
                                         </Label>
-                                        <Slider value={[(build as any)[key] || 0]} onValueChange={(v) => setBuild(p => ({...p, [key]: v[0]}))} max={16} step={1} />
+                                        <Slider value={[(build as any)[key] || 0]} onValueChange={(v) => handleBuildChange(key, v[0])} max={16} step={1} />
                                     </div>
                                 ))}
                             </div>
@@ -295,12 +326,27 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
                                 <div key={cat.category} className="space-y-2">
                                     <Label className="text-[10px] font-black opacity-50 uppercase">{cat.category}</Label>
                                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
-                                        {cat.fields.map(f => (
-                                            <div key={f.name} className="space-y-1">
-                                                <Label className="text-[10px] truncate block">{f.label}</Label>
-                                                <Input type="number" value={(stats as any)[f.name] ?? ''} onChange={(e) => handleStatChange(f.name, e.target.value)} className="h-8 text-xs" min={0} max={99} />
-                                            </div>
-                                        ))}
+                                        {cat.fields.map(f => {
+                                            const baseVal = (stats as any)[f.name] || 0;
+                                            const finalVal = (calculatedFinalStats as any)[f.name] || 0;
+                                            const hasBump = finalVal > baseVal;
+                                            return (
+                                              <div key={f.name} className="space-y-1">
+                                                  <Label className="text-[10px] truncate block flex justify-between">
+                                                    <span>{f.label}</span>
+                                                    {hasBump && <span className="text-green-500 font-bold ml-1">+{finalVal - baseVal}</span>}
+                                                  </Label>
+                                                  <div className="relative">
+                                                      <Input type="number" value={(stats as any)[f.name] ?? ''} onChange={(e) => handleStatChange(f.name, e.target.value)} className="h-8 text-xs pr-8" min={0} max={99} />
+                                                      {hasBump && (
+                                                          <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-xs font-bold text-green-500">
+                                                              {finalVal}
+                                                          </div>
+                                                      )}
+                                                  </div>
+                                              </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             ))}
@@ -351,24 +397,6 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
                     )}
                 </div>
             </ScrollArea>
-
-            {/* Notas Globales (Panel Lateral Derecho) - Oculto para POT */}
-            {!isUntrainable && (
-                <div className="w-full md:w-80 border-l bg-muted/10 p-6 flex flex-col h-full shrink-0">
-                    <Label className="font-bold text-sm text-primary mb-4 uppercase tracking-widest flex items-center gap-2">
-                        <StickyNote className="h-4 w-4" /> Notas Globales ({position})
-                    </Label>
-                    <Textarea 
-                        placeholder={`Define aquí los requisitos para todos los jugadores en ${position}...`} 
-                        className="flex-grow resize-none text-base border-primary/20 focus:border-primary"
-                        value={localNote}
-                        onChange={(e) => setLocalNote(e.target.value)}
-                    />
-                    <p className="text-[10px] text-muted-foreground mt-4 italic leading-tight">
-                        Estas notas son compartidas por posición. Cualquier cambio se aplicará a todas las cartas de tu lista que jueguen en este puesto.
-                    </p>
-                </div>
-            )}
         </div>
 
         <DialogFooter className="p-6 border-t bg-background">

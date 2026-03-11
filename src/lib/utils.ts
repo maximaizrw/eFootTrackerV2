@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { PlayerAttributeStats, Position, LiveUpdateRating, IdealRoleBuild, PlayerSkill } from "./types";
+import type { PlayerAttributeStats, Position, LiveUpdateRating, IdealRoleBuild, PlayerSkill, PlayerBuild } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -255,4 +255,105 @@ export const resolveIdealBuild = (pos: Position, role: string, idealBuilds: Idea
         return idealBuilds.find(b => b.position === eqPos && b.role === role) || null;
     }
     return null;
+};
+
+export const calculatePointsSpent = (build: PlayerBuild): number => {
+    let totalSpent = 0;
+    const computeCost = (level: number) => {
+        let cost = 0;
+        for (let i = 1; i <= level; i++) {
+            if (i <= 4) cost += 1;
+            else if (i <= 8) cost += 2;
+            else if (i <= 12) cost += 3;
+            else cost += Math.ceil(i / 4); // General formula: 13-16 => 4, etc
+        }
+        return cost;
+    };
+
+    const validKeys: (keyof PlayerBuild)[] = ['shooting', 'passing', 'dribbling', 'dexterity', 'lowerBodyStrength', 'aerialStrength', 'defending', 'gk1', 'gk2', 'gk3'];
+    for (const key of validKeys) {
+        const val = build[key];
+        if (typeof val === 'number') {
+            totalSpent += computeCost(val);
+        }
+    }
+    return totalSpent;
+};
+
+export const calculateFinalStats = (baseStats: PlayerAttributeStats, build: PlayerBuild): PlayerAttributeStats => {
+    const finalStats = { ...baseStats };
+
+    const addStat = (stat: keyof PlayerAttributeStats, amount: number) => {
+        if (!amount) return;
+        finalStats[stat] = Math.min(99, (finalStats[stat] || 0) + amount);
+    };
+
+    // Tiro: +Finalización, +Balón parado, +Efecto
+    if (build.shooting) {
+        addStat('finishing', build.shooting);
+        addStat('placeKicking', build.shooting);
+        addStat('curl', build.shooting);
+    }
+    
+    // Pase: +Pase raso, +Pase bombeado
+    if (build.passing) {
+        addStat('lowPass', build.passing);
+        addStat('loftedPass', build.passing);
+    }
+    
+    // Regate: +Control del balón, +Drible, +Posesión
+    if (build.dribbling) {
+        addStat('ballControl', build.dribbling);
+        addStat('dribbling', build.dribbling); // En types.d.ts usamos la misma clave dribbling
+        addStat('tightPossession', build.dribbling);
+    }
+    
+    // Destreza: +Actitud ofensiva, +Aceleración, +Equilibrio
+    if (build.dexterity) {
+        addStat('offensiveAwareness', build.dexterity);
+        addStat('acceleration', build.dexterity);
+        addStat('balance', build.dexterity);
+    }
+    
+    // Fuerza tren inferior: +Velocidad, +Potencia de tiro, +Resistencia
+    if (build.lowerBodyStrength) {
+        addStat('speed', build.lowerBodyStrength);
+        addStat('kickingPower', build.lowerBodyStrength);
+        addStat('stamina', build.lowerBodyStrength);
+    }
+    
+    // Fuerza aérea: +Cabeceo, +Salto, +Contacto físico
+    if (build.aerialStrength) {
+        addStat('heading', build.aerialStrength);
+        addStat('jump', build.aerialStrength);
+        addStat('physicalContact', build.aerialStrength);
+    }
+    
+    // Defensa: +Actitud defensiva, +Entrada, +Agresividad, +Dedicación defensiva
+    if (build.defending) {
+        addStat('defensiveAwareness', build.defending);
+        addStat('tackling', build.defending);
+        addStat('aggression', build.defending);
+        addStat('defensiveEngagement', build.defending);
+    }
+    
+    // PT1: +Actitud Portero, +Salto
+    if (build.gk1) {
+        addStat('goalkeeping', build.gk1);
+        addStat('jump', build.gk1);
+    }
+    
+    // PT2: +Parada (Despejar PT), +Cobertura (Alcance PT)
+    if (build.gk2) {
+        addStat('gkParrying', build.gk2);
+        addStat('gkReach', build.gk2);
+    }
+    
+    // PT3: +Atajar PT, +Reflejos PT
+    if (build.gk3) {
+        addStat('gkCatching', build.gk3);
+        addStat('gkReflexes', build.gk3);
+    }
+
+    return finalStats;
 };

@@ -179,6 +179,7 @@ export default function Home() {
         currentStyle: card.style,
         league: card.league || 'Sin Liga',
         imageUrl: card.imageUrl || '',
+        availableTrainingPoints: card.availableTrainingPoints
     });
     setEditCardDialogOpen(true);
   }, []);
