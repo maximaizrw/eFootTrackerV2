@@ -295,78 +295,114 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
                         </Popover>
                     </div>
 
-                    {/* Entrenamiento (Progression) - Oculto para POT */}
+                    {/* Main Training + Stats panel */}
                     {!isUntrainable && (
-                        <div className="space-y-4">
-                            <h3 className="text-sm font-bold text-primary uppercase tracking-widest flex items-center gap-2">
-                                <Dumbbell className="h-4 w-4" /> Entrenamiento / Build ({position})
-                                {maxPoints > 0 && (
-                                   <Badge variant="outline" className={cn("ml-auto font-mono", spentPoints > maxPoints ? "bg-destructive/10 text-destructive border-destructive" : "bg-muted/50")}>
-                                      Puntos: {maxPoints - spentPoints}/{maxPoints}
-                                   </Badge>
-                                )}
-                            </h3>
-                            <div className="flex items-center gap-2 mb-2">
-                                <Label className="text-xs whitespace-nowrap">Puntos Disponibles:</Label>
-                                <Input 
-                                    type="number" 
-                                    className="h-8 w-28 text-xs" 
-                                    placeholder="Ej: 52" 
-                                    min={0} 
-                                    value={availablePoints} 
-                                    onChange={(e) => setAvailablePoints(e.target.value === '' ? '' : Number(e.target.value))} 
-                                />
+                        <div className="flex flex-col lg:flex-row gap-6 border border-primary/10 rounded-lg overflow-hidden">
+                            {/* LEFT: Sliders */}
+                            <div className="lg:w-56 shrink-0 bg-muted/20 p-4 flex flex-col gap-3">
+                                {/* Header row: points remaining + cap input */}
+                                <div className="flex items-center justify-between gap-2 mb-1">
+                                    <div className="flex items-center gap-1.5">
+                                        <Dumbbell className="h-4 w-4 text-primary" />
+                                        <span className="text-xs font-bold text-primary uppercase tracking-wider">Build</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                        {maxPoints > 0 && (
+                                            <span className={cn("text-sm font-mono font-bold", spentPoints > maxPoints ? "text-destructive" : "text-primary")}>
+                                                {maxPoints - spentPoints}/{maxPoints}
+                                            </span>
+                                        )}
+                                        <Input
+                                            type="number"
+                                            className="h-6 w-16 text-xs text-center px-1"
+                                            placeholder="Cap"
+                                            min={0}
+                                            value={availablePoints}
+                                            onChange={(e) => setAvailablePoints(e.target.value === '' ? '' : Number(e.target.value))}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Sliders */}
+                                {(isGoalkeeper ? goalkeeperCategories : outfieldCategories).map(({ key, label, icon: Icon }) => (
+                                    <div key={String(key)} className="space-y-1">
+                                        <div className="flex items-center justify-between text-xs">
+                                            <span className="flex items-center gap-1.5 text-muted-foreground">
+                                                <Icon className="w-3 h-3" /> {label}
+                                            </span>
+                                            <span className="font-bold text-primary tabular-nums w-5 text-right">{(build as any)[key] || 0}</span>
+                                        </div>
+                                        <Slider value={[(build as any)[key] || 0]} onValueChange={(v) => handleBuildChange(key, v[0])} max={16} step={1} className="h-1" />
+                                    </div>
+                                ))}
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                                {(isGoalkeeper ? goalkeeperCategories : outfieldCategories).map(({key, label, icon: Icon}) => (
-                                    <div key={String(key)} className="space-y-2">
-                                        <Label className="flex items-center justify-between text-xs">
-                                            <span className="flex items-center gap-2"><Icon className="w-3.5 h-3.5" /> {label}</span>
-                                            <span className="font-bold text-primary">{(build as any)[key] || 0}</span>
-                                        </Label>
-                                        <Slider value={[(build as any)[key] || 0]} onValueChange={(v) => handleBuildChange(key, v[0])} max={16} step={1} />
+
+                            {/* RIGHT: Stats columns */}
+                            <div className="flex-1 p-4 grid grid-cols-1 sm:grid-cols-3 gap-4 min-w-0">
+                                {statFields.filter(cat => isGoalkeeper ? true : cat.category !== 'Portería' || cat.fields.some(f => (stats as any)[f.name])).map(cat => (
+                                    <div key={cat.category} className="space-y-1">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground pb-1 border-b border-border">{cat.category}</p>
+                                        {cat.fields.map(f => {
+                                            const baseVal = (stats as any)[f.name] ?? 0;
+                                            const finalVal = (calculatedFinalStats as any)[f.name] ?? 0;
+                                            const hasBump = finalVal > baseVal;
+                                            const addedByTraining = finalVal - baseVal;
+                                            const isDefined = (stats as any)[f.name] !== undefined;
+
+                                            return (
+                                                <div key={f.name} className="flex items-center gap-1.5">
+                                                    <span className={cn("text-xs flex-1 truncate", hasBump ? "text-yellow-400" : "text-muted-foreground")}>{f.label}</span>
+                                                    <Input
+                                                        type="number"
+                                                        value={isDefined || finalVal !== 0 ? finalVal : ''}
+                                                        onChange={(e) => {
+                                                            const parsed = e.target.value === '' ? undefined : Number(e.target.value);
+                                                            if (parsed === undefined) {
+                                                                handleStatChange(f.name, '');
+                                                            } else {
+                                                                handleStatChange(f.name, String(parsed - addedByTraining));
+                                                            }
+                                                        }}
+                                                        className={cn("h-6 w-14 text-xs text-right px-1 tabular-nums", hasBump && "text-green-500 font-bold bg-green-500/10")}
+                                                        min={0} max={99}
+                                                    />
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 ))}
                             </div>
                         </div>
                     )}
 
-                    {/* Estadísticas Detalladas */}
-                    <div className="space-y-4">
-                        <h3 className="text-sm font-bold text-primary uppercase tracking-widest flex items-center gap-2">
-                            <SlidersHorizontal className="h-4 w-4" /> Atributos Técnicos (Stats)
-                        </h3>
-                        <div className="space-y-6">
-                            {statFields.map(cat => (
-                                <div key={cat.category} className="space-y-2">
-                                    <Label className="text-[10px] font-black opacity-50 uppercase">{cat.category}</Label>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
-                                        {cat.fields.map(f => {
-                                            const baseVal = (stats as any)[f.name] || 0;
-                                            const finalVal = (calculatedFinalStats as any)[f.name] || 0;
-                                            const hasBump = finalVal > baseVal;
-                                            return (
-                                              <div key={f.name} className="space-y-1">
-                                                  <Label className="text-[10px] truncate block flex justify-between">
-                                                    <span>{f.label}</span>
-                                                    {hasBump && <span className="text-green-500 font-bold ml-1">+{finalVal - baseVal}</span>}
-                                                  </Label>
-                                                  <div className="relative">
-                                                      <Input type="number" value={(stats as any)[f.name] ?? ''} onChange={(e) => handleStatChange(f.name, e.target.value)} className="h-8 text-xs pr-8" min={0} max={99} />
-                                                      {hasBump && (
-                                                          <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-xs font-bold text-green-500">
-                                                              {finalVal}
-                                                          </div>
-                                                      )}
-                                                  </div>
-                                              </div>
-                                            );
-                                        })}
+                    {/* For POT: still show stats but no sliders */}
+                    {isUntrainable && (
+                        <div className="space-y-4">
+                            <h3 className="text-sm font-bold text-primary uppercase tracking-widest flex items-center gap-2">
+                                <SlidersHorizontal className="h-4 w-4" /> Atributos Técnicos (Stats)
+                            </h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                {statFields.map(cat => (
+                                    <div key={cat.category} className="space-y-1">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground pb-1 border-b border-border">{cat.category}</p>
+                                        {cat.fields.map(f => (
+                                            <div key={f.name} className="flex items-center gap-1.5">
+                                                <span className="text-xs flex-1 truncate text-muted-foreground">{f.label}</span>
+                                                <Input
+                                                    type="number"
+                                                    value={(stats as any)[f.name] ?? ''}
+                                                    onChange={(e) => handleStatChange(f.name, e.target.value)}
+                                                    className="h-6 w-14 text-xs text-right px-1 tabular-nums"
+                                                    min={0} max={99}
+                                                />
+                                            </div>
+                                        ))}
                                     </div>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
-                    </div>
+                    )}
+
 
                     {/* Progresión Faltante (Comparativa Ideal) */}
                     {idealBuild && (

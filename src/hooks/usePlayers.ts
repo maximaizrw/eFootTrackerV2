@@ -182,11 +182,24 @@ export function usePlayers(idealBuilds: IdealRoleBuild[], prioritizeRecentForm: 
       const playerDoc = await getDoc(playerRef);
       if (!playerDoc.exists()) return;
       
+      // Helper to remove all undefined fields (Firebase rejects undefined)
+      const stripUndefined = (obj: any): any => {
+        if (Array.isArray(obj)) return obj.map(stripUndefined);
+        if (obj !== null && typeof obj === 'object') {
+          return Object.fromEntries(
+            Object.entries(obj)
+              .filter(([, v]) => v !== undefined)
+              .map(([k, v]) => [k, stripUndefined(v)])
+          );
+        }
+        return obj;
+      };
+
       const playerData = playerDoc.data() as Player;
       const newCards = playerData.cards.map(card => {
         if (card.id === cardId) {
           const updatedBuilds = { ...card.buildsByPosition, [position]: data.build };
-          return {
+          const updatedCard: any = {
             ...card,
             imageUrl: data.imageUrl || card.imageUrl,
             attributeStats: data.stats,
@@ -194,8 +207,11 @@ export function usePlayers(idealBuilds: IdealRoleBuild[], prioritizeRecentForm: 
             skills: data.skills,
             buildsByPosition: updatedBuilds,
             league: data.league || card.league,
-            availableTrainingPoints: data.availableTrainingPoints,
           };
+          if (data.availableTrainingPoints !== undefined) {
+            updatedCard.availableTrainingPoints = data.availableTrainingPoints;
+          }
+          return stripUndefined(updatedCard);
         }
         return card;
       });
