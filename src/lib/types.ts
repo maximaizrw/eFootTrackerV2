@@ -30,8 +30,7 @@ export type PlayerStyle = typeof playerStyles[number];
 export const positions = ['PT', 'DFC', 'LI', 'LD', 'MCD', 'MC', 'MDI', 'MDD', 'MO', 'EXI', 'EXD', 'SD', 'DC'] as const;
 export type Position = typeof positions[number];
 
-export const tiers = ['S', 'A', 'B', 'C', 'D'] as const;
-export type Tier = typeof tiers[number];
+// Tiers removed, using Overall instead
 
 export const leagues = [
     "Sin Liga", "Premier League", "Ligue 1 Uber Eats", "Serie A TIM", "LaLiga EA SPORTS",
@@ -113,6 +112,14 @@ export type PhysicalAttribute = {
   weight?: number;
 }
 
+export type IdealRoleBuild = {
+  id: string; // position-role (e.g., 'DC-Cazagoles')
+  position: Position;
+  role: PlayerStyle;
+  targetStats: PlayerAttributeStats;
+  targetSkills: PlayerSkill[];
+};
+
 export type PlayerBuild = {
   updatedAt?: string;
   shooting?: number;
@@ -135,7 +142,6 @@ export type PlayerCard = {
   league?: League;
   imageUrl?: string;
   ratingsByPosition: { [key in Position]?: number[] };
-  manualTiersByPosition?: { [key in Position]?: Tier };
   buildsByPosition?: { [key in Position]?: PlayerBuild };
   attributeStats?: PlayerAttributeStats;
   physicalAttributes?: PhysicalAttribute;
@@ -157,8 +163,8 @@ export type IdealTeamPlayer = {
   position: Position;
   assignedPosition: string; // The role/position name in the tactical scheme
   average: number;
-  tier: Tier;
-  score: number;
+  roleRating: number;
+  overall: number;
   performance: PlayerPerformance;
 };
 
@@ -229,8 +235,8 @@ export type FlatPlayer = {
   card: PlayerCard;
   ratingsForPos: number[];
   performance: PlayerPerformance;
-  tier: Tier;
-  score: number;
+  roleRating: number;
+  overall: number;
   position: Position;
 };
 

@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import type { Position, FlatPlayer, PlayerBuild, OutfieldBuild, GoalkeeperBuild, PlayerSkill, PlayerAttributeStats, PhysicalAttribute, Nationality, League } from "@/lib/types";
+import type { Position, FlatPlayer, PlayerBuild, PlayerSkill, PlayerAttributeStats, PhysicalAttribute, Nationality, League } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -41,7 +41,7 @@ type PlayerDetailDialogProps = {
   }) => void;
 };
 
-const outfieldCategories: { key: keyof OutfieldBuild; label: string, icon: React.ElementType }[] = [
+const outfieldCategories: { key: keyof PlayerBuild; label: string, icon: React.ElementType }[] = [
     { key: 'shooting', label: 'Tiro', icon: Target },
     { key: 'passing', label: 'Pase', icon: Footprints },
     { key: 'dribbling', label: 'Regate', icon: Dribbble },
@@ -51,7 +51,7 @@ const outfieldCategories: { key: keyof OutfieldBuild; label: string, icon: React
     { key: 'defending', label: 'Defensa', icon: Shield },
 ];
 
-const goalkeeperCategories: { key: keyof GoalkeeperBuild; label: string, icon: React.ElementType }[] = [
+const goalkeeperCategories: { key: keyof PlayerBuild; label: string, icon: React.ElementType }[] = [
     { key: 'gk1', label: 'Portero 1', icon: Hand },
     { key: 'gk2', label: 'Parada', icon: Hand },
     { key: 'gk3', label: 'Portero 3', icon: Hand },
@@ -64,8 +64,10 @@ const statFields: { category: string, fields: { name: keyof PlayerAttributeStats
     { category: 'Portería', fields: [{ name: 'goalkeeping', label: 'Act. Portero' }, { name: 'gkCatching', label: 'Atajar' }, { name: 'gkParrying', label: 'Parada' }, { name: 'gkReflexes', label: 'Reflejos' }, { name: 'gkReach', label: 'Cobertura' }] }
 ];
 
+const EMPTY_IDEAL_BUILDS: any[] = [];
+
 export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullData }: PlayerDetailDialogProps) {
-  const { positionNotes, savePositionNote } = usePlayers();
+  const { positionNotes, savePositionNote } = usePlayers(EMPTY_IDEAL_BUILDS, false);
   const [build, setBuild] = React.useState<PlayerBuild>({});
   const [imageUrl, setImageUrl] = React.useState('');
   const [height, setHeight] = React.useState<number | ''>('');
@@ -128,7 +130,19 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
       <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden">
         <div className="p-6 pb-2">
             <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-2xl"><Dumbbell className="h-6 w-6 text-accent" /> Ficha Maestra de {player?.name}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2 text-2xl">
+                <Dumbbell className="h-6 w-6 text-accent" /> Ficha Maestra de {player?.name}
+                {flatPlayer?.overall !== undefined && (
+                  <Badge variant="outline" className="ml-2 font-mono">
+                    Overall: <span className="text-primary ml-1">{flatPlayer.overall.toFixed(1)}</span>
+                  </Badge>
+                )}
+                {flatPlayer?.roleRating !== undefined && (
+                  <Badge variant="outline" className="font-mono">
+                    Rol: <span className="text-primary ml-1">{flatPlayer.roleRating.toFixed(0)}</span>
+                  </Badge>
+                )}
+            </DialogTitle>
             <DialogDescription>Edita todos los datos manuales de esta carta para la posición {position}. Los atributos son visuales y opcionales.</DialogDescription>
             </DialogHeader>
         </div>
@@ -223,7 +237,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                             {(isGoalkeeper ? goalkeeperCategories : outfieldCategories).map(({key, label, icon: Icon}) => (
-                                <div key={key} className="space-y-2">
+                                <div key={String(key)} className="space-y-2">
                                     <Label className="flex items-center justify-between text-xs">
                                         <span className="flex items-center gap-2"><Icon className="w-3.5 h-3.5" /> {label}</span>
                                         <span className="font-bold text-primary">{(build as any)[key] || 0}</span>

@@ -1,12 +1,12 @@
-import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, Tier, FormationSlot } from './types';
-import { calculateStats, calculateFinalScore, calculateRecencyWeightedAverage, positionPriority } from './utils';
+import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, FormationSlot, IdealRoleBuild } from './types';
+import { calculateStats, calculateRoleRating, calculateOverall, calculateRecencyWeightedAverage, positionPriority } from './utils';
 
 type CandidatePlayer = {
   player: Player;
   card: PlayerCard;
   average: number;
-  score: number;
-  tier: Tier;
+  roleRating: number;
+  overall: number;
   position: Position;
   performance: PlayerPerformance;
 };
@@ -19,8 +19,9 @@ export function generateIdealTeam(
   nationality: Nationality | 'all' = 'all',
   isFlexibleLaterals: boolean = false,
   isFlexibleWingers: boolean = false,
-  selectionCriteria: 'general' | 'average' = 'general',
-  prioritizeRecentForm: boolean = false
+  selectionCriteria: 'overall' | 'average' = 'overall',
+  prioritizeRecentForm: boolean = false,
+  idealBuilds: IdealRoleBuild[] = []
 ): IdealTeamSlot[] {
   
   // Create sorted list of candidates once
@@ -45,11 +46,12 @@ export function generateIdealTeam(
         const stats = calculateStats(ratings);
         const recentAverage = calculateRecencyWeightedAverage(ratings, 5, 2.5, 0.9);
         
-        const manualTier: Tier = card.manualTiersByPosition?.[pos] || 'D';
+        const idealBuild = idealBuilds.find(b => b.position === pos && b.role === card.style) || null;
+        const roleRating = calculateRoleRating(card.attributeStats || {}, card.skills || [], idealBuild);
         
         const scoreForSelection = selectionCriteria === 'average'
             ? stats.average
-            : calculateFinalScore(manualTier, stats.average, stats.matches, player.liveUpdateRating, recentAverage, prioritizeRecentForm);
+            : calculateOverall(roleRating, stats.average, stats.matches, player.liveUpdateRating, recentAverage, prioritizeRecentForm);
 
         const performance: PlayerPerformance = {
             stats,
@@ -61,7 +63,7 @@ export function generateIdealTeam(
 
         return { 
             player, card, position: pos, average: stats.average, 
-            score: scoreForSelection, tier: manualTier, 
+            roleRating, overall: scoreForSelection, 
             performance 
         };
       }).filter((p): p is CandidatePlayer => p !== null);
@@ -72,7 +74,7 @@ export function generateIdealTeam(
   const usedCardIds = new Set<string>();
   
   const candidateSort = (a: CandidatePlayer, b: CandidatePlayer) => {
-    if (Math.abs(b.score - a.score) > 0.001) return b.score - a.score;
+    if (Math.abs(b.overall - a.overall) > 0.001) return b.overall - a.overall;
     return b.performance.stats.matches - a.performance.stats.matches;
   };
 
@@ -159,7 +161,7 @@ export function generateIdealTeam(
   const placeholder = (id: string, pos: string) => ({ 
       player: { id, name: 'Vacante', cards: [], nationality: 'Sin Nacionalidad' }, 
       card: { id: `card-${id}`, name: 'N/A', style: 'Ninguno' as any, ratingsByPosition: {} }, 
-      position: pos as any, assignedPosition: pos, average: 0, tier: 'D', score: 0, 
+      position: pos as any, assignedPosition: pos, average: 0, roleRating: 0, overall: 0, 
       performance: { stats: { average: 0, matches: 0, stdDev: 0 }, isHotStreak: false, isConsistent: false, isPromising: false, isVersatile: false } 
   } as IdealTeamPlayer);
 

@@ -46,7 +46,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 import type { Player, Position, PlayerStyle, League, Nationality } from "@/lib/types";
-import { positions, playerStyles, leagues, nationalities, getAvailableStylesForPosition, playerStylesUI } from "@/lib/types";
+import { positions, playerStyles, leagues, nationalities, getAvailableStylesForPosition } from "@/lib/types";
 import { Alert, AlertDescription } from "./ui/alert";
 
 const formSchema = z.object({

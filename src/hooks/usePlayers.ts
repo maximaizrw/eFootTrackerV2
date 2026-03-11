@@ -6,11 +6,12 @@ import { db } from '@/lib/firebase-config';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, setDoc } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import { v4 as uuidv4 } from 'uuid';
-import type { Player, PlayerCard, Position, AddRatingFormValues, PlayerBuild, FlatPlayer, LiveUpdateRating, Tier, PlayerSkill, PlayerAttributeStats, PhysicalAttribute, Nationality, League } from '@/lib/types';
+import type { Player, PlayerCard, Position, PlayerBuild, FlatPlayer, LiveUpdateRating, PlayerSkill, PlayerAttributeStats, PhysicalAttribute, Nationality, League, IdealRoleBuild } from '@/lib/types';
+import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import { getAvailableStylesForPosition, playerSkillsList } from '@/lib/types';
-import { normalizeText, normalizeStyleName, calculateStats, calculateFinalScore, calculateRecencyWeightedAverage } from '@/lib/utils';
+import { normalizeText, normalizeStyleName, calculateStats, calculateRoleRating, calculateOverall, calculateRecencyWeightedAverage } from '@/lib/utils';
 
-export function usePlayers(prioritizeRecentForm: boolean = false) {
+export function usePlayers(idealBuilds: IdealRoleBuild[], prioritizeRecentForm: boolean = false) {
   const [players, setPlayers] = useState<Player[]>([]);
   const [flatPlayers, setFlatPlayers] = useState<FlatPlayer[]>([]);
   const [positionNotes, setPositionNotes] = useState<Record<string, string>>({});
@@ -36,7 +37,6 @@ export function usePlayers(prioritizeRecentForm: boolean = false) {
                 id: card.id || uuidv4(),
                 style: normalizeStyleName(card.style),
                 ratingsByPosition: card.ratingsByPosition || {},
-                manualTiersByPosition: card.manualTiersByPosition || {},
                 buildsByPosition: card.buildsByPosition || {},
                 skills: (card.skills || []).filter((s: string) => validSkillsSet.has(s as any)),
             }));
@@ -83,25 +83,27 @@ export function usePlayers(prioritizeRecentForm: boolean = false) {
                 const stats = calculateStats(ratingsForPos);
                 const recentAverage = calculateRecencyWeightedAverage(ratingsForPos, 5, 2.5, 0.9);
                 
-                const manualTier: Tier = card.manualTiersByPosition?.[ratedPos] || 'D';
-                const finalScore = calculateFinalScore(manualTier, stats.average, stats.matches, player.liveUpdateRating, recentAverage, prioritizeRecentForm);
+                const idealBuild = idealBuilds.find(b => b.position === ratedPos && b.role === card.style) || null;
+                const roleRating = calculateRoleRating(card.attributeStats, card.skills || [], idealBuild);
+                const overall = calculateOverall(roleRating, stats.average, stats.matches, player.liveUpdateRating, recentAverage, prioritizeRecentForm);
 
                 return { 
                     player, card, ratingsForPos, performance: { stats, isHotStreak: false, isConsistent: false, isPromising: false, isVersatile: playerPositions.length >= 3 }, 
-                    tier: manualTier, score: finalScore, position: ratedPos 
+                    roleRating, overall, position: ratedPos 
                 };
             }).filter((p): p is FlatPlayer => p !== null);
         })
     );
     setFlatPlayers(allFlatPlayers);
-  }, [players, prioritizeRecentForm]);
+  }, [players, prioritizeRecentForm, idealBuilds]);
 
   const addRating = async (values: AddRatingFormValues) => {
     let { playerName, cardName, position, rating, style, league, nationality, playerId } = values;
     if (!db) return;
     
+    const pos = position as Position;
     style = normalizeStyleName(style) as any;
-    const validStylesForPosition = getAvailableStylesForPosition(position, true);
+    const validStylesForPosition = getAvailableStylesForPosition(pos, true);
     if (!validStylesForPosition.includes(style)) style = 'Ninguno';
 
     try {
@@ -114,17 +116,17 @@ export function usePlayers(prioritizeRecentForm: boolean = false) {
 
         if (card) {
           if (!card.ratingsByPosition) card.ratingsByPosition = {};
-          if (!card.ratingsByPosition[position]) card.ratingsByPosition[position] = [];
-          card.ratingsByPosition[position]!.push(rating);
+          if (!card.ratingsByPosition[pos]) card.ratingsByPosition[pos] = [];
+          card.ratingsByPosition[pos]!.push(rating);
         } else {
-          newCards.push({ id: uuidv4(), name: cardName, style, league: league || 'Sin Liga', ratingsByPosition: { [position]: [rating] }, manualTiersByPosition: { [position]: 'D' } } as any);
+          newCards.push({ id: uuidv4(), name: cardName, style, league: league || 'Sin Liga', ratingsByPosition: { [pos]: [rating] } } as any);
         }
         await updateDoc(playerRef, { cards: newCards });
       } else {
         await addDoc(collection(db, 'players'), {
           name: playerName,
           nationality,
-          cards: [{ id: uuidv4(), name: cardName, style, league: league || 'Sin Liga', ratingsByPosition: { [position]: [rating] }, manualTiersByPosition: { [position]: 'D' } }]
+          cards: [{ id: uuidv4(), name: cardName, style, league: league || 'Sin Liga', ratingsByPosition: { [pos]: [rating] } }]
         });
       }
       toast({ title: "Valoración guardada" });
@@ -133,21 +135,7 @@ export function usePlayers(prioritizeRecentForm: boolean = false) {
     }
   };
 
-  const updateManualTier = async (playerId: string, cardId: string, position: Position, tier: Tier) => {
-    if (!db) return;
-    try {
-      const playerRef = doc(db, 'players', playerId);
-      const playerDoc = await getDoc(playerRef);
-      const playerData = playerDoc.data() as Player;
-      const newCards = JSON.parse(JSON.stringify(playerData.cards || [])) as PlayerCard[];
-      const card = newCards.find(c => c.id === cardId);
-      if (card) {
-        if (!card.manualTiersByPosition) card.manualTiersByPosition = {};
-        card.manualTiersByPosition[position] = tier;
-        await updateDoc(playerRef, { cards: newCards });
-      }
-    } catch (e) { toast({ variant: "destructive", title: "Error al actualizar Tier" }); }
-  };
+
 
   const savePositionNote = async (position: Position, text: string) => {
     if (!db) return;
@@ -228,7 +216,7 @@ export function usePlayers(prioritizeRecentForm: boolean = false) {
       const card = newCards.find(c => c.id === cardId);
       if (card?.ratingsByPosition?.[position]) {
           delete card.ratingsByPosition[position];
-          if (card.manualTiersByPosition) delete card.manualTiersByPosition[position];
+
           const hasRatings = Object.keys(card.ratingsByPosition).length > 0;
           const finalCards = hasRatings ? newCards : newCards.filter(c => c.id !== cardId);
           if (finalCards.length === 0) await deleteDoc(playerRef);
@@ -316,7 +304,7 @@ export function usePlayers(prioritizeRecentForm: boolean = false) {
 
   return { 
     players, flatPlayers, positionNotes, loading, error, 
-    addRating, updateManualTier, savePositionNote, savePlayerBuild, 
+    addRating, savePositionNote, savePlayerBuild, 
     deletePositionRatings, updateLiveUpdateRating, resetAllLiveUpdateRatings,
     editCard, editPlayer, deleteRating, downloadBackup, saveAttributeStats, updateFullPlayerData
   };

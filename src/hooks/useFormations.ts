@@ -5,7 +5,8 @@ import { db } from '@/lib/firebase-config';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, getDocs, arrayUnion, query, orderBy, getDoc } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import { v4 as uuidv4 } from 'uuid';
-import type { FormationStats, MatchResult, AddMatchFormValues, AddFormationFormValues, EditFormationFormValues, FormationSlot } from '@/lib/types';
+import type { FormationStats, MatchResult, AddFormationFormValues, EditFormationFormValues, FormationSlot } from '@/lib/types';
+import type { AddMatchFormValues } from '@/components/add-match-dialog';
 
 const defaultSlots = Array(11).fill({ position: 'DC', styles: [] });
 
@@ -21,7 +22,7 @@ const sanitizeSlots = (slots: FormationSlot[]) => {
     // Only add properties if they are explicitly defined to avoid Firebase undefined errors
     if (slot.profileName !== undefined && slot.profileName !== null && slot.profileName !== '') s.profileName = slot.profileName;
     if (slot.minHeight !== undefined && slot.minHeight !== null && slot.minHeight !== 0) s.minHeight = Number(slot.minHeight);
-    if (slot.secondaryPosition !== undefined && slot.secondaryPosition !== null && slot.secondaryPosition !== '') s.secondaryPosition = slot.secondaryPosition;
+    if (slot.secondaryPosition !== undefined && slot.secondaryPosition !== null) s.secondaryPosition = slot.secondaryPosition;
     if (slot.top !== undefined && slot.top !== null) s.top = Number(slot.top);
     if (slot.left !== undefined && slot.left !== null) s.left = Number(slot.left);
     return s;

@@ -1,0 +1,48 @@
+src/components/add-rating-dialog.tsx(49,90): error TS2724: '"@/lib/types"' has no exported member named 'playerStylesUI'. Did you mean 'playerStyles'?
+src/components/affinity-breakdown.tsx(3,15): error TS2305: Module '"@/lib/utils"' has no exported member 'AffinityBreakdownResult'.
+src/components/affinity-breakdown.tsx(23,42): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/components/affinity-breakdown.tsx(24,43): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/components/affinity-breakdown.tsx(62,45): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/components/affinity-breakdown.tsx(107,44): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/components/affinity-breakdown.tsx(182,46): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/components/affinity-status-indicator.tsx(8,44): error TS2305: Module '"@/lib/types"' has no exported member 'IdealBuildType'.
+src/components/edit-stats-dialog.tsx(183,17): error TS2367: This comparison appears to be unintentional because the types 'number | undefined' and 'string' have no overlap.
+src/components/edit-stats-dialog.tsx(189,13): error TS2367: This comparison appears to be unintentional because the types 'number | undefined' and 'string' have no overlap.
+src/components/edit-stats-dialog.tsx(192,13): error TS2367: This comparison appears to be unintentional because the types 'number | undefined' and 'string' have no overlap.
+src/components/edit-stats-dialog.tsx(196,94): error TS2345: Argument of type 'string[]' is not assignable to parameter of type '("Tijera" | "Doble toque" | "Elastica" | "Marsellesa" | "Sombrerito" | "Recorte y cambio" | "Amago por detrás y giro" | "Rebote interior" | "Control con la suela" | "Drible dinamico" | ... 50 more ... | "Espiritu de lucha")[]'.
+  Type 'string' is not assignable to type '"Tijera" | "Doble toque" | "Elastica" | "Marsellesa" | "Sombrerito" | "Recorte y cambio" | "Amago por detrás y giro" | "Rebote interior" | "Control con la suela" | "Drible dinamico" | ... 50 more ... | "Espiritu de lucha"'.
+src/components/ideal-build-editor.tsx(4,15): error TS2305: Module '"@/lib/types"' has no exported member 'BuildPosition'.
+src/components/ideal-build-editor.tsx(4,43): error TS2305: Module '"@/lib/types"' has no exported member 'IdealBuild'.
+src/components/ideal-build-editor.tsx(4,77): error TS2305: Module '"@/lib/types"' has no exported member 'IdealBuildType'.
+src/components/ideal-build-editor.tsx(9,28): error TS2305: Module '"@/lib/types"' has no exported member 'idealBuildTypes'.
+src/components/ideal-build-editor.tsx(9,45): error TS2305: Module '"@/lib/types"' has no exported member 'buildPositions'.
+src/components/ideal-build-editor.tsx(244,21): error TS18046: 'values.build' is of type 'unknown'.
+src/components/ideal-build-editor.tsx(259,32): error TS2339: Property 'min' does not exist on type '{}'.
+src/components/ideal-build-editor.tsx(259,61): error TS2339: Property 'min' does not exist on type '{}'.
+src/components/ideal-build-editor.tsx(259,107): error TS2339: Property 'min' does not exist on type '{}'.
+src/components/ideal-build-editor.tsx(260,32): error TS2339: Property 'max' does not exist on type '{}'.
+src/components/ideal-build-editor.tsx(260,61): error TS2339: Property 'max' does not exist on type '{}'.
+src/components/ideal-build-editor.tsx(260,107): error TS2339: Property 'max' does not exist on type '{}'.
+src/components/ideal-build-editor.tsx(263,32): error TS2339: Property 'min' does not exist on type '{}'.
+src/components/ideal-build-editor.tsx(263,61): error TS2339: Property 'min' does not exist on type '{}'.
+src/components/ideal-build-editor.tsx(263,107): error TS2339: Property 'min' does not exist on type '{}'.
+src/components/ideal-build-editor.tsx(264,32): error TS2339: Property 'max' does not exist on type '{}'.
+src/components/ideal-build-editor.tsx(264,61): error TS2339: Property 'max' does not exist on type '{}'.
+src/components/ideal-build-editor.tsx(264,107): error TS2339: Property 'max' does not exist on type '{}'.
+src/components/ideal-build-editor.tsx(312,61): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/components/ideal-build-editor.tsx(333,60): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/components/ideal-build-editor.tsx(333,96): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type 'Record<"PT" | "DFC" | "LI" | "LD" | "MCD" | "MC" | "MDI" | "MDD" | "MO" | "EXI" | "EXD" | "SD" | "DC", string>'.
+src/components/ideal-build-editor.tsx(391,232): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/components/ideal-build-editor.tsx(398,236): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/components/performance-badges.tsx(8,10): error TS2305: Module '"@/lib/utils"' has no exported member 'BADGE_BONUSES'.
+src/components/player-build-viewer.tsx(4,32): error TS2305: Module '"@/lib/types"' has no exported member 'OutfieldBuild'.
+src/components/player-build-viewer.tsx(4,47): error TS2305: Module '"@/lib/types"' has no exported member 'GoalkeeperBuild'.
+src/components/player-build-viewer.tsx(85,30): error TS2322: Type 'string | number | symbol' is not assignable to type 'Key | null | undefined'.
+  Type 'symbol' is not assignable to type 'Key | null | undefined'.
+src/components/player-tester.tsx(14,33): error TS2305: Module '"@/lib/types"' has no exported member 'Tier'.
+src/components/player-tester.tsx(15,10): error TS2305: Module '"@/lib/types"' has no exported member 'tiers'.
+src/components/player-tester.tsx(16,26): error TS2305: Module '"@/lib/utils"' has no exported member 'calculateFinalScore'.
+src/components/player-tester.tsx(16,61): error TS2305: Module '"@/lib/utils"' has no exported member 'getTierColorClass'.
+src/components/player-tester.tsx(91,63): error TS7006: Parameter 't' implicitly has an 'any' type.
+src/hooks/useFormations.ts(8,44): error TS2305: Module '"@/lib/types"' has no exported member 'AddMatchFormValues'.
+src/hooks/useFormations.ts(24,84): error TS2367: This comparison appears to be unintentional because the types '"PT" | "DFC" | "LI" | "LD" | "MCD" | "MC" | "MDI" | "MDD" | "MO" | "EXI" | "EXD" | "SD" | "DC"' and '""' have no overlap.

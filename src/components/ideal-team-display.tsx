@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { Users, Shirt, X } from 'lucide-react';
 import { Button } from './ui/button';
 import { FootballPitch } from './football-pitch';
-import { cn, getTierColorClass, getProxiedImageUrl } from '@/lib/utils';
+import { cn, getProxiedImageUrl } from '@/lib/utils';
 import { memo, useState } from 'react';
 import { LiveUpdateRatingSelector } from './live-update-rating-selector';
 
@@ -50,7 +50,7 @@ const PlayerToken = memo(function PlayerToken({
       <div className="mt-1.5 flex items-center gap-1">
         <LiveUpdateRatingSelector value={player.player.liveUpdateRating} onValueChange={(v) => onUpdateLiveUpdateRating(player.player.id, v)} />
         <span className="text-[10px] md:text-xs font-bold text-white whitespace-nowrap" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>
-            {player.player.name} <span className={cn("ml-0.5", getTierColorClass(player.tier))}>{player.tier}</span>
+            {player.player.name} <span className="ml-0.5 text-accent">{player.overall?.toFixed(0) || '-'}</span>
         </span>
       </div>
     </div>
@@ -87,7 +87,7 @@ const BenchCard = memo(function BenchCard({ player, onDiscard, onUpdateLiveUpdat
             <span className="text-[10px] font-bold text-sky-500">{player.assignedPosition}</span>
             <LiveUpdateRatingSelector value={player.player.liveUpdateRating} onValueChange={(v) => onUpdateLiveUpdateRating(player.player.id, v)} />
             <span className="text-[10px] font-semibold truncate">{player.player.name}</span>
-            <span className={cn("text-[10px] font-black ml-auto", getTierColorClass(player.tier))}>{player.tier}</span>
+            <span className="text-[10px] font-black ml-auto text-accent">{player.overall?.toFixed(0) || '-'}</span>
           </div>
           <p className="text-[8px] text-muted-foreground leading-none">Convocado como {player.assignedPosition}</p>
         </div>

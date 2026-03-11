@@ -180,20 +180,20 @@ export function EditStatsDialog({ open, onOpenChange, onSaveStats, initialData }
         for (const key in stats) {
             const typedKey = key as keyof PlayerAttributeStats;
             const value = stats[typedKey];
-            if (value !== '' && value !== null && value !== undefined && !isNaN(Number(value))) {
+            if (value !== null && value !== undefined && !isNaN(Number(value))) {
                 cleanedStats[typedKey] = Number(value);
             }
         }
         
         const cleanedPhysical: PhysicalAttribute = {};
-        if (physical.height !== '' && physical.height !== null && physical.height !== undefined && !isNaN(Number(physical.height))) {
+        if (physical.height !== null && physical.height !== undefined && !isNaN(Number(physical.height))) {
             cleanedPhysical.height = Number(physical.height);
         }
-        if (physical.weight !== '' && physical.weight !== null && physical.weight !== undefined && !isNaN(Number(physical.weight))) {
+        if (physical.weight !== null && physical.weight !== undefined && !isNaN(Number(physical.weight))) {
             cleanedPhysical.weight = Number(physical.weight);
         }
 
-      onSaveStats(initialData.player.id, initialData.card.id, cleanedStats, cleanedPhysical, skills || []);
+      onSaveStats(initialData.player.id, initialData.card.id, cleanedStats, cleanedPhysical, (skills as PlayerSkill[]) || []);
       onOpenChange(false);
     }
   };

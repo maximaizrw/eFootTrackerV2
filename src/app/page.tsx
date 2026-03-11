@@ -30,21 +30,25 @@ import { PlayerTable } from '@/components/player-table';
 import { PositionIcon } from '@/components/position-icon';
 import { NationalityDistribution } from '@/components/nationality-distribution';
 
+import { useIdealBuilds } from '@/hooks/useIdealBuilds';
 import { usePlayers } from '@/hooks/usePlayers';
 import { useFormations } from '@/hooks/useFormations';
 import { useToast } from "@/hooks/use-toast";
 
-import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, League, Nationality, Tier } from '@/lib/types';
+import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, League, Nationality } from '@/lib/types';
 import { positions, leagues, nationalities } from '@/lib/types';
 import { normalizeText } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe } from 'lucide-react';
+import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Sliders } from 'lucide-react';
+import { IdealBuildsManager } from '@/components/ideal-builds-manager';
 
 const ITEMS_PER_PAGE = 10;
 
 export default function Home() {
   const [prioritizeRecentForm, setPrioritizeRecentForm] = useState(false);
+  
+  const { idealBuilds } = useIdealBuilds();
 
   const { 
     players, 
@@ -61,9 +65,8 @@ export default function Home() {
     deletePositionRatings,
     updateLiveUpdateRating,
     resetAllLiveUpdateRatings,
-    updateManualTier,
     updateFullPlayerData,
-  } = usePlayers(prioritizeRecentForm);
+  } = usePlayers(idealBuilds, prioritizeRecentForm);
 
   const {
     formations,
@@ -84,7 +87,7 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState('');
   const [styleFilter, setStyleFilter] = useState<string>('all');
   const [cardFilter, setCardFilter] = useState<string>('all');
-  const [listSortCriteria, setListSortCriteria] = useState<'general' | 'average'>('general');
+  const [listSortCriteria, setListSortCriteria] = useState<'overall' | 'average'>('overall');
   
   const [isAddRatingDialogOpen, setAddRatingDialogOpen] = useState(false);
   const [isAddFormationDialogOpen, setAddFormationDialogOpen] = useState(false);
@@ -113,7 +116,7 @@ export default function Home() {
   const [discardedCardIds, setDiscardedCardIds] = useState<Set<string>>(new Set());
   const [isFlexibleLaterals, setFlexibleLaterals] = useState(false);
   const [isFlexibleWingers, setFlexibleWingers] = useState(false);
-  const [selectionCriteria, setSelectionCriteria] = useState<'general' | 'average'>('general');
+  const [selectionCriteria, setSelectionCriteria] = useState<'overall' | 'average'>('overall');
   
   const [pagination, setPagination] = useState<Record<string, number>>({});
   
@@ -290,8 +293,8 @@ export default function Home() {
             if (Math.abs(b.performance.stats.average - a.performance.stats.average) > 0.01) return b.performance.stats.average - a.performance.stats.average;
             return b.performance.stats.matches - a.performance.stats.matches;
           }
-          // Sort by defining score (Manual Tier + Average)
-          return b.score - a.score;
+            // Sort by defining score (Overall + Average)
+            return b.overall - a.overall;
         });
     }
     return grouped;
@@ -413,6 +416,7 @@ export default function Home() {
               <TabsTrigger value="formations" className="py-2 px-3 text-sm"><Trophy className="mr-2 h-5 w-5"/>Formaciones</TabsTrigger>
               <TabsTrigger value="ideal-11" className="py-2 px-3 text-sm"><Star className="mr-2 h-5 w-5"/>11 Ideal</TabsTrigger>
               <TabsTrigger value="nationalities" className="py-2 px-3 text-sm"><Globe className="mr-2 h-5 w-5"/>Nacionalidades</TabsTrigger>
+              <TabsTrigger value="builds-ideales" className="py-2 px-3 text-sm"><Sliders className="mr-2 h-5 w-5"/>Builds Ideales</TabsTrigger>
             </TabsList>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
@@ -466,12 +470,11 @@ export default function Home() {
                       onDeletePositionRatings={deletePositionRatings}
                       onDeleteRating={deleteRating}
                       onUpdateLiveUpdateRating={updateLiveUpdateRating}
-                      onUpdateManualTier={updateManualTier}
                     />
                     <PlayerTable.Pagination
                       currentPage={currentPage}
                       totalPages={totalPages}
-                      onPageChange={(direction) => handlePageChange(pos, direction)}
+                      onPageChange={(direction: 'prev' | 'next') => handlePageChange(pos, direction)}
                     />
                   </Card>
               </TabsContent>
@@ -482,7 +485,7 @@ export default function Home() {
              <Card>
                <CardHeader>
                  <CardTitle className="flex items-center gap-2 text-accent"><Star />Generador de 11 Ideal</CardTitle>
-                 <CardDescription>Selecciona a los mejores jugadores según su Tier manual y promedio.</CardDescription>
+                 <CardDescription>Selecciona a los mejores jugadores según su Overall (Rating de Rol + Promedio).</CardDescription>
                </CardHeader>
                <CardContent>
                   <IdealTeamSetup 
@@ -521,6 +524,10 @@ export default function Home() {
           
           <TabsContent value="nationalities" className="mt-6">
             <NationalityDistribution players={allPlayers} />
+          </TabsContent>
+          
+          <TabsContent value="builds-ideales" className="mt-6">
+            <IdealBuildsManager />
           </TabsContent>
         </Tabs>
       </main>

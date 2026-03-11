@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { PlayerAttributeStats, Position, LiveUpdateRating, Tier } from "./types";
+import type { PlayerAttributeStats, Position, LiveUpdateRating, IdealRoleBuild, PlayerSkill } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -66,15 +66,12 @@ export function getAverageColorClass(average: number): string {
   return 'text-orange-400';
 }
 
-export function getTierColorClass(tier: Tier): string {
-    switch (tier) {
-        case 'S': return 'text-orange-400 drop-shadow-[0_0_5px_rgba(251,146,60,0.5)] font-black';
-        case 'A': return 'text-purple-400 font-bold';
-        case 'B': return 'text-sky-400 font-bold';
-        case 'C': return 'text-green-400 font-bold';
-        case 'D': return 'text-muted-foreground';
-        default: return 'text-foreground';
-    }
+export function getOverallColorClass(overall: number): string {
+    if (overall >= 90) return 'text-orange-400 drop-shadow-[0_0_5px_rgba(251,146,60,0.5)] font-black';
+    if (overall >= 80) return 'text-purple-400 font-bold';
+    if (overall >= 70) return 'text-sky-400 font-bold';
+    if (overall >= 60) return 'text-green-400 font-bold';
+    return 'text-muted-foreground';
 }
 
 export function normalizeText(text: string): string {
@@ -87,64 +84,82 @@ export function normalizeStyleName(style: string): string {
     return style;
 }
 
-export const TIER_BASE_SCORE: Record<Tier, number> = {
-    'S': 80,
-    'A': 60,
-    'B': 40,
-    'C': 20,
-    'D': 0
-};
+export const LIVE_UPDATE_BONUSES: Record<LiveUpdateRating, number> = { A: 6, B: 3, C: 0, D: -5, E: -10 };
 
-export const LIVE_UPDATE_BONUSES: Record<LiveUpdateRating, number> = { A: 8, B: 4, C: 0, D: -5, E: -10 };
+export function calculateRoleRating(
+  playerStats: PlayerAttributeStats = {}, 
+  playerSkills: PlayerSkill[] = [], 
+  idealBuild: IdealRoleBuild | null
+): number {
+  if (!idealBuild) return 0;
 
-export type ScoreBreakdown = {
-  tierBase: number;
-  performanceAverage: number;
-  liveUpdateBonus: number;
-  experiencePenalty: number;
-  total: number;
-};
-
-export function getScoreBreakdown(
-  manualTier: Tier,
-  overallAverage: number, 
-  matches: number,
-  liveUpdateRating?: LiveUpdateRating | null,
-  recentAverage?: number,
-  prioritizeRecentForm: boolean = false
-): ScoreBreakdown {
-  const effectiveRecentAverage = recentAverage ?? overallAverage;
-  const recentWeight = prioritizeRecentForm ? 0.7 : 0.3;
-  const overallWeight = 1 - recentWeight;
+  const targetStats = idealBuild.targetStats;
+  const targetStatKeys = Object.keys(targetStats) as (keyof PlayerAttributeStats)[];
   
-  const performanceAverage = (overallAverage * overallWeight) + (effectiveRecentAverage * recentWeight);
-  const liveUpdateBonus = liveUpdateRating ? LIVE_UPDATE_BONUSES[liveUpdateRating] : 0;
-  const tierBase = TIER_BASE_SCORE[manualTier];
+  if (targetStatKeys.length === 0 && idealBuild.targetSkills.length === 0) return 100;
 
-  let experiencePenalty = 0;
-  if (matches > 0) {
-    if (matches < 3) experiencePenalty = -15;
-    else if (matches < 5) experiencePenalty = -8;
+  let statScore = 0;
+  let maxStatScore = 0;
+
+  for (const key of targetStatKeys) {
+    const targetVal = targetStats[key];
+    if (targetVal === undefined || targetVal <= 0) continue;
+    
+    maxStatScore += 100;
+    const playerVal = playerStats[key] || 0;
+    
+    if (playerVal >= targetVal) {
+      statScore += 100;
+    } else {
+      const diff = targetVal - playerVal;
+      const percentage = Math.max(0, 100 - (diff * 2.5)); // penalty
+      statScore += percentage;
+    }
   }
 
-  return {
-    tierBase,
-    performanceAverage,
-    liveUpdateBonus,
-    experiencePenalty,
-    total: tierBase + performanceAverage + liveUpdateBonus + experiencePenalty
-  };
+  const statRating = maxStatScore > 0 ? (statScore / maxStatScore) * 100 : 100;
+
+  // Skills calculation
+  const targetSkills = idealBuild.targetSkills;
+  let skillRating = 100;
+  if (targetSkills.length > 0) {
+      const matchCount = targetSkills.filter(s => playerSkills.includes(s)).length;
+      skillRating = (matchCount / targetSkills.length) * 100;
+  }
+
+  return Math.round((statRating * 0.8) + (skillRating * 0.2));
 }
 
-export function calculateFinalScore(
-  manualTier: Tier,
+export function calculateOverall(
+  roleRating: number,
   overallAverage: number, 
   matches: number,
   liveUpdateRating?: LiveUpdateRating | null,
   recentAverage?: number,
   prioritizeRecentForm: boolean = false
 ): number {
-  return getScoreBreakdown(manualTier, overallAverage, matches, liveUpdateRating, recentAverage, prioritizeRecentForm).total;
+  const effectiveRecentAverage = recentAverage ?? overallAverage;
+  const recentWeight = prioritizeRecentForm ? 0.7 : 0.3;
+  const overallWeight = 1 - recentWeight;
+  
+  const performanceAverage = (overallAverage * overallWeight) + (effectiveRecentAverage * recentWeight);
+  
+  let performanceScore = ((performanceAverage - 4.0) / (8.5 - 4.0)) * 100;
+  performanceScore = Math.max(0, Math.min(100, performanceScore));
+
+  const liveUpdateBonus = liveUpdateRating ? LIVE_UPDATE_BONUSES[liveUpdateRating] : 0;
+  
+  let experiencePenalty = 0;
+  if (matches > 0) {
+    if (matches < 3) experiencePenalty = -15;
+    else if (matches < 5) experiencePenalty = -8;
+  } else {
+    return Math.max(0, Math.min(100, Math.round(roleRating + liveUpdateBonus)));
+  }
+
+  let finalOverall = (roleRating * 0.4) + (performanceScore * 0.6) + liveUpdateBonus + experiencePenalty;
+  
+  return Math.max(0, Math.min(100, Math.round(finalOverall)));
 }
 
 export function getProxiedImageUrl(url: string | undefined): string {
