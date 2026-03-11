@@ -233,3 +233,26 @@ export function isSpecialCard(name: string): boolean {
   const n = name.toLowerCase();
   return n.includes('potw') || n.includes('pots') || n.includes('potm') || n.includes('shining stars');
 }
+
+export const getEquivalentPosition = (pos: Position): Position | null => {
+    switch (pos) {
+        case 'LI': return 'LD';
+        case 'LD': return 'LI';
+        case 'EXI': return 'EXD';
+        case 'EXD': return 'EXI';
+        case 'MDI': return 'MDD';
+        case 'MDD': return 'MDI';
+        default: return null;
+    }
+};
+
+export const resolveIdealBuild = (pos: Position, role: string, idealBuilds: IdealRoleBuild[]): IdealRoleBuild | null => {
+    let build = idealBuilds.find(b => b.position === pos && b.role === role);
+    if (build) return build;
+
+    const eqPos = getEquivalentPosition(pos);
+    if (eqPos) {
+        return idealBuilds.find(b => b.position === eqPos && b.role === role) || null;
+    }
+    return null;
+};

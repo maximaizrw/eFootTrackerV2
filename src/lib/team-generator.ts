@@ -1,6 +1,6 @@
 import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, FormationSlot, IdealRoleBuild } from './types';
 import { getAvailableStylesForPosition } from './types';
-import { calculateStats, calculateRoleRating, calculateOverall, calculateRecencyWeightedAverage, positionPriority } from './utils';
+import { calculateStats, calculateRoleRating, calculateOverall, calculateRecencyWeightedAverage, positionPriority, resolveIdealBuild } from './utils';
 
 type CandidatePlayer = {
   player: Player;
@@ -50,7 +50,7 @@ export function generateIdealTeam(
         const availableStylesForPos = getAvailableStylesForPosition(pos, false);
         const effectiveRole = availableStylesForPos.includes(card.style) ? card.style : 'Ninguno';
         
-        const idealBuild = idealBuilds.find(b => b.position === pos && b.role === effectiveRole) || null;
+        const idealBuild = resolveIdealBuild(pos, effectiveRole, idealBuilds);
         const roleRating = calculateRoleRating(card.attributeStats || {}, card.skills || [], idealBuild);
         
         const scoreForSelection = selectionCriteria === 'average'

@@ -9,7 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, Trash2, Save, GripVertical } from 'lucide-react';
 import type { Position, PlayerStyle, IdealRoleBuild, PlayerAttributeStats, PlayerSkill, PriorityItem } from '@/lib/types';
 import { positions, getAvailableStylesForPosition, playerSkillsList } from '@/lib/types';
-import { allStatsKeys } from '@/lib/utils';
+import { allStatsKeys, resolveIdealBuild } from '@/lib/utils';
 import { useIdealBuilds } from '@/hooks/useIdealBuilds';
 import {
   DndContext,
@@ -83,7 +83,7 @@ export function IdealBuildsManager() {
   const [selectedRole, setSelectedRole] = useState<PlayerStyle>('Ninguno');
   
   const currentBuildId = `${selectedPos}-${selectedRole}`;
-  const existingBuild = idealBuilds.find(b => b.id === currentBuildId);
+  const existingBuild = resolveIdealBuild(selectedPos, selectedRole, idealBuilds);
 
   const [targetStats, setTargetStats] = useState<PlayerAttributeStats>({});
   const [priorityList, setPriorityList] = useState<PriorityItem[]>([]);
@@ -224,7 +224,13 @@ export function IdealBuildsManager() {
             <Select value={selectedPos} onValueChange={(v) => setSelectedPos(v as Position)}>
               <SelectTrigger><SelectValue placeholder="Posición" /></SelectTrigger>
               <SelectContent>
-                {positions.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                {positions.filter(p => !['LD', 'MDD', 'EXD'].includes(p)).map(p => {
+                  let label = p as string;
+                  if (p === 'LI') label = 'LI / LD';
+                  if (p === 'MDI') label = 'MDI / MDD';
+                  if (p === 'EXI') label = 'EXI / EXD';
+                  return <SelectItem key={p} value={p}>{label}</SelectItem>;
+                })}
               </SelectContent>
             </Select>
           </div>
