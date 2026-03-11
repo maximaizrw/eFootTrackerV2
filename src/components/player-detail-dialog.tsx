@@ -131,7 +131,9 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
   const missingStats: { label: string, diff: number }[] = [];
   const missingSkills: string[] = [];
 
-  if (!isUntrainable && idealBuild) {
+  if (!idealBuild) {
+    // We can't compare without an ideal build
+  } else {
     Object.entries(idealBuild.targetStats || {}).forEach(([key, targetValue]) => {
       if (targetValue !== undefined && typeof targetValue === 'number') {
         let label = key;
@@ -263,23 +265,25 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
                         </Popover>
                     </div>
 
-                    {/* Entrenamiento (Progression) */}
-                    <div className="space-y-4">
-                        <h3 className="text-sm font-bold text-primary uppercase tracking-widest flex items-center gap-2">
-                            <Dumbbell className="h-4 w-4" /> Entrenamiento / Build ({position})
-                        </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                            {(isGoalkeeper ? goalkeeperCategories : outfieldCategories).map(({key, label, icon: Icon}) => (
-                                <div key={String(key)} className="space-y-2">
-                                    <Label className="flex items-center justify-between text-xs">
-                                        <span className="flex items-center gap-2"><Icon className="w-3.5 h-3.5" /> {label}</span>
-                                        <span className="font-bold text-primary">{(build as any)[key] || 0}</span>
-                                    </Label>
-                                    <Slider value={[(build as any)[key] || 0]} onValueChange={(v) => setBuild(p => ({...p, [key]: v[0]}))} max={16} step={1} />
-                                </div>
-                            ))}
+                    {/* Entrenamiento (Progression) - Oculto para POT */}
+                    {!isUntrainable && (
+                        <div className="space-y-4">
+                            <h3 className="text-sm font-bold text-primary uppercase tracking-widest flex items-center gap-2">
+                                <Dumbbell className="h-4 w-4" /> Entrenamiento / Build ({position})
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                                {(isGoalkeeper ? goalkeeperCategories : outfieldCategories).map(({key, label, icon: Icon}) => (
+                                    <div key={String(key)} className="space-y-2">
+                                        <Label className="flex items-center justify-between text-xs">
+                                            <span className="flex items-center gap-2"><Icon className="w-3.5 h-3.5" /> {label}</span>
+                                            <span className="font-bold text-primary">{(build as any)[key] || 0}</span>
+                                        </Label>
+                                        <Slider value={[(build as any)[key] || 0]} onValueChange={(v) => setBuild(p => ({...p, [key]: v[0]}))} max={16} step={1} />
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* Estadísticas Detalladas */}
                     <div className="space-y-4">
@@ -309,67 +313,62 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
                             <h3 className="text-sm font-bold text-primary uppercase tracking-widest flex items-center gap-2">
                                 <Target className="h-4 w-4" /> Progresión Faltante (Build Ideal: {idealBuild.role})
                             </h3>
-                            {isUntrainable ? (
-                                <div className="p-4 bg-muted/30 rounded-md border border-muted flex items-center gap-2 text-sm text-muted-foreground">
-                                    <Shield className="h-4 w-4 text-primary" />
-                                    Esta carta (POT...) no se puede entrenar, por lo tanto no se aplican puntos de progresión.
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black opacity-50 uppercase">Estadísticas Faltantes para Meta</Label>
+                                    {missingStats.length > 0 ? (
+                                        <div className="flex flex-wrap gap-2">
+                                            {missingStats.map(s => (
+                                                <Badge key={s.label} variant="outline" className="text-xs font-mono bg-destructive/10 text-destructive border-destructive/20">
+                                                    +{s.diff} {s.label}
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="p-3 bg-green-500/10 rounded border border-green-500/20 text-green-600 dark:text-green-400 text-xs flex items-center gap-2">
+                                            <Check className="h-4 w-4" /> Cumple con todas las estadísticas de la build ideal.
+                                        </div>
+                                    )}
                                 </div>
-                            ) : (
-                                <div className="space-y-4">
-                                    <div className="space-y-2">
-                                        <Label className="text-[10px] font-black opacity-50 uppercase">Estadísticas Faltantes para Meta</Label>
-                                        {missingStats.length > 0 ? (
-                                            <div className="flex flex-wrap gap-2">
-                                                {missingStats.map(s => (
-                                                    <Badge key={s.label} variant="outline" className="text-xs font-mono bg-destructive/10 text-destructive border-destructive/20">
-                                                        +{s.diff} {s.label}
-                                                    </Badge>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <div className="p-3 bg-green-500/10 rounded border border-green-500/20 text-green-600 dark:text-green-400 text-xs flex items-center gap-2">
-                                                <Check className="h-4 w-4" /> Cumple con todas las estadísticas de la build ideal.
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label className="text-[10px] font-black opacity-50 uppercase">Habilidades Faltantes para Meta</Label>
-                                        {missingSkills.length > 0 ? (
-                                            <div className="flex flex-wrap gap-2">
-                                                {missingSkills.map(s => (
-                                                    <Badge key={s} variant="outline" className="text-xs bg-amber-500/10 text-amber-500 border-amber-500/20">
-                                                        +{s}
-                                                    </Badge>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <div className="p-3 bg-green-500/10 rounded border border-green-500/20 text-green-600 dark:text-green-400 text-xs flex items-center gap-2">
-                                                <Check className="h-4 w-4" /> Tiene todas las habilidades clave para este rol.
-                                            </div>
-                                        )}
-                                    </div>
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black opacity-50 uppercase">Habilidades Faltantes para Meta</Label>
+                                    {missingSkills.length > 0 ? (
+                                        <div className="flex flex-wrap gap-2">
+                                            {missingSkills.map(s => (
+                                                <Badge key={s} variant="outline" className="text-xs bg-amber-500/10 text-amber-500 border-amber-500/20">
+                                                    +{s}
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="p-3 bg-green-500/10 rounded border border-green-500/20 text-green-600 dark:text-green-400 text-xs flex items-center gap-2">
+                                            <Check className="h-4 w-4" /> Tiene todas las habilidades clave para este rol.
+                                        </div>
+                                    )}
                                 </div>
-                            )}
+                            </div>
                         </div>
                     )}
                 </div>
             </ScrollArea>
 
-            {/* Notas Globales (Panel Lateral Derecho) */}
-            <div className="w-full md:w-80 border-l bg-muted/10 p-6 flex flex-col h-full shrink-0">
-                <Label className="font-bold text-sm text-primary mb-4 uppercase tracking-widest flex items-center gap-2">
-                    <StickyNote className="h-4 w-4" /> Notas Globales ({position})
-                </Label>
-                <Textarea 
-                    placeholder={`Define aquí los requisitos para todos los jugadores en ${position}...`} 
-                    className="flex-grow resize-none text-base border-primary/20 focus:border-primary"
-                    value={localNote}
-                    onChange={(e) => setLocalNote(e.target.value)}
-                />
-                <p className="text-[10px] text-muted-foreground mt-4 italic leading-tight">
-                    Estas notas son compartidas por posición. Cualquier cambio se aplicará a todas las cartas de tu lista que jueguen en este puesto.
-                </p>
-            </div>
+            {/* Notas Globales (Panel Lateral Derecho) - Oculto para POT */}
+            {!isUntrainable && (
+                <div className="w-full md:w-80 border-l bg-muted/10 p-6 flex flex-col h-full shrink-0">
+                    <Label className="font-bold text-sm text-primary mb-4 uppercase tracking-widest flex items-center gap-2">
+                        <StickyNote className="h-4 w-4" /> Notas Globales ({position})
+                    </Label>
+                    <Textarea 
+                        placeholder={`Define aquí los requisitos para todos los jugadores en ${position}...`} 
+                        className="flex-grow resize-none text-base border-primary/20 focus:border-primary"
+                        value={localNote}
+                        onChange={(e) => setLocalNote(e.target.value)}
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-4 italic leading-tight">
+                        Estas notas son compartidas por posición. Cualquier cambio se aplicará a todas las cartas de tu lista que jueguen en este puesto.
+                    </p>
+                </div>
+            )}
         </div>
 
         <DialogFooter className="p-6 border-t bg-background">
