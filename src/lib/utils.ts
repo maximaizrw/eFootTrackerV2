@@ -97,7 +97,7 @@ export function calculateRoleRating(
   const targetStatKeys = Object.keys(targetStats) as (keyof PlayerAttributeStats)[];
   const targetSkills = idealBuild.targetSkills;
   
-  if (targetStatKeys.length === 0 && targetSkills.length === 0) return 100;
+  if (targetStatKeys.length === 0 && targetSkills.length === 0) return 0;
 
   // NEW PRIORITY-BASED LOGIC
   if (idealBuild.priorityList && idealBuild.priorityList.length > 0) {
