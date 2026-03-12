@@ -40,8 +40,9 @@ import { positions, leagues, nationalities } from '@/lib/types';
 import { normalizeText } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Sliders } from 'lucide-react';
+import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Sliders, FlaskConical } from 'lucide-react';
 import { IdealBuildsManager } from '@/components/ideal-builds-manager';
+import { PlayerTester } from '@/components/player-tester';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -418,6 +419,7 @@ export default function Home() {
               <TabsTrigger value="ideal-11" className="py-2 px-3 text-sm"><Star className="mr-2 h-5 w-5"/>11 Ideal</TabsTrigger>
               <TabsTrigger value="nationalities" className="py-2 px-3 text-sm"><Globe className="mr-2 h-5 w-5"/>Nacionalidades</TabsTrigger>
               <TabsTrigger value="builds-ideales" className="py-2 px-3 text-sm"><Sliders className="mr-2 h-5 w-5"/>Builds Ideales</TabsTrigger>
+              <TabsTrigger value="player-tester" className="py-2 px-3 text-sm"><FlaskConical className="mr-2 h-5 w-5"/>Probador</TabsTrigger>
             </TabsList>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
@@ -529,6 +531,10 @@ export default function Home() {
           
           <TabsContent value="builds-ideales" className="mt-6">
             <IdealBuildsManager />
+          </TabsContent>
+
+          <TabsContent value="player-tester" className="mt-6">
+            <PlayerTester idealBuilds={idealBuilds} />
           </TabsContent>
         </Tabs>
       </main>
