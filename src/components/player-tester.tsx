@@ -3,40 +3,73 @@
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { FlaskConical, Calculator, Trophy } from 'lucide-react';
+import { FlaskConical, Calculator, Trophy, ClipboardPaste, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { calculateRoleRating, resolveIdealBuild, getOverallColorClass } from '@/lib/utils';
 import { positions, playerSkillsList, getAvailableStylesForPosition } from '@/lib/types';
 import type { PlayerAttributeStats, PlayerSkill, Position, PlayerStyle, IdealRoleBuild } from '@/lib/types';
 
-const statGroups: { label: string; value: string; keys: (keyof PlayerAttributeStats)[] }[] = [
-  {
-    label: 'Ofensivo',
-    value: 'ofensivo',
-    keys: ['offensiveAwareness', 'ballControl', 'dribbling', 'tightPossession', 'lowPass', 'loftedPass', 'finishing', 'heading', 'placeKicking', 'curl'],
-  },
-  {
-    label: 'Defensivo',
-    value: 'defensivo',
-    keys: ['defensiveAwareness', 'defensiveEngagement', 'tackling', 'aggression'],
-  },
-  {
-    label: 'Físico',
-    value: 'fisico',
-    keys: ['speed', 'acceleration', 'kickingPower', 'jump', 'physicalContact', 'balance', 'stamina'],
-  },
-  {
-    label: 'Arquero',
-    value: 'arquero',
-    keys: ['goalkeeping', 'gkCatching', 'gkParrying', 'gkReflexes', 'gkReach'],
-  },
-];
+// ── Stat name ➜ key mapping (handles eFootball english stat names) ───────────
+const statNameToKey: Record<string, keyof PlayerAttributeStats> = {
+  // Offensive
+  'offensive awareness': 'offensiveAwareness',
+  'ball control': 'ballControl',
+  'dribbling': 'dribbling',
+  'tight possession': 'tightPossession',
+  'low pass': 'lowPass',
+  'lofted pass': 'loftedPass',
+  'finishing': 'finishing',
+  'heading': 'heading',
+  'place kicking': 'placeKicking',
+  'curl': 'curl',
+  // Defensive
+  'defensive awareness': 'defensiveAwareness',
+  'defensive engagement': 'defensiveEngagement',
+  'tackling': 'tackling',
+  'aggression': 'aggression',
+  // GK
+  'goalkeeping': 'goalkeeping',
+  'gk catching': 'gkCatching',
+  'gk parrying': 'gkParrying',
+  'gk reflexes': 'gkReflexes',
+  'gk reach': 'gkReach',
+  // Physical
+  'speed': 'speed',
+  'acceleration': 'acceleration',
+  'kicking power': 'kickingPower',
+  'jump': 'jump',
+  'physical contact': 'physicalContact',
+  'balance': 'balance',
+  'stamina': 'stamina',
+};
+
+function parseStatsText(text: string): { stats: PlayerAttributeStats; count: number } {
+  const stats: PlayerAttributeStats = {};
+  let count = 0;
+  const lines = text.split('\n');
+  for (const line of lines) {
+    // A valid stat line has at least one tab + a number at the end
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    // Split by one or more tabs; last segment should be the number
+    const parts = trimmed.split(/\t+/);
+    if (parts.length < 2) continue;
+    const numStr = parts[parts.length - 1].trim();
+    const num = parseInt(numStr, 10);
+    if (isNaN(num)) continue;
+    const statName = parts.slice(0, parts.length - 1).join(' ').trim().toLowerCase();
+    const key = statNameToKey[statName];
+    if (key) {
+      (stats as Record<string, number>)[key] = Math.min(99, Math.max(1, num));
+      count++;
+    }
+  }
+  return { stats, count };
+}
 
 const statLabels: Record<keyof PlayerAttributeStats, string> = {
   offensiveAwareness: 'Actitud Ofensiva',
@@ -75,14 +108,17 @@ interface PlayerTesterProps {
 }
 
 export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
+  const [pasteText, setPasteText] = useState('');
   const [stats, setStats] = useState<PlayerAttributeStats>({});
+  const [parsedCount, setParsedCount] = useState<number | null>(null);
   const [selectedSkills, setSelectedSkills] = useState<Set<PlayerSkill>>(new Set());
   const [positionRoles, setPositionRoles] = useState<PositionRoleEntry[]>([]);
   const [results, setResults] = useState<ResultEntry[] | null>(null);
 
-  const handleStatChange = (key: keyof PlayerAttributeStats, val: string) => {
-    const num = parseInt(val, 10);
-    setStats(prev => ({ ...prev, [key]: isNaN(num) ? undefined : Math.min(99, Math.max(1, num)) }));
+  const handlePaste = () => {
+    const { stats: parsed, count } = parseStatsText(pasteText);
+    setStats(parsed);
+    setParsedCount(count);
   };
 
   const toggleSkill = (skill: PlayerSkill) => {
@@ -97,7 +133,7 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
     setPositionRoles(prev => {
       const exists = prev.find(e => e.position === pos);
       if (exists) return prev.filter(e => e.position !== pos);
-      const availableRoles = getAvailableStylesForPosition(pos, false);
+      const availableRoles = getAvailableStylesForPosition(pos, true); // always include Ninguno
       const defaultRole = availableRoles[0] || ('Ninguno' as PlayerStyle);
       return [...prev, { position: pos, role: defaultRole }];
     });
@@ -120,6 +156,9 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
 
   const selectedPositions = useMemo(() => new Set(positionRoles.map(e => e.position)), [positionRoles]);
 
+  // Show parsed stats as a summary
+  const statSummaryEntries = Object.entries(stats) as [keyof PlayerAttributeStats, number][];
+
   return (
     <div className="space-y-6">
       <Card>
@@ -129,42 +168,61 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
             Probador de Jugadores
           </CardTitle>
           <CardDescription>
-            Ingresá las estadísticas, habilidades, posiciones y rol de un jugador para calcular su Rating de Rol.
+            Pegá las estadísticas del juego, elegí habilidades, posiciones y rol para calcular el Rating de Rol.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
 
-          {/* --- STATS --- */}
+          {/* ── PASTE STATS ── */}
           <section>
-            <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground mb-3">Estadísticas</h3>
-            <Accordion type="multiple" defaultValue={['ofensivo']} className="w-full">
-              {statGroups.map(group => (
-                <AccordionItem key={group.value} value={group.value}>
-                  <AccordionTrigger className="text-sm font-medium px-1">{group.label}</AccordionTrigger>
-                  <AccordionContent>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 pt-2">
-                      {group.keys.map(key => (
-                        <div key={key} className="flex flex-col gap-1">
-                          <Label className="text-xs text-muted-foreground truncate">{statLabels[key]}</Label>
-                          <Input
-                            type="number"
-                            min={1}
-                            max={99}
-                            placeholder="—"
-                            value={stats[key] ?? ''}
-                            onChange={e => handleStatChange(key, e.target.value)}
-                            className="h-8 text-center text-sm"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
+            <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
+              <ClipboardPaste className="h-4 w-4" />
+              Pegar Estadísticas
+            </h3>
+            <Textarea
+              placeholder={`Pegá las stats del juego aquí. Ejemplo:\nOffensive Awareness\t\t70\nBall Control\t\t76\nDribbling\t\t76\n...`}
+              value={pasteText}
+              onChange={e => { setPasteText(e.target.value); setParsedCount(null); }}
+              className="font-mono text-xs h-36 resize-none"
+            />
+            <div className="flex items-center gap-3 mt-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handlePaste}
+                disabled={!pasteText.trim()}
+                className="shrink-0"
+              >
+                <ClipboardPaste className="h-4 w-4 mr-2" />
+                Importar Stats
+              </Button>
+              {parsedCount !== null && (
+                <span className={cn(
+                  'text-sm flex items-center gap-1',
+                  parsedCount > 0 ? 'text-green-500' : 'text-destructive'
+                )}>
+                  <CheckCircle2 className="h-4 w-4" />
+                  {parsedCount > 0
+                    ? `${parsedCount} estadísticas importadas`
+                    : 'No se reconoció ninguna estadística'}
+                </span>
+              )}
+            </div>
+
+            {/* Stat summary grid */}
+            {statSummaryEntries.length > 0 && (
+              <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                {statSummaryEntries.map(([key, val]) => (
+                  <div key={key} className="flex items-center justify-between rounded border px-2 py-1 bg-muted/20 text-xs gap-1">
+                    <span className="text-muted-foreground truncate">{statLabels[key]}</span>
+                    <span className="font-bold tabular-nums shrink-0">{val}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
 
-          {/* --- SKILLS --- */}
+          {/* ── SKILLS ── */}
           <section>
             <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground mb-3">
               Habilidades{' '}
@@ -191,12 +249,12 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
             </div>
           </section>
 
-          {/* --- POSITIONS & ROLES --- */}
+          {/* ── POSITIONS & ROLES ── */}
           <section>
             <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground mb-3">
               Posiciones y Rol
             </h3>
-            <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 gap-2 mb-4">
+            <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-7 gap-2 mb-4">
               {positions.map(pos => (
                 <button
                   key={pos}
@@ -216,7 +274,8 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
             {positionRoles.length > 0 ? (
               <div className="space-y-2">
                 {positionRoles.map(({ position, role }) => {
-                  const availableRoles = getAvailableStylesForPosition(position, false);
+                  // Always include Ninguno so secondary positions can be set to none
+                  const availableRoles = getAvailableStylesForPosition(position, true);
                   return (
                     <div key={position} className="flex items-center gap-3 rounded-md border p-2 bg-muted/10">
                       <Badge variant="outline" className="w-12 justify-center shrink-0 font-bold">
@@ -255,7 +314,7 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
         </CardContent>
       </Card>
 
-      {/* --- RESULTS --- */}
+      {/* ── RESULTS ── */}
       {results !== null && (
         <Card>
           <CardHeader>
