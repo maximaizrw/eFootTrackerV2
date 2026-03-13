@@ -262,7 +262,7 @@ export function getAvailableStylesForPosition(position: Position, includeNone: b
         case 'LD':
             return [...baseStyles, 'Lateral defensivo', 'Lateral ofensivo', 'Lateral finalizador', 'Especialista en centros'];
         case 'MCD':
-            return [...baseStyles, 'El destructor', 'Medio escudo', 'Omnipresente', 'Organizador', 'Creador de jugadas', 'Atacante extra'];
+            return [...baseStyles, 'El destructor', 'Medio escudo', 'Omnipresente', 'Organizador'];
         case 'MC':
             return [...baseStyles, 'Jugador de huecos', 'Omnipresente', 'Creador de jugadas', 'Organizador', 'El destructor', 'Medio escudo', 'Creador de juego'];
         case 'MDI':
