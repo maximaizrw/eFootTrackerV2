@@ -269,7 +269,7 @@ export function getAvailableStylesForPosition(position: Position, includeNone: b
     case 'MDD':
       return [...baseStyles, 'Omnipresente', 'Especialista en centros', 'Creador de jugadas', 'Jugador de huecos', 'Extremo móvil', 'Organizador'];
     case 'MO':
-      return [...baseStyles, 'Jugador de huecos', 'Creador de jugadas', 'Diez clásico', 'Extremo móvil', 'Organizador'];
+      return [...baseStyles, 'Jugador de huecos', 'Creador de jugadas', 'Diez clásico'];
     case 'EXI':
     case 'EXD':
       return [...baseStyles, 'Extremo móvil', 'Extremo prolífico', 'Especialista en centros', 'Creador de jugadas', 'Jugador de huecos'];
