@@ -173,16 +173,12 @@ export function calculateOverall(
   matches: number,
   liveUpdateRating?: LiveUpdateRating | null,
   recentAverage?: number,
-  prioritizeRecentForm: boolean = false
 ): number {
   const effectiveRecentAverage = recentAverage ?? overallAverage;
-  const recentWeight = prioritizeRecentForm ? 0.7 : 0.3;
-  const overallWeight = 1 - recentWeight;
-  
-  const performanceAverage = (overallAverage * overallWeight) + (effectiveRecentAverage * recentWeight);
-  
-  let performanceScore = ((performanceAverage - 4.0) / (8.5 - 4.0)) * 100;
-  performanceScore = Math.max(0, Math.min(100, performanceScore));
+
+  // Fixed weights: 50% roleRating, 30% historical average, 20% recent average
+  const historicalScore = Math.max(0, Math.min(100, ((overallAverage - 4.0) / (8.5 - 4.0)) * 100));
+  const recentScore = Math.max(0, Math.min(100, ((effectiveRecentAverage - 4.0) / (8.5 - 4.0)) * 100));
 
   const liveUpdateBonus = liveUpdateRating ? LIVE_UPDATE_BONUSES[liveUpdateRating] : 0;
   
@@ -194,7 +190,7 @@ export function calculateOverall(
     return Math.max(0, Math.min(100, Math.round(roleRating + liveUpdateBonus)));
   }
 
-  let finalOverall = (roleRating * 0.4) + (performanceScore * 0.6) + liveUpdateBonus + experiencePenalty;
+  let finalOverall = (roleRating * 0.5) + (historicalScore * 0.3) + (recentScore * 0.2) + liveUpdateBonus + experiencePenalty;
   
   return Math.max(0, Math.min(100, Math.round(finalOverall)));
 }

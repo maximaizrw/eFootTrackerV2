@@ -47,8 +47,7 @@ import { PlayerTester } from '@/components/player-tester';
 const ITEMS_PER_PAGE = 10;
 
 export default function Home() {
-  const [prioritizeRecentForm, setPrioritizeRecentForm] = useState(false);
-  
+
   const { idealBuilds } = useIdealBuilds();
 
   const { 
@@ -67,7 +66,7 @@ export default function Home() {
     updateLiveUpdateRating,
     resetAllLiveUpdateRatings,
     updateFullPlayerData,
-  } = usePlayers(idealBuilds, prioritizeRecentForm);
+  } = usePlayers(idealBuilds);
 
   const {
     formations,
@@ -151,21 +150,21 @@ export default function Home() {
         isFlexibleLaterals, 
         isFlexibleWingers, 
         selectionCriteria,
-        prioritizeRecentForm
+        idealBuilds
     );
 
     setIdealTeam(newTeam);
     if (!silent) {
       toast({ title: "Equipo Generado", description: `Se ha generado una convocatoria para "${formation.name}".` });
     }
-  }, [players, selectedFormationId, formations, discardedCardIds, selectedLeague, selectedNationality, isFlexibleLaterals, isFlexibleWingers, selectionCriteria, prioritizeRecentForm, toast]);
+  }, [players, selectedFormationId, formations, discardedCardIds, selectedLeague, selectedNationality, isFlexibleLaterals, isFlexibleWingers, selectionCriteria, idealBuilds, toast]);
 
   // Automatically refresh team if it's already showing and discards or filters change
   useEffect(() => {
     if (idealTeam.length > 0) {
       handleGenerateTeam(true);
     }
-  }, [discardedCardIds, selectedLeague, selectedNationality, isFlexibleLaterals, isFlexibleWingers, selectionCriteria, prioritizeRecentForm, handleGenerateTeam, idealTeam.length]);
+  }, [discardedCardIds, selectedLeague, selectedNationality, isFlexibleLaterals, isFlexibleWingers, selectionCriteria, handleGenerateTeam, idealTeam.length]);
 
   const handleOpenAddRating = useCallback((initialData?: Partial<AddRatingFormValues>) => {
     setAddDialogInitialData(initialData);
@@ -507,8 +506,6 @@ export default function Home() {
                     onFlexibleWingersChange={setFlexibleWingers}
                     selectionCriteria={selectionCriteria}
                     onSelectionCriteriaChange={setSelectionCriteria}
-                    prioritizeRecentForm={prioritizeRecentForm}
-                    onPrioritizeRecentFormChange={setPrioritizeRecentForm}
                   />
                   <div className="flex flex-wrap items-center gap-4 mt-6">
                     <Button onClick={() => handleGenerateTeam()} disabled={!selectedFormationId}><Star className="mr-2 h-4 w-4" />Generar 11 Ideal</Button>

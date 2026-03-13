@@ -11,7 +11,7 @@ import type { FormValues as AddRatingFormValues } from '@/components/add-rating-
 import { getAvailableStylesForPosition, playerSkillsList } from '@/lib/types';
 import { normalizeText, normalizeStyleName, calculateStats, calculateRoleRating, calculateOverall, calculateRecencyWeightedAverage, resolveIdealBuild, calculateFinalStats } from '@/lib/utils';
 
-export function usePlayers(idealBuilds: IdealRoleBuild[], prioritizeRecentForm: boolean = false) {
+export function usePlayers(idealBuilds: IdealRoleBuild[]) {
   const [players, setPlayers] = useState<Player[]>([]);
   const [flatPlayers, setFlatPlayers] = useState<FlatPlayer[]>([]);
   const [positionNotes, setPositionNotes] = useState<Record<string, string>>({});
@@ -90,7 +90,7 @@ export function usePlayers(idealBuilds: IdealRoleBuild[], prioritizeRecentForm: 
                 const buildForPos = card.buildsByPosition?.[ratedPos] || {};
                 const effectiveStats = calculateFinalStats(card.attributeStats || {}, buildForPos);
                 const roleRating = calculateRoleRating(effectiveStats, card.skills || [], idealBuild);
-                const overall = calculateOverall(roleRating, stats.average, stats.matches, player.liveUpdateRating, recentAverage, prioritizeRecentForm);
+                const overall = calculateOverall(roleRating, stats.average, stats.matches, player.liveUpdateRating, recentAverage);
 
                 return { 
                     player, card, ratingsForPos, performance: { stats, isHotStreak: false, isConsistent: false, isPromising: false, isVersatile: playerPositions.length >= 3 }, 
@@ -100,7 +100,7 @@ export function usePlayers(idealBuilds: IdealRoleBuild[], prioritizeRecentForm: 
         })
     );
     setFlatPlayers(allFlatPlayers);
-  }, [players, prioritizeRecentForm, idealBuilds]);
+  }, [players, idealBuilds]);
 
   const addRating = async (values: AddRatingFormValues) => {
     let { playerName, cardName, position, rating, style, league, nationality, playerId } = values;

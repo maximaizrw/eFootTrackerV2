@@ -4,7 +4,7 @@ import * as React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { FormationStats, League, Nationality } from '@/lib/types';
 import { Label } from './ui/label';
-import { ArrowRightLeft, Activity } from 'lucide-react';
+import { ArrowRightLeft } from 'lucide-react';
 import { Switch } from './ui/switch';
 import { calculateStats } from './formations-display';
 
@@ -24,8 +24,6 @@ type IdealTeamSetupProps = {
   onFlexibleWingersChange: (value: boolean) => void;
   selectionCriteria: 'overall' | 'average';
   onSelectionCriteriaChange: (value: 'overall' | 'average') => void;
-  prioritizeRecentForm: boolean;
-  onPrioritizeRecentFormChange: (value: boolean) => void;
 };
 
 const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({ 
@@ -44,8 +42,6 @@ const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({
     onFlexibleWingersChange,
     selectionCriteria,
     onSelectionCriteriaChange,
-    prioritizeRecentForm,
-    onPrioritizeRecentFormChange,
 }: IdealTeamSetupProps) {
 
   const selectedFormation = React.useMemo(() => {
@@ -158,18 +154,6 @@ const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({
       </div>
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 lg:col-span-2 mt-2">
-      <div className="flex items-center space-x-2">
-        <Switch
-          id="prioritize-recent-form"
-          checked={prioritizeRecentForm}
-          onCheckedChange={onPrioritizeRecentFormChange}
-        />
-        <Label htmlFor="prioritize-recent-form" className="flex items-center gap-2 cursor-pointer">
-          <Activity className="h-4 w-4" />
-          Priorizar forma reciente
-        </Label>
-      </div>
-
         {hasLaterals && (
           <div className="flex items-center space-x-2">
             <Switch
@@ -183,7 +167,7 @@ const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({
             </Label>
           </div>
         )}
-         {hasWingers && (
+        {hasWingers && (
           <div className="flex items-center space-x-2">
             <Switch
               id="flexible-wingers"
