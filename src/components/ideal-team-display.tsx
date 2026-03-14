@@ -249,7 +249,7 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onUpda
         </FootballPitch>
       </div>
       <div className="lg:w-72 flex-shrink-0">
-        <h3 className="text-sm font-semibold mb-2 px-1">Banquillo — Probadores <span className="text-muted-foreground font-normal">(≤5 partidos)</span></h3>
+        <h3 className="text-sm font-semibold mb-2 px-1">Banquillo — Probadores / Mejores <span className="text-muted-foreground font-normal">(prioridad &lt;5 partidos)</span></h3>
         <div className="grid grid-cols-2 lg:grid-cols-1 gap-1.5">
           {substitutes.map((sub: any, index: number) => (
             <BenchCard key={sub?.card.id ? `sub-${sub.card.id}-${index}` : `vacante-${index}`} player={sub} onDiscard={onDiscardPlayer} onUpdateLiveUpdateRating={onUpdateLiveUpdateRating} onPlayerClick={handlePlayerClick} />

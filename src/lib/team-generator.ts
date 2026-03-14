@@ -133,22 +133,33 @@ export function generateIdealTeam(
     return null;
   });
 
-  // 2. ASSIGN BENCH — only "player testers": candidates with <= 5 matches in the position.
+  // 2. ASSIGN BENCH — prioritized "player testers": candidates with < 5 matches in the position.
+  // When no testers are left, select the best players in that position.
   // Slots 1-11 follow the formation position order (same as the ideal 11).
-  // Slot 12 is an extra player (any remaining tester) appended at the very end.
-  const isTester = (p: CandidatePlayer) => p.performance.stats.matches <= 5;
+  // Slot 12 is an extra player (tester or best remaining) appended at the very end.
+  const isTester = (p: CandidatePlayer) => p.performance.stats.matches < 5;
 
   const benchAssignments: IdealTeamPlayer[] = [];
   const usedPlayerIdsForBench = new Set<string>(usedPlayerIds);
   const usedCardIdsForBench = new Set<string>(usedCardIds);
 
-  // First pass: one backup per formation slot (in priority order), testers only
+  // First pass: one backup per formation slot (in priority order), testers preferred, then best available.
   for (const slot of sortedFormationSlots) {
     if (benchAssignments.length >= 11) break;
     const candidates = getCandidatesForSlot(slot);
-    const backup = candidates.find(
+    
+    // Try to find a tester first
+    let backup = candidates.find(
       p => isTester(p) && !usedPlayerIdsForBench.has(p.player.id) && !usedCardIdsForBench.has(p.card.id)
     );
+    
+    // Fallback: If no tester, pick the best available player for that position
+    if (!backup) {
+      backup = candidates.find(
+        p => !usedPlayerIdsForBench.has(p.player.id) && !usedCardIdsForBench.has(p.card.id)
+      );
+    }
+
     if (backup) {
       usedPlayerIdsForBench.add(backup.player.id);
       usedCardIdsForBench.add(backup.card.id);
@@ -156,15 +167,26 @@ export function generateIdealTeam(
     }
   }
 
-  // Slot 12: extra tester — best remaining tester that fits any formation position, goes last
+  // Slot 12: extra tester or best remaining — best remaining player that fits any formation position
   if (benchAssignments.length < 12) {
     const formationPositions = formation.slots.map(s => s.position);
-    const extraTester = allPlayerCandidates
+    
+    // Try to find any remaining tester
+    let extra = allPlayerCandidates
       .filter(p => isTester(p) && !usedPlayerIdsForBench.has(p.player.id) && !usedCardIdsForBench.has(p.card.id))
       .filter(p => formationPositions.includes(p.position))
       .sort(candidateSort)[0];
-    if (extraTester) {
-      benchAssignments.push({ ...extraTester, assignedPosition: extraTester.position } as IdealTeamPlayer);
+    
+    // Fallback: Best remaining player that fits any position
+    if (!extra) {
+      extra = allPlayerCandidates
+        .filter(p => !usedPlayerIdsForBench.has(p.player.id) && !usedCardIdsForBench.has(p.card.id))
+        .filter(p => formationPositions.includes(p.position))
+        .sort(candidateSort)[0];
+    }
+
+    if (extra) {
+      benchAssignments.push({ ...extra, assignedPosition: extra.position } as IdealTeamPlayer);
     }
   }
 
