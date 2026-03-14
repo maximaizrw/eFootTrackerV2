@@ -6,12 +6,12 @@ import { db } from '@/lib/firebase-config';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, setDoc } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import { v4 as uuidv4 } from 'uuid';
-import type { Player, PlayerCard, Position, PlayerBuild, FlatPlayer, LiveUpdateRating, PlayerSkill, PlayerAttributeStats, PhysicalAttribute, Nationality, League, IdealRoleBuild } from '@/lib/types';
+import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating, PlayerSkill, PlayerAttributeStats, PhysicalAttribute, Nationality, League, RoleTier } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import { getAvailableStylesForPosition, playerSkillsList } from '@/lib/types';
-import { normalizeText, normalizeStyleName, calculateStats, calculateRoleRating, calculateOverall, calculateRecencyWeightedAverage, resolveIdealBuild, calculateFinalStats } from '@/lib/utils';
+import { normalizeText, normalizeStyleName, calculateStats, calculateOverall, calculateRecencyWeightedAverage } from '@/lib/utils';
 
-export function usePlayers(idealBuilds: IdealRoleBuild[]) {
+export function usePlayers() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [flatPlayers, setFlatPlayers] = useState<FlatPlayer[]>([]);
   const [positionNotes, setPositionNotes] = useState<Record<string, string>>({});
@@ -37,7 +37,7 @@ export function usePlayers(idealBuilds: IdealRoleBuild[]) {
                 id: card.id || uuidv4(),
                 style: normalizeStyleName(card.style),
                 ratingsByPosition: card.ratingsByPosition || {},
-                buildsByPosition: card.buildsByPosition || {},
+                tierByPosition: card.tierByPosition || {},
                 skills: (card.skills || []).filter((s: string) => validSkillsSet.has(s as any)),
             }));
 
@@ -83,24 +83,18 @@ export function usePlayers(idealBuilds: IdealRoleBuild[]) {
                 const stats = calculateStats(ratingsForPos);
                 const recentAverage = calculateRecencyWeightedAverage(ratingsForPos, 5, 2.5, 0.9);
                 
-                const availableStylesForPos = getAvailableStylesForPosition(ratedPos, false);
-                const effectiveRole = availableStylesForPos.includes(card.style) ? card.style : 'Ninguno';
-                const idealBuild = resolveIdealBuild(ratedPos, effectiveRole, idealBuilds);
-                
-                const buildForPos = card.buildsByPosition?.[ratedPos] || {};
-                const effectiveStats = calculateFinalStats(card.attributeStats || {}, buildForPos);
-                const roleRating = calculateRoleRating(effectiveStats, card.skills || [], idealBuild);
-                const overall = calculateOverall(roleRating, stats.average, stats.matches, player.liveUpdateRating, recentAverage);
+                const tier = card.tierByPosition?.[ratedPos] || null;
+                const overall = calculateOverall(stats.average, stats.matches, player.liveUpdateRating, recentAverage);
 
                 return { 
                     player, card, ratingsForPos, performance: { stats, isHotStreak: false, isConsistent: false, isPromising: false, isVersatile: playerPositions.length >= 3 }, 
-                    roleRating, overall, position: ratedPos, idealBuild 
+                    tier, overall, position: ratedPos 
                 } as FlatPlayer;
             }).filter((p): p is FlatPlayer => p !== null);
         })
     );
     setFlatPlayers(allFlatPlayers);
-  }, [players, idealBuilds]);
+  }, [players]);
 
   const addRating = async (values: AddRatingFormValues) => {
     let { playerName, cardName, position, rating, style, league, nationality, playerId } = values;
@@ -123,15 +117,34 @@ export function usePlayers(idealBuilds: IdealRoleBuild[]) {
           if (!card.ratingsByPosition) card.ratingsByPosition = {};
           if (!card.ratingsByPosition[pos]) card.ratingsByPosition[pos] = [];
           card.ratingsByPosition[pos]!.push(rating);
+          
+          if (values.tier) {
+            if (!card.tierByPosition) card.tierByPosition = {};
+            card.tierByPosition[pos] = values.tier;
+          }
         } else {
-          newCards.push({ id: uuidv4(), name: cardName, style, league: league || 'Sin Liga', ratingsByPosition: { [pos]: [rating] } } as any);
+          newCards.push({ 
+            id: uuidv4(), 
+            name: cardName, 
+            style, 
+            league: league || 'Sin Liga', 
+            ratingsByPosition: { [pos]: [rating] },
+            tierByPosition: values.tier ? { [pos]: values.tier } : {}
+          } as any);
         }
         await updateDoc(playerRef, { cards: newCards });
       } else {
         await addDoc(collection(db, 'players'), {
           name: playerName,
           nationality,
-          cards: [{ id: uuidv4(), name: cardName, style, league: league || 'Sin Liga', ratingsByPosition: { [pos]: [rating] } }]
+          cards: [{ 
+            id: uuidv4(), 
+            name: cardName, 
+            style, 
+            league: league || 'Sin Liga', 
+            ratingsByPosition: { [pos]: [rating] },
+            tierByPosition: values.tier ? { [pos]: values.tier } : {}
+          }]
         });
       }
       toast({ title: "Valoración guardada" });
@@ -149,32 +162,15 @@ export function usePlayers(idealBuilds: IdealRoleBuild[]) {
     } catch (e) { toast({ variant: "destructive", title: "Error al guardar nota" }); }
   };
 
-  const savePlayerBuild = async (playerId: string, cardId: string, position: Position, build: PlayerBuild) => {
-    if (!db) return;
-    try {
-        const playerRef = doc(db, 'players', playerId);
-        const playerDoc = await getDoc(playerRef);
-        const playerData = playerDoc.data() as Player;
-        const newCards: PlayerCard[] = JSON.parse(JSON.stringify(playerData.cards || []));
-        const card = newCards.find(c => c.id === cardId);
-        if (card) {
-            if (!card.buildsByPosition) card.buildsByPosition = {};
-            card.buildsByPosition[position] = build;
-            await updateDoc(playerRef, { cards: newCards });
-            toast({ title: "Entrenamiento guardado" });
-        }
-    } catch (e) { toast({ variant: "destructive", title: "Error al guardar build" }); }
-  };
 
   const updateFullPlayerData = async (playerId: string, cardId: string, position: Position, data: {
-    build: PlayerBuild;
+    tier?: RoleTier;
     imageUrl?: string;
     stats: PlayerAttributeStats;
     physical: PhysicalAttribute;
     skills: PlayerSkill[];
     nationality?: Nationality;
     league?: League;
-    availableTrainingPoints?: number;
   }) => {
     if (!db) return;
     try {
@@ -198,19 +194,16 @@ export function usePlayers(idealBuilds: IdealRoleBuild[]) {
       const playerData = playerDoc.data() as Player;
       const newCards = playerData.cards.map(card => {
         if (card.id === cardId) {
-          const updatedBuilds = { ...card.buildsByPosition, [position]: data.build };
+          const updatedTiers = { ...card.tierByPosition, [position]: data.tier || null };
           const updatedCard: any = {
             ...card,
             imageUrl: data.imageUrl || card.imageUrl,
             attributeStats: data.stats,
             physicalAttributes: data.physical,
             skills: data.skills,
-            buildsByPosition: updatedBuilds,
+            tierByPosition: updatedTiers,
             league: data.league || card.league,
           };
-          if (data.availableTrainingPoints !== undefined) {
-            updatedCard.availableTrainingPoints = data.availableTrainingPoints;
-          }
           return stripUndefined(updatedCard);
         }
         return card;
@@ -226,6 +219,29 @@ export function usePlayers(idealBuilds: IdealRoleBuild[]) {
     } catch (e) {
       console.error(e);
       toast({ variant: "destructive", title: "Error al actualizar" });
+    }
+  };
+
+  const updateTier = async (playerId: string, cardId: string, position: Position, tier: RoleTier | null) => {
+    if (!db) return;
+    try {
+      const playerRef = doc(db, 'players', playerId);
+      const playerDoc = await getDoc(playerRef);
+      if (!playerDoc.exists()) return;
+      
+      const playerData = playerDoc.data() as Player;
+      const newCards = playerData.cards.map(card => {
+        if (card.id === cardId) {
+          const updatedTiers = { ...card.tierByPosition, [position]: tier };
+          return { ...card, tierByPosition: updatedTiers };
+        }
+        return card;
+      });
+
+      await updateDoc(playerRef, { cards: newCards });
+      toast({ title: "Tier actualizado" });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Error al actualizar tier" });
     }
   };
 
@@ -273,7 +289,7 @@ export function usePlayers(idealBuilds: IdealRoleBuild[]) {
       const playerDoc = await getDoc(playerRef);
       const playerData = playerDoc.data() as Player;
       const newCards = playerData.cards.map(c => 
-        c.id === values.cardId ? { ...c, name: values.currentCardName, style: values.currentStyle, league: values.league, imageUrl: values.imageUrl, availableTrainingPoints: values.availableTrainingPoints } : c
+        c.id === values.cardId ? { ...c, name: values.currentCardName, style: values.currentStyle, league: values.league, imageUrl: values.imageUrl } : c
       );
       await updateDoc(playerRef, { cards: newCards });
       toast({ title: "Carta actualizada" });
@@ -325,31 +341,12 @@ export function usePlayers(idealBuilds: IdealRoleBuild[]) {
     } catch (e) {}
   };
 
-  const resetAllBuilds = async () => {
-    if (!db) return;
-    try {
-      const snap = await getDocs(collection(db, 'players'));
-      for (const d of snap.docs) {
-        const data = d.data() as Player;
-        if (data.cards) {
-          const newCards = data.cards.map(c => ({
-            ...c,
-            buildsByPosition: {}
-          }));
-          await updateDoc(doc(db, 'players', d.id), { cards: newCards });
-        }
-      }
-      toast({ title: "Todas las builds han sido reiniciadas a 0" });
-    } catch (e) {
-      toast({ variant: "destructive", title: "Error al reiniciar builds" });
-    }
-  };
+
 
   return { 
     players, flatPlayers, positionNotes, loading, error, 
-    addRating, savePositionNote, savePlayerBuild, 
+    addRating, savePositionNote, 
     deletePositionRatings, updateLiveUpdateRating, resetAllLiveUpdateRatings,
-    editCard, editPlayer, deleteRating, downloadBackup, saveAttributeStats, updateFullPlayerData,
-    resetAllBuilds
+    editCard, editPlayer, deleteRating, downloadBackup, saveAttributeStats, updateFullPlayerData, updateTier
   };
 }

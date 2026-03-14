@@ -30,7 +30,8 @@ export type PlayerStyle = typeof playerStyles[number];
 export const positions = ['PT', 'DFC', 'LI', 'LD', 'MCD', 'MC', 'MDI', 'MDD', 'MO', 'EXI', 'EXD', 'SD', 'DC'] as const;
 export type Position = typeof positions[number];
 
-// Tiers removed, using Overall instead
+// Tier
+export type RoleTier = 'S' | 'A' | 'B' | 'C' | 'D' | null;
 
 export const leagues = [
   "Sin Liga", "Premier League", "Ligue 1 Uber Eats", "Serie A TIM", "LaLiga EA SPORTS",
@@ -112,35 +113,7 @@ export type PhysicalAttribute = {
   weight?: number;
 }
 
-export type PriorityItem = {
-  id: string;
-  type: 'stat' | 'skill';
-  key: string;
-};
 
-export type IdealRoleBuild = {
-  id: string; // position-role (e.g., 'DC-Cazagoles')
-  position: Position;
-  role: PlayerStyle;
-  targetStats: PlayerAttributeStats;
-  targetSkills: PlayerSkill[];
-  priorityList?: PriorityItem[];
-};
-
-export type PlayerBuild = {
-  updatedAt?: string;
-  shooting?: number;
-  passing?: number;
-  dribbling?: number;
-  dexterity?: number;
-  lowerBodyStrength?: number;
-  aerialStrength?: number;
-  defending?: number;
-  gk1?: number;
-  gk2?: number;
-  gk3?: number;
-  manualAffinity?: number;
-};
 
 export type PlayerCard = {
   id: string;
@@ -148,9 +121,8 @@ export type PlayerCard = {
   style: PlayerStyle;
   league?: League;
   imageUrl?: string;
-  availableTrainingPoints?: number;
   ratingsByPosition: { [key in Position]?: number[] };
-  buildsByPosition?: { [key in Position]?: PlayerBuild };
+  tierByPosition?: { [key in Position]?: RoleTier };
   attributeStats?: PlayerAttributeStats;
   physicalAttributes?: PhysicalAttribute;
   skills?: PlayerSkill[];
@@ -171,7 +143,7 @@ export type IdealTeamPlayer = {
   position: Position;
   assignedPosition: string; // The role/position name in the tactical scheme
   average: number;
-  roleRating: number;
+  tier: RoleTier;
   overall: number;
   performance: PlayerPerformance;
 };
@@ -243,11 +215,9 @@ export type FlatPlayer = {
   card: PlayerCard;
   ratingsForPos: number[];
   performance: PlayerPerformance;
-  roleRating: number;
+  tier: RoleTier;
   overall: number;
   position: Position;
-  availableTrainingPoints?: number;
-  idealBuild?: IdealRoleBuild | null;
 };
 
 export function getAvailableStylesForPosition(position: Position, includeNone: boolean = false): PlayerStyle[] {

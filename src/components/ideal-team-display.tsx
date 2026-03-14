@@ -1,11 +1,11 @@
 "use client";
 
-import type { IdealTeamPlayer, IdealTeamSlot, FormationStats, Position, LiveUpdateRating, PlayerBuild } from '@/lib/types';
+import type { IdealTeamPlayer, IdealTeamSlot, FormationStats, Position, LiveUpdateRating } from '@/lib/types';
 import Image from 'next/image';
-import { Users, Shirt, X, Info, Dumbbell } from 'lucide-react';
+import { Users, Shirt, X, Info } from 'lucide-react';
 import { Button } from './ui/button';
 import { FootballPitch } from './football-pitch';
-import { cn, getProxiedImageUrl, calculatePointsSpent, isSpecialCard } from '@/lib/utils';
+import { cn, getProxiedImageUrl } from '@/lib/utils';
 import { memo, useState } from 'react';
 import { LiveUpdateRatingSelector } from './live-update-rating-selector';
 import {
@@ -17,21 +17,10 @@ import {
 } from './ui/dialog';
 import { Badge } from './ui/badge';
 
-const buildLabels: { key: keyof PlayerBuild; label: string }[] = [
-  { key: 'shooting', label: 'Tiro' },
-  { key: 'passing', label: 'Pase' },
-  { key: 'dribbling', label: 'Regate' },
-  { key: 'dexterity', label: 'Destreza' },
-  { key: 'lowerBodyStrength', label: 'Fuerza Inferior' },
-  { key: 'aerialStrength', label: 'Fuerza Aérea' },
-  { key: 'defending', label: 'Defensa' },
-  { key: 'gk1', label: 'PT - Actitud' },
-  { key: 'gk2', label: 'PT - Parada' },
-  { key: 'gk3', label: 'PT - Reflejos' },
-];
+
 
 const PlayerToken = memo(function PlayerToken({
-  player, style, hoveredId, onHover, onDiscard, onUpdateLiveUpdateRating, onPlayerClick
+  player, style, hoveredId, onHover, onDiscard, onUpdateLiveUpdateRating
 }: any) {
   if (!player || player.player.id.startsWith('ph')) {
     return (
@@ -44,19 +33,6 @@ const PlayerToken = memo(function PlayerToken({
   }
 
   const isHovered = hoveredId === player.card.id;
-  const isPOT = isSpecialCard(player.card.name);
-  const build = player.card.buildsByPosition?.[player.position as Position];
-  const pointsSpent = build ? calculatePointsSpent(build) : 0;
-  let statusColor: string | null = null;
-  if (!isPOT) {
-    if (pointsSpent === 0) statusColor = 'text-red-500';
-    else if (build?.updatedAt) {
-      const lastUpdate = new Date(build.updatedAt);
-      const now = new Date();
-      const diffDays = (now.getTime() - lastUpdate.getTime()) / (1000 * 3600 * 24);
-      if (diffDays > 7) statusColor = 'text-yellow-500';
-    }
-  }
 
   return (
     <div
@@ -64,7 +40,6 @@ const PlayerToken = memo(function PlayerToken({
       style={style}
       onPointerEnter={() => onHover(player.card.id)}
       onPointerLeave={() => onHover(null)}
-      onClick={() => onPlayerClick(player)}
     >
       <Button
         variant="destructive" size="icon" className={cn("absolute -top-1 -right-1 h-5 w-5 rounded-full z-[60] transition-opacity", isHovered ? "opacity-100" : "opacity-0")}
@@ -86,7 +61,6 @@ const PlayerToken = memo(function PlayerToken({
         <LiveUpdateRatingSelector value={player.player.liveUpdateRating} onValueChange={(v: LiveUpdateRating | null) => onUpdateLiveUpdateRating(player.player.id, v)} />
         <span className="text-[10px] md:text-xs font-bold text-white whitespace-nowrap flex items-center gap-1" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>
             {player.player.name} 
-            {statusColor && <Dumbbell className={cn("h-2.5 w-2.5", statusColor)} />}
             <span className="ml-0.5 text-accent">{player.overall?.toFixed(0) || '-'}</span>
         </span>
       </div>
@@ -94,7 +68,7 @@ const PlayerToken = memo(function PlayerToken({
   );
 });
 
-const BenchCard = memo(function BenchCard({ player, onDiscard, onUpdateLiveUpdateRating, onPlayerClick }: any) {
+const BenchCard = memo(function BenchCard({ player, onDiscard, onUpdateLiveUpdateRating }: any) {
   if (!player || player.player.id.startsWith('ph')) {
     return (
       <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-muted/20 border border-dashed border-foreground/10 min-h-[2.75rem]">
@@ -104,24 +78,9 @@ const BenchCard = memo(function BenchCard({ player, onDiscard, onUpdateLiveUpdat
     );
   }
 
-  const isPOT = isSpecialCard(player.card.name);
-  const build = player.card.buildsByPosition?.[player.position as Position];
-  const pointsSpent = build ? calculatePointsSpent(build) : 0;
-  let statusColor: string | null = null;
-  if (!isPOT) {
-    if (pointsSpent === 0) statusColor = 'text-red-500';
-    else if (build?.updatedAt) {
-      const lastUpdate = new Date(build.updatedAt);
-      const now = new Date();
-      const diffDays = (now.getTime() - lastUpdate.getTime()) / (1000 * 3600 * 24);
-      if (diffDays > 7) statusColor = 'text-yellow-500';
-    }
-  }
-
   return (
     <div
       className="group/bench relative flex items-center gap-2 px-2 py-1.5 rounded-lg bg-card border border-border/50 min-h-[2.75rem] hover:bg-accent/10 cursor-pointer"
-      onClick={() => onPlayerClick(player)}
     >
       <Button
         variant="destructive" size="icon" className="absolute -top-1 -right-1 h-4 w-4 rounded-full opacity-0 group-hover/bench:opacity-100 transition-opacity"
@@ -142,7 +101,6 @@ const BenchCard = memo(function BenchCard({ player, onDiscard, onUpdateLiveUpdat
             <LiveUpdateRatingSelector value={player.player.liveUpdateRating} onValueChange={(v: LiveUpdateRating | null) => onUpdateLiveUpdateRating(player.player.id, v)} />
             <span className="text-[10px] font-semibold truncate flex items-center gap-1">
               {player.player.name}
-              {statusColor && <Dumbbell className={cn("h-2 w-2", statusColor)} />}
             </span>
             <span className="text-[10px] font-black ml-auto text-accent">{player.overall?.toFixed(0) || '-'}</span>
           </div>
@@ -153,78 +111,10 @@ const BenchCard = memo(function BenchCard({ player, onDiscard, onUpdateLiveUpdat
   );
 });
 
-function BuildViewerDialog({
-  player,
-  open,
-  onOpenChange,
-}: {
-  player: IdealTeamPlayer | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
-  if (!player) return null;
 
-  const pos = player.position as Position;
-  const build: PlayerBuild | undefined = player.card.buildsByPosition?.[pos];
-  const hasAnyLevel = build && buildLabels.some(({ key }) => {
-    const val = build[key];
-    return typeof val === 'number' && val > 0;
-  });
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Badge variant="secondary" className="font-bold">{player.assignedPosition}</Badge>
-            {player.player.name}
-          </DialogTitle>
-          <DialogDescription>
-            {player.card.style !== 'Ninguno' ? `Rol: ${player.card.style}` : 'Sin rol asignado'}
-            {' · '}Carta: {player.card.name}
-          </DialogDescription>
-        </DialogHeader>
-
-        {!build || !hasAnyLevel ? (
-          <div className="flex flex-col items-center justify-center py-8 text-muted-foreground gap-2">
-            <Info className="h-8 w-8 opacity-30" />
-            <p className="text-sm font-medium">Sin build asignada</p>
-            <p className="text-xs text-center">Este jugador no tiene puntos de progresión asignados para la posición {pos}.</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              {buildLabels.map(({ key, label }) => {
-                const val = build[key];
-                if (typeof val !== 'number' || val <= 0) return null;
-                return (
-                  <div key={key} className="flex items-center justify-between px-3 py-2 rounded-md border bg-card border-border text-sm">
-                    <span className="font-medium">{label}</span>
-                    <span className="text-lg font-black tabular-nums text-accent">{val}</span>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="flex items-center justify-between px-3 py-2 rounded-md bg-muted/30 text-sm border border-border/50">
-              <span className="text-muted-foreground">Puntos gastados</span>
-              <span className="font-bold tabular-nums">{calculatePointsSpent(build)}</span>
-            </div>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onUpdateLiveUpdateRating }: any) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [selectedPlayer, setSelectedPlayer] = useState<IdealTeamPlayer | null>(null);
-  const [isBuildDialogOpen, setBuildDialogOpen] = useState(false);
-
-  const handlePlayerClick = (player: IdealTeamPlayer) => {
-    setSelectedPlayer(player);
-    setBuildDialogOpen(true);
-  };
 
   if (teamSlots.length === 0 || !formation) return <div className="mt-8 text-center text-muted-foreground p-8 bg-card border border-dashed rounded-lg">Configura tu táctica y genera el equipo.</div>;
 
@@ -244,7 +134,7 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onUpda
         <FootballPitch className="aspect-[4/3] lg:aspect-[3/2]">
           {starters.map((starter: any, index: number) => {
             const slot = formation.slots[index];
-            return <PlayerToken key={starter?.card.id || `empty-${index}`} player={starter} style={{ top: `${slot?.top}%`, left: `${slot?.left}%` }} hoveredId={hoveredId} onHover={setHoveredId} onDiscard={onDiscardPlayer} onUpdateLiveUpdateRating={onUpdateLiveUpdateRating} onPlayerClick={handlePlayerClick} />;
+            return <PlayerToken key={starter?.card.id || `empty-${index}`} player={starter} style={{ top: `${slot?.top}%`, left: `${slot?.left}%` }} hoveredId={hoveredId} onHover={setHoveredId} onDiscard={onDiscardPlayer} onUpdateLiveUpdateRating={onUpdateLiveUpdateRating} />;
           })}
         </FootballPitch>
       </div>
@@ -252,16 +142,11 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onUpda
         <h3 className="text-sm font-semibold mb-2 px-1">Banquillo — Probadores / Mejores <span className="text-muted-foreground font-normal">(prioridad &lt;5 partidos)</span></h3>
         <div className="grid grid-cols-2 lg:grid-cols-1 gap-1.5">
           {substitutes.map((sub: any, index: number) => (
-            <BenchCard key={sub?.card.id ? `sub-${sub.card.id}-${index}` : `vacante-${index}`} player={sub} onDiscard={onDiscardPlayer} onUpdateLiveUpdateRating={onUpdateLiveUpdateRating} onPlayerClick={handlePlayerClick} />
+            <BenchCard key={sub?.card.id ? `sub-${sub.card.id}-${index}` : `vacante-${index}`} player={sub} onDiscard={onDiscardPlayer} onUpdateLiveUpdateRating={onUpdateLiveUpdateRating} />
           ))}
         </div>
       </div>
 
-      <BuildViewerDialog
-        player={selectedPlayer}
-        open={isBuildDialogOpen}
-        onOpenChange={setBuildDialogOpen}
-      />
     </div>
   );
 }

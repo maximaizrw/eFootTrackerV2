@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Trash2, Search, SlidersHorizontal, Dumbbell, Pencil, Copy, CheckCircle2, Info, History, X } from 'lucide-react';
-import { cn, formatAverage, getAverageColorClass, getProxiedImageUrl, calculateRecencyWeightedAverage, calculatePointsSpent, isSpecialCard, roleRatingToTier, getTierColorClass } from '@/lib/utils';
-import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating } from '@/lib/types';
+import { cn, formatAverage, getAverageColorClass, getProxiedImageUrl, calculateRecencyWeightedAverage, isSpecialCard, getTierColorClass } from '@/lib/utils';
+import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating, RoleTier } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import { LiveUpdateRatingSelector } from './live-update-rating-selector';
 import { useToast } from '@/hooks/use-toast';
@@ -45,6 +45,7 @@ type PlayerTableProps = {
   onDeletePositionRatings: (playerId: string, cardId: string, position: Position) => void;
   onDeleteRating: (playerId: string, cardId: string, position: Position, ratingIndex: number) => void;
   onUpdateLiveUpdateRating: (playerId: string, rating: LiveUpdateRating | null) => void;
+  onUpdateTier: (playerId: string, cardId: string, position: Position, tier: RoleTier) => void;
 };
 
 const Filters = memo(({
@@ -156,6 +157,7 @@ const PlayerTableMemo = memo(function PlayerTable({
   onDeletePositionRatings,
   onDeleteRating,
   onUpdateLiveUpdateRating,
+  onUpdateTier,
 }: PlayerTableProps) {
   
   if (flatPlayers.length === 0) return <div className="p-10 text-center text-muted-foreground">Sin jugadores en esta posición.</div>;
@@ -176,9 +178,8 @@ const PlayerTableMemo = memo(function PlayerTable({
         </TableHeader>
         <TableBody>
           {flatPlayers.map((flatPlayer) => {
-            const { player, card, ratingsForPos, performance, roleRating, overall } = flatPlayer;
+            const { player, card, ratingsForPos, performance, tier, overall } = flatPlayer;
             const cardAverage = performance.stats.average;
-            const isTierUnassigned = false; // logic removed
             
             const recentAverage = calculateRecencyWeightedAverage(ratingsForPos, 5, 2.5, 0.9);
 
@@ -199,46 +200,11 @@ const PlayerTableMemo = memo(function PlayerTable({
                               onClick={() => onOpenPlayerDetail(flatPlayer)} 
                               className={cn(
                                   "font-medium text-sm md:text-base hover:underline truncate transition-colors text-left",
-                                  isTierUnassigned ? "text-red-600 dark:text-red-500 font-bold" : "text-foreground"
+                                  (!tier) ? "text-red-600 dark:text-red-500 font-bold" : "text-foreground"
                               )}
                             >
                               {player.name}
                             </button>
-                            {(() => {
-                              if (isSpecialCard(card.name)) return null;
-                              const build = card.buildsByPosition?.[position];
-                              const pointsSpent = build ? calculatePointsSpent(build) : 0;
-                              if (pointsSpent === 0) {
-                                return (
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Dumbbell className="h-3 w-3 text-red-500 shrink-0" />
-                                      </TooltipTrigger>
-                                      <TooltipContent>Build no modificada (0 pts)</TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                );
-                              }
-                              if (build?.updatedAt) {
-                                const lastUpdate = new Date(build.updatedAt);
-                                const now = new Date();
-                                const diffDays = (now.getTime() - lastUpdate.getTime()) / (1000 * 3600 * 24);
-                                if (diffDays > 7) {
-                                  return (
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <Dumbbell className="h-3 w-3 text-yellow-500 shrink-0" />
-                                        </TooltipTrigger>
-                                        <TooltipContent>Actualizar build (hace +7 días)</TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
-                                  );
-                                }
-                              }
-                              return null;
-                            })()}
                           </div>
                       </div>
                       <span className="text-xs text-muted-foreground truncate block">{card.name} ({performance.stats.matches} P.)</span>
@@ -249,14 +215,22 @@ const PlayerTableMemo = memo(function PlayerTable({
                   {card.style !== "Ninguno" ? <Badge variant="secondary">{card.style}</Badge> : '-'}
                 </TableCell>
                 <TableCell>
-                  {(() => {
-                    const tier = roleRatingToTier(roleRating);
-                    return (
-                      <div className={cn('inline-flex items-center justify-center px-2.5 py-1 rounded-md border text-sm font-black', getTierColorClass(tier))}>
-                        {tier}
-                      </div>
-                    );
-                  })()}
+                    <Select 
+                      value={tier || "none"} 
+                      onValueChange={(v) => onUpdateTier(player.id, card.id, position, v === "none" ? null : v as RoleTier)}
+                    >
+                      <SelectTrigger className={cn('w-16 h-8 justify-center [&>svg]:hidden', tier ? getTierColorClass(tier) : 'bg-muted')}>
+                        <SelectValue placeholder="-" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sin Tier</SelectItem>
+                        <SelectItem value="S"><div className={cn("px-2 rounded border", getTierColorClass("S"))}>S</div></SelectItem>
+                        <SelectItem value="A"><div className={cn("px-2 rounded border", getTierColorClass("A"))}>A</div></SelectItem>
+                        <SelectItem value="B"><div className={cn("px-2 rounded border", getTierColorClass("B"))}>B</div></SelectItem>
+                        <SelectItem value="C"><div className={cn("px-2 rounded border", getTierColorClass("C"))}>C</div></SelectItem>
+                        <SelectItem value="D"><div className={cn("px-2 rounded border", getTierColorClass("D"))}>D</div></SelectItem>
+                      </SelectContent>
+                    </Select>
                 </TableCell>
                 <TableCell>
                   <div className={cn("text-base font-bold", getAverageColorClass(cardAverage))}>{formatAverage(cardAverage)}</div>

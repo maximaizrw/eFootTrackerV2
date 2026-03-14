@@ -45,7 +45,7 @@ import {
 } from "@/components/ui/popover"
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
-import type { Player, Position, PlayerStyle, League, Nationality } from "@/lib/types";
+import type { Player, Position, PlayerStyle, League, Nationality, RoleTier } from "@/lib/types";
 import { positions, playerStyles, leagues, nationalities, getAvailableStylesForPosition } from "@/lib/types";
 import { Alert, AlertDescription } from "./ui/alert";
 
@@ -58,6 +58,7 @@ const formSchema = z.object({
   style: z.enum(playerStyles),
   league: z.enum(leagues).optional(),
   rating: z.number().min(1).max(10),
+  tier: z.enum(['S', 'A', 'B', 'C', 'D']).nullable().optional(),
 });
 
 export type FormValues = z.infer<typeof formSchema>;
@@ -109,6 +110,7 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, players, init
         style: 'Ninguno' as PlayerStyle,
         league: 'Sin Liga' as League,
         rating: 5,
+        tier: null as RoleTier,
       };
       
       form.reset({ ...defaultValues, ...initialData });
@@ -433,6 +435,31 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, players, init
                       onValueChange={(value) => field.onChange(value[0])}
                     />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="tier"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tier de la Carta en esta Posición (Opcional)</FormLabel>
+                  <Select onValueChange={(v) => field.onChange(v === 'none' ? null : v)} value={field.value || 'none'}>
+                    <FormControl>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Selecciona un tier (opcional)" />
+                    </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="none">Sin Tier</SelectItem>
+                      <SelectItem value="S">Tier S</SelectItem>
+                      <SelectItem value="A">Tier A</SelectItem>
+                      <SelectItem value="B">Tier B</SelectItem>
+                      <SelectItem value="C">Tier C</SelectItem>
+                      <SelectItem value="D">Tier D</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

@@ -43,15 +43,11 @@ import { positions, leagues, nationalities } from '@/lib/types';
 import { normalizeText } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Sliders, FlaskConical, Trash2 } from 'lucide-react';
-import { IdealBuildsManager } from '@/components/ideal-builds-manager';
-import { PlayerTester } from '@/components/player-tester';
+import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 10;
 
 export default function Home() {
-
-  const { idealBuilds } = useIdealBuilds();
 
   const { 
     players, 
@@ -63,14 +59,13 @@ export default function Home() {
     editPlayer,
     deleteRating,
     downloadBackup: downloadPlayersBackup,
-    savePlayerBuild,
     saveAttributeStats,
     deletePositionRatings,
     updateLiveUpdateRating,
     resetAllLiveUpdateRatings,
     updateFullPlayerData,
-    resetAllBuilds,
-  } = usePlayers(idealBuilds);
+    updateTier,
+  } = usePlayers();
 
   const {
     formations,
@@ -121,6 +116,7 @@ export default function Home() {
   const [isFlexibleLaterals, setFlexibleLaterals] = useState(false);
   const [isFlexibleWingers, setFlexibleWingers] = useState(false);
   const [selectionCriteria, setSelectionCriteria] = useState<'overall' | 'average'>('overall');
+  const [teamMode, setTeamMode] = useState<'liga' | 'evento'>('liga');
   
   const [pagination, setPagination] = useState<Record<string, number>>({});
   
@@ -148,27 +144,27 @@ export default function Home() {
     const newTeam = generateIdealTeam(
         players, 
         formation, 
-        discardedCardIds, 
-        selectedLeague, 
+        discardedCardIds,
+        selectedLeague,
         selectedNationality, 
         isFlexibleLaterals, 
         isFlexibleWingers, 
         selectionCriteria,
-        idealBuilds
+        teamMode
     );
 
     setIdealTeam(newTeam);
     if (!silent) {
       toast({ title: "Equipo Generado", description: `Se ha generado una convocatoria para "${formation.name}".` });
     }
-  }, [players, selectedFormationId, formations, discardedCardIds, selectedLeague, selectedNationality, isFlexibleLaterals, isFlexibleWingers, selectionCriteria, idealBuilds, toast]);
+  }, [players, selectedFormationId, formations, discardedCardIds, selectedLeague, selectedNationality, isFlexibleLaterals, isFlexibleWingers, selectionCriteria, teamMode, toast]);
 
   // Automatically refresh team if it's already showing and discards or filters change
   useEffect(() => {
     if (idealTeam.length > 0) {
       handleGenerateTeam(true);
     }
-  }, [discardedCardIds, selectedLeague, selectedNationality, isFlexibleLaterals, isFlexibleWingers, selectionCriteria, handleGenerateTeam, idealTeam.length]);
+  }, [discardedCardIds, selectedLeague, selectedNationality, isFlexibleLaterals, isFlexibleWingers, selectionCriteria, teamMode, handleGenerateTeam, idealTeam.length]);
 
   const handleOpenAddRating = useCallback((initialData?: Partial<AddRatingFormValues>) => {
     setAddDialogInitialData(initialData);
@@ -182,8 +178,7 @@ export default function Home() {
         currentCardName: card.name,
         currentStyle: card.style,
         league: card.league || 'Sin Liga',
-        imageUrl: card.imageUrl || '',
-        availableTrainingPoints: card.availableTrainingPoints
+        imageUrl: card.imageUrl || ''
     });
     setEditCardDialogOpen(true);
   }, []);
@@ -421,8 +416,6 @@ export default function Home() {
               <TabsTrigger value="formations" className="py-2 px-3 text-sm"><Trophy className="mr-2 h-5 w-5"/>Formaciones</TabsTrigger>
               <TabsTrigger value="ideal-11" className="py-2 px-3 text-sm"><Star className="mr-2 h-5 w-5"/>11 Ideal</TabsTrigger>
               <TabsTrigger value="nationalities" className="py-2 px-3 text-sm"><Globe className="mr-2 h-5 w-5"/>Nacionalidades</TabsTrigger>
-              <TabsTrigger value="builds-ideales" className="py-2 px-3 text-sm"><Sliders className="mr-2 h-5 w-5"/>Builds Ideales</TabsTrigger>
-              <TabsTrigger value="player-tester" className="py-2 px-3 text-sm"><FlaskConical className="mr-2 h-5 w-5"/>Probador</TabsTrigger>
             </TabsList>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
@@ -476,6 +469,7 @@ export default function Home() {
                       onDeletePositionRatings={deletePositionRatings}
                       onDeleteRating={deleteRating}
                       onUpdateLiveUpdateRating={updateLiveUpdateRating}
+                      onUpdateTier={updateTier}
                     />
                     <PlayerTable.Pagination
                       currentPage={currentPage}
@@ -510,29 +504,13 @@ export default function Home() {
                     onFlexibleWingersChange={setFlexibleWingers}
                     selectionCriteria={selectionCriteria}
                     onSelectionCriteriaChange={setSelectionCriteria}
+                    teamMode={teamMode}
+                    onTeamModeChange={setTeamMode}
                   />
                     <div className="flex flex-wrap items-center gap-4 mt-6">
                       <Button onClick={() => handleGenerateTeam()} disabled={!selectedFormationId}><Star className="mr-2 h-4 w-4" />Generar 11 Ideal</Button>
                       <Button onClick={handleResetDiscards} variant="outline" disabled={discardedCardIds.size === 0}><RotateCcw className="mr-2 h-4 w-4" />Reiniciar Descartados</Button>
                       <Button onClick={() => resetAllLiveUpdateRatings()} variant="outline"><RotateCcw className="mr-2 h-4 w-4" />Resetear Letras</Button>
-                      
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="destructive"><Trash2 className="mr-2 h-4 w-4" />Borrar Todas las Builds</Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>¿Reiniciar todas las builds?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Esta acción pondrá a 0 todos los puntos de entrenamiento de TODOS tus jugadores guardados. No se puede deshacer.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => resetAllBuilds()} className="bg-destructive hover:bg-destructive/90">Confirmar Reinicio</AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
                     </div>
                </CardContent>
              </Card>
@@ -546,14 +524,6 @@ export default function Home() {
           
           <TabsContent value="nationalities" className="mt-6">
             <NationalityDistribution players={allPlayers} />
-          </TabsContent>
-          
-          <TabsContent value="builds-ideales" className="mt-6">
-            <IdealBuildsManager />
-          </TabsContent>
-
-          <TabsContent value="player-tester" className="mt-6">
-            <PlayerTester idealBuilds={idealBuilds} />
           </TabsContent>
         </Tabs>
       </main>

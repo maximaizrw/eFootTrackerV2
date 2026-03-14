@@ -24,6 +24,8 @@ type IdealTeamSetupProps = {
   onFlexibleWingersChange: (value: boolean) => void;
   selectionCriteria: 'overall' | 'average';
   onSelectionCriteriaChange: (value: 'overall' | 'average') => void;
+  teamMode: 'liga' | 'evento';
+  onTeamModeChange: (value: 'liga' | 'evento') => void;
 };
 
 const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({ 
@@ -42,6 +44,8 @@ const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({
     onFlexibleWingersChange,
     selectionCriteria,
     onSelectionCriteriaChange,
+    teamMode,
+    onTeamModeChange,
 }: IdealTeamSetupProps) {
 
   const selectedFormation = React.useMemo(() => {
@@ -110,6 +114,24 @@ const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({
             <SelectContent>
                 <SelectItem value="overall">Equilibrado (Overall + Notas)</SelectItem>
                 <SelectItem value="average">Rendimiento (Solo Notas)</SelectItem>
+            </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label>
+          Tipo de Partido
+        </Label>
+        <Select
+            value={teamMode}
+            onValueChange={(val) => onTeamModeChange(val as 'liga' | 'evento')}
+        >
+            <SelectTrigger className="w-full">
+                <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem value="liga">Liga eFootball (Solo Tier S/A)</SelectItem>
+                <SelectItem value="evento">Evento (Cualquier Tier)</SelectItem>
             </SelectContent>
         </Select>
       </div>
