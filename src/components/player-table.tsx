@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Trash2, Search, SlidersHorizontal, Dumbbell, Pencil, Copy, CheckCircle2, Info, History, X } from 'lucide-react';
-import { cn, formatAverage, getAverageColorClass, getProxiedImageUrl, calculateRecencyWeightedAverage, calculatePointsSpent } from '@/lib/utils';
+import { cn, formatAverage, getAverageColorClass, getProxiedImageUrl, calculateRecencyWeightedAverage, calculatePointsSpent, isSpecialCard } from '@/lib/utils';
 import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import { LiveUpdateRatingSelector } from './live-update-rating-selector';
@@ -205,6 +205,7 @@ const PlayerTableMemo = memo(function PlayerTable({
                               {player.name}
                             </button>
                             {(() => {
+                              if (isSpecialCard(card.name)) return null;
                               const build = card.buildsByPosition?.[position];
                               const pointsSpent = build ? calculatePointsSpent(build) : 0;
                               if (pointsSpent === 0) {

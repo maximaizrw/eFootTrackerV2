@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { Users, Shirt, X, Info, Dumbbell } from 'lucide-react';
 import { Button } from './ui/button';
 import { FootballPitch } from './football-pitch';
-import { cn, getProxiedImageUrl, calculatePointsSpent } from '@/lib/utils';
+import { cn, getProxiedImageUrl, calculatePointsSpent, isSpecialCard } from '@/lib/utils';
 import { memo, useState } from 'react';
 import { LiveUpdateRatingSelector } from './live-update-rating-selector';
 import {
@@ -44,15 +44,18 @@ const PlayerToken = memo(function PlayerToken({
   }
 
   const isHovered = hoveredId === player.card.id;
+  const isPOT = isSpecialCard(player.card.name);
   const build = player.card.buildsByPosition?.[player.position as Position];
   const pointsSpent = build ? calculatePointsSpent(build) : 0;
   let statusColor: string | null = null;
-  if (pointsSpent === 0) statusColor = 'text-red-500';
-  else if (build?.updatedAt) {
-    const lastUpdate = new Date(build.updatedAt);
-    const now = new Date();
-    const diffDays = (now.getTime() - lastUpdate.getTime()) / (1000 * 3600 * 24);
-    if (diffDays > 7) statusColor = 'text-yellow-500';
+  if (!isPOT) {
+    if (pointsSpent === 0) statusColor = 'text-red-500';
+    else if (build?.updatedAt) {
+      const lastUpdate = new Date(build.updatedAt);
+      const now = new Date();
+      const diffDays = (now.getTime() - lastUpdate.getTime()) / (1000 * 3600 * 24);
+      if (diffDays > 7) statusColor = 'text-yellow-500';
+    }
   }
 
   return (
@@ -101,15 +104,18 @@ const BenchCard = memo(function BenchCard({ player, onDiscard, onUpdateLiveUpdat
     );
   }
 
+  const isPOT = isSpecialCard(player.card.name);
   const build = player.card.buildsByPosition?.[player.position as Position];
   const pointsSpent = build ? calculatePointsSpent(build) : 0;
   let statusColor: string | null = null;
-  if (pointsSpent === 0) statusColor = 'text-red-500';
-  else if (build?.updatedAt) {
-    const lastUpdate = new Date(build.updatedAt);
-    const now = new Date();
-    const diffDays = (now.getTime() - lastUpdate.getTime()) / (1000 * 3600 * 24);
-    if (diffDays > 7) statusColor = 'text-yellow-500';
+  if (!isPOT) {
+    if (pointsSpent === 0) statusColor = 'text-red-500';
+    else if (build?.updatedAt) {
+      const lastUpdate = new Date(build.updatedAt);
+      const now = new Date();
+      const diffDays = (now.getTime() - lastUpdate.getTime()) / (1000 * 3600 * 24);
+      if (diffDays > 7) statusColor = 'text-yellow-500';
+    }
   }
 
   return (
