@@ -74,6 +74,26 @@ export function getOverallColorClass(overall: number): string {
     return 'text-muted-foreground';
 }
 
+export type RoleTier = 'S' | 'A' | 'B' | 'C' | 'D';
+
+export function roleRatingToTier(roleRating: number): RoleTier {
+    if (roleRating >= 90) return 'S';
+    if (roleRating >= 75) return 'A';
+    if (roleRating >= 60) return 'B';
+    if (roleRating >= 40) return 'C';
+    return 'D';
+}
+
+export function getTierColorClass(tier: RoleTier): string {
+    switch (tier) {
+        case 'S': return 'text-orange-400 bg-orange-400/15 border-orange-400/30';
+        case 'A': return 'text-purple-400 bg-purple-400/15 border-purple-400/30';
+        case 'B': return 'text-sky-400 bg-sky-400/15 border-sky-400/30';
+        case 'C': return 'text-green-400 bg-green-400/15 border-green-400/30';
+        case 'D': return 'text-muted-foreground bg-muted/30 border-border';
+    }
+}
+
 export function normalizeText(text: string): string {
   if (!text) return '';
   return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();

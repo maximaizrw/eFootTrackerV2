@@ -23,7 +23,7 @@ import { Badge } from "./ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "./ui/command";
 import { playerSkillsList, nationalities, leagues } from "@/lib/types";
-import { cn, calculatePointsSpent, calculateFinalStats } from "@/lib/utils";
+import { cn, calculatePointsSpent, calculateFinalStats, roleRatingToTier, getTierColorClass } from "@/lib/utils";
 
 type PlayerDetailDialogProps = {
   open: boolean;
@@ -203,8 +203,8 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
                   </Badge>
                 )}
                 {flatPlayer?.roleRating !== undefined && (
-                  <Badge variant="outline" className="font-mono">
-                    Rol: <span className="text-primary ml-1">{flatPlayer.roleRating.toFixed(0)}</span>
+                  <Badge variant="outline" className={cn("font-mono font-black", getTierColorClass(roleRatingToTier(flatPlayer.roleRating)))}>
+                    Tier: {roleRatingToTier(flatPlayer.roleRating)}
                   </Badge>
                 )}
             </DialogTitle>

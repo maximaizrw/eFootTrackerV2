@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FlaskConical, Calculator, Trophy, ClipboardPaste, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { calculateRoleRating, resolveIdealBuild, getOverallColorClass } from '@/lib/utils';
+import { calculateRoleRating, resolveIdealBuild, roleRatingToTier, getTierColorClass } from '@/lib/utils';
 import { positions, playerSkillsList, getAvailableStylesForPosition } from '@/lib/types';
 import type { PlayerAttributeStats, PlayerSkill, Position, PlayerStyle, IdealRoleBuild } from '@/lib/types';
 
@@ -168,7 +168,7 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
             Probador de Jugadores
           </CardTitle>
           <CardDescription>
-            Pegá las estadísticas del juego, elegí habilidades, posiciones y rol para calcular el Rating de Rol.
+             Pegá las estadísticas del juego, elegí habilidades, posiciones y rol para calcular el Tier de Rol.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
@@ -309,7 +309,7 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
             size="lg"
           >
             <Calculator className="mr-2 h-4 w-4" />
-            Calcular Rating de Rol
+             Calcular Tier de Rol
           </Button>
         </CardContent>
       </Card>
@@ -323,7 +323,7 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
               Resultados
             </CardTitle>
             <CardDescription>
-              Rating de Rol calculado para cada combinación posición/rol, ordenado de mayor a menor.
+               Rating de Tier calculado para cada combinación posición/rol, ordenado de mayor a menor.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -349,8 +349,8 @@ export function PlayerTester({ idealBuilds }: PlayerTesterProps) {
                         </Badge>
                       )}
                     </div>
-                    <div className={cn('text-2xl font-black tabular-nums ml-4 shrink-0', getOverallColorClass(roleRating))}>
-                      {roleRating}
+                    <div className={cn('inline-flex items-center justify-center px-3 py-1 rounded-md border text-2xl font-black', getTierColorClass(roleRatingToTier(roleRating)))}>
+                      {roleRatingToTier(roleRating)}
                     </div>
                   </div>
                 ))}

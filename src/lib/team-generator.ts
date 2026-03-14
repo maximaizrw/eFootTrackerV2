@@ -1,6 +1,6 @@
 import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, FormationSlot, IdealRoleBuild } from './types';
 import { getAvailableStylesForPosition } from './types';
-import { calculateStats, calculateRoleRating, calculateOverall, calculateRecencyWeightedAverage, positionPriority, resolveIdealBuild, calculateFinalStats } from './utils';
+import { calculateStats, calculateRoleRating, calculateOverall, calculateRecencyWeightedAverage, positionPriority, resolveIdealBuild, calculateFinalStats, roleRatingToTier } from './utils';
 
 type CandidatePlayer = {
   player: Player;
@@ -22,7 +22,8 @@ export function generateIdealTeam(
   isFlexibleLaterals: boolean = false,
   isFlexibleWingers: boolean = false,
   selectionCriteria: 'overall' | 'average' = 'overall',
-  idealBuilds: IdealRoleBuild[] = []
+  idealBuilds: IdealRoleBuild[] = [],
+  teamMode: 'liga' | 'evento' = 'liga'
 ): IdealTeamSlot[] {
   
   // Create sorted list of candidates once
@@ -54,6 +55,12 @@ export function generateIdealTeam(
         const buildForPos = card.buildsByPosition?.[pos] || {};
         const effectiveStats = calculateFinalStats(card.attributeStats || {}, buildForPos);
         const roleRating = calculateRoleRating(effectiveStats, card.skills || [], idealBuild);
+        
+        // In liga mode, only S and A tier players are selectable
+        if (teamMode === 'liga') {
+          const tier = roleRatingToTier(roleRating);
+          if (tier !== 'S' && tier !== 'A') return null;
+        }
         
         const trueOverall = calculateOverall(roleRating, stats.average, stats.matches, player.liveUpdateRating, recentAverage);
         const scoreForSelection = selectionCriteria === 'average'

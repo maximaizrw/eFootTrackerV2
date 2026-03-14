@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Trash2, Search, SlidersHorizontal, Dumbbell, Pencil, Copy, CheckCircle2, Info, History, X } from 'lucide-react';
-import { cn, formatAverage, getAverageColorClass, getProxiedImageUrl, calculateRecencyWeightedAverage, calculatePointsSpent, isSpecialCard } from '@/lib/utils';
+import { cn, formatAverage, getAverageColorClass, getProxiedImageUrl, calculateRecencyWeightedAverage, calculatePointsSpent, isSpecialCard, roleRatingToTier, getTierColorClass } from '@/lib/utils';
 import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import { LiveUpdateRatingSelector } from './live-update-rating-selector';
@@ -167,7 +167,7 @@ const PlayerTableMemo = memo(function PlayerTable({
           <TableRow>
             <TableHead>Jugador</TableHead>
             <TableHead className="hidden md:table-cell">Estilo</TableHead>
-            <TableHead>Rating Rol</TableHead>
+            <TableHead>Tier</TableHead>
             <TableHead>Prom.</TableHead>
             <TableHead>Overall</TableHead>
             <TableHead className="hidden md:table-cell">Últimas Notas</TableHead>
@@ -249,7 +249,14 @@ const PlayerTableMemo = memo(function PlayerTable({
                   {card.style !== "Ninguno" ? <Badge variant="secondary">{card.style}</Badge> : '-'}
                 </TableCell>
                 <TableCell>
-                  <div className="text-base font-bold">{roleRating.toFixed(0)} / 100</div>
+                  {(() => {
+                    const tier = roleRatingToTier(roleRating);
+                    return (
+                      <div className={cn('inline-flex items-center justify-center px-2.5 py-1 rounded-md border text-sm font-black', getTierColorClass(tier))}>
+                        {tier}
+                      </div>
+                    );
+                  })()}
                 </TableCell>
                 <TableCell>
                   <div className={cn("text-base font-bold", getAverageColorClass(cardAverage))}>{formatAverage(cardAverage)}</div>
