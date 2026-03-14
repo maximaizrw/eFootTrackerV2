@@ -133,35 +133,38 @@ export function generateIdealTeam(
     return null;
   });
 
-  // 2. ASSIGN BENCH (Strictly following formation positions for 12 slots)
-  // We go through the sorted slots to pick backups in priority order
-  const benchAssignments: (IdealTeamPlayer | null)[] = [];
-  
-  // First pass: try to get a direct backup for every slot in priority order
+  // 2. ASSIGN BENCH — only "player testers": candidates with <= 5 matches in the position.
+  // Slots 1-11 follow the formation position order (same as the ideal 11).
+  // Slot 12 is an extra player (any remaining tester) appended at the very end.
+  const isTester = (p: CandidatePlayer) => p.performance.stats.matches <= 5;
+
+  const benchAssignments: IdealTeamPlayer[] = [];
+  const usedPlayerIdsForBench = new Set<string>(usedPlayerIds);
+  const usedCardIdsForBench = new Set<string>(usedCardIds);
+
+  // First pass: one backup per formation slot (in priority order), testers only
   for (const slot of sortedFormationSlots) {
-    if (benchAssignments.length >= 12) break;
+    if (benchAssignments.length >= 11) break;
     const candidates = getCandidatesForSlot(slot);
-    const backup = candidates.find(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id));
+    const backup = candidates.find(
+      p => isTester(p) && !usedPlayerIdsForBench.has(p.player.id) && !usedCardIdsForBench.has(p.card.id)
+    );
     if (backup) {
-        usedPlayerIds.add(backup.player.id);
-        usedCardIds.add(backup.card.id);
-        benchAssignments.push({ ...backup, assignedPosition: slot.profileName || slot.position } as IdealTeamPlayer);
+      usedPlayerIdsForBench.add(backup.player.id);
+      usedCardIdsForBench.add(backup.card.id);
+      benchAssignments.push({ ...backup, assignedPosition: slot.profileName || slot.position } as IdealTeamPlayer);
     }
   }
 
-  // Second pass: if bench is not full, add remaining best players that fit ANY formation position
+  // Slot 12: extra tester — best remaining tester that fits any formation position, goes last
   if (benchAssignments.length < 12) {
     const formationPositions = formation.slots.map(s => s.position);
-    const remainingCandidates = allPlayerCandidates
-        .filter(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id))
-        .filter(p => formationPositions.includes(p.position))
-        .sort(candidateSort);
-    
-    for (const p of remainingCandidates) {
-        if (benchAssignments.length >= 12) break;
-        usedPlayerIds.add(p.player.id);
-        usedCardIds.add(p.card.id);
-        benchAssignments.push({ ...p, assignedPosition: p.position } as IdealTeamPlayer);
+    const extraTester = allPlayerCandidates
+      .filter(p => isTester(p) && !usedPlayerIdsForBench.has(p.player.id) && !usedCardIdsForBench.has(p.card.id))
+      .filter(p => formationPositions.includes(p.position))
+      .sort(candidateSort)[0];
+    if (extraTester) {
+      benchAssignments.push({ ...extraTester, assignedPosition: extraTester.position } as IdealTeamPlayer);
     }
   }
 

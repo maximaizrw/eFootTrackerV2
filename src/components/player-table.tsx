@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Trash2, Search, SlidersHorizontal, Dumbbell, Pencil, Copy, CheckCircle2, Info, History, X } from 'lucide-react';
-import { cn, formatAverage, getAverageColorClass, getProxiedImageUrl, calculateRecencyWeightedAverage } from '@/lib/utils';
+import { cn, formatAverage, getAverageColorClass, getProxiedImageUrl, calculateRecencyWeightedAverage, calculatePointsSpent } from '@/lib/utils';
 import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import { LiveUpdateRatingSelector } from './live-update-rating-selector';
@@ -194,15 +194,51 @@ const PlayerTableMemo = memo(function PlayerTable({
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                           <LiveUpdateRatingSelector value={player.liveUpdateRating} onValueChange={(v) => onUpdateLiveUpdateRating(player.id, v)} />
-                          <button 
-                            onClick={() => onOpenPlayerDetail(flatPlayer)} 
-                            className={cn(
-                                "font-medium text-sm md:text-base hover:underline truncate transition-colors text-left",
-                                isTierUnassigned ? "text-red-600 dark:text-red-500 font-bold" : "text-foreground"
-                            )}
-                          >
-                            {player.name}
-                          </button>
+                          <div className="flex items-center gap-1 min-w-0">
+                            <button 
+                              onClick={() => onOpenPlayerDetail(flatPlayer)} 
+                              className={cn(
+                                  "font-medium text-sm md:text-base hover:underline truncate transition-colors text-left",
+                                  isTierUnassigned ? "text-red-600 dark:text-red-500 font-bold" : "text-foreground"
+                              )}
+                            >
+                              {player.name}
+                            </button>
+                            {(() => {
+                              const build = card.buildsByPosition?.[position];
+                              const pointsSpent = build ? calculatePointsSpent(build) : 0;
+                              if (pointsSpent === 0) {
+                                return (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Dumbbell className="h-3 w-3 text-red-500 shrink-0" />
+                                      </TooltipTrigger>
+                                      <TooltipContent>Build no modificada (0 pts)</TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                );
+                              }
+                              if (build?.updatedAt) {
+                                const lastUpdate = new Date(build.updatedAt);
+                                const now = new Date();
+                                const diffDays = (now.getTime() - lastUpdate.getTime()) / (1000 * 3600 * 24);
+                                if (diffDays > 7) {
+                                  return (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Dumbbell className="h-3 w-3 text-yellow-500 shrink-0" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>Actualizar build (hace +7 días)</TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  );
+                                }
+                              }
+                              return null;
+                            })()}
+                          </div>
                       </div>
                       <span className="text-xs text-muted-foreground truncate block">{card.name} ({performance.stats.matches} P.)</span>
                     </div>

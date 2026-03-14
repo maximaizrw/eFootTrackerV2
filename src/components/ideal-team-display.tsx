@@ -2,7 +2,7 @@
 
 import type { IdealTeamPlayer, IdealTeamSlot, FormationStats, Position, LiveUpdateRating, PlayerBuild } from '@/lib/types';
 import Image from 'next/image';
-import { Users, Shirt, X, Info } from 'lucide-react';
+import { Users, Shirt, X, Info, Dumbbell } from 'lucide-react';
 import { Button } from './ui/button';
 import { FootballPitch } from './football-pitch';
 import { cn, getProxiedImageUrl, calculatePointsSpent } from '@/lib/utils';
@@ -44,6 +44,16 @@ const PlayerToken = memo(function PlayerToken({
   }
 
   const isHovered = hoveredId === player.card.id;
+  const build = player.card.buildsByPosition?.[player.position as Position];
+  const pointsSpent = build ? calculatePointsSpent(build) : 0;
+  let statusColor: string | null = null;
+  if (pointsSpent === 0) statusColor = 'text-red-500';
+  else if (build?.updatedAt) {
+    const lastUpdate = new Date(build.updatedAt);
+    const now = new Date();
+    const diffDays = (now.getTime() - lastUpdate.getTime()) / (1000 * 3600 * 24);
+    if (diffDays > 7) statusColor = 'text-yellow-500';
+  }
 
   return (
     <div
@@ -71,8 +81,10 @@ const PlayerToken = memo(function PlayerToken({
 
       <div className="mt-1.5 flex items-center gap-1">
         <LiveUpdateRatingSelector value={player.player.liveUpdateRating} onValueChange={(v: LiveUpdateRating | null) => onUpdateLiveUpdateRating(player.player.id, v)} />
-        <span className="text-[10px] md:text-xs font-bold text-white whitespace-nowrap" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>
-            {player.player.name} <span className="ml-0.5 text-accent">{player.overall?.toFixed(0) || '-'}</span>
+        <span className="text-[10px] md:text-xs font-bold text-white whitespace-nowrap flex items-center gap-1" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>
+            {player.player.name} 
+            {statusColor && <Dumbbell className={cn("h-2.5 w-2.5", statusColor)} />}
+            <span className="ml-0.5 text-accent">{player.overall?.toFixed(0) || '-'}</span>
         </span>
       </div>
     </div>
@@ -87,6 +99,17 @@ const BenchCard = memo(function BenchCard({ player, onDiscard, onUpdateLiveUpdat
         <span className="text-[10px] text-muted-foreground/50">Vacante</span>
       </div>
     );
+  }
+
+  const build = player.card.buildsByPosition?.[player.position as Position];
+  const pointsSpent = build ? calculatePointsSpent(build) : 0;
+  let statusColor: string | null = null;
+  if (pointsSpent === 0) statusColor = 'text-red-500';
+  else if (build?.updatedAt) {
+    const lastUpdate = new Date(build.updatedAt);
+    const now = new Date();
+    const diffDays = (now.getTime() - lastUpdate.getTime()) / (1000 * 3600 * 24);
+    if (diffDays > 7) statusColor = 'text-yellow-500';
   }
 
   return (
@@ -111,7 +134,10 @@ const BenchCard = memo(function BenchCard({ player, onDiscard, onUpdateLiveUpdat
           <div className="flex items-center gap-1">
             <span className="text-[10px] font-bold text-sky-500">{player.assignedPosition}</span>
             <LiveUpdateRatingSelector value={player.player.liveUpdateRating} onValueChange={(v: LiveUpdateRating | null) => onUpdateLiveUpdateRating(player.player.id, v)} />
-            <span className="text-[10px] font-semibold truncate">{player.player.name}</span>
+            <span className="text-[10px] font-semibold truncate flex items-center gap-1">
+              {player.player.name}
+              {statusColor && <Dumbbell className={cn("h-2 w-2", statusColor)} />}
+            </span>
             <span className="text-[10px] font-black ml-auto text-accent">{player.overall?.toFixed(0) || '-'}</span>
           </div>
           <p className="text-[8px] text-muted-foreground leading-none">Convocado como {player.assignedPosition}</p>
@@ -197,15 +223,12 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onUpda
   if (teamSlots.length === 0 || !formation) return <div className="mt-8 text-center text-muted-foreground p-8 bg-card border border-dashed rounded-lg">Configura tu táctica y genera el equipo.</div>;
 
   const starters = teamSlots.slice(0, 11).map((s: any) => s.starter);
-  
-  const positionOrder: Record<string, number> = {
-    PT: 1, DFC: 2, LI: 3, LD: 4, MCD: 5, MC: 6, II: 7, ID: 8, MO: 9, EXI: 10, EXD: 11, SD: 12, DC: 13
-  };
 
+  // Subs come pre-ordered from the generator: formation-position slots first (matching ideal 11),
+  // then the extra 12th slot at the very end. We preserve that order.
   const rawSubs = teamSlots.map((s: any) => s.substitute).filter((s: any) => s !== null);
   const validSubs = rawSubs.filter((s: any) => !s.player.id.startsWith('ph'));
-  validSubs.sort((a: any, b: any) => (positionOrder[a.assignedPosition] || 99) - (positionOrder[b.assignedPosition] || 99));
-  
+
   const emptySlotsCount = Math.max(0, 12 - validSubs.length);
   const substitutes = [...validSubs, ...Array(emptySlotsCount).fill(null)].slice(0, 12);
 
@@ -220,7 +243,7 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onUpda
         </FootballPitch>
       </div>
       <div className="lg:w-72 flex-shrink-0">
-        <h3 className="text-sm font-semibold mb-2 px-1">Banquillo (Rotación Jerárquica)</h3>
+        <h3 className="text-sm font-semibold mb-2 px-1">Banquillo — Probadores <span className="text-muted-foreground font-normal">(≤5 partidos)</span></h3>
         <div className="grid grid-cols-2 lg:grid-cols-1 gap-1.5">
           {substitutes.map((sub: any, index: number) => (
             <BenchCard key={sub?.card.id ? `sub-${sub.card.id}-${index}` : `vacante-${index}`} player={sub} onDiscard={onDiscardPlayer} onUpdateLiveUpdateRating={onUpdateLiveUpdateRating} onPlayerClick={handlePlayerClick} />

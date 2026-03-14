@@ -325,10 +325,31 @@ export function usePlayers(idealBuilds: IdealRoleBuild[]) {
     } catch (e) {}
   };
 
+  const resetAllBuilds = async () => {
+    if (!db) return;
+    try {
+      const snap = await getDocs(collection(db, 'players'));
+      for (const d of snap.docs) {
+        const data = d.data() as Player;
+        if (data.cards) {
+          const newCards = data.cards.map(c => ({
+            ...c,
+            buildsByPosition: {}
+          }));
+          await updateDoc(doc(db, 'players', d.id), { cards: newCards });
+        }
+      }
+      toast({ title: "Todas las builds han sido reiniciadas a 0" });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Error al reiniciar builds" });
+    }
+  };
+
   return { 
     players, flatPlayers, positionNotes, loading, error, 
     addRating, savePositionNote, savePlayerBuild, 
     deletePositionRatings, updateLiveUpdateRating, resetAllLiveUpdateRatings,
-    editCard, editPlayer, deleteRating, downloadBackup, saveAttributeStats, updateFullPlayerData
+    editCard, editPlayer, deleteRating, downloadBackup, saveAttributeStats, updateFullPlayerData,
+    resetAllBuilds
   };
 }

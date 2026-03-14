@@ -11,6 +11,9 @@ import {
   AlertDialogTitle,
   AlertDialogFooter,
   AlertDialogCancel,
+  AlertDialogAction,
+  AlertDialogDescription,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 
@@ -40,7 +43,7 @@ import { positions, leagues, nationalities } from '@/lib/types';
 import { normalizeText } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Sliders, FlaskConical } from 'lucide-react';
+import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, Sliders, FlaskConical, Trash2 } from 'lucide-react';
 import { IdealBuildsManager } from '@/components/ideal-builds-manager';
 import { PlayerTester } from '@/components/player-tester';
 
@@ -66,6 +69,7 @@ export default function Home() {
     updateLiveUpdateRating,
     resetAllLiveUpdateRatings,
     updateFullPlayerData,
+    resetAllBuilds,
   } = usePlayers(idealBuilds);
 
   const {
@@ -507,11 +511,29 @@ export default function Home() {
                     selectionCriteria={selectionCriteria}
                     onSelectionCriteriaChange={setSelectionCriteria}
                   />
-                  <div className="flex flex-wrap items-center gap-4 mt-6">
-                    <Button onClick={() => handleGenerateTeam()} disabled={!selectedFormationId}><Star className="mr-2 h-4 w-4" />Generar 11 Ideal</Button>
-                    <Button onClick={handleResetDiscards} variant="outline" disabled={discardedCardIds.size === 0}><RotateCcw className="mr-2 h-4 w-4" />Reiniciar Descartados</Button>
-                    <Button onClick={() => resetAllLiveUpdateRatings()} variant="outline"><RotateCcw className="mr-2 h-4 w-4" />Resetear Letras</Button>
-                  </div>
+                    <div className="flex flex-wrap items-center gap-4 mt-6">
+                      <Button onClick={() => handleGenerateTeam()} disabled={!selectedFormationId}><Star className="mr-2 h-4 w-4" />Generar 11 Ideal</Button>
+                      <Button onClick={handleResetDiscards} variant="outline" disabled={discardedCardIds.size === 0}><RotateCcw className="mr-2 h-4 w-4" />Reiniciar Descartados</Button>
+                      <Button onClick={() => resetAllLiveUpdateRatings()} variant="outline"><RotateCcw className="mr-2 h-4 w-4" />Resetear Letras</Button>
+                      
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive"><Trash2 className="mr-2 h-4 w-4" />Borrar Todas las Builds</Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>¿Reiniciar todas las builds?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esta acción pondrá a 0 todos los puntos de entrenamiento de TODOS tus jugadores guardados. No se puede deshacer.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => resetAllBuilds()} className="bg-destructive hover:bg-destructive/90">Confirmar Reinicio</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                </CardContent>
              </Card>
             <IdealTeamDisplay 
