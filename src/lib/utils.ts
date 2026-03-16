@@ -78,11 +78,9 @@ export function getOverallColorClass(overall: number): string {
 
 export function getTierColorClass(tier: RoleTier): string {
     switch (tier) {
-        case 'S': return 'text-orange-400 bg-orange-400/15 border-orange-400/30';
-        case 'A': return 'text-purple-400 bg-purple-400/15 border-purple-400/30';
-        case 'B': return 'text-sky-400 bg-sky-400/15 border-sky-400/30';
-        case 'C': return 'text-green-400 bg-green-400/15 border-green-400/30';
-        case 'D': return 'text-muted-foreground bg-muted/30 border-border';
+        case 'Competitivo': return 'text-orange-400 bg-orange-400/15 border-orange-400/30';
+        case 'eventos': return 'text-purple-400 bg-purple-400/15 border-purple-400/30';
+        case 'descarte': return 'text-muted-foreground bg-muted/30 border-border';
         default: return 'text-muted-foreground bg-muted/30 border-border opacity-50';
     }
 }

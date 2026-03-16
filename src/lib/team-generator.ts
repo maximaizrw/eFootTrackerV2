@@ -22,7 +22,7 @@ export function generateIdealTeam(
   isFlexibleLaterals: boolean = false,
   isFlexibleWingers: boolean = false,
   selectionCriteria: 'overall' | 'average' = 'overall',
-  teamMode: 'liga' | 'evento' = 'liga'
+  teamMode: 'Competitivo' | 'eventos' = 'Competitivo'
 ): IdealTeamSlot[] {
   
   // Create sorted list of candidates once
@@ -52,9 +52,11 @@ export function generateIdealTeam(
         
         const tier = card.tierByPosition?.[pos] || null;
         
-        // In liga mode, only S and A tier players are selectable
-        if (teamMode === 'liga') {
-          if (tier !== 'S' && tier !== 'A') return null;
+        // In Competitivo mode, only Competitivo tier players are selectable
+        if (teamMode === 'Competitivo') {
+          if (tier !== 'Competitivo') return null;
+        } else if (teamMode === 'eventos') {
+          if (tier === 'descarte') return null;
         }
         
         const trueOverall = calculateOverall(stats.average, stats.matches, player.liveUpdateRating, recentAverage);

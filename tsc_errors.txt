@@ -1,0 +1,9 @@
+﻿src/components/ideal-builds-manager.tsx(10,38): error TS2305: Module '"@/lib/types"' has no exported member 'IdealRoleBuild'.
+src/components/ideal-builds-manager.tsx(10,89): error TS2305: Module '"@/lib/types"' has no exported member 'PriorityItem'.
+src/components/ideal-builds-manager.tsx(12,24): error TS2305: Module '"@/lib/utils"' has no exported member 'resolveIdealBuild'.
+src/components/ideal-builds-manager.tsx(114,46): error TS7006: Parameter 'key' implicitly has an 'any' type.
+src/components/player-tester.tsx(12,10): error TS2305: Module '"@/lib/utils"' has no exported member 'calculateRoleRating'.
+src/components/player-tester.tsx(12,31): error TS2305: Module '"@/lib/utils"' has no exported member 'resolveIdealBuild'.
+src/components/player-tester.tsx(12,50): error TS2305: Module '"@/lib/utils"' has no exported member 'roleRatingToTier'.
+src/components/player-tester.tsx(14,73): error TS2305: Module '"@/lib/types"' has no exported member 'IdealRoleBuild'.
+src/hooks/useIdealBuilds.ts(7,15): error TS2305: Module '"@/lib/types"' has no exported member 'IdealRoleBuild'.

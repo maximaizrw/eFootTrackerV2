@@ -24,8 +24,8 @@ type IdealTeamSetupProps = {
   onFlexibleWingersChange: (value: boolean) => void;
   selectionCriteria: 'overall' | 'average';
   onSelectionCriteriaChange: (value: 'overall' | 'average') => void;
-  teamMode: 'liga' | 'evento';
-  onTeamModeChange: (value: 'liga' | 'evento') => void;
+  teamMode: 'Competitivo' | 'eventos';
+  onTeamModeChange: (value: 'Competitivo' | 'eventos') => void;
 };
 
 const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({ 
@@ -124,14 +124,14 @@ const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({
         </Label>
         <Select
             value={teamMode}
-            onValueChange={(val) => onTeamModeChange(val as 'liga' | 'evento')}
+            onValueChange={(val) => onTeamModeChange(val as 'Competitivo' | 'eventos')}
         >
             <SelectTrigger className="w-full">
                 <SelectValue />
             </SelectTrigger>
             <SelectContent>
-                <SelectItem value="liga">Liga eFootball (Solo Tier S/A)</SelectItem>
-                <SelectItem value="evento">Evento (Cualquier Tier)</SelectItem>
+                <SelectItem value="Competitivo">Competitivo (Solo Competitivo)</SelectItem>
+                <SelectItem value="eventos">Eventos (Excluye Descarte)</SelectItem>
             </SelectContent>
         </Select>
       </div>

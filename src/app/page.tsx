@@ -33,7 +33,7 @@ import { PlayerTable } from '@/components/player-table';
 import { PositionIcon } from '@/components/position-icon';
 import { NationalityDistribution } from '@/components/nationality-distribution';
 
-import { useIdealBuilds } from '@/hooks/useIdealBuilds';
+
 import { usePlayers } from '@/hooks/usePlayers';
 import { useFormations } from '@/hooks/useFormations';
 import { useToast } from "@/hooks/use-toast";
@@ -116,7 +116,7 @@ export default function Home() {
   const [isFlexibleLaterals, setFlexibleLaterals] = useState(false);
   const [isFlexibleWingers, setFlexibleWingers] = useState(false);
   const [selectionCriteria, setSelectionCriteria] = useState<'overall' | 'average'>('overall');
-  const [teamMode, setTeamMode] = useState<'liga' | 'evento'>('liga');
+  const [teamMode, setTeamMode] = useState<'Competitivo' | 'eventos'>('Competitivo');
   
   const [pagination, setPagination] = useState<Record<string, number>>({});
   
