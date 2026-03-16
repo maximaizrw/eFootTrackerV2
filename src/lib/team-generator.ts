@@ -52,9 +52,9 @@ export function generateIdealTeam(
         
         const tier = card.tierByPosition?.[pos] || null;
         
-        // In Competitivo mode, only META and Competitivo tier players are selectable
+        // In Competitivo mode, only Competitivo tier players are selectable
         if (teamMode === 'Competitivo') {
-          if (tier !== 'Competitivo' && tier !== 'META') return null;
+          if (tier !== 'Competitivo') return null;
         } else if (teamMode === 'eventos') {
           if (tier === 'descarte') return null;
         }

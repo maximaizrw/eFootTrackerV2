@@ -58,7 +58,7 @@ const formSchema = z.object({
   style: z.enum(playerStyles),
   league: z.enum(leagues).optional(),
   rating: z.number().min(1).max(10),
-  tier: z.enum(['META', 'Competitivo', 'eventos', 'descarte']).nullable().optional(),
+  tier: z.enum(['Competitivo', 'eventos', 'descarte']).nullable().optional(),
 });
 
 export type FormValues = z.infer<typeof formSchema>;
@@ -453,7 +453,6 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, players, init
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="none">Sin Tier</SelectItem>
-                      <SelectItem value="META">META</SelectItem>
                       <SelectItem value="Competitivo">Competitivo</SelectItem>
                       <SelectItem value="eventos">eventos</SelectItem>
                       <SelectItem value="descarte">descarte</SelectItem>

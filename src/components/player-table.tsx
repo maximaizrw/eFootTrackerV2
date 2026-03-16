@@ -224,7 +224,6 @@ const PlayerTableMemo = memo(function PlayerTable({
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">Sin Tier</SelectItem>
-                        <SelectItem value="META"><div className={cn("px-2 rounded border", getTierColorClass("META"))}>META</div></SelectItem>
                         <SelectItem value="Competitivo"><div className={cn("px-2 rounded border", getTierColorClass("Competitivo"))}>Competitivo</div></SelectItem>
                         <SelectItem value="eventos"><div className={cn("px-2 rounded border", getTierColorClass("eventos"))}>eventos</div></SelectItem>
                         <SelectItem value="descarte"><div className={cn("px-2 rounded border", getTierColorClass("descarte"))}>descarte</div></SelectItem>
