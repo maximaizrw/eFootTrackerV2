@@ -130,7 +130,7 @@ const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({
                 <SelectValue />
             </SelectTrigger>
             <SelectContent>
-                <SelectItem value="Competitivo">Competitivo (Solo Competitivo)</SelectItem>
+                <SelectItem value="Competitivo">Competitivo (META y Competitivo)</SelectItem>
                 <SelectItem value="eventos">Eventos (Excluye Descarte)</SelectItem>
             </SelectContent>
         </Select>

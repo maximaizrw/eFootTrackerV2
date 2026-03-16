@@ -78,6 +78,7 @@ export function getOverallColorClass(overall: number): string {
 
 export function getTierColorClass(tier: RoleTier): string {
     switch (tier) {
+        case 'META': return 'text-red-400 bg-red-400/15 border-red-400/30';
         case 'Competitivo': return 'text-orange-400 bg-orange-400/15 border-orange-400/30';
         case 'eventos': return 'text-purple-400 bg-purple-400/15 border-purple-400/30';
         case 'descarte': return 'text-muted-foreground bg-muted/30 border-border';

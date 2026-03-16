@@ -31,7 +31,7 @@ export const positions = ['PT', 'DFC', 'LI', 'LD', 'MCD', 'MC', 'MDI', 'MDD', 'M
 export type Position = typeof positions[number];
 
 // Tier
-export type RoleTier = 'Competitivo' | 'eventos' | 'descarte' | null;
+export type RoleTier = 'META' | 'Competitivo' | 'eventos' | 'descarte' | null;
 
 export const leagues = [
   "Sin Liga", "Premier League", "Ligue 1 Uber Eats", "Serie A TIM", "LaLiga EA SPORTS",
