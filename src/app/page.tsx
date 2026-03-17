@@ -289,6 +289,10 @@ export default function Home() {
             const cardMatch = cardFilter === 'all' || card.name === cardFilter;
             return searchMatch && styleMatch && cardMatch;
         }).sort((a, b) => {
+          // Descarte al fondo
+          if (a.tier === 'descarte' && b.tier !== 'descarte') return 1;
+          if (b.tier === 'descarte' && a.tier !== 'descarte') return -1;
+
           if (listSortCriteria === 'average') {
             if (Math.abs(b.performance.stats.average - a.performance.stats.average) > 0.01) return b.performance.stats.average - a.performance.stats.average;
             return b.performance.stats.matches - a.performance.stats.matches;
