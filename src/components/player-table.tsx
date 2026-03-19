@@ -162,6 +162,50 @@ const PlayerTableMemo = memo(function PlayerTable({
   
   if (flatPlayers.length === 0) return <div className="p-10 text-center text-muted-foreground">Sin jugadores en esta posición.</div>;
 
+  const EditableTier = ({ initialTier, playerId, cardId, pos, onUpdate }: { initialTier: number | null, playerId: string, cardId: string, pos: Position, onUpdate: (p: string, c: string, po: Position, t: number) => void }) => {
+    const [value, setValue] = React.useState<string>(initialTier === null ? "10" : initialTier.toString());
+    
+    React.useEffect(() => {
+        setValue(initialTier === null ? "10" : initialTier.toString());
+    }, [initialTier]);
+
+    const isDefault = initialTier === null;
+    const defaultTierClass = "text-purple-400 bg-purple-400/15 border-purple-400/30 border-dashed border-2";
+    const displayClass = isDefault ? defaultTierClass : getTierColorClass(parseFloat(value) || 10);
+
+    const handleBlur = () => {
+        let val = parseFloat(value);
+        if (isNaN(val) || val === initialTier) {
+            setValue(initialTier === null ? "10" : initialTier.toString());
+            return;
+        }
+        if (val < 1) val = 1;
+        if (val > 10) val = 10;
+        setValue(val.toString());
+        if (val !== initialTier) {
+            onUpdate(playerId, cardId, pos, val);
+        }
+    };
+
+    return (
+        <Input
+            type="number"
+            step="0.1"
+            min="1"
+            max="10"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            onBlur={handleBlur}
+            onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+            className={cn(
+                "w-14 h-8 text-center text-xs p-0 font-bold transition-all shadow-inner bg-transparent focus-visible:ring-1 focus-visible:ring-primary", 
+                "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+                displayClass
+            )}
+        />
+    )
+  };
+
   return (
     <div className="overflow-x-auto">
       <Table>
@@ -215,20 +259,13 @@ const PlayerTableMemo = memo(function PlayerTable({
                   {card.style !== "Ninguno" ? <Badge variant="secondary">{card.style}</Badge> : '-'}
                 </TableCell>
                 <TableCell>
-                    <Select 
-                      value={tier || "none"} 
-                      onValueChange={(v) => onUpdateTier(player.id, card.id, position, v === "none" ? null : v as RoleTier)}
-                    >
-                      <SelectTrigger className={cn('w-16 h-8 justify-center [&>svg]:hidden', tier ? getTierColorClass(tier) : 'bg-muted')}>
-                        <SelectValue placeholder="-" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Sin Tier</SelectItem>
-                        <SelectItem value="Competitivo"><div className={cn("px-2 rounded border", getTierColorClass("Competitivo"))}>Competitivo</div></SelectItem>
-                        <SelectItem value="eventos"><div className={cn("px-2 rounded border", getTierColorClass("eventos"))}>eventos</div></SelectItem>
-                        <SelectItem value="descarte"><div className={cn("px-2 rounded border", getTierColorClass("descarte"))}>descarte</div></SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <EditableTier 
+                      initialTier={tier} 
+                      playerId={player.id} 
+                      cardId={card.id} 
+                      pos={position} 
+                      onUpdate={onUpdateTier} 
+                    />
                 </TableCell>
                 <TableCell>
                   <div className={cn("text-base font-bold", getAverageColorClass(cardAverage))}>{formatAverage(cardAverage)}</div>

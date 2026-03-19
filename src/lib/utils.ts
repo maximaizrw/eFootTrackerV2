@@ -77,12 +77,12 @@ export function getOverallColorClass(overall: number): string {
 
 
 export function getTierColorClass(tier: RoleTier): string {
-    switch (tier) {
-        case 'Competitivo': return 'text-orange-400 bg-orange-400/15 border-orange-400/30';
-        case 'eventos': return 'text-purple-400 bg-purple-400/15 border-purple-400/30';
-        case 'descarte': return 'text-muted-foreground bg-muted/30 border-border';
-        default: return 'text-muted-foreground bg-muted/30 border-border opacity-50';
-    }
+    if (typeof tier !== 'number') return 'text-muted-foreground bg-muted/30 border-border opacity-50';
+    if (tier >= 9.0) return 'text-orange-400 bg-orange-400/15 border-orange-400/30 font-bold';
+    if (tier >= 8.0) return 'text-purple-400 bg-purple-400/15 border-purple-400/30 font-semibold';
+    if (tier >= 7.0) return 'text-sky-400 bg-sky-400/15 border-sky-400/30';
+    if (tier >= 5.0) return 'text-green-400 bg-green-400/15 border-green-400/30';
+    return 'text-muted-foreground bg-muted/30 border-border';
 }
 
 export function normalizeText(text: string): string {
@@ -101,6 +101,7 @@ export const LIVE_UPDATE_BONUSES: Record<LiveUpdateRating, number> = { A: 6, B: 
 export function calculateOverall(
   overallAverage: number, 
   matches: number,
+  tier: RoleTier,
   liveUpdateRating?: LiveUpdateRating | null,
   recentAverage?: number,
 ): number {
@@ -108,6 +109,9 @@ export function calculateOverall(
 
   const historicalScore = Math.max(0, Math.min(100, ((overallAverage - 4.0) / (8.5 - 4.0)) * 100));
   const recentScore = Math.max(0, Math.min(100, ((effectiveRecentAverage - 4.0) / (8.5 - 4.0)) * 100));
+  const performanceScore = (historicalScore * 0.6) + (recentScore * 0.4);
+
+  const tierScore = typeof tier === 'number' ? Math.max(0, Math.min(100, tier * 10)) : 100;
 
   const liveUpdateBonus = liveUpdateRating ? LIVE_UPDATE_BONUSES[liveUpdateRating] : 0;
   
@@ -119,7 +123,7 @@ export function calculateOverall(
     return 0;
   }
 
-  let finalOverall = (historicalScore * 0.6) + (recentScore * 0.4) + liveUpdateBonus + experiencePenalty;
+  let finalOverall = (performanceScore * 0.5) + (tierScore * 0.5) + liveUpdateBonus + experiencePenalty;
   
   return Math.max(0, Math.min(100, Math.round(finalOverall)));
 }

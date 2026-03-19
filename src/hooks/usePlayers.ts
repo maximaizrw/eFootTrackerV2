@@ -30,22 +30,45 @@ export function usePlayers() {
 
     const unsubPlayers = onSnapshot(collection(db, "players"), (snapshot) => {
       try {
+        const playersToMigrate: { id: string, cards: any[] }[] = [];
         const playerList = snapshot.docs.map(doc => {
             const data = doc.data();
-            const newCards: PlayerCard[] = (data.cards || []).map((card: any) => ({
-                ...card,
-                id: card.id || uuidv4(),
-                style: normalizeStyleName(card.style),
-                ratingsByPosition: card.ratingsByPosition || {},
-                tierByPosition: card.tierByPosition || {},
-                skills: (card.skills || []).filter((s: string) => validSkillsSet.has(s as any)),
-            }));
+            let needsMigration = false;
+            const newCards: PlayerCard[] = (data.cards || []).map((card: any) => {
+                const oldTierByPos = card.tierByPosition || {};
+                const newTierByPos: any = {};
+                for (const p in oldTierByPos) {
+                    if (typeof oldTierByPos[p] === 'string') {
+                        newTierByPos[p] = 10;
+                        needsMigration = true;
+                    } else {
+                        newTierByPos[p] = oldTierByPos[p];
+                    }
+                }
+                return {
+                    ...card,
+                    id: card.id || uuidv4(),
+                    style: normalizeStyleName(card.style),
+                    ratingsByPosition: card.ratingsByPosition || {},
+                    tierByPosition: newTierByPos,
+                    skills: (card.skills || []).filter((s: string) => validSkillsSet.has(s as any)),
+                };
+            });
+
+            if (needsMigration) {
+                playersToMigrate.push({ id: doc.id, cards: newCards });
+            }
 
             return {
                 id: doc.id,
                 ...data,
                 cards: newCards,
             } as Player;
+        });
+
+        // Trigger safe migration
+        playersToMigrate.forEach(p => {
+             if (db) updateDoc(doc(db as any, 'players', p.id), { cards: p.cards }).catch(console.error);
         });
 
         setPlayers(playerList);
@@ -84,7 +107,7 @@ export function usePlayers() {
                 const recentAverage = calculateRecencyWeightedAverage(ratingsForPos, 5, 2.5, 0.9);
                 
                 const tier = card.tierByPosition?.[ratedPos] || null;
-                const overall = calculateOverall(stats.average, stats.matches, player.liveUpdateRating, recentAverage);
+                const overall = calculateOverall(stats.average, stats.matches, tier, player.liveUpdateRating, recentAverage);
 
                 return { 
                     player, card, ratingsForPos, performance: { stats, isHotStreak: false, isConsistent: false, isPromising: false, isVersatile: playerPositions.length >= 3 }, 

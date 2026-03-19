@@ -44,6 +44,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { Player, Position, PlayerStyle, League, Nationality, RoleTier } from "@/lib/types";
 import { positions, playerStyles, leagues, nationalities, getAvailableStylesForPosition } from "@/lib/types";
@@ -58,7 +59,7 @@ const formSchema = z.object({
   style: z.enum(playerStyles),
   league: z.enum(leagues).optional(),
   rating: z.number().min(1).max(10),
-  tier: z.enum(['Competitivo', 'eventos', 'descarte']).nullable().optional(),
+  tier: z.coerce.number().min(1).max(10).nullable().optional(),
 });
 
 export type FormValues = z.infer<typeof formSchema>;
@@ -444,20 +445,19 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, players, init
               name="tier"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Tier de la Carta en esta Posición (Opcional)</FormLabel>
-                  <Select onValueChange={(v) => field.onChange(v === 'none' ? null : v)} value={field.value || 'none'}>
-                    <FormControl>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Selecciona un tier (opcional)" />
-                    </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="none">Sin Tier</SelectItem>
-                      <SelectItem value="Competitivo">Competitivo</SelectItem>
-                      <SelectItem value="eventos">eventos</SelectItem>
-                      <SelectItem value="descarte">descarte</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FormLabel>Tier de la Carta en esta Posición (1 al 10, Opcional)</FormLabel>
+                   <FormControl>
+                    <Input 
+                      type="number" 
+                      step="0.1" 
+                      min="1" 
+                      max="10" 
+                      placeholder="Ej: 8.5" 
+                      value={field.value ?? ''} 
+                      onChange={(e) => field.onChange(e.target.value === '' ? null : parseFloat(e.target.value))} 
+                      className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
