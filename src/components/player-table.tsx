@@ -198,9 +198,10 @@ const PlayerTableMemo = memo(function PlayerTable({
             onBlur={handleBlur}
             onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
             className={cn(
-                "w-14 h-8 text-center text-xs p-0 font-bold transition-all shadow-inner bg-transparent focus-visible:ring-1 focus-visible:ring-primary", 
+                displayClass,
+                "w-14 h-8 text-center text-xs p-0 font-bold transition-all shadow-inner focus-visible:ring-1 focus-visible:ring-primary", 
                 "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
-                displayClass
+                "bg-transparent"
             )}
         />
     )

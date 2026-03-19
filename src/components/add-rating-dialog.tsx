@@ -45,7 +45,7 @@ import {
 } from "@/components/ui/popover"
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { cn, getTierColorClass } from "@/lib/utils";
 import type { Player, Position, PlayerStyle, League, Nationality, RoleTier } from "@/lib/types";
 import { positions, playerStyles, leagues, nationalities, getAvailableStylesForPosition } from "@/lib/types";
 import { Alert, AlertDescription } from "./ui/alert";
@@ -455,7 +455,11 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, players, init
                       placeholder="Ej: 8.5" 
                       value={field.value ?? ''} 
                       onChange={(e) => field.onChange(e.target.value === '' ? null : parseFloat(e.target.value))} 
-                      className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      className={cn(
+                        "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+                        field.value !== null && field.value !== undefined ? getTierColorClass(field.value) : "",
+                        "bg-background"
+                      )}
                     />
                   </FormControl>
                   <FormMessage />
