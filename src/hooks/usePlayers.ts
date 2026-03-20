@@ -128,6 +128,7 @@ export function usePlayers() {
           card.likesByPosition[pos]!.push(values.liked ?? null);
 
           if (trainedPosition !== undefined) card.trainedPosition = trainedPosition;
+          card.lastPlayedPosition = pos;
         } else {
           newCards.push({
             id: uuidv4(),

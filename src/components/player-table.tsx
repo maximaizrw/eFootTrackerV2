@@ -7,8 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, Search, SlidersHorizontal, Dumbbell, Pencil, Copy, CheckCircle2, Info, History, X, ThumbsUp, ThumbsDown } from 'lucide-react';
-import { cn, formatAverage, getAverageColorClass, getProxiedImageUrl, calculateRecencyWeightedAverage, isSpecialCard } from '@/lib/utils';
+import { PlusCircle, Trash2, Search, SlidersHorizontal, Dumbbell, Pencil, Copy, CheckCircle2, Info, History, X, ThumbsUp, ThumbsDown, MapPin } from 'lucide-react';
+import { cn, formatAverage, getAverageColorClass, getProxiedImageUrl, calculateRecencyWeightedAverage } from '@/lib/utils';
 import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import { LiveUpdateRatingSelector } from './live-update-rating-selector';
@@ -37,6 +37,7 @@ type PlayerTableProps = {
   players: FlatPlayer[];
   position: Position;
   onOpenAddRating: (initialData?: Partial<AddRatingFormValues>) => void;
+  onOpenAddPosition: (player: Player, card: PlayerCard) => void;
   onOpenEditCard: (player: Player, card: PlayerCard) => void;
   onOpenEditPlayer: (player: Player) => void;
   onOpenEditStats: (player: Player, card: PlayerCard) => void;
@@ -148,6 +149,7 @@ const PlayerTableMemo = memo(function PlayerTable({
   players: flatPlayers,
   position,
   onOpenAddRating,
+  onOpenAddPosition,
   onOpenEditCard,
   onOpenEditPlayer,
   onOpenEditStats,
@@ -206,11 +208,6 @@ const PlayerTableMemo = memo(function PlayerTable({
                       </div>
                       <span className="text-xs text-muted-foreground truncate block">
                         {card.name} ({performance.stats.matches} P.)
-                        {card.trainedPosition === position && !isSpecialCard(card.name) && Object.keys(card.ratingsByPosition).length > 1 && (
-                          <Badge variant="outline" className="ml-1 text-[10px] px-1 py-0 border-orange-400 text-orange-500">
-                            Entrenado
-                          </Badge>
-                        )}
                       </span>
                     </div>
                   </div>
@@ -271,7 +268,8 @@ const PlayerTableMemo = memo(function PlayerTable({
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => onOpenAddRating({ playerId: player.id, playerName: player.name, cardName: card.name, position, style: card.style, cardPositionCount: Object.keys(card.ratingsByPosition).length, currentTrainedPosition: card.trainedPosition ?? null } as any)}><PlusCircle className="h-4 w-4 text-primary" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => onOpenAddRating({ playerId: player.id, playerName: player.name, cardName: card.name, position, style: card.style } as any)}><PlusCircle className="h-4 w-4 text-primary" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => onOpenAddPosition(player, card)} title="Agregar en otra posición"><MapPin className="h-4 w-4 text-muted-foreground" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => onOpenPlayerDetail(flatPlayer)} title="Ficha Completa"><Dumbbell className="h-4 w-4" /></Button>
                     <AlertDialog>
                         <AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button></AlertDialogTrigger>

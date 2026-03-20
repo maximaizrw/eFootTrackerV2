@@ -66,7 +66,6 @@ export default function Home() {
     updateLiveUpdateRating,
     resetAllLiveUpdateRatings,
     updateFullPlayerData,
-    updateTrainedPosition,
   } = usePlayers();
 
   const {
@@ -169,6 +168,22 @@ export default function Home() {
 
   const handleOpenAddRating = useCallback((initialData?: Partial<AddRatingFormValues>) => {
     setAddDialogInitialData(initialData);
+    setAddRatingDialogOpen(true);
+  }, []);
+
+  const [addDialogShowPositionSelector, setAddDialogShowPositionSelector] = useState(false);
+  const [addDialogExistingPositions, setAddDialogExistingPositions] = useState<Position[]>([]);
+
+  const handleOpenAddPosition = useCallback((player: import('@/lib/types').Player, card: import('@/lib/types').PlayerCard) => {
+    setAddDialogInitialData({
+      playerId: player.id,
+      playerName: player.name,
+      cardName: card.name,
+      style: card.style,
+      cardPositionCount: Object.keys(card.ratingsByPosition).length + 1,
+    } as any);
+    setAddDialogExistingPositions(Object.keys(card.ratingsByPosition) as Position[]);
+    setAddDialogShowPositionSelector(true);
     setAddRatingDialogOpen(true);
   }, []);
   
@@ -333,7 +348,15 @@ export default function Home() {
         onAddRating={addRating}
         players={allPlayers}
         initialData={addDialogInitialData}
-        onOpenChange={setAddRatingDialogOpen}
+        showPositionSelector={addDialogShowPositionSelector}
+        existingPositions={addDialogExistingPositions}
+        onOpenChange={(open) => {
+          setAddRatingDialogOpen(open);
+          if (!open) {
+            setAddDialogShowPositionSelector(false);
+            setAddDialogExistingPositions([]);
+          }
+        }}
       />
       <AddPlayerDialog
         open={isAddPlayerDialogOpen}
@@ -478,6 +501,7 @@ export default function Home() {
                       players={paginatedPlayers}
                       position={pos}
                       onOpenAddRating={handleOpenAddRating}
+                      onOpenAddPosition={handleOpenAddPosition}
                       onOpenEditCard={handleOpenEditCard}
                       onOpenEditPlayer={handleOpenEditPlayer}
                       onOpenEditStats={handleOpenEditStats}
@@ -534,7 +558,6 @@ export default function Home() {
                 onDiscardPlayer={handleDiscardPlayer}
                 onUpdateLiveUpdateRating={updateLiveUpdateRating}
                 onAddRating={handleOpenAddRating}
-                onSetTrainedPosition={updateTrainedPosition}
             />
           </TabsContent>
           

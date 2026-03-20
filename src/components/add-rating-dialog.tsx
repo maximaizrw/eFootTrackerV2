@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
-import { ThumbsUp, ThumbsDown, Minus, Star, Dumbbell } from "lucide-react";
-import { isSpecialCard } from "@/lib/utils";
+import { ThumbsUp, ThumbsDown, Minus, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,8 +18,10 @@ import {
   FormControl,
   FormField,
   FormItem,
+  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import type { Player, Position, PlayerStyle, League, Nationality } from "@/lib/types";
 import { positions, playerStyles, leagues, nationalities } from "@/lib/types";
@@ -35,10 +36,6 @@ const formSchema = z.object({
   league: z.enum(leagues).optional(),
   rating: z.number().min(1).max(10),
   liked: z.boolean().nullable().optional(),
-  // trained position context (passed via initialData, not rendered as inputs)
-  cardPositionCount: z.number().optional(),
-  currentTrainedPosition: z.enum(positions).nullable().optional(),
-  trainedPosition: z.enum(positions).nullable().optional(),
 });
 
 export type FormValues = z.infer<typeof formSchema>;
@@ -49,6 +46,8 @@ type AddRatingDialogProps = {
   onAddRating: (values: FormValues) => void;
   players: Player[];
   initialData?: Partial<FormValues>;
+  showPositionSelector?: boolean;
+  existingPositions?: Position[];
 };
 
 function getRatingColor(rating: number): string {
@@ -76,7 +75,7 @@ function getRatingBg(rating: number): string {
   return "bg-red-500/10 border-red-500/30";
 }
 
-export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData }: AddRatingDialogProps) {
+export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData, showPositionSelector, existingPositions }: AddRatingDialogProps) {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -94,26 +93,26 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData }
 
   useEffect(() => {
     if (open) {
+      const defaultPosition = showPositionSelector
+        ? ((existingPositions && existingPositions.length > 0)
+            ? positions.find(p => !existingPositions.includes(p)) ?? "DC"
+            : "DC")
+        : "DC";
       const base = {
         playerId: undefined,
         playerName: "",
         nationality: "Sin Nacionalidad" as Nationality,
         cardName: "Carta Base",
-        position: "DC" as Position,
+        position: defaultPosition as Position,
         style: "Ninguno" as PlayerStyle,
         league: "Sin Liga" as League,
         rating: 5,
         liked: null,
         ...initialData,
       };
-      // Pre-select trained position if this position is already the trained one
-      const merged = {
-        ...base,
-        trainedPosition: base.currentTrainedPosition === base.position ? base.position : null,
-      };
-      form.reset(merged);
+      form.reset(base);
     }
-  }, [open, initialData, form]);
+  }, [open, initialData, form, showPositionSelector, existingPositions]);
 
   function onSubmit(values: FormValues) {
     onAddRating(values);
@@ -121,16 +120,11 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData }
   }
 
   const rating = form.watch("rating");
-  const cardName = form.watch("cardName");
   const position = form.watch("position");
-  const cardPositionCount = form.watch("cardPositionCount");
-  const trainedPosition = form.watch("trainedPosition");
 
-  const showTrainedToggle = useMemo(
-    () => (cardPositionCount ?? 0) > 1 && !isSpecialCard(cardName ?? ""),
-    [cardPositionCount, cardName]
-  );
-  const isCurrentlyTrained = trainedPosition === position;
+  const availablePositions = showPositionSelector
+    ? positions.filter(p => !(existingPositions || []).includes(p))
+    : positions;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -144,9 +138,9 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData }
                   {initialData?.playerName || "Jugador"}
                 </DialogTitle>
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  {initialData?.position && (
+                  {(showPositionSelector ? position : initialData?.position) && (
                     <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                      {initialData.position}
+                      {showPositionSelector ? position : initialData?.position}
                     </span>
                   )}
                   {initialData?.cardName && (
@@ -163,6 +157,32 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData }
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="px-6 py-5 space-y-6">
+
+            {/* Position Selector */}
+            {showPositionSelector && (
+              <FormField
+                control={form.control}
+                name="position"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Posición</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar posición..." />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {availablePositions.map(pos => (
+                          <SelectItem key={pos} value={pos}>{pos}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             {/* Rating */}
             <FormField
@@ -260,24 +280,6 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData }
                 </FormItem>
               )}
             />
-
-            {showTrainedToggle && (
-              <button
-                type="button"
-                onClick={() => form.setValue("trainedPosition", isCurrentlyTrained ? null : position)}
-                className={`w-full flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all ${
-                  isCurrentlyTrained
-                    ? "bg-amber-500/10 border-amber-500/50 text-amber-600"
-                    : "border-border hover:border-amber-500/40 hover:bg-amber-500/5 text-muted-foreground"
-                }`}
-              >
-                <Dumbbell className="h-4 w-4 shrink-0" />
-                <span>{isCurrentlyTrained ? "Posición entrenada en el juego" : "Marcar como posición entrenada"}</span>
-                <span className={`ml-auto text-xs px-1.5 py-0.5 rounded-full font-bold ${isCurrentlyTrained ? "bg-amber-500 text-white" : "bg-muted text-muted-foreground"}`}>
-                  {position}
-                </span>
-              </button>
-            )}
 
             <Button type="submit" className="w-full font-semibold h-11">
               Guardar valoración

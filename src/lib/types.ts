@@ -125,6 +125,7 @@ export type PlayerCard = {
   physicalAttributes?: PhysicalAttribute;
   skills?: PlayerSkill[];
   trainedPosition?: Position;
+  lastPlayedPosition?: Position;
 };
 
 export type Player = {
