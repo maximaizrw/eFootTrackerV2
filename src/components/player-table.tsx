@@ -204,7 +204,14 @@ const PlayerTableMemo = memo(function PlayerTable({
                             </button>
                           </div>
                       </div>
-                      <span className="text-xs text-muted-foreground truncate block">{card.name} ({performance.stats.matches} P.)</span>
+                      <span className="text-xs text-muted-foreground truncate block">
+                        {card.name} ({performance.stats.matches} P.)
+                        {card.trainedPosition === position && !isSpecialCard(card.name) && Object.keys(card.ratingsByPosition).length > 1 && (
+                          <Badge variant="outline" className="ml-1 text-[10px] px-1 py-0 border-orange-400 text-orange-500">
+                            Entrenado
+                          </Badge>
+                        )}
+                      </span>
                     </div>
                   </div>
                 </TableCell>
@@ -264,7 +271,7 @@ const PlayerTableMemo = memo(function PlayerTable({
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => onOpenAddRating({ playerId: player.id, playerName: player.name, cardName: card.name, position, style: card.style })}><PlusCircle className="h-4 w-4 text-primary" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => onOpenAddRating({ playerId: player.id, playerName: player.name, cardName: card.name, position, style: card.style, cardPositionCount: Object.keys(card.ratingsByPosition).length, currentTrainedPosition: card.trainedPosition ?? null } as any)}><PlusCircle className="h-4 w-4 text-primary" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => onOpenPlayerDetail(flatPlayer)} title="Ficha Completa"><Dumbbell className="h-4 w-4" /></Button>
                     <AlertDialog>
                         <AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button></AlertDialogTrigger>

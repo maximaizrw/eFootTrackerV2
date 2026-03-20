@@ -66,6 +66,7 @@ export default function Home() {
     updateLiveUpdateRating,
     resetAllLiveUpdateRatings,
     updateFullPlayerData,
+    updateTrainedPosition,
   } = usePlayers();
 
   const {
@@ -178,7 +179,7 @@ export default function Home() {
         currentCardName: card.name,
         currentStyle: card.style,
         league: card.league || 'Sin Liga',
-        imageUrl: card.imageUrl || ''
+        imageUrl: card.imageUrl || '',
     });
     setEditCardDialogOpen(true);
   }, []);
@@ -533,6 +534,7 @@ export default function Home() {
                 onDiscardPlayer={handleDiscardPlayer}
                 onUpdateLiveUpdateRating={updateLiveUpdateRating}
                 onAddRating={handleOpenAddRating}
+                onSetTrainedPosition={updateTrainedPosition}
             />
           </TabsContent>
           

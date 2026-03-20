@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
-import { ThumbsUp, ThumbsDown, Minus, Star } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Minus, Star, Dumbbell } from "lucide-react";
+import { isSpecialCard } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -34,6 +35,10 @@ const formSchema = z.object({
   league: z.enum(leagues).optional(),
   rating: z.number().min(1).max(10),
   liked: z.boolean().nullable().optional(),
+  // trained position context (passed via initialData, not rendered as inputs)
+  cardPositionCount: z.number().optional(),
+  currentTrainedPosition: z.enum(positions).nullable().optional(),
+  trainedPosition: z.enum(positions).nullable().optional(),
 });
 
 export type FormValues = z.infer<typeof formSchema>;
@@ -89,7 +94,7 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData }
 
   useEffect(() => {
     if (open) {
-      form.reset({
+      const base = {
         playerId: undefined,
         playerName: "",
         nationality: "Sin Nacionalidad" as Nationality,
@@ -100,7 +105,13 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData }
         rating: 5,
         liked: null,
         ...initialData,
-      });
+      };
+      // Pre-select trained position if this position is already the trained one
+      const merged = {
+        ...base,
+        trainedPosition: base.currentTrainedPosition === base.position ? base.position : null,
+      };
+      form.reset(merged);
     }
   }, [open, initialData, form]);
 
@@ -110,6 +121,16 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData }
   }
 
   const rating = form.watch("rating");
+  const cardName = form.watch("cardName");
+  const position = form.watch("position");
+  const cardPositionCount = form.watch("cardPositionCount");
+  const trainedPosition = form.watch("trainedPosition");
+
+  const showTrainedToggle = useMemo(
+    () => (cardPositionCount ?? 0) > 1 && !isSpecialCard(cardName ?? ""),
+    [cardPositionCount, cardName]
+  );
+  const isCurrentlyTrained = trainedPosition === position;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -239,6 +260,24 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData }
                 </FormItem>
               )}
             />
+
+            {showTrainedToggle && (
+              <button
+                type="button"
+                onClick={() => form.setValue("trainedPosition", isCurrentlyTrained ? null : position)}
+                className={`w-full flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all ${
+                  isCurrentlyTrained
+                    ? "bg-amber-500/10 border-amber-500/50 text-amber-600"
+                    : "border-border hover:border-amber-500/40 hover:bg-amber-500/5 text-muted-foreground"
+                }`}
+              >
+                <Dumbbell className="h-4 w-4 shrink-0" />
+                <span>{isCurrentlyTrained ? "Posición entrenada en el juego" : "Marcar como posición entrenada"}</span>
+                <span className={`ml-auto text-xs px-1.5 py-0.5 rounded-full font-bold ${isCurrentlyTrained ? "bg-amber-500 text-white" : "bg-muted text-muted-foreground"}`}>
+                  {position}
+                </span>
+              </button>
+            )}
 
             <Button type="submit" className="w-full font-semibold h-11">
               Guardar valoración

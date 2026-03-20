@@ -102,7 +102,7 @@ export function usePlayers() {
   }, [players]);
 
   const addRating = async (values: AddRatingFormValues) => {
-    let { playerName, cardName, position, rating, style, league, nationality, playerId } = values;
+    let { playerName, cardName, position, rating, style, league, nationality, playerId, trainedPosition } = values as any;
     if (!db) return;
     
     const pos = position as Position;
@@ -126,6 +126,8 @@ export function usePlayers() {
           if (!card.likesByPosition) card.likesByPosition = {};
           if (!card.likesByPosition[pos]) card.likesByPosition[pos] = [];
           card.likesByPosition[pos]!.push(values.liked ?? null);
+
+          if (trainedPosition !== undefined) card.trainedPosition = trainedPosition;
         } else {
           newCards.push({
             id: uuidv4(),
@@ -353,11 +355,24 @@ export function usePlayers() {
       const playerRef = doc(db, 'players', values.playerId);
       const playerDoc = await getDoc(playerRef);
       const playerData = playerDoc.data() as Player;
-      const newCards = playerData.cards.map(c => 
-        c.id === values.cardId ? { ...c, name: values.currentCardName, style: values.currentStyle, league: values.league, imageUrl: values.imageUrl } : c
+      const newCards = playerData.cards.map(c =>
+        c.id === values.cardId ? { ...c, name: values.currentCardName, style: values.currentStyle, league: values.league, imageUrl: values.imageUrl, trainedPosition: values.trainedPosition ?? null } : c
       );
       await updateDoc(playerRef, { cards: newCards });
       toast({ title: "Carta actualizada" });
+    } catch (e) {}
+  };
+
+  const updateTrainedPosition = async (playerId: string, cardId: string, position: Position | null) => {
+    if (!db) return;
+    try {
+      const playerRef = doc(db, 'players', playerId);
+      const playerDoc = await getDoc(playerRef);
+      const playerData = playerDoc.data() as Player;
+      const newCards = playerData.cards.map(c =>
+        c.id === cardId ? { ...c, trainedPosition: position } : c
+      );
+      await updateDoc(playerRef, { cards: newCards });
     } catch (e) {}
   };
 
@@ -412,6 +427,6 @@ export function usePlayers() {
     players, flatPlayers, positionNotes, loading, error,
     addRating, addPlayer, savePositionNote,
     deletePositionRatings, updateLiveUpdateRating, resetAllLiveUpdateRatings,
-    editCard, editPlayer, deleteRating, downloadBackup, saveAttributeStats, updateFullPlayerData, updateLike
+    editCard, editPlayer, deleteRating, downloadBackup, saveAttributeStats, updateFullPlayerData, updateLike, updateTrainedPosition
   };
 }

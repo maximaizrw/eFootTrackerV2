@@ -2,10 +2,10 @@
 
 import type { IdealTeamPlayer, IdealTeamSlot, FormationStats, Position, LiveUpdateRating } from '@/lib/types';
 import Image from 'next/image';
-import { Users, Shirt, X, Info } from 'lucide-react';
+import { Users, Shirt, X, Dumbbell } from 'lucide-react';
 import { Button } from './ui/button';
 import { FootballPitch } from './football-pitch';
-import { cn, getProxiedImageUrl } from '@/lib/utils';
+import { cn, getProxiedImageUrl, isSpecialCard } from '@/lib/utils';
 import { memo, useState } from 'react';
 import { LiveUpdateRatingSelector } from './live-update-rating-selector';
 import {
@@ -20,7 +20,7 @@ import { Badge } from './ui/badge';
 
 
 const PlayerToken = memo(function PlayerToken({
-  player, style, hoveredId, onHover, onDiscard, onUpdateLiveUpdateRating, onAddRating
+  player, style, hoveredId, onHover, onDiscard, onUpdateLiveUpdateRating, onAddRating, onSetTrainedPosition
 }: any) {
   if (!player || player.player.id.startsWith('ph')) {
     return (
@@ -33,6 +33,9 @@ const PlayerToken = memo(function PlayerToken({
   }
 
   const isHovered = hoveredId === player.card.id;
+  const cardPositionCount = Object.keys(player.card.ratingsByPosition ?? {}).length;
+  const canSetTrained = cardPositionCount > 1 && !isSpecialCard(player.card.name);
+  const isTrained = canSetTrained && player.card.trainedPosition === player.position;
 
   return (
     <div
@@ -40,7 +43,7 @@ const PlayerToken = memo(function PlayerToken({
       style={style}
       onPointerEnter={() => onHover(player.card.id)}
       onPointerLeave={() => onHover(null)}
-      onClick={() => onAddRating({ playerId: player.player.id, playerName: player.player.name, cardName: player.card.name, position: player.position })}
+      onClick={() => onAddRating({ playerId: player.player.id, playerName: player.player.name, cardName: player.card.name, position: player.position, cardPositionCount: Object.keys(player.card.ratingsByPosition ?? {}).length, currentTrainedPosition: player.card.trainedPosition ?? null })}
     >
       <Button
         variant="destructive" size="icon" className={cn("absolute -top-1 -right-1 h-5 w-5 rounded-full z-[60] transition-opacity", isHovered ? "opacity-100" : "opacity-0")}
@@ -53,7 +56,12 @@ const PlayerToken = memo(function PlayerToken({
         {player.card.imageUrl ? (
           <Image src={getProxiedImageUrl(player.card.imageUrl)} alt={player.card.name} fill sizes="56px" className="object-contain" unoptimized referrerPolicy="no-referrer" />
         ) : <div className="w-full h-full flex items-center justify-center bg-black/30 rounded-full"><Users className="w-6 h-6 text-white/50" /></div>}
-        <div className={cn("absolute -bottom-1 left-1/2 -translate-x-1/2 px-1.5 py-px rounded-full text-[10px] font-bold shadow-md bg-sky-500 text-white")}>
+        <div
+          className={cn("absolute -bottom-1 left-1/2 -translate-x-1/2 px-1.5 py-px rounded-full text-[10px] font-bold shadow-md flex items-center gap-0.5", isTrained ? "bg-amber-400 text-black" : "bg-sky-500 text-white", canSetTrained && "cursor-pointer")}
+          onClick={canSetTrained ? (e) => { e.stopPropagation(); onSetTrainedPosition(player.player.id, player.card.id, isTrained ? null : player.position); } : undefined}
+          title={canSetTrained ? (isTrained ? "Quitar posición entrenada" : "Marcar como posición entrenada") : undefined}
+        >
+          {isTrained && <Dumbbell className="h-2.5 w-2.5" />}
           {player.assignedPosition}
         </div>
       </div>
@@ -69,7 +77,7 @@ const PlayerToken = memo(function PlayerToken({
   );
 });
 
-const BenchCard = memo(function BenchCard({ player, onDiscard, onUpdateLiveUpdateRating, onAddRating }: any) {
+const BenchCard = memo(function BenchCard({ player, onDiscard, onUpdateLiveUpdateRating, onAddRating, onSetTrainedPosition }: any) {
   if (!player || player.player.id.startsWith('ph')) {
     return (
       <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-muted/20 border border-dashed border-foreground/10 min-h-[2.75rem]">
@@ -82,7 +90,7 @@ const BenchCard = memo(function BenchCard({ player, onDiscard, onUpdateLiveUpdat
   return (
     <div
       className="group/bench relative flex items-center gap-2 px-2 py-1.5 rounded-lg bg-card border border-border/50 min-h-[2.75rem] hover:bg-accent/10 cursor-pointer"
-      onClick={() => onAddRating({ playerId: player.player.id, playerName: player.player.name, cardName: player.card.name, position: player.position })}
+      onClick={() => onAddRating({ playerId: player.player.id, playerName: player.player.name, cardName: player.card.name, position: player.position, cardPositionCount: Object.keys(player.card.ratingsByPosition ?? {}).length, currentTrainedPosition: player.card.trainedPosition ?? null })}
     >
       <Button
         variant="destructive" size="icon" className="absolute -top-1 -right-1 h-4 w-4 rounded-full opacity-0 group-hover/bench:opacity-100 transition-opacity"
@@ -99,7 +107,21 @@ const BenchCard = memo(function BenchCard({ player, onDiscard, onUpdateLiveUpdat
       <div className="flex-grow min-w-0">
         <div className="flex flex-col">
           <div className="flex items-center gap-1">
-            <span className="text-[10px] font-bold text-sky-500">{player.assignedPosition}</span>
+            {(() => {
+              const cardPositionCount = Object.keys(player.card.ratingsByPosition ?? {}).length;
+              const canSetTrained = cardPositionCount > 1 && !isSpecialCard(player.card.name);
+              const isTrained = canSetTrained && player.card.trainedPosition === player.position;
+              return (
+                <span
+                  className={cn("text-[10px] font-bold flex items-center gap-0.5 rounded px-0.5", isTrained ? "text-amber-500" : "text-sky-500", canSetTrained && "cursor-pointer")}
+                  onClick={canSetTrained ? (e) => { e.stopPropagation(); onSetTrainedPosition(player.player.id, player.card.id, isTrained ? null : player.position); } : undefined}
+                  title={canSetTrained ? (isTrained ? "Quitar posición entrenada" : "Marcar como posición entrenada") : undefined}
+                >
+                  {isTrained && <Dumbbell className="h-2.5 w-2.5" />}
+                  {player.assignedPosition}
+                </span>
+              );
+            })()}
             <LiveUpdateRatingSelector value={player.player.liveUpdateRating} onValueChange={(v: LiveUpdateRating | null) => onUpdateLiveUpdateRating(player.player.id, v)} />
             <span className="text-[10px] font-semibold truncate flex items-center gap-1">
               {player.player.name}
@@ -115,7 +137,7 @@ const BenchCard = memo(function BenchCard({ player, onDiscard, onUpdateLiveUpdat
 
 
 
-export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onUpdateLiveUpdateRating, onAddRating }: any) {
+export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onUpdateLiveUpdateRating, onAddRating, onSetTrainedPosition }: any) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   if (teamSlots.length === 0 || !formation) return <div className="mt-8 text-center text-muted-foreground p-8 bg-card border border-dashed rounded-lg">Configura tu táctica y genera el equipo.</div>;
@@ -136,7 +158,7 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onUpda
         <FootballPitch className="aspect-[4/3] lg:aspect-[3/2]">
           {starters.map((starter: any, index: number) => {
             const slot = formation.slots[index];
-            return <PlayerToken key={starter?.card.id || `empty-${index}`} player={starter} style={{ top: `${slot?.top}%`, left: `${slot?.left}%` }} hoveredId={hoveredId} onHover={setHoveredId} onDiscard={onDiscardPlayer} onUpdateLiveUpdateRating={onUpdateLiveUpdateRating} onAddRating={onAddRating} />;
+            return <PlayerToken key={starter?.card.id || `empty-${index}`} player={starter} style={{ top: `${slot?.top}%`, left: `${slot?.left}%` }} hoveredId={hoveredId} onHover={setHoveredId} onDiscard={onDiscardPlayer} onUpdateLiveUpdateRating={onUpdateLiveUpdateRating} onAddRating={onAddRating} onSetTrainedPosition={onSetTrainedPosition} />;
           })}
         </FootballPitch>
       </div>
@@ -144,7 +166,7 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onUpda
         <h3 className="text-sm font-semibold mb-2 px-1">Banquillo — Probadores / Mejores <span className="text-muted-foreground font-normal">(prioridad &lt;5 partidos)</span></h3>
         <div className="grid grid-cols-2 lg:grid-cols-1 gap-1.5">
           {substitutes.map((sub: any, index: number) => (
-            <BenchCard key={sub?.card.id ? `sub-${sub.card.id}-${index}` : `vacante-${index}`} player={sub} onDiscard={onDiscardPlayer} onUpdateLiveUpdateRating={onUpdateLiveUpdateRating} onAddRating={onAddRating} />
+            <BenchCard key={sub?.card.id ? `sub-${sub.card.id}-${index}` : `vacante-${index}`} player={sub} onDiscard={onDiscardPlayer} onUpdateLiveUpdateRating={onUpdateLiveUpdateRating} onAddRating={onAddRating} onSetTrainedPosition={onSetTrainedPosition} />
           ))}
         </div>
       </div>
