@@ -18,6 +18,7 @@ import {
 import { Button } from '@/components/ui/button';
 
 import { AddRatingDialog, type FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
+import { AddPlayerDialog, type AddPlayerFormValues } from '@/components/add-player-dialog';
 import { EditCardDialog, type FormValues as EditCardFormValues } from '@/components/edit-card-dialog';
 import { EditPlayerDialog, type FormValues as EditPlayerFormValues } from '@/components/edit-player-dialog';
 import { EditStatsDialog } from '@/components/edit-stats-dialog';
@@ -55,6 +56,7 @@ export default function Home() {
     loading: playersLoading, 
     error: playersError,
     addRating,
+    addPlayer,
     editCard,
     editPlayer,
     deleteRating,
@@ -89,6 +91,7 @@ export default function Home() {
   const [listSortCriteria, setListSortCriteria] = useState<'overall' | 'average'>('overall');
   
   const [isAddRatingDialogOpen, setAddRatingDialogOpen] = useState(false);
+  const [isAddPlayerDialogOpen, setAddPlayerDialogOpen] = useState(false);
   const [isAddFormationDialogOpen, setAddFormationDialogOpen] = useState(false);
   const [isEditFormationDialogOpen, setEditFormationDialogOpen] = useState(false);
   const [isAddMatchDialogOpen, setAddMatchDialogOpen] = useState(false);
@@ -326,12 +329,17 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
-       <AddRatingDialog
+      <AddRatingDialog
         open={isAddRatingDialogOpen}
         onAddRating={addRating}
         players={allPlayers}
         initialData={addDialogInitialData}
         onOpenChange={setAddRatingDialogOpen}
+      />
+      <AddPlayerDialog
+        open={isAddPlayerDialogOpen}
+        onOpenChange={setAddPlayerDialogOpen}
+        onAddPlayer={addPlayer}
       />
       <AddFormationDialog
         open={isAddFormationDialogOpen}
@@ -396,7 +404,10 @@ export default function Home() {
             {activeTab === 'formations' ? (
                 <Button onClick={() => setAddFormationDialogOpen(true)} size="sm"><PlusCircle className="mr-2 h-4 w-4" />Formación</Button>
             ) : positions.some(p => p === activeTab) && (
-                <Button onClick={() => handleOpenAddRating({ position: activeTab as Position })} size="sm"><PlusCircle className="mr-2 h-4 w-4" />Valorar</Button>
+                <>
+                  <Button onClick={() => setAddPlayerDialogOpen(true)} size="sm" variant="outline"><PlusCircle className="mr-2 h-4 w-4" />Jugador</Button>
+                  <Button onClick={() => handleOpenAddRating({ position: activeTab as Position })} size="sm"><PlusCircle className="mr-2 h-4 w-4" />Valorar</Button>
+                </>
             )}
           </div>
         </div>

@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Check, ChevronsUpDown, AlertCircle } from 'lucide-react';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -23,38 +22,15 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
 import { Slider } from "@/components/ui/slider";
-import { Input } from "@/components/ui/input";
-import { cn, getTierColorClass } from "@/lib/utils";
 import type { Player, Position, PlayerStyle, League, Nationality, RoleTier } from "@/lib/types";
-import { positions, playerStyles, leagues, nationalities, getAvailableStylesForPosition } from "@/lib/types";
-import { Alert, AlertDescription } from "./ui/alert";
+import { positions, playerStyles, leagues, nationalities } from "@/lib/types";
 
 const formSchema = z.object({
   playerId: z.string().optional(),
-  playerName: z.string().min(2, "El nombre del jugador debe tener al menos 2 caracteres."),
+  playerName: z.string().min(2),
   nationality: z.enum(nationalities),
-  cardName: z.string().min(2, "El nombre de la carta debe tener al menos 2 caracteres."),
+  cardName: z.string().min(2),
   position: z.enum(positions),
   style: z.enum(playerStyles),
   league: z.enum(leagues).optional(),
@@ -72,14 +48,7 @@ type AddRatingDialogProps = {
   initialData?: Partial<FormValues>;
 };
 
-export function AddRatingDialog({ open, onOpenChange, onAddRating, players, initialData }: AddRatingDialogProps) {
-  const [playerPopoverOpen, setPlayerPopoverOpen] = useState(false);
-  const [cardPopoverOpen, setCardPopoverOpen] = useState(false);
-  const [cardNames, setCardNames] = useState<string[]>([]);
-  const [isStyleDisabled, setIsStyleDisabled] = useState(false);
-  const [styleDeactivated, setStyleDeactivated] = useState(false);
-
-
+export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData }: AddRatingDialogProps) {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -93,346 +62,59 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, players, init
       rating: 5,
     },
   });
-  
-  const playerIdValue = form.watch('playerId');
-  const playerNameValue = form.watch('playerName');
-  const cardNameValue = form.watch('cardName');
-  const positionValue = form.watch('position');
-  const styleValue = form.watch('style');
 
   useEffect(() => {
     if (open) {
-      const defaultValues = {
+      form.reset({
         playerId: undefined,
-        playerName: '',
-        nationality: 'Sin Nacionalidad' as Nationality,
-        cardName: 'Carta Base',
-        position: 'DC' as Position,
-        style: 'Ninguno' as PlayerStyle,
-        league: 'Sin Liga' as League,
+        playerName: "",
+        nationality: "Sin Nacionalidad" as Nationality,
+        cardName: "Carta Base",
+        position: "DC" as Position,
+        style: "Ninguno" as PlayerStyle,
+        league: "Sin Liga" as League,
         rating: 5,
         tier: null as RoleTier,
-      };
-      
-      form.reset({ ...defaultValues, ...initialData });
+        ...initialData,
+      });
     }
   }, [open, initialData, form]);
 
-  
-  useEffect(() => {
-    const selectedPlayer = players.find(p => p.id === playerIdValue || p.name.toLowerCase() === playerNameValue?.toLowerCase());
-
-    if (selectedPlayer) {
-      if (form.getValues('playerName') !== selectedPlayer.name) {
-        form.setValue('playerName', selectedPlayer.name);
-      }
-       if (form.getValues('playerId') !== selectedPlayer.id) {
-        form.setValue('playerId', selectedPlayer.id);
-      }
-       if (form.getValues('nationality') !== selectedPlayer.nationality) {
-        form.setValue('nationality', selectedPlayer.nationality);
-      }
-      setCardNames(selectedPlayer.cards.map(c => c.name));
-    } else {
-      setCardNames([]);
-    }
-
-    const card = selectedPlayer?.cards.find(c => c.name.toLowerCase() === cardNameValue?.toLowerCase());
-    const availableStyles = getAvailableStylesForPosition(positionValue, true);
-
-    if (card) {
-      const isStyleValidForPosition = availableStyles.includes(card.style);
-      
-      if (isStyleValidForPosition) {
-        form.setValue('style', card.style, { shouldValidate: true });
-        setIsStyleDisabled(true);
-        setStyleDeactivated(false);
-      } else {
-        // STYLE DEACTIVATION LOGIC
-        form.setValue('style', 'Ninguno', { shouldValidate: true });
-        setIsStyleDisabled(false); 
-        setStyleDeactivated(true);
-      }
-      if (card.league) {
-        form.setValue('league', card.league);
-      }
-    } else {
-      // It's a new card, so style is editable.
-      setIsStyleDisabled(false);
-      setStyleDeactivated(false);
-      const currentStyle = form.getValues('style');
-      if (!availableStyles.includes(currentStyle)) {
-        form.setValue('style', 'Ninguno');
-      }
-    }
-  }, [playerIdValue, playerNameValue, cardNameValue, positionValue, players, form]);
-
-
-  const availableStyles = useMemo(() => {
-    return getAvailableStylesForPosition(positionValue, true);
-  }, [positionValue]);
-
-
   function onSubmit(values: FormValues) {
-    const finalValues = { ...values };
-    const stylesForPosition = getAvailableStylesForPosition(finalValues.position, true);
-    if (!stylesForPosition.includes(finalValues.style)) {
-      finalValues.style = 'Ninguno';
-    }
-    onAddRating(finalValues);
+    onAddRating(values);
     onOpenChange(false);
   }
-  
-  const isQuickAdd = !!initialData?.playerId;
-  const isNewPlayer = !playerIdValue && playerNameValue.length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[360px]">
         <DialogHeader>
-          <DialogTitle>Añadir Nueva Valoración</DialogTitle>
-          <DialogDescription>
-            {isQuickAdd 
-              ? `Añadiendo nueva valoración para ${initialData.playerName} - ${initialData.cardName}`
-              : "Introduce los detalles del rendimiento de un jugador en el partido."
-            }
-          </DialogDescription>
+          <DialogTitle>Añadir Valoración</DialogTitle>
+          {initialData?.playerName && (
+            <DialogDescription>
+              {initialData.playerName}
+              {initialData.cardName ? ` · ${initialData.cardName}` : ""}
+              {initialData.position ? ` · ${initialData.position}` : ""}
+            </DialogDescription>
+          )}
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-2">
             <FormField
-              control={form.control}
-              name="playerName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nombre del Jugador</FormLabel>
-                   <Popover open={playerPopoverOpen} onOpenChange={setPlayerPopoverOpen}>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={playerPopoverOpen}
-                          className={cn("w-full justify-between", isQuickAdd && "text-muted-foreground")}
-                          disabled={isQuickAdd}
-                          aria-label="Nombre del jugador"
-                        >
-                          {field.value || "Selecciona o crea un jugador..."}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                      <Command>
-                        <CommandInput 
-                          placeholder="Busca o crea un jugador..."
-                          onValueChange={(search) => {
-                            form.setValue('playerName', search, { shouldValidate: true });
-                            form.setValue('playerId', undefined);
-                          }}
-                          value={field.value}
-                          aria-label="Nombre del jugador"
-                        />
-                        <CommandEmpty>No se encontró el jugador. Puedes crearlo.</CommandEmpty>
-                        <CommandList>
-                          <CommandGroup>
-                            {players.map((player) => (
-                              <CommandItem
-                                key={player.id}
-                                value={player.name}
-                                onSelect={() => {
-                                  form.setValue("playerId", player.id, { shouldValidate: true });
-                                  form.setValue("playerName", player.name, { shouldValidate: true });
-                                  form.setValue("nationality", player.nationality, { shouldValidate: true });
-                                  setPlayerPopoverOpen(false);
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    playerIdValue === player.id ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                {player.name}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="nationality"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nacionalidad</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value} disabled={!isNewPlayer}>
-                    <FormControl>
-                    <SelectTrigger className={cn(!isNewPlayer && "text-muted-foreground")}>
-                        <SelectValue placeholder="Selecciona una nacionalidad" />
-                    </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {nationalities.map((nat) => (
-                        <SelectItem key={nat} value={nat}>{nat}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="cardName"
-              render={({ field }) => (
-                 <FormItem>
-                  <FormLabel>Nombre de la Carta</FormLabel>
-                   <Popover open={cardPopoverOpen} onOpenChange={setCardPopoverOpen}>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={cardPopoverOpen}
-                          className={cn("w-full justify-between", isQuickAdd && "text-muted-foreground")}
-                          disabled={!playerNameValue || isQuickAdd}
-                          aria-label="Nombre de la carta"
-                        >
-                          {field.value || "Selecciona o crea una carta..."}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                      <Command>
-                        <CommandInput 
-                          placeholder="Busca o crea una carta..."
-                          onValueChange={(search) => form.setValue('cardName', search)}
-                          value={field.value}
-                          aria-label="Nombre de la carta"
-                        />
-                        <CommandEmpty>No se encontró la carta. Puedes crearla.</CommandEmpty>
-                        <CommandList>
-                          <CommandGroup>
-                            {cardNames.map((name) => (
-                              <CommandItem
-                                key={name}
-                                value={name}
-                                onSelect={() => {
-                                  form.setValue("cardName", name, { shouldValidate: true });
-                                  setCardPopoverOpen(false);
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    field.value.toLowerCase() === name.toLowerCase() ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                {name}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-             <FormField
-              control={form.control}
-              name="league"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Liga</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value} disabled={isQuickAdd}>
-                    <FormControl>
-                    <SelectTrigger className={cn(isQuickAdd && "text-muted-foreground")}>
-                        <SelectValue placeholder="Selecciona una liga" />
-                    </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {leagues.map((league) => (
-                        <SelectItem key={league} value={league}>{league}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="position"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Posición</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value} disabled={isQuickAdd}>
-                    <FormControl>
-                    <SelectTrigger className={cn(isQuickAdd && "text-muted-foreground")}>
-                        <SelectValue placeholder="Selecciona una posición" />
-                    </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {positions.map((pos) => (
-                        <SelectItem key={pos} value={pos}>{pos}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="style"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Estilo de Juego</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value} disabled={isQuickAdd || isStyleDisabled}>
-                    <FormControl>
-                    <SelectTrigger className={cn((isQuickAdd || isStyleDisabled) && "text-muted-foreground")}>
-                        <SelectValue placeholder="Selecciona un estilo" />
-                    </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {availableStyles.map((style) => (
-                        <SelectItem key={style} value={style}>{style}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            {styleDeactivated && (
-                <Alert variant="destructive" className="py-2 px-3">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription className="text-xs">
-                        El estilo de la carta no se activa en {positionValue}. Se usará "Ninguno".
-                    </AlertDescription>
-                </Alert>
-            )}
-             <FormField
               control={form.control}
               name="rating"
               render={({ field }) => (
                 <FormItem>
-                   <FormLabel>Valoración: {field.value.toFixed(1)}</FormLabel>
-                   <FormControl>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Valoración</FormLabel>
+                    <span className="text-2xl font-bold">{field.value.toFixed(1)}</span>
+                  </div>
+                  <FormControl>
                     <Slider
                       min={1}
                       max={10}
                       step={0.5}
-                      defaultValue={[field.value]}
+                      value={[field.value]}
                       onValueChange={(value) => field.onChange(value[0])}
                     />
                   </FormControl>
@@ -440,34 +122,8 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, players, init
                 </FormItem>
               )}
             />
-             <FormField
-              control={form.control}
-              name="tier"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tier de la Carta en esta Posición (1 al 10, Opcional)</FormLabel>
-                   <FormControl>
-                    <Input 
-                      type="number" 
-                      step="0.1" 
-                      min="1" 
-                      max="10" 
-                      placeholder="Ej: 8.5" 
-                      value={field.value ?? ''} 
-                      onChange={(e) => field.onChange(e.target.value === '' ? null : parseFloat(e.target.value))} 
-                      className={cn(
-                        "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
-                        field.value !== null && field.value !== undefined ? getTierColorClass(field.value) : "",
-                        "bg-background"
-                      )}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <DialogFooter>
-              <Button type="submit">Guardar Valoración</Button>
+              <Button type="submit" className="w-full">Guardar</Button>
             </DialogFooter>
           </form>
         </Form>

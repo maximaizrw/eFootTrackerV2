@@ -8,6 +8,7 @@ import { useToast } from './use-toast';
 import { v4 as uuidv4 } from 'uuid';
 import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating, PlayerSkill, PlayerAttributeStats, PhysicalAttribute, Nationality, League, RoleTier } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
+import type { AddPlayerFormValues } from '@/components/add-player-dialog';
 import { getAvailableStylesForPosition, playerSkillsList } from '@/lib/types';
 import { normalizeText, normalizeStyleName, calculateStats, calculateOverall, calculateRecencyWeightedAverage } from '@/lib/utils';
 
@@ -177,6 +178,46 @@ export function usePlayers() {
   };
 
 
+
+  const addPlayer = async (values: AddPlayerFormValues) => {
+    if (!db) return;
+    const {
+      playerName, cardName, imageUrl, nationality, style, league,
+      height, weight, skills,
+      ...statFields
+    } = values;
+
+    const attributeStats: PlayerAttributeStats = {};
+    for (const [key, val] of Object.entries(statFields)) {
+      if (val !== undefined && val !== null) {
+        (attributeStats as any)[key] = Number(val);
+      }
+    }
+
+    const card: any = {
+      id: uuidv4(),
+      name: cardName,
+      style: style || 'Ninguno',
+      league: league || 'Sin Liga',
+      imageUrl: imageUrl || '',
+      ratingsByPosition: {},
+      tierByPosition: {},
+    };
+    if (Object.keys(attributeStats).length > 0) card.attributeStats = attributeStats;
+    if (height || weight) card.physicalAttributes = { ...(height ? { height } : {}), ...(weight ? { weight } : {}) };
+    if (skills && skills.length > 0) card.skills = skills;
+
+    try {
+      await addDoc(collection(db, 'players'), {
+        name: playerName,
+        nationality: nationality || 'Sin Nacionalidad',
+        cards: [card],
+      });
+      toast({ title: "Jugador guardado" });
+    } catch {
+      toast({ variant: "destructive", title: "Error al guardar jugador" });
+    }
+  };
 
   const savePositionNote = async (position: Position, text: string) => {
     if (!db) return;
@@ -366,9 +407,9 @@ export function usePlayers() {
 
 
 
-  return { 
-    players, flatPlayers, positionNotes, loading, error, 
-    addRating, savePositionNote, 
+  return {
+    players, flatPlayers, positionNotes, loading, error,
+    addRating, addPlayer, savePositionNote,
     deletePositionRatings, updateLiveUpdateRating, resetAllLiveUpdateRatings,
     editCard, editPlayer, deleteRating, downloadBackup, saveAttributeStats, updateFullPlayerData, updateTier
   };
