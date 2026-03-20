@@ -1,6 +1,11 @@
 {
   "version": 1,
   "skills": {
+    "frontend-design": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "computedHash": "2c211c20810c920c151279f0856355fc376922385fef56771c1987e9a6206f7a"
+    },
     "interface-design": {
       "source": "dammyjay93/interface-design",
       "sourceType": "github",

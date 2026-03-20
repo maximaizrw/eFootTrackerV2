@@ -5,13 +5,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
-import { ThumbsUp, ThumbsDown, Minus } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Minus, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -20,7 +18,6 @@ import {
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Slider } from "@/components/ui/slider";
@@ -48,6 +45,31 @@ type AddRatingDialogProps = {
   players: Player[];
   initialData?: Partial<FormValues>;
 };
+
+function getRatingColor(rating: number): string {
+  if (rating >= 8) return "text-emerald-500";
+  if (rating >= 6) return "text-yellow-500";
+  if (rating >= 4) return "text-orange-500";
+  return "text-red-500";
+}
+
+function getRatingLabel(rating: number): string {
+  if (rating >= 9) return "Sobresaliente";
+  if (rating >= 8) return "Excelente";
+  if (rating >= 7) return "Muy bueno";
+  if (rating >= 6) return "Bueno";
+  if (rating >= 5) return "Regular";
+  if (rating >= 4) return "Flojo";
+  if (rating >= 3) return "Malo";
+  return "Pésimo";
+}
+
+function getRatingBg(rating: number): string {
+  if (rating >= 8) return "bg-emerald-500/10 border-emerald-500/30";
+  if (rating >= 6) return "bg-yellow-500/10 border-yellow-500/30";
+  if (rating >= 4) return "bg-orange-500/10 border-orange-500/30";
+  return "bg-red-500/10 border-red-500/30";
+}
 
 export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData }: AddRatingDialogProps) {
   const form = useForm<FormValues>({
@@ -87,29 +109,69 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData }
     onOpenChange(false);
   }
 
+  const rating = form.watch("rating");
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[360px]">
-        <DialogHeader>
-          <DialogTitle>Añadir Valoración</DialogTitle>
-          {initialData?.playerName && (
-            <DialogDescription>
-              {initialData.playerName}
-              {initialData.cardName ? ` · ${initialData.cardName}` : ""}
-              {initialData.position ? ` · ${initialData.position}` : ""}
-            </DialogDescription>
-          )}
-        </DialogHeader>
+      <DialogContent className="sm:max-w-[380px] p-0 overflow-hidden gap-0">
+        {/* Header */}
+        <div className="bg-primary/5 border-b px-6 pt-6 pb-4">
+          <DialogHeader>
+            <div className="flex items-start gap-3">
+              <div className="flex-1 min-w-0">
+                <DialogTitle className="text-lg font-bold truncate">
+                  {initialData?.playerName || "Jugador"}
+                </DialogTitle>
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  {initialData?.position && (
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                      {initialData.position}
+                    </span>
+                  )}
+                  {initialData?.cardName && (
+                    <span className="text-xs text-muted-foreground">
+                      {initialData.cardName}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <Star className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+            </div>
+          </DialogHeader>
+        </div>
+
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-2">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="px-6 py-5 space-y-6">
+
+            {/* Rating */}
             <FormField
               control={form.control}
               name="rating"
               render={({ field }) => (
-                <FormItem>
-                  <div className="flex items-center justify-between">
-                    <FormLabel>Valoración</FormLabel>
-                    <span className="text-2xl font-bold">{field.value.toFixed(1)}</span>
+                <FormItem className="space-y-3">
+                  <div className={`flex items-center justify-between rounded-xl border p-4 transition-colors ${getRatingBg(field.value)}`}>
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Valoración</p>
+                      <p className={`text-4xl font-black mt-0.5 leading-none ${getRatingColor(field.value)}`}>
+                        {field.value.toFixed(1)}
+                      </p>
+                      <p className={`text-xs font-semibold mt-1 ${getRatingColor(field.value)}`}>
+                        {getRatingLabel(field.value)}
+                      </p>
+                    </div>
+                    <div className="flex gap-0.5">
+                      {[1,2,3,4,5,6,7,8,9,10].map((i) => (
+                        <div
+                          key={i}
+                          className={`w-1.5 rounded-full transition-all ${
+                            i <= Math.round(field.value)
+                              ? field.value >= 8 ? "bg-emerald-500" : field.value >= 6 ? "bg-yellow-500" : field.value >= 4 ? "bg-orange-500" : "bg-red-500"
+                              : "bg-border"
+                          }`}
+                          style={{ height: `${8 + i * 2.5}px` }}
+                        />
+                      ))}
+                    </div>
                   </div>
                   <FormControl>
                     <Slider
@@ -118,53 +180,69 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData }
                       step={0.5}
                       value={[field.value]}
                       onValueChange={(value) => field.onChange(value[0])}
+                      className="w-full"
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            {/* Liked */}
             <FormField
               control={form.control}
               name="liked"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>¿Cómo fue el partido?</FormLabel>
+                <FormItem className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">¿Cómo fue el partido?</p>
                   <FormControl>
-                    <div className="flex gap-2">
-                      <Button
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
                         type="button"
-                        variant={field.value === true ? "default" : "outline"}
-                        className={field.value === true ? "flex-1 bg-green-600 hover:bg-green-700 text-white" : "flex-1"}
                         onClick={() => field.onChange(field.value === true ? null : true)}
+                        className={`flex flex-col items-center gap-1.5 rounded-xl border py-3 px-2 text-xs font-semibold transition-all ${
+                          field.value === true
+                            ? "bg-emerald-500 border-emerald-500 text-white shadow-md shadow-emerald-500/20"
+                            : "border-border hover:border-emerald-500/50 hover:bg-emerald-500/5 text-muted-foreground"
+                        }`}
                       >
-                        <ThumbsUp className="h-4 w-4 mr-1" /> Me gustó
-                      </Button>
-                      <Button
+                        <ThumbsUp className="h-5 w-5" />
+                        Me gustó
+                      </button>
+                      <button
                         type="button"
-                        variant={field.value === null ? "secondary" : "outline"}
-                        className="flex-1"
                         onClick={() => field.onChange(null)}
+                        className={`flex flex-col items-center gap-1.5 rounded-xl border py-3 px-2 text-xs font-semibold transition-all ${
+                          field.value === null
+                            ? "bg-secondary border-border text-foreground shadow-sm"
+                            : "border-border hover:bg-secondary/60 text-muted-foreground"
+                        }`}
                       >
-                        <Minus className="h-4 w-4 mr-1" /> Neutral
-                      </Button>
-                      <Button
+                        <Minus className="h-5 w-5" />
+                        Neutral
+                      </button>
+                      <button
                         type="button"
-                        variant={field.value === false ? "default" : "outline"}
-                        className={field.value === false ? "flex-1 bg-red-600 hover:bg-red-700 text-white" : "flex-1"}
                         onClick={() => field.onChange(field.value === false ? null : false)}
+                        className={`flex flex-col items-center gap-1.5 rounded-xl border py-3 px-2 text-xs font-semibold transition-all ${
+                          field.value === false
+                            ? "bg-red-500 border-red-500 text-white shadow-md shadow-red-500/20"
+                            : "border-border hover:border-red-500/50 hover:bg-red-500/5 text-muted-foreground"
+                        }`}
                       >
-                        <ThumbsDown className="h-4 w-4 mr-1" /> No me gustó
-                      </Button>
+                        <ThumbsDown className="h-5 w-5" />
+                        No me gustó
+                      </button>
                     </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <DialogFooter>
-              <Button type="submit" className="w-full">Guardar</Button>
-            </DialogFooter>
+
+            <Button type="submit" className="w-full font-semibold h-11">
+              Guardar valoración
+            </Button>
           </form>
         </Form>
       </DialogContent>
