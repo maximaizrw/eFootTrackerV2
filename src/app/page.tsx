@@ -339,7 +339,19 @@ export default function Home() {
       <AddPlayerDialog
         open={isAddPlayerDialogOpen}
         onOpenChange={setAddPlayerDialogOpen}
-        onAddPlayer={addPlayer}
+        players={allPlayers}
+        onAddPlayer={async (values) => {
+          const newId = await addPlayer(values);
+          const hasRatings = values.ratingEntries && values.ratingEntries.length > 0;
+          if (newId && !hasRatings) {
+            handleOpenAddRating({
+              playerId: newId,
+              playerName: values.playerName,
+              cardName: values.cardName,
+              position: activeTab as Position,
+            });
+          }
+        }}
       />
       <AddFormationDialog
         open={isAddFormationDialogOpen}

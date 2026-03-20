@@ -179,8 +179,8 @@ export function usePlayers() {
 
 
 
-  const addPlayer = async (values: AddPlayerFormValues) => {
-    if (!db) return;
+  const addPlayer = async (values: AddPlayerFormValues): Promise<string | null> => {
+    if (!db) return null;
     const {
       playerName, cardName, imageUrl, nationality, style, league,
       height, weight, skills,
@@ -194,28 +194,48 @@ export function usePlayers() {
       }
     }
 
-    const card: any = {
+    const ratingsByPosition: { [key: string]: number[] } = {};
+    if (values.ratingEntries && values.ratingEntries.length > 0) {
+      for (const entry of values.ratingEntries) {
+        if (!ratingsByPosition[entry.position]) ratingsByPosition[entry.position] = [];
+        ratingsByPosition[entry.position].push(entry.rating);
+      }
+    }
+
+    const newCard: any = {
       id: uuidv4(),
       name: cardName,
       style: style || 'Ninguno',
       league: league || 'Sin Liga',
       imageUrl: imageUrl || '',
-      ratingsByPosition: {},
+      ratingsByPosition,
       tierByPosition: {},
     };
-    if (Object.keys(attributeStats).length > 0) card.attributeStats = attributeStats;
-    if (height || weight) card.physicalAttributes = { ...(height ? { height } : {}), ...(weight ? { weight } : {}) };
-    if (skills && skills.length > 0) card.skills = skills;
+    if (Object.keys(attributeStats).length > 0) newCard.attributeStats = attributeStats;
+    if (height || weight) newCard.physicalAttributes = { ...(height ? { height } : {}), ...(weight ? { weight } : {}) };
+    if (skills && skills.length > 0) newCard.skills = skills;
 
     try {
-      await addDoc(collection(db, 'players'), {
+      if (values.playerId) {
+        const existingPlayer = players.find(p => p.id === values.playerId);
+        if (existingPlayer) {
+          const playerRef = doc(db, 'players', existingPlayer.id);
+          await updateDoc(playerRef, { cards: [...existingPlayer.cards, newCard] });
+          toast({ title: "Carta agregada", description: `Vinculada a ${existingPlayer.name}.` });
+          return existingPlayer.id;
+        }
+      }
+
+      const ref = await addDoc(collection(db, 'players'), {
         name: playerName,
         nationality: nationality || 'Sin Nacionalidad',
-        cards: [card],
+        cards: [newCard],
       });
       toast({ title: "Jugador guardado" });
+      return ref.id;
     } catch {
       toast({ variant: "destructive", title: "Error al guardar jugador" });
+      return null;
     }
   };
 
@@ -331,7 +351,13 @@ export function usePlayers() {
 
   const updateLiveUpdateRating = async (playerId: string, rating: LiveUpdateRating | null) => {
     if (!db) return;
-    try { await updateDoc(doc(db, 'players', playerId), { liveUpdateRating: rating }); } catch (e) {}
+    try {
+      const player = players.find(p => p.id === playerId);
+      const targets = player
+        ? players.filter(p => normalizeText(p.name) === normalizeText(player.name))
+        : [{ id: playerId }];
+      await Promise.all(targets.map(p => updateDoc(doc(db!, 'players', p.id), { liveUpdateRating: rating })));
+    } catch (e) {}
   };
 
   const resetAllLiveUpdateRatings = async () => {
