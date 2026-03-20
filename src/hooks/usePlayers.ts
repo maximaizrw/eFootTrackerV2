@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase-config';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, setDoc } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import { v4 as uuidv4 } from 'uuid';
-import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating, PlayerSkill, PlayerAttributeStats, PhysicalAttribute, Nationality, League, RoleTier } from '@/lib/types';
+import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating, PlayerSkill, PlayerAttributeStats, PhysicalAttribute, Nationality, League } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import type { AddPlayerFormValues } from '@/components/add-player-dialog';
 import { getAvailableStylesForPosition, playerSkillsList } from '@/lib/types';
@@ -31,45 +31,24 @@ export function usePlayers() {
 
     const unsubPlayers = onSnapshot(collection(db, "players"), (snapshot) => {
       try {
-        const playersToMigrate: { id: string, cards: any[] }[] = [];
         const playerList = snapshot.docs.map(doc => {
             const data = doc.data();
-            let needsMigration = false;
             const newCards: PlayerCard[] = (data.cards || []).map((card: any) => {
-                const oldTierByPos = card.tierByPosition || {};
-                const newTierByPos: any = {};
-                for (const p in oldTierByPos) {
-                    if (typeof oldTierByPos[p] === 'string') {
-                        newTierByPos[p] = 10;
-                        needsMigration = true;
-                    } else {
-                        newTierByPos[p] = oldTierByPos[p];
-                    }
-                }
                 return {
                     ...card,
                     id: card.id || uuidv4(),
                     style: normalizeStyleName(card.style),
                     ratingsByPosition: card.ratingsByPosition || {},
-                    tierByPosition: newTierByPos,
+                    likesByPosition: card.likesByPosition || {},
                     skills: (card.skills || []).filter((s: string) => validSkillsSet.has(s as any)),
                 };
             });
-
-            if (needsMigration) {
-                playersToMigrate.push({ id: doc.id, cards: newCards });
-            }
 
             return {
                 id: doc.id,
                 ...data,
                 cards: newCards,
             } as Player;
-        });
-
-        // Trigger safe migration
-        playersToMigrate.forEach(p => {
-             if (db) updateDoc(doc(db as any, 'players', p.id), { cards: p.cards }).catch(console.error);
         });
 
         setPlayers(playerList);
@@ -106,13 +85,15 @@ export function usePlayers() {
 
                 const stats = calculateStats(ratingsForPos);
                 const recentAverage = calculateRecencyWeightedAverage(ratingsForPos, 5, 2.5, 0.9);
-                
-                const tier = card.tierByPosition?.[ratedPos] || null;
-                const overall = calculateOverall(stats.average, stats.matches, tier, player.liveUpdateRating, recentAverage);
 
-                return { 
-                    player, card, ratingsForPos, performance: { stats, isHotStreak: false, isConsistent: false, isPromising: false, isVersatile: playerPositions.length >= 3 }, 
-                    tier, overall, position: ratedPos 
+                const likesForPos = card.likesByPosition?.[ratedPos] || [];
+                const likes = likesForPos.filter(l => l === true).length;
+                const dislikes = likesForPos.filter(l => l === false).length;
+                const overall = calculateOverall(stats.average, stats.matches, likes, dislikes, player.liveUpdateRating, recentAverage);
+
+                return {
+                    player, card, ratingsForPos, likesForPos, performance: { stats, isHotStreak: false, isConsistent: false, isPromising: false, isVersatile: playerPositions.length >= 3 },
+                    overall, position: ratedPos
                 } as FlatPlayer;
             }).filter((p): p is FlatPlayer => p !== null);
         })
@@ -141,19 +122,18 @@ export function usePlayers() {
           if (!card.ratingsByPosition) card.ratingsByPosition = {};
           if (!card.ratingsByPosition[pos]) card.ratingsByPosition[pos] = [];
           card.ratingsByPosition[pos]!.push(rating);
-          
-          if (values.tier) {
-            if (!card.tierByPosition) card.tierByPosition = {};
-            card.tierByPosition[pos] = values.tier;
-          }
+
+          if (!card.likesByPosition) card.likesByPosition = {};
+          if (!card.likesByPosition[pos]) card.likesByPosition[pos] = [];
+          card.likesByPosition[pos]!.push(values.liked ?? null);
         } else {
-          newCards.push({ 
-            id: uuidv4(), 
-            name: cardName, 
-            style, 
-            league: league || 'Sin Liga', 
+          newCards.push({
+            id: uuidv4(),
+            name: cardName,
+            style,
+            league: league || 'Sin Liga',
             ratingsByPosition: { [pos]: [rating] },
-            tierByPosition: values.tier ? { [pos]: values.tier } : {}
+            likesByPosition: { [pos]: [values.liked ?? null] },
           } as any);
         }
         await updateDoc(playerRef, { cards: newCards });
@@ -161,13 +141,13 @@ export function usePlayers() {
         await addDoc(collection(db, 'players'), {
           name: playerName,
           nationality,
-          cards: [{ 
-            id: uuidv4(), 
-            name: cardName, 
-            style, 
-            league: league || 'Sin Liga', 
+          cards: [{
+            id: uuidv4(),
+            name: cardName,
+            style,
+            league: league || 'Sin Liga',
             ratingsByPosition: { [pos]: [rating] },
-            tierByPosition: values.tier ? { [pos]: values.tier } : {}
+            likesByPosition: { [pos]: [values.liked ?? null] },
           }]
         });
       }
@@ -209,7 +189,7 @@ export function usePlayers() {
       league: league || 'Sin Liga',
       imageUrl: imageUrl || '',
       ratingsByPosition,
-      tierByPosition: {},
+      likesByPosition: {},
     };
     if (Object.keys(attributeStats).length > 0) newCard.attributeStats = attributeStats;
     if (height || weight) newCard.physicalAttributes = { ...(height ? { height } : {}), ...(weight ? { weight } : {}) };
@@ -248,7 +228,6 @@ export function usePlayers() {
 
 
   const updateFullPlayerData = async (playerId: string, cardId: string, position: Position, data: {
-    tier?: RoleTier;
     imageUrl?: string;
     stats: PlayerAttributeStats;
     physical: PhysicalAttribute;
@@ -278,14 +257,12 @@ export function usePlayers() {
       const playerData = playerDoc.data() as Player;
       const newCards = playerData.cards.map(card => {
         if (card.id === cardId) {
-          const updatedTiers = { ...card.tierByPosition, [position]: data.tier || null };
           const updatedCard: any = {
             ...card,
             imageUrl: data.imageUrl || card.imageUrl,
             attributeStats: data.stats,
             physicalAttributes: data.physical,
             skills: data.skills,
-            tierByPosition: updatedTiers,
             league: data.league || card.league,
           };
           return stripUndefined(updatedCard);
@@ -306,26 +283,24 @@ export function usePlayers() {
     }
   };
 
-  const updateTier = async (playerId: string, cardId: string, position: Position, tier: RoleTier | null) => {
+  const updateLike = async (playerId: string, cardId: string, position: Position, index: number, liked: boolean | null) => {
     if (!db) return;
     try {
       const playerRef = doc(db, 'players', playerId);
       const playerDoc = await getDoc(playerRef);
       if (!playerDoc.exists()) return;
-      
-      const playerData = playerDoc.data() as Player;
-      const newCards = playerData.cards.map(card => {
-        if (card.id === cardId) {
-          const updatedTiers = { ...card.tierByPosition, [position]: tier };
-          return { ...card, tierByPosition: updatedTiers };
-        }
-        return card;
-      });
 
-      await updateDoc(playerRef, { cards: newCards });
-      toast({ title: "Tier actualizado" });
+      const playerData = playerDoc.data() as Player;
+      const newCards: PlayerCard[] = JSON.parse(JSON.stringify(playerData.cards));
+      const card = newCards.find(c => c.id === cardId);
+      if (card) {
+        if (!card.likesByPosition) card.likesByPosition = {};
+        if (!card.likesByPosition[position]) card.likesByPosition[position] = [];
+        card.likesByPosition[position]![index] = liked;
+        await updateDoc(playerRef, { cards: newCards });
+      }
     } catch (e) {
-      toast({ variant: "destructive", title: "Error al actualizar tier" });
+      toast({ variant: "destructive", title: "Error al actualizar valoración" });
     }
   };
 
@@ -437,6 +412,6 @@ export function usePlayers() {
     players, flatPlayers, positionNotes, loading, error,
     addRating, addPlayer, savePositionNote,
     deletePositionRatings, updateLiveUpdateRating, resetAllLiveUpdateRatings,
-    editCard, editPlayer, deleteRating, downloadBackup, saveAttributeStats, updateFullPlayerData, updateTier
+    editCard, editPlayer, deleteRating, downloadBackup, saveAttributeStats, updateFullPlayerData, updateLike
   };
 }

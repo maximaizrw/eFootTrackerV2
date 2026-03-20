@@ -66,7 +66,6 @@ export default function Home() {
     updateLiveUpdateRating,
     resetAllLiveUpdateRatings,
     updateFullPlayerData,
-    updateTier,
   } = usePlayers();
 
   const {
@@ -119,7 +118,6 @@ export default function Home() {
   const [isFlexibleLaterals, setFlexibleLaterals] = useState(false);
   const [isFlexibleWingers, setFlexibleWingers] = useState(false);
   const [selectionCriteria, setSelectionCriteria] = useState<'overall' | 'average'>('overall');
-  const [teamMode, setTeamMode] = useState<'Competitivo' | 'eventos'>('Competitivo');
   
   const [pagination, setPagination] = useState<Record<string, number>>({});
   
@@ -166,7 +164,7 @@ export default function Home() {
     if (idealTeam.length > 0) {
       handleGenerateTeam(true);
     }
-  }, [discardedCardIds, selectedLeague, selectedNationality, isFlexibleLaterals, isFlexibleWingers, selectionCriteria, teamMode, handleGenerateTeam, idealTeam.length]);
+  }, [discardedCardIds, selectedLeague, selectedNationality, isFlexibleLaterals, isFlexibleWingers, selectionCriteria, handleGenerateTeam, idealTeam.length]);
 
   const handleOpenAddRating = useCallback((initialData?: Partial<AddRatingFormValues>) => {
     setAddDialogInitialData(initialData);
@@ -487,7 +485,6 @@ export default function Home() {
                       onDeletePositionRatings={deletePositionRatings}
                       onDeleteRating={deleteRating}
                       onUpdateLiveUpdateRating={updateLiveUpdateRating}
-                      onUpdateTier={updateTier}
                     />
                     <PlayerTable.Pagination
                       currentPage={currentPage}
@@ -522,8 +519,6 @@ export default function Home() {
                     onFlexibleWingersChange={setFlexibleWingers}
                     selectionCriteria={selectionCriteria}
                     onSelectionCriteriaChange={setSelectionCriteria}
-                    teamMode={teamMode}
-                    onTeamModeChange={setTeamMode}
                   />
                     <div className="flex flex-wrap items-center gap-4 mt-6">
                       <Button onClick={() => handleGenerateTeam()} disabled={!selectedFormationId}><Star className="mr-2 h-4 w-4" />Generar 11 Ideal</Button>

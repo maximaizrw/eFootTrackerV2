@@ -30,8 +30,6 @@ export type PlayerStyle = typeof playerStyles[number];
 export const positions = ['PT', 'DFC', 'LI', 'LD', 'MCD', 'MC', 'MDI', 'MDD', 'MO', 'EXI', 'EXD', 'SD', 'DC'] as const;
 export type Position = typeof positions[number];
 
-// Tier
-export type RoleTier = number | null;
 
 export const leagues = [
   "Sin Liga", "Premier League", "Ligue 1 Uber Eats", "Serie A TIM", "LaLiga EA SPORTS",
@@ -122,7 +120,7 @@ export type PlayerCard = {
   league?: League;
   imageUrl?: string;
   ratingsByPosition: { [key in Position]?: number[] };
-  tierByPosition?: { [key in Position]?: RoleTier };
+  likesByPosition?: { [key in Position]?: (boolean | null)[] };
   attributeStats?: PlayerAttributeStats;
   physicalAttributes?: PhysicalAttribute;
   skills?: PlayerSkill[];
@@ -143,7 +141,6 @@ export type IdealTeamPlayer = {
   position: Position;
   assignedPosition: string; // The role/position name in the tactical scheme
   average: number;
-  tier: RoleTier;
   overall: number;
   performance: PlayerPerformance;
 };
@@ -214,8 +211,8 @@ export type FlatPlayer = {
   player: Player;
   card: PlayerCard;
   ratingsForPos: number[];
+  likesForPos: (boolean | null)[];
   performance: PlayerPerformance;
-  tier: RoleTier;
   overall: number;
   position: Position;
 };

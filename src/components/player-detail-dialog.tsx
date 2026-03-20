@@ -23,7 +23,7 @@ import { Badge } from "./ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "./ui/command";
 import { playerSkillsList, nationalities, leagues } from "@/lib/types";
-import { cn, getTierColorClass } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 type PlayerDetailDialogProps = {
   open: boolean;
@@ -112,11 +112,6 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
                 {flatPlayer?.overall !== undefined && (
                   <Badge variant="outline" className="ml-2 font-mono">
                     Overall: <span className="text-primary ml-1">{flatPlayer.overall.toFixed(1)}</span>
-                  </Badge>
-                )}
-                {flatPlayer?.tier && (
-                  <Badge variant="outline" className={cn("font-mono font-black", getTierColorClass(flatPlayer.tier))}>
-                    Tier: {flatPlayer.tier}
                   </Badge>
                 )}
             </DialogTitle>

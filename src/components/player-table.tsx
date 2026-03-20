@@ -7,9 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, Search, SlidersHorizontal, Dumbbell, Pencil, Copy, CheckCircle2, Info, History, X } from 'lucide-react';
-import { cn, formatAverage, getAverageColorClass, getProxiedImageUrl, calculateRecencyWeightedAverage, isSpecialCard, getTierColorClass } from '@/lib/utils';
-import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating, RoleTier } from '@/lib/types';
+import { PlusCircle, Trash2, Search, SlidersHorizontal, Dumbbell, Pencil, Copy, CheckCircle2, Info, History, X, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { cn, formatAverage, getAverageColorClass, getProxiedImageUrl, calculateRecencyWeightedAverage, isSpecialCard } from '@/lib/utils';
+import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import { LiveUpdateRatingSelector } from './live-update-rating-selector';
 import { useToast } from '@/hooks/use-toast';
@@ -45,7 +45,6 @@ type PlayerTableProps = {
   onDeletePositionRatings: (playerId: string, cardId: string, position: Position) => void;
   onDeleteRating: (playerId: string, cardId: string, position: Position, ratingIndex: number) => void;
   onUpdateLiveUpdateRating: (playerId: string, rating: LiveUpdateRating | null) => void;
-  onUpdateTier: (playerId: string, cardId: string, position: Position, tier: RoleTier) => void;
 };
 
 const Filters = memo(({
@@ -157,55 +156,9 @@ const PlayerTableMemo = memo(function PlayerTable({
   onDeletePositionRatings,
   onDeleteRating,
   onUpdateLiveUpdateRating,
-  onUpdateTier,
 }: PlayerTableProps) {
-  
+
   if (flatPlayers.length === 0) return <div className="p-10 text-center text-muted-foreground">Sin jugadores en esta posición.</div>;
-
-  const EditableTier = ({ initialTier, playerId, cardId, pos, onUpdate }: { initialTier: number | null, playerId: string, cardId: string, pos: Position, onUpdate: (p: string, c: string, po: Position, t: number) => void }) => {
-    const [value, setValue] = React.useState<string>(initialTier === null ? "10" : initialTier.toString());
-    
-    React.useEffect(() => {
-        setValue(initialTier === null ? "10" : initialTier.toString());
-    }, [initialTier]);
-
-    const isDefault = initialTier === null;
-    const defaultTierClass = "text-purple-400 bg-purple-400/15 border-purple-400/30 border-dashed border-2";
-    const displayClass = isDefault ? defaultTierClass : getTierColorClass(parseFloat(value) || 10);
-
-    const handleBlur = () => {
-        let val = parseFloat(value);
-        if (isNaN(val) || val === initialTier) {
-            setValue(initialTier === null ? "10" : initialTier.toString());
-            return;
-        }
-        if (val < 1) val = 1;
-        if (val > 10) val = 10;
-        setValue(val.toString());
-        if (val !== initialTier) {
-            onUpdate(playerId, cardId, pos, val);
-        }
-    };
-
-    return (
-        <Input
-            type="number"
-            step="0.1"
-            min="1"
-            max="10"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            onBlur={handleBlur}
-            onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-            className={cn(
-                displayClass,
-                "w-14 h-8 text-center text-xs p-0 font-bold transition-all shadow-inner focus-visible:ring-1 focus-visible:ring-primary", 
-                "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
-                "bg-transparent"
-            )}
-        />
-    )
-  };
 
   return (
     <div className="overflow-x-auto">
@@ -214,7 +167,7 @@ const PlayerTableMemo = memo(function PlayerTable({
           <TableRow>
             <TableHead>Jugador</TableHead>
             <TableHead className="hidden md:table-cell">Estilo</TableHead>
-            <TableHead>Tier</TableHead>
+            <TableHead>Votos</TableHead>
             <TableHead>Prom.</TableHead>
             <TableHead>Overall</TableHead>
             <TableHead className="hidden md:table-cell">Últimas Notas</TableHead>
@@ -223,7 +176,9 @@ const PlayerTableMemo = memo(function PlayerTable({
         </TableHeader>
         <TableBody>
           {flatPlayers.map((flatPlayer) => {
-            const { player, card, ratingsForPos, performance, tier, overall } = flatPlayer;
+            const { player, card, ratingsForPos, likesForPos, performance, overall } = flatPlayer;
+            const likes = likesForPos.filter(l => l === true).length;
+            const dislikes = likesForPos.filter(l => l === false).length;
             const cardAverage = performance.stats.average;
             
             const recentAverage = calculateRecencyWeightedAverage(ratingsForPos, 5, 2.5, 0.9);
@@ -243,10 +198,7 @@ const PlayerTableMemo = memo(function PlayerTable({
                           <div className="flex items-center gap-1 min-w-0">
                             <button 
                               onClick={() => onOpenPlayerDetail(flatPlayer)} 
-                              className={cn(
-                                  "font-medium text-sm md:text-base hover:underline truncate transition-colors text-left",
-                                  (!tier) ? "text-red-600 dark:text-red-500 font-bold" : "text-foreground"
-                              )}
+                              className="font-medium text-sm md:text-base hover:underline truncate transition-colors text-left text-foreground"
                             >
                               {player.name}
                             </button>
@@ -260,13 +212,10 @@ const PlayerTableMemo = memo(function PlayerTable({
                   {card.style !== "Ninguno" ? <Badge variant="secondary">{card.style}</Badge> : '-'}
                 </TableCell>
                 <TableCell>
-                    <EditableTier 
-                      initialTier={tier} 
-                      playerId={player.id} 
-                      cardId={card.id} 
-                      pos={position} 
-                      onUpdate={onUpdateTier} 
-                    />
+                  <div className="flex items-center gap-1 text-xs font-semibold">
+                    <ThumbsUp className="h-3 w-3 text-green-500" /><span className="text-green-500">{likes}</span>
+                    <ThumbsDown className="h-3 w-3 text-red-500 ml-1" /><span className="text-red-500">{dislikes}</span>
+                  </div>
                 </TableCell>
                 <TableCell>
                   <div className={cn("text-base font-bold", getAverageColorClass(cardAverage))}>{formatAverage(cardAverage)}</div>

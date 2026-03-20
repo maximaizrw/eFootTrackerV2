@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { PlayerAttributeStats, Position, LiveUpdateRating, PlayerSkill, RoleTier } from "./types";
+import type { PlayerAttributeStats, Position, LiveUpdateRating, PlayerSkill } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -76,14 +76,6 @@ export function getOverallColorClass(overall: number): string {
 
 
 
-export function getTierColorClass(tier: RoleTier): string {
-    if (typeof tier !== 'number') return 'text-muted-foreground bg-muted/30 border-border opacity-50';
-    if (tier >= 9.0) return 'text-orange-400 bg-orange-400/15 border-orange-400/30 font-bold';
-    if (tier >= 8.0) return 'text-purple-400 bg-purple-400/15 border-purple-400/30 font-semibold';
-    if (tier >= 7.0) return 'text-sky-400 bg-sky-400/15 border-sky-400/30';
-    if (tier >= 5.0) return 'text-green-400 bg-green-400/15 border-green-400/30';
-    return 'text-muted-foreground bg-muted/30 border-border';
-}
 
 export function normalizeText(text: string): string {
   if (!text) return '';
@@ -98,10 +90,16 @@ export function normalizeStyleName(style: string): string {
 export const LIVE_UPDATE_BONUSES: Record<LiveUpdateRating, number> = { A: 6, B: 3, C: 0, D: -5, E: -10 };
 
 
+export function calculateLikeScore(likes: number, dislikes: number): number {
+  // Bayesian smoothing: neutral baseline when no votes
+  return ((likes + 1) / (likes + dislikes + 2)) * 100;
+}
+
 export function calculateOverall(
-  overallAverage: number, 
+  overallAverage: number,
   matches: number,
-  tier: RoleTier,
+  likes: number,
+  dislikes: number,
   liveUpdateRating?: LiveUpdateRating | null,
   recentAverage?: number,
 ): number {
@@ -111,10 +109,10 @@ export function calculateOverall(
   const recentScore = Math.max(0, Math.min(100, ((effectiveRecentAverage - 4.0) / (8.5 - 4.0)) * 100));
   const performanceScore = (historicalScore * 0.6) + (recentScore * 0.4);
 
-  const tierScore = typeof tier === 'number' ? Math.max(0, Math.min(100, tier * 10)) : 100;
+  const likeScore = calculateLikeScore(likes, dislikes);
 
   const liveUpdateBonus = liveUpdateRating ? LIVE_UPDATE_BONUSES[liveUpdateRating] : 0;
-  
+
   let experiencePenalty = 0;
   if (matches > 0) {
     if (matches < 3) experiencePenalty = -15;
@@ -123,8 +121,8 @@ export function calculateOverall(
     return 0;
   }
 
-  let finalOverall = (performanceScore * 0.5) + (tierScore * 0.5) + liveUpdateBonus + experiencePenalty;
-  
+  const finalOverall = (performanceScore * 0.6) + (likeScore * 0.4) + liveUpdateBonus + experiencePenalty;
+
   return Math.max(0, Math.min(100, Math.round(finalOverall)));
 }
 

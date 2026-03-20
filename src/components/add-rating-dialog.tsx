@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
+import { ThumbsUp, ThumbsDown, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,7 +24,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Slider } from "@/components/ui/slider";
-import type { Player, Position, PlayerStyle, League, Nationality, RoleTier } from "@/lib/types";
+import type { Player, Position, PlayerStyle, League, Nationality } from "@/lib/types";
 import { positions, playerStyles, leagues, nationalities } from "@/lib/types";
 
 const formSchema = z.object({
@@ -35,7 +36,7 @@ const formSchema = z.object({
   style: z.enum(playerStyles),
   league: z.enum(leagues).optional(),
   rating: z.number().min(1).max(10),
-  tier: z.coerce.number().min(1).max(10).nullable().optional(),
+  liked: z.boolean().nullable().optional(),
 });
 
 export type FormValues = z.infer<typeof formSchema>;
@@ -60,6 +61,7 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData }
       style: "Ninguno",
       league: "Sin Liga",
       rating: 5,
+      liked: null,
     },
   });
 
@@ -74,7 +76,7 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData }
         style: "Ninguno" as PlayerStyle,
         league: "Sin Liga" as League,
         rating: 5,
-        tier: null as RoleTier,
+        liked: null,
         ...initialData,
       });
     }
@@ -117,6 +119,44 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData }
                       value={[field.value]}
                       onValueChange={(value) => field.onChange(value[0])}
                     />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="liked"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>¿Cómo fue el partido?</FormLabel>
+                  <FormControl>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant={field.value === true ? "default" : "outline"}
+                        className={field.value === true ? "flex-1 bg-green-600 hover:bg-green-700 text-white" : "flex-1"}
+                        onClick={() => field.onChange(field.value === true ? null : true)}
+                      >
+                        <ThumbsUp className="h-4 w-4 mr-1" /> Me gustó
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={field.value === null ? "secondary" : "outline"}
+                        className="flex-1"
+                        onClick={() => field.onChange(null)}
+                      >
+                        <Minus className="h-4 w-4 mr-1" /> Neutral
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={field.value === false ? "default" : "outline"}
+                        className={field.value === false ? "flex-1 bg-red-600 hover:bg-red-700 text-white" : "flex-1"}
+                        onClick={() => field.onChange(field.value === false ? null : false)}
+                      >
+                        <ThumbsDown className="h-4 w-4 mr-1" /> No me gustó
+                      </Button>
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

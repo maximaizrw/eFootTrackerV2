@@ -1,4 +1,4 @@
-import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, FormationSlot, RoleTier } from './types';
+import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, FormationSlot } from './types';
 import { getAvailableStylesForPosition } from './types';
 import { calculateStats, calculateOverall, calculateRecencyWeightedAverage, positionPriority } from './utils';
 
@@ -6,7 +6,6 @@ type CandidatePlayer = {
   player: Player;
   card: PlayerCard;
   average: number;
-  tier: RoleTier | null;
   overall: number;
   scoreForSelection: number;
   position: Position;
@@ -49,9 +48,11 @@ export function generateIdealTeam(
         const availableStylesForPos = getAvailableStylesForPosition(pos, false);
         const effectiveRole = availableStylesForPos.includes(card.style) ? card.style : 'Ninguno';
         
-        const tier = card.tierByPosition?.[pos] || null;
-        
-        const trueOverall = calculateOverall(stats.average, stats.matches, tier, player.liveUpdateRating, recentAverage);
+        const likesForPos = card.likesByPosition?.[pos] || [];
+        const likes = likesForPos.filter(l => l === true).length;
+        const dislikes = likesForPos.filter(l => l === false).length;
+
+        const trueOverall = calculateOverall(stats.average, stats.matches, likes, dislikes, player.liveUpdateRating, recentAverage);
         const scoreForSelection = selectionCriteria === 'average'
             ? stats.average
             : trueOverall;
@@ -64,10 +65,10 @@ export function generateIdealTeam(
             isVersatile: Object.keys(card.ratingsByPosition).length >= 3,
         };
 
-        return { 
-            player, card, position: pos, average: stats.average, 
-            tier, overall: trueOverall, scoreForSelection,
-            performance 
+        return {
+            player, card, position: pos, average: stats.average,
+            overall: trueOverall, scoreForSelection,
+            performance
         };
       }).filter((p): p is CandidatePlayer => p !== null);
     })
@@ -189,7 +190,7 @@ export function generateIdealTeam(
   const placeholder = (id: string, pos: string) => ({ 
       player: { id, name: 'Vacante', cards: [], nationality: 'Sin Nacionalidad' }, 
       card: { id: `card-${id}`, name: 'N/A', style: 'Ninguno' as any, ratingsByPosition: {} }, 
-      position: pos as any, assignedPosition: pos, average: 0, tier: null, overall: 0, 
+      position: pos as any, assignedPosition: pos, average: 0, overall: 0,
       performance: { stats: { average: 0, matches: 0, stdDev: 0 }, isHotStreak: false, isConsistent: false, isPromising: false, isVersatile: false } 
   } as IdealTeamPlayer);
 
