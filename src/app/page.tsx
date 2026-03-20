@@ -404,10 +404,7 @@ export default function Home() {
             {activeTab === 'formations' ? (
                 <Button onClick={() => setAddFormationDialogOpen(true)} size="sm"><PlusCircle className="mr-2 h-4 w-4" />Formación</Button>
             ) : positions.some(p => p === activeTab) && (
-                <>
-                  <Button onClick={() => setAddPlayerDialogOpen(true)} size="sm" variant="outline"><PlusCircle className="mr-2 h-4 w-4" />Jugador</Button>
-                  <Button onClick={() => handleOpenAddRating({ position: activeTab as Position })} size="sm"><PlusCircle className="mr-2 h-4 w-4" />Valorar</Button>
-                </>
+                <Button onClick={() => setAddPlayerDialogOpen(true)} size="sm"><PlusCircle className="mr-2 h-4 w-4" />Jugador</Button>
             )}
           </div>
         </div>
@@ -523,11 +520,12 @@ export default function Home() {
                     </div>
                </CardContent>
              </Card>
-            <IdealTeamDisplay 
-                teamSlots={idealTeam} 
-                formation={selectedFormation} 
+            <IdealTeamDisplay
+                teamSlots={idealTeam}
+                formation={selectedFormation}
                 onDiscardPlayer={handleDiscardPlayer}
                 onUpdateLiveUpdateRating={updateLiveUpdateRating}
+                onAddRating={handleOpenAddRating}
             />
           </TabsContent>
           

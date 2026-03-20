@@ -20,7 +20,7 @@ import { Badge } from './ui/badge';
 
 
 const PlayerToken = memo(function PlayerToken({
-  player, style, hoveredId, onHover, onDiscard, onUpdateLiveUpdateRating
+  player, style, hoveredId, onHover, onDiscard, onUpdateLiveUpdateRating, onAddRating
 }: any) {
   if (!player || player.player.id.startsWith('ph')) {
     return (
@@ -40,6 +40,7 @@ const PlayerToken = memo(function PlayerToken({
       style={style}
       onPointerEnter={() => onHover(player.card.id)}
       onPointerLeave={() => onHover(null)}
+      onClick={() => onAddRating({ playerId: player.player.id, playerName: player.player.name, cardName: player.card.name, position: player.position })}
     >
       <Button
         variant="destructive" size="icon" className={cn("absolute -top-1 -right-1 h-5 w-5 rounded-full z-[60] transition-opacity", isHovered ? "opacity-100" : "opacity-0")}
@@ -68,7 +69,7 @@ const PlayerToken = memo(function PlayerToken({
   );
 });
 
-const BenchCard = memo(function BenchCard({ player, onDiscard, onUpdateLiveUpdateRating }: any) {
+const BenchCard = memo(function BenchCard({ player, onDiscard, onUpdateLiveUpdateRating, onAddRating }: any) {
   if (!player || player.player.id.startsWith('ph')) {
     return (
       <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-muted/20 border border-dashed border-foreground/10 min-h-[2.75rem]">
@@ -81,6 +82,7 @@ const BenchCard = memo(function BenchCard({ player, onDiscard, onUpdateLiveUpdat
   return (
     <div
       className="group/bench relative flex items-center gap-2 px-2 py-1.5 rounded-lg bg-card border border-border/50 min-h-[2.75rem] hover:bg-accent/10 cursor-pointer"
+      onClick={() => onAddRating({ playerId: player.player.id, playerName: player.player.name, cardName: player.card.name, position: player.position })}
     >
       <Button
         variant="destructive" size="icon" className="absolute -top-1 -right-1 h-4 w-4 rounded-full opacity-0 group-hover/bench:opacity-100 transition-opacity"
@@ -113,7 +115,7 @@ const BenchCard = memo(function BenchCard({ player, onDiscard, onUpdateLiveUpdat
 
 
 
-export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onUpdateLiveUpdateRating }: any) {
+export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onUpdateLiveUpdateRating, onAddRating }: any) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   if (teamSlots.length === 0 || !formation) return <div className="mt-8 text-center text-muted-foreground p-8 bg-card border border-dashed rounded-lg">Configura tu táctica y genera el equipo.</div>;
@@ -134,7 +136,7 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onUpda
         <FootballPitch className="aspect-[4/3] lg:aspect-[3/2]">
           {starters.map((starter: any, index: number) => {
             const slot = formation.slots[index];
-            return <PlayerToken key={starter?.card.id || `empty-${index}`} player={starter} style={{ top: `${slot?.top}%`, left: `${slot?.left}%` }} hoveredId={hoveredId} onHover={setHoveredId} onDiscard={onDiscardPlayer} onUpdateLiveUpdateRating={onUpdateLiveUpdateRating} />;
+            return <PlayerToken key={starter?.card.id || `empty-${index}`} player={starter} style={{ top: `${slot?.top}%`, left: `${slot?.left}%` }} hoveredId={hoveredId} onHover={setHoveredId} onDiscard={onDiscardPlayer} onUpdateLiveUpdateRating={onUpdateLiveUpdateRating} onAddRating={onAddRating} />;
           })}
         </FootballPitch>
       </div>
@@ -142,7 +144,7 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onUpda
         <h3 className="text-sm font-semibold mb-2 px-1">Banquillo — Probadores / Mejores <span className="text-muted-foreground font-normal">(prioridad &lt;5 partidos)</span></h3>
         <div className="grid grid-cols-2 lg:grid-cols-1 gap-1.5">
           {substitutes.map((sub: any, index: number) => (
-            <BenchCard key={sub?.card.id ? `sub-${sub.card.id}-${index}` : `vacante-${index}`} player={sub} onDiscard={onDiscardPlayer} onUpdateLiveUpdateRating={onUpdateLiveUpdateRating} />
+            <BenchCard key={sub?.card.id ? `sub-${sub.card.id}-${index}` : `vacante-${index}`} player={sub} onDiscard={onDiscardPlayer} onUpdateLiveUpdateRating={onUpdateLiveUpdateRating} onAddRating={onAddRating} />
           ))}
         </div>
       </div>
