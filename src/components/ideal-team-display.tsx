@@ -53,17 +53,22 @@ const PlayerToken = memo(function PlayerToken({
         {player.card.imageUrl ? (
           <Image src={getProxiedImageUrl(player.card.imageUrl)} alt={player.card.name} fill sizes="56px" className="object-contain" unoptimized referrerPolicy="no-referrer" />
         ) : <div className="w-full h-full flex items-center justify-center bg-black/30 rounded-full"><Users className="w-6 h-6 text-white/50" /></div>}
-        <div className={cn("absolute -bottom-1 left-1/2 -translate-x-1/2 px-1.5 py-px rounded-full text-[10px] font-bold shadow-md", player.card.lastPlayedPosition === player.position ? "bg-orange-500 text-white" : "bg-sky-500 text-white")}>
-          {player.assignedPosition}
+        <div className={cn("absolute -bottom-1 left-1/2 -translate-x-1/2 px-1.5 py-px rounded-full text-[10px] font-bold shadow-md", (player.card.name.startsWith('POT') || player.card.lastPlayedPosition === player.position) ? "bg-blue-500 text-white" : "bg-red-600 text-white")}>
+          {player.position}
         </div>
       </div>
 
-      <div className="mt-1.5 flex items-center gap-1">
-        <LiveUpdateRatingSelector value={player.player.liveUpdateRating} onValueChange={(v: LiveUpdateRating | null) => onUpdateLiveUpdateRating(player.player.id, v)} />
-        <span className="text-[10px] md:text-xs font-bold text-white whitespace-nowrap flex items-center gap-1" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>
-            {player.player.name} 
-            <span className="ml-0.5 text-accent">{player.overall?.toFixed(0) || '-'}</span>
-        </span>
+      <div className="mt-1.5 flex flex-col items-center gap-0.5">
+        <div className="flex items-center gap-1">
+          <LiveUpdateRatingSelector value={player.player.liveUpdateRating} onValueChange={(v: LiveUpdateRating | null) => onUpdateLiveUpdateRating(player.player.id, v)} />
+          <span className="text-[10px] md:text-xs font-bold text-white whitespace-nowrap flex items-center gap-1" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>
+              {player.player.name}
+              <span className="ml-0.5 text-accent">{player.overall?.toFixed(0) || '-'}</span>
+          </span>
+        </div>
+        {player.assignedPosition !== player.position && (
+          <span className="text-[8px] text-white/40 italic leading-none" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>{player.assignedPosition}</span>
+        )}
       </div>
     </div>
   );
@@ -99,7 +104,7 @@ const BenchCard = memo(function BenchCard({ player, onDiscard, onUpdateLiveUpdat
       <div className="flex-grow min-w-0">
         <div className="flex flex-col">
           <div className="flex items-center gap-1">
-            <span className={cn("text-[10px] font-bold", player.card.lastPlayedPosition === player.position ? "text-orange-500" : "text-sky-500")}>{player.assignedPosition}</span>
+            <span className={cn("text-[10px] font-bold", (player.card.name.startsWith('POT') || player.card.lastPlayedPosition === player.position) ? "text-blue-500" : "text-red-500")}>{player.position}</span>
             <LiveUpdateRatingSelector value={player.player.liveUpdateRating} onValueChange={(v: LiveUpdateRating | null) => onUpdateLiveUpdateRating(player.player.id, v)} />
             <span className="text-[10px] font-semibold truncate flex items-center gap-1">
               {player.player.name}

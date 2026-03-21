@@ -222,15 +222,15 @@ const PlayerToken = ({
 
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center gap-2">
-                    <Tag className="w-3.5 h-3.5" /> Alias / Rol Especial
+                    <Tag className="w-3.5 h-3.5" /> Instrucción
                 </label>
-                <Input 
-                    placeholder="Ej: Falso 9, Carrilero..." 
-                    value={slot.profileName || ''} 
+                <Input
+                    placeholder="Ej: Falso 9, Carrilero..."
+                    value={slot.profileName || ''}
                     onChange={(e) => onSlotChange({ ...slot, profileName: e.target.value })}
                     className="h-9 text-sm"
                 />
-                <p className="text-[10px] text-muted-foreground italic">Este nombre reemplazará visualmente a la posición.</p>
+                <p className="text-[10px] text-muted-foreground italic">Esta instrucción se mostrará en el 11 ideal.</p>
               </div>
 
               <div className="space-y-2">
