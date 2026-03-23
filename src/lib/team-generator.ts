@@ -157,25 +157,35 @@ export function generateIdealTeam(
   const usedPlayerIdsForBench = new Set<string>(usedPlayerIds);
   const usedCardIdsForBench = new Set<string>(usedCardIds);
 
-  // First pass: one backup per formation slot (in priority order), testers preferred, then best available.
-  for (const slot of sortedFormationSlots) {
+  // First pass: one backup per formation slot (same order as starters), testers preferred, then best available.
+  // Using formation.slots order ensures benchAssignments[i] is the substitute for starters[i].
+  for (let i = 0; i < formation.slots.length; i++) {
     if (benchAssignments.length >= 11) break;
-    const candidates = getCandidatesForSlot(slot);
+    const slot = formation.slots[i];
+    const starterRole = starters[i]?.role;
     const isAvailable = (p: CandidatePlayer) => !usedPlayerIdsForBench.has(p.player.id) && !usedCardIdsForBench.has(p.card.id);
 
-    // Try to find a tester first
-    let backup = candidates.find(p => isTester(p) && isAvailable(p));
+    let backup: CandidatePlayer | undefined;
 
-    // Fallback: best available with required role
-    if (!backup) {
-      backup = candidates.find(isAvailable);
+    // Priority 1: same role as the starter (tester preferred)
+    if (starterRole && starterRole !== 'Ninguno') {
+      const sameRoleCandidates = getCandidatesForSlot({ ...slot, styles: [starterRole] });
+      backup = sameRoleCandidates.find(p => isTester(p) && isAvailable(p))
+             ?? sameRoleCandidates.find(isAvailable);
     }
 
-    // Last resort: no available player matched the role — ignore styles and pick any position match
+    // Priority 2: slot's required styles (tester preferred)
+    if (!backup) {
+      const candidates = getCandidatesForSlot(slot);
+      backup = candidates.find(p => isTester(p) && isAvailable(p))
+             ?? candidates.find(isAvailable);
+    }
+
+    // Last resort: ignore styles, any position match
     if (!backup) {
       const fallbackCandidates = getCandidatesForSlot(slot, true);
       backup = fallbackCandidates.find(p => isTester(p) && isAvailable(p))
-            ?? fallbackCandidates.find(isAvailable);
+             ?? fallbackCandidates.find(isAvailable);
     }
 
     if (backup) {
@@ -185,22 +195,27 @@ export function generateIdealTeam(
     }
   }
 
-  // Slot 12: extra tester or best remaining — best remaining player that fits any formation position
+  // Slot 12: extra tester or best remaining — respecting required roles for each position
   if (benchAssignments.length < 12) {
-    const formationPositions = formation.slots.map(s => s.position);
-    
-    // Try to find any remaining tester
-    let extra = allPlayerCandidates
-      .filter(p => isTester(p) && !usedPlayerIdsForBench.has(p.player.id) && !usedCardIdsForBench.has(p.card.id))
-      .filter(p => formationPositions.includes(p.position))
-      .sort(candidateSort)[0];
-    
-    // Fallback: Best remaining player that fits any position
-    if (!extra) {
-      extra = allPlayerCandidates
-        .filter(p => !usedPlayerIdsForBench.has(p.player.id) && !usedCardIdsForBench.has(p.card.id))
-        .filter(p => formationPositions.includes(p.position))
-        .sort(candidateSort)[0];
+    let extra: CandidatePlayer | undefined;
+
+    // Try to find best remaining player that respects roles for any formation position
+    for (const slot of sortedFormationSlots) {
+      const candidates = getCandidatesForSlot(slot);
+      const filteredCandidates = candidates.filter(p => !usedPlayerIdsForBench.has(p.player.id) && !usedCardIdsForBench.has(p.card.id));
+
+      // Try to find a tester first
+      extra = filteredCandidates.find(p => isTester(p));
+
+      // Fallback: best available
+      if (!extra) {
+        extra = filteredCandidates[0];
+      }
+
+      // If we found someone, use them and stop looking
+      if (extra) {
+        break;
+      }
     }
 
     if (extra) {
