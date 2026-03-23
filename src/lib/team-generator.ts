@@ -195,28 +195,29 @@ export function generateIdealTeam(
     }
   }
 
-  // Slot 12: extra tester or best remaining — respecting required roles for each position
+  // Slot 12: extra tester or best remaining — any position from the formation (no positional priority)
   if (benchAssignments.length < 12) {
-    let extra: CandidatePlayer | undefined;
+    const isAvailableForExtra = (p: CandidatePlayer) =>
+      !usedPlayerIdsForBench.has(p.player.id) && !usedCardIdsForBench.has(p.card.id);
 
-    // Try to find best remaining player that respects roles for any formation position
+    // Collect all available candidates across all formation slots, deduplicated by card
+    const seenCardIdsForExtra = new Set<string>();
+    const allRemainingCandidates: CandidatePlayer[] = [];
+
     for (const slot of sortedFormationSlots) {
       const candidates = getCandidatesForSlot(slot);
-      const filteredCandidates = candidates.filter(p => !usedPlayerIdsForBench.has(p.player.id) && !usedCardIdsForBench.has(p.card.id));
-
-      // Try to find a tester first
-      extra = filteredCandidates.find(p => isTester(p));
-
-      // Fallback: best available
-      if (!extra) {
-        extra = filteredCandidates[0];
-      }
-
-      // If we found someone, use them and stop looking
-      if (extra) {
-        break;
+      for (const p of candidates) {
+        if (isAvailableForExtra(p) && !seenCardIdsForExtra.has(p.card.id)) {
+          allRemainingCandidates.push(p);
+          seenCardIdsForExtra.add(p.card.id);
+        }
       }
     }
+
+    allRemainingCandidates.sort(candidateSort);
+
+    // Tester first, then best available — regardless of position
+    const extra = allRemainingCandidates.find(isTester) ?? allRemainingCandidates[0];
 
     if (extra) {
       benchAssignments.push({ ...extra, assignedPosition: extra.position } as IdealTeamPlayer);
