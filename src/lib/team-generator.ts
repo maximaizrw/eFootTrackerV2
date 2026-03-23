@@ -9,6 +9,7 @@ type CandidatePlayer = {
   overall: number;
   scoreForSelection: number;
   position: Position;
+  role: string;
   performance: PlayerPerformance;
 };
 
@@ -68,6 +69,7 @@ export function generateIdealTeam(
         return {
             player, card, position: pos, average: stats.average,
             overall: trueOverall, scoreForSelection,
+            role: card.style || 'Ninguno',
             performance
         };
       }).filter((p): p is CandidatePlayer => p !== null);
@@ -82,7 +84,7 @@ export function generateIdealTeam(
     return b.performance.stats.matches - a.performance.stats.matches;
   };
 
-  const getCandidatesForSlot = (slot: FormationSlot): CandidatePlayer[] => {
+  const getCandidatesForSlot = (slot: FormationSlot, ignoreStyles = false): CandidatePlayer[] => {
     const primaryPos = slot.position;
     const secondaryPos = slot.secondaryPosition;
     const minHeight = slot.minHeight;
@@ -91,27 +93,42 @@ export function generateIdealTeam(
     if (isFlexibleLaterals && (primaryPos === 'LI' || primaryPos === 'LD')) targetPositions = ['LI', 'LD'];
     if (isFlexibleWingers && (primaryPos === 'EXI' || primaryPos === 'EXD')) targetPositions = ['EXI', 'EXD'];
     
-    return allPlayerCandidates.filter(p => {
-        // 1. Primary Position Check (with flexibility)
-        if (!targetPositions.includes(p.position)) return false;
+    const requiredStyles = slot.styles && slot.styles.length > 0 ? slot.styles : null;
 
-        // 2. Secondary Position Check (Strict: player must have ratings in BOTH positions)
+    const baseFilter = (p: CandidatePlayer) => {
+        if (!targetPositions.includes(p.position)) return false;
         if (secondaryPos) {
-            const hasSecondaryRating = p.card.ratingsByPosition && 
-                                       p.card.ratingsByPosition[secondaryPos] && 
+            const hasSecondaryRating = p.card.ratingsByPosition &&
+                                       p.card.ratingsByPosition[secondaryPos] &&
                                        p.card.ratingsByPosition[secondaryPos]!.length > 0;
-            
             if (!hasSecondaryRating) return false;
         }
-
-        // 3. Min Height Check
         if (minHeight) {
             const playerHeight = p.card.physicalAttributes?.height || 0;
             if (playerHeight < minHeight) return false;
         }
-
         return true;
-    }).sort(candidateSort);
+    };
+
+    if (requiredStyles && !ignoreStyles) {
+        const wantsNinguno = requiredStyles.includes('Ninguno');
+        const specificStyles = requiredStyles.filter(s => s !== 'Ninguno');
+
+        const matchesRole = (p: CandidatePlayer) => {
+            if (specificStyles.includes(p.role)) return true;
+            if (wantsNinguno) {
+                // "Ninguno" = player's style is not a valid role for this position
+                const validForPos = getAvailableStylesForPosition(p.position, false);
+                return !validForPos.includes(p.role as any);
+            }
+            return false;
+        };
+
+        const withRole = allPlayerCandidates.filter(p => baseFilter(p) && matchesRole(p));
+        if (withRole.length > 0) return withRole.sort(candidateSort);
+    }
+
+    return allPlayerCandidates.filter(baseFilter).sort(candidateSort);
   };
 
   // Sort formation slots based on target priority: PT, DFC, LI/LD, MCD, MC, MDI/MDD, MO, EXI/EXD, SD, DC
@@ -144,17 +161,21 @@ export function generateIdealTeam(
   for (const slot of sortedFormationSlots) {
     if (benchAssignments.length >= 11) break;
     const candidates = getCandidatesForSlot(slot);
-    
+    const isAvailable = (p: CandidatePlayer) => !usedPlayerIdsForBench.has(p.player.id) && !usedCardIdsForBench.has(p.card.id);
+
     // Try to find a tester first
-    let backup = candidates.find(
-      p => isTester(p) && !usedPlayerIdsForBench.has(p.player.id) && !usedCardIdsForBench.has(p.card.id)
-    );
-    
-    // Fallback: If no tester, pick the best available player for that position
+    let backup = candidates.find(p => isTester(p) && isAvailable(p));
+
+    // Fallback: best available with required role
     if (!backup) {
-      backup = candidates.find(
-        p => !usedPlayerIdsForBench.has(p.player.id) && !usedCardIdsForBench.has(p.card.id)
-      );
+      backup = candidates.find(isAvailable);
+    }
+
+    // Last resort: no available player matched the role — ignore styles and pick any position match
+    if (!backup) {
+      const fallbackCandidates = getCandidatesForSlot(slot, true);
+      backup = fallbackCandidates.find(p => isTester(p) && isAvailable(p))
+            ?? fallbackCandidates.find(isAvailable);
     }
 
     if (backup) {
