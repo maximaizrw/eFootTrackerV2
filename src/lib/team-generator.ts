@@ -163,7 +163,10 @@ export function generateIdealTeam(
     if (benchAssignments.length >= 11) break;
     const slot = formation.slots[i];
     const starterRole = starters[i]?.role;
-    const isAvailable = (p: CandidatePlayer) => !usedPlayerIdsForBench.has(p.player.id) && !usedCardIdsForBench.has(p.card.id);
+    const isAvailable = (p: CandidatePlayer) =>
+      !usedPlayerIdsForBench.has(p.player.id) &&
+      !usedCardIdsForBench.has(p.card.id) &&
+      !usedPlayerIds.has(p.player.id);
 
     let backup: CandidatePlayer | undefined;
 
@@ -195,21 +198,41 @@ export function generateIdealTeam(
     }
   }
 
-  // Slot 12: extra tester or best remaining — any position from the formation (no positional priority)
+  // Slot 12: extra tester or best remaining — any position, same role criteria as bench slots 1-11
   if (benchAssignments.length < 12) {
     const isAvailableForExtra = (p: CandidatePlayer) =>
       !usedPlayerIdsForBench.has(p.player.id) && !usedCardIdsForBench.has(p.card.id);
 
-    // Collect all available candidates across all formation slots, deduplicated by card
+    const seenPlayerIdsForExtra = new Set<string>();
     const seenCardIdsForExtra = new Set<string>();
     const allRemainingCandidates: CandidatePlayer[] = [];
 
-    for (const slot of sortedFormationSlots) {
-      const candidates = getCandidatesForSlot(slot);
+    // For each slot, apply the same role priority as the bench assignment
+    for (let i = 0; i < formation.slots.length; i++) {
+      const slot = formation.slots[i];
+      const starterRole = starters[i]?.role;
+
+      let candidates: CandidatePlayer[];
+      if (starterRole && starterRole !== 'Ninguno') {
+        // Same role as the starter (same as bench priority 1)
+        candidates = getCandidatesForSlot({ ...slot, styles: [starterRole] });
+        // Fallback: slot's required styles
+        if (candidates.filter(isAvailableForExtra).length === 0) {
+          candidates = getCandidatesForSlot(slot);
+        }
+      } else {
+        candidates = getCandidatesForSlot(slot);
+      }
+
       for (const p of candidates) {
-        if (isAvailableForExtra(p) && !seenCardIdsForExtra.has(p.card.id)) {
+        if (
+          isAvailableForExtra(p) &&
+          !seenCardIdsForExtra.has(p.card.id) &&
+          !seenPlayerIdsForExtra.has(p.player.id)
+        ) {
           allRemainingCandidates.push(p);
           seenCardIdsForExtra.add(p.card.id);
+          seenPlayerIdsForExtra.add(p.player.id);
         }
       }
     }
@@ -224,7 +247,11 @@ export function generateIdealTeam(
     }
   }
 
-  const placeholder = (id: string, pos: string) => ({ 
+  // Safety dedup: remove any bench player whose player ID is already in starters
+  const starterPlayerIds = new Set(starters.filter(Boolean).map(s => s!.player.id));
+  const safeBenchAssignments = benchAssignments.filter(b => !starterPlayerIds.has(b.player.id));
+
+  const placeholder = (id: string, pos: string) => ({
       player: { id, name: 'Vacante', cards: [], nationality: 'Sin Nacionalidad' }, 
       card: { id: `card-${id}`, name: 'N/A', style: 'Ninguno' as any, ratingsByPosition: {} }, 
       position: pos as any, assignedPosition: pos, average: 0, overall: 0,
@@ -235,7 +262,7 @@ export function generateIdealTeam(
   return Array.from({ length: 12 }).map((_, i) => {
     return {
         starter: i < 11 ? (starters[i] || placeholder(`ph-s-${i}`, formation.slots[i].profileName || formation.slots[i].position)) : null,
-        substitute: benchAssignments[i] || (i < 12 ? placeholder(`ph-sub-${i}`, 'Suplente') : null)
+        substitute: safeBenchAssignments[i] || (i < 12 ? placeholder(`ph-sub-${i}`, 'Suplente') : null)
     };
   });
 }

@@ -18,7 +18,9 @@ import { ScrollArea } from "./ui/scroll-area";
 import { Textarea } from "./ui/textarea";
 import { Input } from "./ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, Dumbbell, Image as ImageIcon, SlidersHorizontal, Check, ChevronsUpDown, Globe, Trophy } from "lucide-react";
+import Image from 'next/image';
+import { Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, Dumbbell, Image as ImageIcon, SlidersHorizontal, Check, ChevronsUpDown, Globe, Trophy, LayersIcon } from "lucide-react";
+import { getProxiedImageUrl } from '@/lib/utils';
 import { Badge } from "./ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "./ui/command";
@@ -201,6 +203,73 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
                             </PopoverContent>
                         </Popover>
                     </div>
+
+                    {/* Otras cartas del jugador */}
+                    {player && player.cards && player.cards.length > 1 && (
+                      <div className="space-y-4">
+                        <h3 className="text-sm font-bold text-primary uppercase tracking-widest flex items-center gap-2">
+                          <LayersIcon className="h-4 w-4" /> Todas las Cartas del Jugador
+                        </h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {player.cards.map((c) => {
+                            const isCurrent = c.id === card?.id;
+                            const positions = Object.entries(c.ratingsByPosition || {}).filter(([, ratings]) => ratings && (ratings as number[]).length > 0);
+                            return (
+                              <div
+                                key={c.id}
+                                className={cn(
+                                  "flex items-center gap-3 p-2.5 rounded-lg border text-sm",
+                                  isCurrent
+                                    ? "border-primary/50 bg-primary/5 ring-1 ring-primary/20"
+                                    : "border-border bg-muted/20"
+                                )}
+                              >
+                                <div className="relative w-10 h-10 flex-shrink-0">
+                                  {c.imageUrl ? (
+                                    <Image
+                                      src={getProxiedImageUrl(c.imageUrl)}
+                                      alt={c.name}
+                                      fill
+                                      sizes="40px"
+                                      className="object-contain"
+                                      unoptimized
+                                      referrerPolicy="no-referrer"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full bg-muted rounded-full flex items-center justify-center">
+                                      <Dumbbell className="h-4 w-4 text-muted-foreground" />
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-1 flex-wrap">
+                                    <span className="font-semibold truncate text-xs">{c.name}</span>
+                                    {isCurrent && <Badge variant="default" className="text-[9px] px-1 py-0 leading-tight">Actual</Badge>}
+                                  </div>
+                                  <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                                    {c.style && c.style !== 'Ninguno' && (
+                                      <Badge variant="secondary" className="text-[9px] px-1 py-0">{c.style}</Badge>
+                                    )}
+                                    {c.league && c.league !== 'Sin Liga' && (
+                                      <span className="text-[9px] text-muted-foreground">{c.league}</span>
+                                    )}
+                                  </div>
+                                  {positions.length > 0 && (
+                                    <div className="flex gap-1 mt-1 flex-wrap">
+                                      {positions.map(([pos, ratings]) => (
+                                        <span key={pos} className="text-[9px] bg-muted px-1.5 py-0.5 rounded font-mono">
+                                          {pos} <span className="text-muted-foreground">({(ratings as number[]).length}P)</span>
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Stats panel */}
                     <div className="space-y-4">

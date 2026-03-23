@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Check, ChevronsUpDown, PlusCircle, Trash2 } from "lucide-react";
+import { Check, ChevronsUpDown, PlusCircle, Trash2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -242,13 +242,14 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Nombre del Jugador <span className="text-destructive">*</span></FormLabel>
+                        <div className="flex gap-2">
                         <Popover open={playerPopoverOpen} onOpenChange={setPlayerPopoverOpen}>
                           <PopoverTrigger asChild>
                             <FormControl>
                               <Button
                                 variant="outline"
                                 role="combobox"
-                                className="w-full justify-between"
+                                className="flex-1 justify-between"
                               >
                                 {field.value || "Selecciona o crea un jugador..."}
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -269,6 +270,7 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
                               <CommandList>
                                 <CommandGroup>
                                   {players
+                                    .filter(p => (p.cards || []).some(c => Object.values(c.ratingsByPosition || {}).some(r => r && r.length > 0)))
                                     .filter((p, i, arr) => arr.findIndex(x => x.name.toLowerCase() === p.name.toLowerCase()) === i)
                                     .map((player) => (
                                       <CommandItem
@@ -290,6 +292,26 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
                             </Command>
                           </PopoverContent>
                         </Popover>
+                        {isExistingPlayer && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            title="Crear como jugador nuevo"
+                            onClick={() => {
+                              form.setValue("playerId", undefined);
+                              form.setValue("nationality", "Sin Nacionalidad");
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                        </div>
+                        {isExistingPlayer && (
+                          <p className="text-xs text-muted-foreground">
+                            Vinculando carta a jugador existente. Pulsá ✕ para crear uno nuevo.
+                          </p>
+                        )}
                         <FormMessage />
                       </FormItem>
                     )}

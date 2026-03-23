@@ -396,7 +396,14 @@ export function usePlayers() {
       if (card?.ratingsByPosition?.[position]) {
         card.ratingsByPosition[position].splice(index, 1);
         if (card.ratingsByPosition[position].length === 0) delete card.ratingsByPosition[position];
-        await updateDoc(playerRef, { cards: newCards });
+
+        // Remove cards with no positions; delete player doc if no cards remain
+        const activeCards = newCards.filter((c: any) => Object.keys(c.ratingsByPosition || {}).length > 0);
+        if (activeCards.length === 0) {
+          await deleteDoc(playerRef);
+        } else {
+          await updateDoc(playerRef, { cards: activeCards });
+        }
         toast({ title: "Valoración eliminada" });
       }
     } catch (e) {}
