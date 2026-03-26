@@ -33,6 +33,7 @@ import { IdealTeamSetup } from '@/components/ideal-team-setup';
 import { PlayerTable } from '@/components/player-table';
 import { PositionIcon } from '@/components/position-icon';
 import { NationalityDistribution } from '@/components/nationality-distribution';
+import { SquadDashboard } from '@/components/squad-dashboard';
 
 
 import { usePlayers } from '@/hooks/usePlayers';
@@ -41,10 +42,11 @@ import { useToast } from "@/hooks/use-toast";
 
 import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, League, Nationality } from '@/lib/types';
 import { positions, leagues, nationalities } from '@/lib/types';
+import type { FormationTemplate } from '@/lib/formation-templates';
 import { normalizeText } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe } from 'lucide-react';
+import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, LayoutDashboard } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -111,6 +113,7 @@ export default function Home() {
   const [selectedFlatPlayer, setSelectedFlatPlayer] = useState<FlatPlayer | null>(null);
   
   const [selectedFormationId, setSelectedFormationId] = useState<string | undefined>(undefined);
+  const [tempFormation, setTempFormation] = useState<FormationStats | null>(null);
   const [selectedLeague, setSelectedLeague] = useState<League | 'all'>('all');
   const [selectedNationality, setSelectedNationality] = useState<Nationality | 'all'>('all');
   const [idealTeam, setIdealTeam] = useState<IdealTeamSlot[]>([]);
@@ -124,8 +127,8 @@ export default function Home() {
   const { toast } = useToast();
 
   const selectedFormation = useMemo(() => {
-    return formations.find(f => f.id === selectedFormationId);
-  }, [formations, selectedFormationId]);
+    return formations.find(f => f.id === selectedFormationId) ?? tempFormation ?? undefined;
+  }, [formations, selectedFormationId, tempFormation]);
   
   useEffect(() => {
     if (!selectedFormationId && formations && formations.length > 0) {
@@ -134,30 +137,27 @@ export default function Home() {
   }, [formations, selectedFormationId]);
 
   const handleGenerateTeam = useCallback((silent: boolean = false) => {
-    if (!players || !selectedFormationId) {
+    if (!players || !selectedFormation) {
       if (!silent) toast({ variant: 'destructive', title: 'Error', description: 'Por favor, selecciona una formación.' });
       return;
     }
 
-    const formation = formations.find(f => f.id === selectedFormationId);
-    if (!formation) return;
-    
     const newTeam = generateIdealTeam(
-        players, 
-        formation, 
+        players,
+        selectedFormation,
         discardedCardIds,
         selectedLeague,
-        selectedNationality, 
-        isFlexibleLaterals, 
-        isFlexibleWingers, 
+        selectedNationality,
+        isFlexibleLaterals,
+        isFlexibleWingers,
         selectionCriteria
     );
 
     setIdealTeam(newTeam);
     if (!silent) {
-      toast({ title: "Equipo Generado", description: `Se ha generado una convocatoria para "${formation.name}".` });
+      toast({ title: "Equipo Generado", description: `Se ha generado una convocatoria para "${selectedFormation.name}".` });
     }
-  }, [players, selectedFormationId, formations, discardedCardIds, selectedLeague, selectedNationality, isFlexibleLaterals, isFlexibleWingers, selectionCriteria, toast]);
+  }, [players, selectedFormation, discardedCardIds, selectedLeague, selectedNationality, isFlexibleLaterals, isFlexibleWingers, selectionCriteria, toast]);
 
   // Automatically refresh team if it's already showing and discards or filters change
   useEffect(() => {
@@ -248,9 +248,23 @@ export default function Home() {
   }, []);
   
   const handleGoToIdealTeam = useCallback((formationId: string) => {
+    setTempFormation(null);
     setActiveTab('ideal-11');
     handleFormationSelectionChange(formationId);
   }, [handleFormationSelectionChange]);
+
+  const handleGoToTemplateFormation = useCallback((template: FormationTemplate) => {
+    const temp: FormationStats = {
+      id: template.id,
+      name: template.name,
+      playStyle: 'Posesión',
+      slots: template.slots.map(s => ({ position: s.position, styles: [], top: s.top, left: s.left })),
+      matches: [],
+    };
+    setTempFormation(temp);
+    setSelectedFormationId(template.id);
+    setActiveTab('ideal-11');
+  }, []);
 
   const handleDiscardPlayer = useCallback((cardId: string) => {
     setDiscardedCardIds(prev => {
@@ -456,6 +470,7 @@ export default function Home() {
               <TabsTrigger value="formations" className="py-2 px-3 text-sm"><Trophy className="mr-2 h-5 w-5"/>Formaciones</TabsTrigger>
               <TabsTrigger value="ideal-11" className="py-2 px-3 text-sm"><Star className="mr-2 h-5 w-5"/>11 Ideal</TabsTrigger>
               <TabsTrigger value="nationalities" className="py-2 px-3 text-sm"><Globe className="mr-2 h-5 w-5"/>Nacionalidades</TabsTrigger>
+              <TabsTrigger value="dashboard" className="py-2 px-3 text-sm"><LayoutDashboard className="mr-2 h-5 w-5"/>Dashboard</TabsTrigger>
             </TabsList>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
@@ -563,6 +578,15 @@ export default function Home() {
           
           <TabsContent value="nationalities" className="mt-6">
             <NationalityDistribution players={allPlayers} />
+          </TabsContent>
+
+          <TabsContent value="dashboard" className="mt-6">
+            <SquadDashboard
+              flatPlayers={flatPlayers}
+              formations={formations}
+              players={allPlayers}
+              onGoToTemplateFormation={handleGoToTemplateFormation}
+            />
           </TabsContent>
         </Tabs>
       </main>
