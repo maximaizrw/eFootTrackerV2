@@ -170,8 +170,9 @@ export function generateIdealTeam(
 
     let backup: CandidatePlayer | undefined;
 
-    // Priority 1: same role as the starter (tester preferred)
-    if (starterRole && starterRole !== 'Ninguno') {
+    // Priority 1: same role as the starter (only if formation specifies styles, tester preferred)
+    const slotRequiresStyles = slot.styles && slot.styles.length > 0;
+    if (slotRequiresStyles && starterRole && starterRole !== 'Ninguno') {
       const sameRoleCandidates = getCandidatesForSlot({ ...slot, styles: [starterRole] });
       backup = sameRoleCandidates.find(p => isTester(p) && isAvailable(p))
              ?? sameRoleCandidates.find(isAvailable);
@@ -211,10 +212,11 @@ export function generateIdealTeam(
     for (let i = 0; i < formation.slots.length; i++) {
       const slot = formation.slots[i];
       const starterRole = starters[i]?.role;
+      const slotRequiresStyles = slot.styles && slot.styles.length > 0;
 
       let candidates: CandidatePlayer[];
-      if (starterRole && starterRole !== 'Ninguno') {
-        // Same role as the starter (same as bench priority 1)
+      if (slotRequiresStyles && starterRole && starterRole !== 'Ninguno') {
+        // Same role as the starter (only if formation specifies styles)
         candidates = getCandidatesForSlot({ ...slot, styles: [starterRole] });
         // Fallback: slot's required styles
         if (candidates.filter(isAvailableForExtra).length === 0) {
