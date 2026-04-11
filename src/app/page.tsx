@@ -279,6 +279,39 @@ export default function Home() {
     toast({ title: "Lista de Descartados Reiniciada" });
   }, [toast]);
   
+  const handleWinByAbandon = useCallback(async () => {
+    if (!idealTeam || idealTeam.length === 0) return;
+    
+    const playersToUpdate: import('@/lib/types').IdealTeamPlayer[] = [];
+    idealTeam.forEach(slot => {
+        if (slot.starter) playersToUpdate.push(slot.starter);
+        if (slot.substitute) playersToUpdate.push(slot.substitute);
+    });
+
+    if (playersToUpdate.length === 0) {
+        toast({ variant: 'destructive', title: 'Error', description: 'No hay jugadores en el 11 ideal.' });
+        return;
+    }
+
+    const promises = playersToUpdate.map(p => {
+        let currentAverage = p.average; 
+        let newRating = Math.max(7, Math.round(currentAverage) + 1);
+
+        return addRating({
+            playerId: p.player.id,
+            playerName: p.player.name,
+            cardName: p.card.name,
+            position: p.position,
+            rating: newRating,
+            style: p.card.style,
+            league: p.card.league || 'Sin Liga',
+        } as any);
+    });
+
+    await Promise.all(promises);
+    toast({ title: "Victoria por Abandono", description: `Se han sumado puntos a ${playersToUpdate.length} jugadores.` });
+  }, [idealTeam, addRating, toast]);
+  
   const handleDownloadBackup = useCallback(async () => {
     const playersData = await downloadPlayersBackup();
     const formationsData = await downloadFormationsBackup();
@@ -563,7 +596,41 @@ export default function Home() {
                     <div className="flex flex-wrap items-center gap-4 mt-6">
                       <Button onClick={() => handleGenerateTeam()} disabled={!selectedFormationId}><Star className="mr-2 h-4 w-4" />Generar 11 Ideal</Button>
                       <Button onClick={handleResetDiscards} variant="outline" disabled={discardedCardIds.size === 0}><RotateCcw className="mr-2 h-4 w-4" />Reiniciar Descartados</Button>
-                      <Button onClick={() => resetAllLiveUpdateRatings()} variant="outline"><RotateCcw className="mr-2 h-4 w-4" />Resetear Letras</Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline"><RotateCcw className="mr-2 h-4 w-4" />Resetear Letras</Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>¿Confirmas esta acción?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esto va a restablecer las letras (Live Update Rating) de todos los jugadores. ¿Estás seguro de que querés continuar?
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => resetAllLiveUpdateRatings()}>Resetear</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                      
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="secondary" disabled={idealTeam.length === 0}><Trophy className="mr-2 h-4 w-4" />Ganado por Abandono</Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>¿Confirmas la victoria por abandono?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esto le asignará a todos los titulares y suplentes actuales un puntaje igual a su promedio + 1 (mínimo 7). ¿Querés continuar?
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleWinByAbandon()}>Asignar Puntos</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                </CardContent>
              </Card>
