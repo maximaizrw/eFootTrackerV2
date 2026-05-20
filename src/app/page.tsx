@@ -121,7 +121,7 @@ export default function Home() {
   const [discardedCardIds, setDiscardedCardIds] = useState<Set<string>>(new Set());
   const [isFlexibleLaterals, setFlexibleLaterals] = useState(false);
   const [isFlexibleWingers, setFlexibleWingers] = useState(false);
-  const [selectionCriteria, setSelectionCriteria] = useState<'overall' | 'average'>('overall');
+  const [selectionCriteria, setSelectionCriteria] = useState<'overall' | 'average' | 'confidence'>('overall');
   
   const [pagination, setPagination] = useState<Record<string, number>>({});
   

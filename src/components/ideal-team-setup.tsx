@@ -22,8 +22,8 @@ type IdealTeamSetupProps = {
   onFlexibleLateralsChange: (value: boolean) => void;
   isFlexibleWingers: boolean;
   onFlexibleWingersChange: (value: boolean) => void;
-  selectionCriteria: 'overall' | 'average';
-  onSelectionCriteriaChange: (value: 'overall' | 'average') => void;
+  selectionCriteria: 'overall' | 'average' | 'confidence';
+  onSelectionCriteriaChange: (value: 'overall' | 'average' | 'confidence') => void;
 };
 
 const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({ 
@@ -102,13 +102,14 @@ const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({
         </Label>
         <Select
             value={selectionCriteria}
-            onValueChange={(val) => onSelectionCriteriaChange(val as 'overall' | 'average')}
+            onValueChange={(val) => onSelectionCriteriaChange(val as 'overall' | 'average' | 'confidence')}
         >
             <SelectTrigger className="w-full">
                 <SelectValue />
             </SelectTrigger>
             <SelectContent>
                 <SelectItem value="overall">Equilibrado (Overall + Notas)</SelectItem>
+                <SelectItem value="confidence">Confianza (Overall + Regularidad)</SelectItem>
                 <SelectItem value="average">Rendimiento (Solo Notas)</SelectItem>
             </SelectContent>
         </Select>

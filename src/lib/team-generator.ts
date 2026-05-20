@@ -1,6 +1,6 @@
 import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, FormationSlot, PlayerStyle } from './types';
 import { getAvailableStylesForPosition } from './types';
-import { calculateStats, calculateOverall, calculateRecencyWeightedAverage, positionPriority } from './utils';
+import { calculateStats, calculateOverall, calculateRecencyWeightedAverage, positionPriority, calculatePlayerConfidence } from './utils';
 
 type CandidatePlayer = {
   player: Player;
@@ -21,7 +21,7 @@ export function generateIdealTeam(
   nationality: Nationality | 'all' = 'all',
   isFlexibleLaterals: boolean = false,
   isFlexibleWingers: boolean = false,
-  selectionCriteria: 'overall' | 'average' = 'overall'
+  selectionCriteria: 'overall' | 'average' | 'confidence' = 'overall'
 ): IdealTeamSlot[] {
   
   // Create sorted list of candidates once
@@ -54,9 +54,13 @@ export function generateIdealTeam(
         const dislikes = likesForPos.filter(l => l === false).length;
 
         const trueOverall = calculateOverall(stats.average, stats.matches, likes, dislikes, player.liveUpdateRating, recentAverage);
-        const scoreForSelection = selectionCriteria === 'average'
-            ? stats.average
-            : trueOverall;
+        
+        let scoreForSelection = trueOverall;
+        if (selectionCriteria === 'average') {
+            scoreForSelection = stats.average;
+        } else if (selectionCriteria === 'confidence') {
+            scoreForSelection = calculatePlayerConfidence(stats.average, stats.matches, stats.stdDev, likes, dislikes, player.liveUpdateRating, recentAverage).score;
+        }
 
         const performance: PlayerPerformance = {
             stats,
