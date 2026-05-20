@@ -66,6 +66,7 @@ export default function Home() {
     saveAttributeStats,
     deletePositionRatings,
     updateLiveUpdateRating,
+    updatePermanentLiveUpdateRating,
     resetAllLiveUpdateRatings,
     updateFullPlayerData,
   } = usePlayers();
@@ -558,6 +559,7 @@ export default function Home() {
                       onDeletePositionRatings={deletePositionRatings}
                       onDeleteRating={deleteRating}
                       onUpdateLiveUpdateRating={updateLiveUpdateRating}
+                      onUpdatePermanentLiveUpdateRating={updatePermanentLiveUpdateRating}
                     />
                     <PlayerTable.Pagination
                       currentPage={currentPage}
@@ -604,7 +606,7 @@ export default function Home() {
                           <AlertDialogHeader>
                             <AlertDialogTitle>¿Confirmas esta acción?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Esto va a restablecer las letras (Live Update Rating) de todos los jugadores. ¿Estás seguro de que querés continuar?
+                              Esto va a restablecer las letras (Live Update Rating) de todos los jugadores, excepto los marcados como permanentes. ¿Estás seguro de que querés continuar?
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
@@ -639,6 +641,7 @@ export default function Home() {
                 formation={selectedFormation}
                 onDiscardPlayer={handleDiscardPlayer}
                 onUpdateLiveUpdateRating={updateLiveUpdateRating}
+                onUpdatePermanentLiveUpdateRating={updatePermanentLiveUpdateRating}
                 onAddRating={handleOpenAddRating}
             />
           </TabsContent>

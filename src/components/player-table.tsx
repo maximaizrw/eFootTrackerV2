@@ -46,6 +46,7 @@ type PlayerTableProps = {
   onDeletePositionRatings: (playerId: string, cardId: string, position: Position) => void;
   onDeleteRating: (playerId: string, cardId: string, position: Position, ratingIndex: number) => void;
   onUpdateLiveUpdateRating: (playerId: string, rating: LiveUpdateRating | null) => void;
+  onUpdatePermanentLiveUpdateRating: (playerId: string, isPermanent: boolean) => void;
 };
 
 const Filters = memo(({
@@ -158,6 +159,7 @@ const PlayerTableMemo = memo(function PlayerTable({
   onDeletePositionRatings,
   onDeleteRating,
   onUpdateLiveUpdateRating,
+  onUpdatePermanentLiveUpdateRating,
 }: PlayerTableProps) {
 
   if (flatPlayers.length === 0) return <div className="p-10 text-center text-muted-foreground">Sin jugadores en esta posición.</div>;
@@ -196,7 +198,12 @@ const PlayerTableMemo = memo(function PlayerTable({
                     ) : <div className="w-8 h-8 md:w-10 md:h-10 bg-muted rounded-full flex-shrink-0" />}
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                          <LiveUpdateRatingSelector value={player.liveUpdateRating} onValueChange={(v) => onUpdateLiveUpdateRating(player.id, v)} />
+                          <LiveUpdateRatingSelector
+                            value={player.liveUpdateRating}
+                            onValueChange={(v) => onUpdateLiveUpdateRating(player.id, v)}
+                            isPermanent={!!player.permanentLiveUpdateRating}
+                            onPermanentChange={(isPermanent) => onUpdatePermanentLiveUpdateRating(player.id, isPermanent)}
+                          />
                           <div className="flex items-center gap-1 min-w-0">
                             <button 
                               onClick={() => onOpenPlayerDetail(flatPlayer)} 

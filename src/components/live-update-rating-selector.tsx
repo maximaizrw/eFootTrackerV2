@@ -7,11 +7,13 @@ import type { LiveUpdateRating } from '@/lib/types';
 import { liveUpdateRatings } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
-import { X } from 'lucide-react';
+import { Check, Pin, PinOff, X } from 'lucide-react';
 
 type LiveUpdateRatingSelectorProps = {
   value?: LiveUpdateRating | null;
   onValueChange: (value: LiveUpdateRating | null) => void;
+  isPermanent?: boolean;
+  onPermanentChange?: (value: boolean) => void;
 };
 
 const ratingStyles: Record<LiveUpdateRating, { color: string; label: string }> = {
@@ -32,7 +34,7 @@ const ratingBgColors: Record<LiveUpdateRating, string> = {
 
 const defaultStyle = { color: 'text-muted-foreground', label: 'Sin actualización de forma' };
 
-export function LiveUpdateRatingSelector({ value, onValueChange }: LiveUpdateRatingSelectorProps) {
+export function LiveUpdateRatingSelector({ value, onValueChange, isPermanent = false, onPermanentChange }: LiveUpdateRatingSelectorProps) {
   const currentStyle = value ? ratingStyles[value] : defaultStyle;
   const currentLabel = value || '-';
 
@@ -42,6 +44,12 @@ export function LiveUpdateRatingSelector({ value, onValueChange }: LiveUpdateRat
     onValueChange(rating);
   }
 
+  const handlePermanentToggle = (e: Event) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onPermanentChange?.(!isPermanent);
+  };
+
   return (
     <TooltipProvider>
       <DropdownMenu>
@@ -50,17 +58,19 @@ export function LiveUpdateRatingSelector({ value, onValueChange }: LiveUpdateRat
             <DropdownMenuTrigger asChild>
               <Button 
                 variant="ghost"
+                onClick={(e) => e.stopPropagation()}
                 className={cn(
-                  "h-auto w-auto p-0 text-base font-bold flex-shrink-0 focus-visible:ring-0",
+                  "h-auto w-auto p-0 text-base font-bold flex-shrink-0 focus-visible:ring-0 gap-0.5",
                   currentStyle.color
                 )}
               >
                 {currentLabel}
+                {isPermanent && <Pin className="h-3 w-3" />}
               </Button>
             </DropdownMenuTrigger>
           </TooltipTrigger>
           <TooltipContent side="top">
-            <p>{currentStyle.label}</p>
+            <p>{isPermanent ? `${currentStyle.label} - permanente` : currentStyle.label}</p>
           </TooltipContent>
         </Tooltip>
         <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
@@ -76,6 +86,20 @@ export function LiveUpdateRatingSelector({ value, onValueChange }: LiveUpdateRat
             <X className="mr-2 h-4 w-4 text-muted-foreground" />
             <span className="text-muted-foreground">Limpiar</span>
           </DropdownMenuItem>
+          {onPermanentChange && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={handlePermanentToggle}>
+                {isPermanent ? (
+                  <PinOff className="mr-2 h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <Pin className="mr-2 h-4 w-4 text-muted-foreground" />
+                )}
+                <span>{isPermanent ? 'Quitar letra permanente' : 'Letra permanente'}</span>
+                {isPermanent && <Check className="ml-auto h-4 w-4 text-primary" />}
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </TooltipProvider>

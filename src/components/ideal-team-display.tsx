@@ -20,7 +20,7 @@ import { Badge } from './ui/badge';
 
 
 const PlayerToken = memo(function PlayerToken({
-  player, style, hoveredId, onHover, onDiscard, onUpdateLiveUpdateRating, onAddRating
+  player, style, hoveredId, onHover, onDiscard, onUpdateLiveUpdateRating, onUpdatePermanentLiveUpdateRating, onAddRating
 }: any) {
   if (!player || player.player.id.startsWith('ph')) {
     return (
@@ -60,7 +60,12 @@ const PlayerToken = memo(function PlayerToken({
 
       <div className="mt-1.5 flex flex-col items-center gap-0.5">
         <div className="flex items-center gap-1">
-          <LiveUpdateRatingSelector value={player.player.liveUpdateRating} onValueChange={(v: LiveUpdateRating | null) => onUpdateLiveUpdateRating(player.player.id, v)} />
+          <LiveUpdateRatingSelector
+            value={player.player.liveUpdateRating}
+            onValueChange={(v: LiveUpdateRating | null) => onUpdateLiveUpdateRating(player.player.id, v)}
+            isPermanent={!!player.player.permanentLiveUpdateRating}
+            onPermanentChange={(isPermanent) => onUpdatePermanentLiveUpdateRating(player.player.id, isPermanent)}
+          />
           <span className="text-[10px] md:text-xs font-bold text-white whitespace-nowrap flex items-center gap-1" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>
               {player.player.name}
               <span className="ml-0.5 text-accent">{player.overall?.toFixed(0) || '-'}</span>
@@ -74,7 +79,7 @@ const PlayerToken = memo(function PlayerToken({
   );
 });
 
-const BenchCard = memo(function BenchCard({ player, onDiscard, onUpdateLiveUpdateRating, onAddRating }: any) {
+const BenchCard = memo(function BenchCard({ player, onDiscard, onUpdateLiveUpdateRating, onUpdatePermanentLiveUpdateRating, onAddRating }: any) {
   if (!player || player.player.id.startsWith('ph')) {
     return (
       <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-muted/20 border border-dashed border-foreground/10 min-h-[2.75rem]">
@@ -105,7 +110,12 @@ const BenchCard = memo(function BenchCard({ player, onDiscard, onUpdateLiveUpdat
         <div className="flex flex-col">
           <div className="flex items-center gap-1">
             <span className={cn("text-[10px] font-bold", (player.card.name.startsWith('POT') || player.card.lastPlayedPosition === player.position) ? "text-blue-500" : "text-red-500")}>{player.position}</span>
-            <LiveUpdateRatingSelector value={player.player.liveUpdateRating} onValueChange={(v: LiveUpdateRating | null) => onUpdateLiveUpdateRating(player.player.id, v)} />
+            <LiveUpdateRatingSelector
+              value={player.player.liveUpdateRating}
+              onValueChange={(v: LiveUpdateRating | null) => onUpdateLiveUpdateRating(player.player.id, v)}
+              isPermanent={!!player.player.permanentLiveUpdateRating}
+              onPermanentChange={(isPermanent) => onUpdatePermanentLiveUpdateRating(player.player.id, isPermanent)}
+            />
             <span className="text-[10px] font-semibold truncate flex items-center gap-1">
               {player.player.name}
             </span>
@@ -120,7 +130,7 @@ const BenchCard = memo(function BenchCard({ player, onDiscard, onUpdateLiveUpdat
 
 
 
-export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onUpdateLiveUpdateRating, onAddRating }: any) {
+export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onUpdateLiveUpdateRating, onUpdatePermanentLiveUpdateRating, onAddRating }: any) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   if (teamSlots.length === 0 || !formation) return <div className="mt-8 text-center text-muted-foreground p-8 bg-card border border-dashed rounded-lg">Configura tu táctica y genera el equipo.</div>;
@@ -141,7 +151,7 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onUpda
         <FootballPitch className="aspect-[4/3] lg:aspect-[3/2]">
           {starters.map((starter: any, index: number) => {
             const slot = formation.slots[index];
-            return <PlayerToken key={starter?.card.id || `empty-${index}`} player={starter} style={{ top: `${slot?.top}%`, left: `${slot?.left}%` }} hoveredId={hoveredId} onHover={setHoveredId} onDiscard={onDiscardPlayer} onUpdateLiveUpdateRating={onUpdateLiveUpdateRating} onAddRating={onAddRating} />;
+            return <PlayerToken key={starter?.card.id || `empty-${index}`} player={starter} style={{ top: `${slot?.top}%`, left: `${slot?.left}%` }} hoveredId={hoveredId} onHover={setHoveredId} onDiscard={onDiscardPlayer} onUpdateLiveUpdateRating={onUpdateLiveUpdateRating} onUpdatePermanentLiveUpdateRating={onUpdatePermanentLiveUpdateRating} onAddRating={onAddRating} />;
           })}
         </FootballPitch>
       </div>
@@ -149,7 +159,7 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onUpda
         <h3 className="text-sm font-semibold mb-2 px-1">Banquillo — Probadores / Mejores <span className="text-muted-foreground font-normal">(prioridad &lt;5 partidos)</span></h3>
         <div className="grid grid-cols-2 lg:grid-cols-1 gap-1.5">
           {substitutes.map((sub: any, index: number) => (
-            <BenchCard key={sub?.card.id ? `sub-${sub.card.id}-${index}` : `vacante-${index}`} player={sub} onDiscard={onDiscardPlayer} onUpdateLiveUpdateRating={onUpdateLiveUpdateRating} onAddRating={onAddRating} />
+            <BenchCard key={sub?.card.id ? `sub-${sub.card.id}-${index}` : `vacante-${index}`} player={sub} onDiscard={onDiscardPlayer} onUpdateLiveUpdateRating={onUpdateLiveUpdateRating} onUpdatePermanentLiveUpdateRating={onUpdatePermanentLiveUpdateRating} onAddRating={onAddRating} />
           ))}
         </div>
       </div>

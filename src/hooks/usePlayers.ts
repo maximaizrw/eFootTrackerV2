@@ -338,6 +338,20 @@ export function usePlayers() {
     } catch (e) {}
   };
 
+  const updatePermanentLiveUpdateRating = async (playerId: string, isPermanent: boolean) => {
+    if (!db) return;
+    try {
+      const player = players.find(p => p.id === playerId);
+      const targets = player
+        ? players.filter(p => normalizeText(p.name) === normalizeText(player.name))
+        : [{ id: playerId }];
+      await Promise.all(targets.map(p => updateDoc(doc(db!, 'players', p.id), { permanentLiveUpdateRating: isPermanent })));
+      toast({ title: isPermanent ? "Letra marcada como permanente" : "Letra permanente desactivada" });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Error al actualizar letra permanente" });
+    }
+  };
+
   const resetAllLiveUpdateRatings = async () => {
     if (!db) return;
     try {
@@ -346,7 +360,7 @@ export function usePlayers() {
         const data = d.data();
         if (!data.permanentLiveUpdateRating) await updateDoc(doc(db, 'players', d.id), { liveUpdateRating: null });
       }
-      toast({ title: "Letras reiniciadas" });
+      toast({ title: "Letras reiniciadas", description: "Se mantuvieron los jugadores con letra permanente." });
     } catch (e) {}
   };
 
@@ -434,7 +448,7 @@ export function usePlayers() {
   return {
     players, flatPlayers, positionNotes, loading, error,
     addRating, addPlayer, savePositionNote,
-    deletePositionRatings, updateLiveUpdateRating, resetAllLiveUpdateRatings,
+    deletePositionRatings, updateLiveUpdateRating, updatePermanentLiveUpdateRating, resetAllLiveUpdateRatings,
     editCard, editPlayer, deleteRating, downloadBackup, saveAttributeStats, updateFullPlayerData, updateLike, updateTrainedPosition
   };
 }
