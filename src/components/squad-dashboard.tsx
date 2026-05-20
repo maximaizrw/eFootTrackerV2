@@ -124,12 +124,13 @@ export function SquadDashboard({ flatPlayers, formations, players, onGoToTemplat
       }
 
       const fitScore = totalOverall / 11;
+      const styleMatchPct = 100;
       const topStarters = assigned
         .sort((a, b) => b.overall - a.overall)
         .slice(0, 3)
         .map(a => a.name);
 
-      return { template, name: template.name, fitScore, filledCount, topStarters };
+      return { id: template.id, template, name: template.name, fitScore, filledCount, styleMatchPct, topStarters };
     })
       .sort((a, b) => b.fitScore - a.fitScore)
       .slice(0, 5);

@@ -10,7 +10,7 @@ import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating, Player
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import type { AddPlayerFormValues } from '@/components/add-player-dialog';
 import { getAvailableStylesForPosition, playerSkillsList } from '@/lib/types';
-import { normalizeText, normalizeStyleName, calculateStats, calculateOverall, calculateRecencyWeightedAverage } from '@/lib/utils';
+import { normalizeText, normalizeStyleName, calculateStats, calculateOverall, calculateRecencyWeightedAverage, calculatePlayerConfidence } from '@/lib/utils';
 
 export function usePlayers() {
   const [players, setPlayers] = useState<Player[]>([]);
@@ -90,10 +90,27 @@ export function usePlayers() {
                 const likes = likesForPos.filter(l => l === true).length;
                 const dislikes = likesForPos.filter(l => l === false).length;
                 const overall = calculateOverall(stats.average, stats.matches, likes, dislikes, player.liveUpdateRating, recentAverage);
+                const confidence = calculatePlayerConfidence(stats.average, stats.matches, stats.stdDev, likes, dislikes, player.liveUpdateRating, recentAverage);
 
                 return {
-                    player, card, ratingsForPos, likesForPos, performance: { stats, isHotStreak: false, isConsistent: false, isPromising: false, isVersatile: playerPositions.length >= 3 },
-                    overall, position: ratedPos
+                    player,
+                    card,
+                    ratingsForPos,
+                    likesForPos,
+                    performance: {
+                      stats,
+                      recentAverage: confidence.recentAverage,
+                      confidenceScore: confidence.score,
+                      trendDelta: confidence.trendDelta,
+                      tag: confidence.tag,
+                      isHotStreak: confidence.tag === 'racha',
+                      isConsistent: confidence.tag === 'fijo' || confidence.tag === 'estable',
+                      isPromising: confidence.tag === 'promesa',
+                      isVersatile: playerPositions.length >= 3
+                    },
+                    overall,
+                    confidenceScore: confidence.score,
+                    position: ratedPos
                 } as FlatPlayer;
             }).filter((p): p is FlatPlayer => p !== null);
         })

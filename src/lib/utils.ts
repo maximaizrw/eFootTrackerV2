@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { PlayerAttributeStats, Position, LiveUpdateRating, PlayerSkill } from "./types";
+import type { PlayerAttributeStats, Position, LiveUpdateRating, PlayerSkill, PerformanceTag } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -124,6 +124,57 @@ export function calculateOverall(
   const finalOverall = (performanceScore * 0.6) + (likeScore * 0.4) + liveUpdateBonus + experiencePenalty;
 
   return Math.max(0, Math.min(100, Math.round(finalOverall)));
+}
+
+export type PlayerConfidence = {
+  score: number;
+  tag: PerformanceTag;
+  trendDelta: number;
+  recentAverage: number;
+};
+
+export function calculatePlayerConfidence(
+  average: number,
+  matches: number,
+  stdDev: number,
+  likes: number,
+  dislikes: number,
+  liveUpdateRating?: LiveUpdateRating | null,
+  recentAverage?: number,
+): PlayerConfidence {
+  if (matches <= 0) {
+    return { score: 0, tag: 'evaluar', trendDelta: 0, recentAverage: 0 };
+  }
+
+  const effectiveRecentAverage = recentAverage ?? average;
+  const trendDelta = effectiveRecentAverage - average;
+  const historicalScore = Math.max(0, Math.min(100, ((average - 4.0) / (8.5 - 4.0)) * 100));
+  const recentScore = Math.max(0, Math.min(100, ((effectiveRecentAverage - 4.0) / (8.5 - 4.0)) * 100));
+  const consistencyScore = Math.max(0, Math.min(100, 100 - (stdDev * 28)));
+  const sampleScore = Math.max(0, Math.min(100, (1 - Math.exp(-matches / 7)) * 100));
+  const likeScore = calculateLikeScore(likes, dislikes);
+  const liveUpdateBonus = liveUpdateRating ? LIVE_UPDATE_BONUSES[liveUpdateRating] : 0;
+
+  const rawScore =
+    (historicalScore * 0.34) +
+    (recentScore * 0.24) +
+    (consistencyScore * 0.18) +
+    (sampleScore * 0.14) +
+    (likeScore * 0.10) +
+    liveUpdateBonus;
+
+  const lowSamplePenalty = matches < 3 ? 12 : matches < 5 ? 6 : 0;
+  const score = Math.max(0, Math.min(100, Math.round(rawScore - lowSamplePenalty)));
+
+  let tag: PerformanceTag = 'evaluar';
+  if (matches < 4 && average >= 8) tag = 'promesa';
+  else if (matches >= 3 && trendDelta >= 0.55) tag = 'racha';
+  else if (matches >= 3 && trendDelta <= -0.6) tag = 'bajon';
+  else if (matches >= 5 && (stdDev >= 1.45 || dislikes > likes + 1)) tag = 'riesgo';
+  else if (matches >= 6 && score >= 78 && stdDev <= 1.05) tag = 'fijo';
+  else if (matches >= 5 && score >= 68) tag = 'estable';
+
+  return { score, tag, trendDelta, recentAverage: effectiveRecentAverage };
 }
 
 export function getProxiedImageUrl(url: string | undefined): string {

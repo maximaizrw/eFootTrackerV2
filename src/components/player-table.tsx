@@ -7,9 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, Search, SlidersHorizontal, Dumbbell, Pencil, Copy, CheckCircle2, Info, History, X, ThumbsUp, ThumbsDown, MapPin } from 'lucide-react';
-import { cn, formatAverage, getAverageColorClass, getProxiedImageUrl, calculateRecencyWeightedAverage } from '@/lib/utils';
-import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating } from '@/lib/types';
+import { PlusCircle, Trash2, Search, Dumbbell, Copy, CheckCircle2, History, X, ThumbsUp, ThumbsDown, MapPin, ShieldCheck, TrendingUp, AlertTriangle, TrendingDown, Sparkles, Gauge } from 'lucide-react';
+import { cn, formatAverage, getAverageColorClass, getProxiedImageUrl } from '@/lib/utils';
+import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating, PerformanceTag } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import { LiveUpdateRatingSelector } from './live-update-rating-selector';
 import { useToast } from '@/hooks/use-toast';
@@ -47,6 +47,16 @@ type PlayerTableProps = {
   onDeleteRating: (playerId: string, cardId: string, position: Position, ratingIndex: number) => void;
   onUpdateLiveUpdateRating: (playerId: string, rating: LiveUpdateRating | null) => void;
   onUpdatePermanentLiveUpdateRating: (playerId: string, isPermanent: boolean) => void;
+};
+
+const performanceTagMeta: Record<PerformanceTag, { label: string; className: string; Icon: React.ComponentType<{ className?: string }> }> = {
+  fijo: { label: 'Fijo', className: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-500', Icon: ShieldCheck },
+  racha: { label: 'Racha', className: 'border-sky-500/30 bg-sky-500/10 text-sky-500', Icon: TrendingUp },
+  promesa: { label: 'Promesa', className: 'border-violet-500/30 bg-violet-500/10 text-violet-500', Icon: Sparkles },
+  riesgo: { label: 'Riesgo', className: 'border-amber-500/30 bg-amber-500/10 text-amber-500', Icon: AlertTriangle },
+  bajon: { label: 'Bajón', className: 'border-red-500/30 bg-red-500/10 text-red-500', Icon: TrendingDown },
+  estable: { label: 'Estable', className: 'border-cyan-500/30 bg-cyan-500/10 text-cyan-500', Icon: Gauge },
+  evaluar: { label: 'Evaluar', className: 'border-muted-foreground/30 bg-muted text-muted-foreground', Icon: Gauge },
 };
 
 const Filters = memo(({
@@ -123,9 +133,10 @@ const Filters = memo(({
               </Button>
 
               <Select value={sortCriteria} onValueChange={onSortCriteriaChange}>
-                  <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="w-[155px] h-8 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                      <SelectItem value="general">Ordenar por Puntaje</SelectItem>
+                      <SelectItem value="overall">Ordenar por Puntaje</SelectItem>
+                      <SelectItem value="confidence">Ordenar por Confianza</SelectItem>
                       <SelectItem value="average">Ordenar por Notas</SelectItem>
                   </SelectContent>
               </Select>
@@ -174,6 +185,7 @@ const PlayerTableMemo = memo(function PlayerTable({
             <TableHead>Votos</TableHead>
             <TableHead>Prom.</TableHead>
             <TableHead>Overall</TableHead>
+            <TableHead>Conf.</TableHead>
             <TableHead className="hidden md:table-cell">Últimas Notas</TableHead>
             <TableHead className="text-right">Acciones</TableHead>
           </TableRow>
@@ -184,9 +196,8 @@ const PlayerTableMemo = memo(function PlayerTable({
             const likes = likesForPos.filter(l => l === true).length;
             const dislikes = likesForPos.filter(l => l === false).length;
             const cardAverage = performance.stats.average;
-            
-            const recentAverage = calculateRecencyWeightedAverage(ratingsForPos, 5, 2.5, 0.9);
-
+            const tagMeta = performanceTagMeta[performance.tag || 'evaluar'];
+            const TagIcon = tagMeta.Icon;
             return (
               <TableRow key={`${player.id}-${card.id}-${position}`} className="hover:bg-muted/50">
                 <TableCell className="p-2 md:p-4">
@@ -233,6 +244,27 @@ const PlayerTableMemo = memo(function PlayerTable({
                 </TableCell>
                 <TableCell>
                   <div className="text-base font-black text-primary group-hover:underline decoration-dotted">{overall.toFixed(1)}</div>
+                </TableCell>
+                <TableCell>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="inline-flex flex-col gap-1">
+                          <span className="text-base font-black tabular-nums">{flatPlayer.confidenceScore}</span>
+                          <Badge variant="outline" className={cn("h-5 gap-1 px-1.5 text-[10px] font-bold", tagMeta.className)}>
+                            <TagIcon className="h-3 w-3" />
+                            {tagMeta.label}
+                          </Badge>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-56">
+                        <p>
+                          Confianza: combina promedio, últimas notas, regularidad, votos, partidos y letra actual.
+                          Tendencia reciente: {performance.trendDelta && performance.trendDelta >= 0 ? '+' : ''}{(performance.trendDelta || 0).toFixed(1)}.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
                   <div className="flex gap-1 items-center">

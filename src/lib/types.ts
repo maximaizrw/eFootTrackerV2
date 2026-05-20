@@ -142,8 +142,10 @@ export type IdealTeamPlayer = {
   card: PlayerCard;
   position: Position;
   assignedPosition: string; // The role/position name in the tactical scheme
+  role?: PlayerStyle;
   average: number;
   overall: number;
+  confidenceScore?: number;
   performance: PlayerPerformance;
 };
 
@@ -200,6 +202,10 @@ export type PlayerRatingStats = {
 
 export type PlayerPerformance = {
   stats: PlayerRatingStats;
+  recentAverage?: number;
+  confidenceScore?: number;
+  trendDelta?: number;
+  tag?: PerformanceTag;
   isHotStreak: boolean;
   isConsistent: boolean;
   isPromising: boolean;
@@ -209,6 +215,8 @@ export type PlayerPerformance = {
   isSpecialist?: boolean;
 };
 
+export type PerformanceTag = 'fijo' | 'racha' | 'promesa' | 'riesgo' | 'bajon' | 'estable' | 'evaluar';
+
 export type FlatPlayer = {
   player: Player;
   card: PlayerCard;
@@ -216,6 +224,7 @@ export type FlatPlayer = {
   likesForPos: (boolean | null)[];
   performance: PlayerPerformance;
   overall: number;
+  confidenceScore: number;
   position: Position;
 };
 

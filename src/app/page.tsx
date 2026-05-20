@@ -90,7 +90,7 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState('');
   const [styleFilter, setStyleFilter] = useState<string>('all');
   const [cardFilter, setCardFilter] = useState<string>('all');
-  const [listSortCriteria, setListSortCriteria] = useState<'overall' | 'average'>('overall');
+  const [listSortCriteria, setListSortCriteria] = useState<'overall' | 'confidence' | 'average'>('overall');
   
   const [isAddRatingDialogOpen, setAddRatingDialogOpen] = useState(false);
   const [isAddPlayerDialogOpen, setAddPlayerDialogOpen] = useState(false);
@@ -352,7 +352,12 @@ export default function Home() {
             const styleMatch = styleFilter === 'all' || card.style === styleFilter;
             const cardMatch = cardFilter === 'all' || card.name === cardFilter;
             return searchMatch && styleMatch && cardMatch;
-        }).sort((a, b) => {          if (listSortCriteria === 'average') {
+        }).sort((a, b) => {
+          if (listSortCriteria === 'confidence') {
+            if (Math.abs(b.confidenceScore - a.confidenceScore) > 0.01) return b.confidenceScore - a.confidenceScore;
+            return b.performance.stats.matches - a.performance.stats.matches;
+          }
+          if (listSortCriteria === 'average') {
             if (Math.abs(b.performance.stats.average - a.performance.stats.average) > 0.01) return b.performance.stats.average - a.performance.stats.average;
             return b.performance.stats.matches - a.performance.stats.matches;
           }

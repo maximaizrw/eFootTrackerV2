@@ -1,4 +1,4 @@
-import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, FormationSlot } from './types';
+import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, FormationSlot, PlayerStyle } from './types';
 import { getAvailableStylesForPosition } from './types';
 import { calculateStats, calculateOverall, calculateRecencyWeightedAverage, positionPriority } from './utils';
 
@@ -9,7 +9,7 @@ type CandidatePlayer = {
   overall: number;
   scoreForSelection: number;
   position: Position;
-  role: string;
+  role: PlayerStyle;
   performance: PlayerPerformance;
 };
 
@@ -69,7 +69,7 @@ export function generateIdealTeam(
         return {
             player, card, position: pos, average: stats.average,
             overall: trueOverall, scoreForSelection,
-            role: card.style || 'Ninguno',
+            role: effectiveRole,
             performance
         };
       }).filter((p): p is CandidatePlayer => p !== null);
@@ -256,7 +256,7 @@ export function generateIdealTeam(
   const placeholder = (id: string, pos: string) => ({
       player: { id, name: 'Vacante', cards: [], nationality: 'Sin Nacionalidad' }, 
       card: { id: `card-${id}`, name: 'N/A', style: 'Ninguno' as any, ratingsByPosition: {} }, 
-      position: pos as any, assignedPosition: pos, average: 0, overall: 0,
+      position: pos as any, assignedPosition: pos, role: 'Ninguno', average: 0, overall: 0,
       performance: { stats: { average: 0, matches: 0, stdDev: 0 }, isHotStreak: false, isConsistent: false, isPromising: false, isVersatile: false } 
   } as IdealTeamPlayer);
 
