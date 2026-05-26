@@ -53,7 +53,7 @@ export function generateIdealTeam(
         const likes = likesForPos.filter(l => l === true).length;
         const dislikes = likesForPos.filter(l => l === false).length;
 
-        const trueOverall = calculateOverall(stats.average, stats.matches, likes, dislikes, player.liveUpdateRating, recentAverage);
+        const trueOverall = calculateOverall(stats.average, stats.matches, likes, dislikes, player.liveUpdateRating, recentAverage, card.tier);
         
         let scoreForSelection = trueOverall;
         if (selectionCriteria === 'average') {

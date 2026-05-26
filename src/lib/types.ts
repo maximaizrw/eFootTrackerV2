@@ -77,6 +77,20 @@ export type PlayerSkill = typeof playerSkillsList[number];
 export const liveUpdateRatings = ['A', 'B', 'C', 'D', 'E'] as const;
 export type LiveUpdateRating = typeof liveUpdateRatings[number];
 
+export const playerTiers = ['SIN TIER', 'S+', 'S', 'A', 'B', 'C', 'D', 'E'] as const;
+export type PlayerTier = typeof playerTiers[number];
+
+export const PLAYER_TIER_BONUSES: Record<PlayerTier, number> = {
+  'SIN TIER': 0,
+  'S+': 10,
+  S: 8,
+  A: 6,
+  B: 4,
+  C: 2,
+  D: 1,
+  E: 0.5,
+};
+
 export type PlayerAttributeStats = {
   offensiveAwareness?: number;
   ballControl?: number;
@@ -117,6 +131,7 @@ export type PlayerCard = {
   id: string;
   name: string;
   style: PlayerStyle;
+  tier?: PlayerTier;
   league?: League;
   imageUrl?: string;
   ratingsByPosition: { [key in Position]?: number[] };

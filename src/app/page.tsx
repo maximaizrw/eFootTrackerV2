@@ -194,6 +194,7 @@ export default function Home() {
         cardId: card.id,
         currentCardName: card.name,
         currentStyle: card.style,
+        tier: card.tier || 'SIN TIER',
         league: card.league || 'Sin Liga',
         imageUrl: card.imageUrl || '',
     });

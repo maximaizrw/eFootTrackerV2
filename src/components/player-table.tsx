@@ -7,8 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, Search, Dumbbell, Copy, CheckCircle2, History, X, ThumbsUp, ThumbsDown, MapPin, ShieldCheck, TrendingUp, AlertTriangle, TrendingDown, Sparkles, Gauge } from 'lucide-react';
-import { cn, formatAverage, getAverageColorClass, getProxiedImageUrl } from '@/lib/utils';
+import { PlusCircle, Trash2, Search, Dumbbell, Copy, CheckCircle2, History, X, ThumbsUp, ThumbsDown, MapPin, ShieldCheck, TrendingUp, AlertTriangle, TrendingDown, Sparkles, Gauge, Pencil } from 'lucide-react';
+import { cn, formatAverage, getAverageColorClass, getPlayerTierBonus, getProxiedImageUrl } from '@/lib/utils';
 import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating, PerformanceTag } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import { LiveUpdateRatingSelector } from './live-update-rating-selector';
@@ -58,6 +58,27 @@ const performanceTagMeta: Record<PerformanceTag, { label: string; className: str
   estable: { label: 'Estable', className: 'border-cyan-500/30 bg-cyan-500/10 text-cyan-500', Icon: Gauge },
   evaluar: { label: 'Evaluar', className: 'border-muted-foreground/30 bg-muted text-muted-foreground', Icon: Gauge },
 };
+
+function getTierBadgeClass(tier: string | undefined): string {
+  switch (tier) {
+    case 'S+':
+      return 'border-amber-500/40 bg-amber-500/10 text-amber-500';
+    case 'S':
+      return 'border-violet-500/40 bg-violet-500/10 text-violet-500';
+    case 'A':
+      return 'border-sky-500/40 bg-sky-500/10 text-sky-500';
+    case 'B':
+      return 'border-emerald-500/40 bg-emerald-500/10 text-emerald-500';
+    case 'C':
+      return 'border-cyan-500/40 bg-cyan-500/10 text-cyan-500';
+    case 'D':
+      return 'border-orange-500/40 bg-orange-500/10 text-orange-500';
+    case 'E':
+      return 'border-red-500/40 bg-red-500/10 text-red-500';
+    default:
+      return 'border-muted-foreground/25 bg-muted text-muted-foreground';
+  }
+}
 
 const Filters = memo(({
   searchTerm,
@@ -196,6 +217,8 @@ const PlayerTableMemo = memo(function PlayerTable({
             const likes = likesForPos.filter(l => l === true).length;
             const dislikes = likesForPos.filter(l => l === false).length;
             const cardAverage = performance.stats.average;
+            const tier = card.tier || 'SIN TIER';
+            const tierBonus = getPlayerTierBonus(card.tier);
             const tagMeta = performanceTagMeta[performance.tag || 'evaluar'];
             const TagIcon = tagMeta.Icon;
             return (
@@ -227,6 +250,9 @@ const PlayerTableMemo = memo(function PlayerTable({
                       <span className="text-xs text-muted-foreground truncate block">
                         {card.name} ({performance.stats.matches} P.)
                       </span>
+                      <Badge variant="outline" className={cn("mt-1 h-5 w-fit px-1.5 text-[10px] font-bold", getTierBadgeClass(tier))}>
+                        {tier}{tierBonus > 0 ? ` +${tierBonus}` : ''}
+                      </Badge>
                     </div>
                   </div>
                 </TableCell>
@@ -309,6 +335,7 @@ const PlayerTableMemo = memo(function PlayerTable({
                   <div className="flex items-center justify-end gap-1">
                     <Button variant="ghost" size="icon" onClick={() => onOpenAddRating({ playerId: player.id, playerName: player.name, cardName: card.name, position, style: card.style } as any)}><PlusCircle className="h-4 w-4 text-primary" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => onOpenAddPosition(player, card)} title="Agregar en otra posición"><MapPin className="h-4 w-4 text-muted-foreground" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => onOpenEditCard(player, card)} title="Editar carta"><Pencil className="h-4 w-4 text-muted-foreground" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => onOpenPlayerDetail(flatPlayer)} title="Ficha Completa"><Dumbbell className="h-4 w-4" /></Button>
                     <AlertDialog>
                         <AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button></AlertDialogTrigger>

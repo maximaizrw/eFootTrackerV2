@@ -10,7 +10,7 @@ import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating, Player
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import type { AddPlayerFormValues } from '@/components/add-player-dialog';
 import { getAvailableStylesForPosition, playerSkillsList } from '@/lib/types';
-import { normalizeText, normalizeStyleName, calculateStats, calculateOverall, calculateRecencyWeightedAverage, calculatePlayerConfidence } from '@/lib/utils';
+import { normalizeText, normalizeStyleName, normalizePlayerTier, calculateStats, calculateOverall, calculateRecencyWeightedAverage, calculatePlayerConfidence } from '@/lib/utils';
 
 export function usePlayers() {
   const [players, setPlayers] = useState<Player[]>([]);
@@ -38,6 +38,7 @@ export function usePlayers() {
                     ...card,
                     id: card.id || uuidv4(),
                     style: normalizeStyleName(card.style),
+                    tier: normalizePlayerTier(card.tier),
                     ratingsByPosition: card.ratingsByPosition || {},
                     likesByPosition: card.likesByPosition || {},
                     skills: (card.skills || []).filter((s: string) => validSkillsSet.has(s as any)),
@@ -89,7 +90,7 @@ export function usePlayers() {
                 const likesForPos = card.likesByPosition?.[ratedPos] || [];
                 const likes = likesForPos.filter(l => l === true).length;
                 const dislikes = likesForPos.filter(l => l === false).length;
-                const overall = calculateOverall(stats.average, stats.matches, likes, dislikes, player.liveUpdateRating, recentAverage);
+                const overall = calculateOverall(stats.average, stats.matches, likes, dislikes, player.liveUpdateRating, recentAverage, card.tier);
                 const confidence = calculatePlayerConfidence(stats.average, stats.matches, stats.stdDev, likes, dislikes, player.liveUpdateRating, recentAverage);
 
                 return {
@@ -151,6 +152,7 @@ export function usePlayers() {
             id: uuidv4(),
             name: cardName,
             style,
+            tier: 'SIN TIER',
             league: league || 'Sin Liga',
             ratingsByPosition: { [pos]: [rating] },
             likesByPosition: { [pos]: [values.liked ?? null] },
@@ -165,6 +167,7 @@ export function usePlayers() {
             id: uuidv4(),
             name: cardName,
             style,
+            tier: 'SIN TIER',
             league: league || 'Sin Liga',
             ratingsByPosition: { [pos]: [rating] },
             likesByPosition: { [pos]: [values.liked ?? null] },
@@ -182,7 +185,7 @@ export function usePlayers() {
   const addPlayer = async (values: AddPlayerFormValues): Promise<string | null> => {
     if (!db) return null;
     const {
-      playerName, cardName, imageUrl, nationality, style, league,
+      playerName, cardName, imageUrl, nationality, style, league, tier,
       height, weight, skills,
       ...statFields
     } = values;
@@ -206,6 +209,7 @@ export function usePlayers() {
       id: uuidv4(),
       name: cardName,
       style: style || 'Ninguno',
+      tier: normalizePlayerTier(tier),
       league: league || 'Sin Liga',
       imageUrl: imageUrl || '',
       ratingsByPosition,
@@ -388,7 +392,7 @@ export function usePlayers() {
       const playerDoc = await getDoc(playerRef);
       const playerData = playerDoc.data() as Player;
       const newCards = playerData.cards.map(c =>
-        c.id === values.cardId ? { ...c, name: values.currentCardName, style: values.currentStyle, league: values.league, imageUrl: values.imageUrl, trainedPosition: values.trainedPosition ?? null } : c
+        c.id === values.cardId ? { ...c, name: values.currentCardName, style: values.currentStyle, tier: normalizePlayerTier(values.tier), league: values.league, imageUrl: values.imageUrl, trainedPosition: values.trainedPosition ?? null } : c
       );
       await updateDoc(playerRef, { cards: newCards });
       toast({ title: "Carta actualizada" });

@@ -52,11 +52,13 @@ import {
   nationalities,
   playerStyles,
   leagues,
+  playerTiers,
   positions,
   playerSkillsList,
   type Player,
   type Nationality,
   type PlayerStyle,
+  type PlayerTier,
   type League,
   type Position,
   type PlayerAttributeStats,
@@ -71,6 +73,7 @@ const formSchema = z.object({
   imageUrl: z.string().min(1, "La imagen es requerida."),
   nationality: z.enum(nationalities).optional(),
   style: z.enum(playerStyles).optional(),
+  tier: z.enum(playerTiers).optional(),
   league: z.enum(leagues).optional(),
   ratingEntries: z.array(z.object({
     position: z.enum(positions),
@@ -178,6 +181,7 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
       imageUrl: "",
       nationality: "Sin Nacionalidad",
       style: "Ninguno",
+      tier: "SIN TIER",
       league: "Sin Liga",
       ratingEntries: [],
       skills: [],
@@ -203,6 +207,7 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
         imageUrl: "",
         nationality: "Sin Nacionalidad" as Nationality,
         style: "Ninguno" as PlayerStyle,
+        tier: "SIN TIER" as PlayerTier,
         league: "Sin Liga" as League,
         ratingEntries: [],
         skills: [],
@@ -381,6 +386,27 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
                           <SelectContent>
                             {playerStyles.map((s) => (
                               <SelectItem key={s} value={s}>{s}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="tier"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tier de Carta</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {playerTiers.map((tier) => (
+                              <SelectItem key={tier} value={tier}>{tier}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>

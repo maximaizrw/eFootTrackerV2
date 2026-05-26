@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { PlayerAttributeStats, Position, LiveUpdateRating, PlayerSkill, PerformanceTag } from "./types";
+import type { PlayerAttributeStats, Position, LiveUpdateRating, PlayerSkill, PerformanceTag, PlayerTier } from "./types";
+import { PLAYER_TIER_BONUSES } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -89,6 +90,14 @@ export function normalizeStyleName(style: string): string {
 
 export const LIVE_UPDATE_BONUSES: Record<LiveUpdateRating, number> = { A: 6, B: 3, C: 0, D: -5, E: -10 };
 
+export function normalizePlayerTier(tier: string | undefined | null): PlayerTier {
+  if (!tier) return 'SIN TIER';
+  return tier in PLAYER_TIER_BONUSES ? tier as PlayerTier : 'SIN TIER';
+}
+
+export function getPlayerTierBonus(tier: PlayerTier | undefined | null): number {
+  return PLAYER_TIER_BONUSES[normalizePlayerTier(tier)];
+}
 
 export function calculateLikeScore(likes: number, dislikes: number): number {
   // Bayesian smoothing: neutral baseline when no votes
@@ -102,6 +111,7 @@ export function calculateOverall(
   dislikes: number,
   liveUpdateRating?: LiveUpdateRating | null,
   recentAverage?: number,
+  tier?: PlayerTier | null,
 ): number {
   const effectiveRecentAverage = recentAverage ?? overallAverage;
 
@@ -112,6 +122,7 @@ export function calculateOverall(
   const likeScore = calculateLikeScore(likes, dislikes);
 
   const liveUpdateBonus = liveUpdateRating ? LIVE_UPDATE_BONUSES[liveUpdateRating] : 0;
+  const tierBonus = getPlayerTierBonus(tier);
 
   let experiencePenalty = 0;
   if (matches > 0) {
@@ -121,7 +132,7 @@ export function calculateOverall(
     return 0;
   }
 
-  const finalOverall = (performanceScore * 0.6) + (likeScore * 0.4) + liveUpdateBonus + experiencePenalty;
+  const finalOverall = (performanceScore * 0.6) + (likeScore * 0.4) + liveUpdateBonus + tierBonus + experiencePenalty;
 
   return Math.max(0, Math.min(100, Math.round(finalOverall)));
 }

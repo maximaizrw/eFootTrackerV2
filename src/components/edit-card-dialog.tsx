@@ -31,14 +31,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { PlayerStyle, League } from "@/lib/types";
-import { playerStyles, leagues } from "@/lib/types";
+import { playerStyles, leagues, playerTiers } from "@/lib/types";
 
 const formSchema = z.object({
   playerId: z.string(),
   cardId: z.string(),
   currentCardName: z.string().min(2, "El nombre de la carta debe tener al menos 2 caracteres."),
   currentStyle: z.enum(playerStyles),
+  tier: z.enum(playerTiers).optional(),
   league: z.enum(leagues).optional(),
   imageUrl: z.string().url("Debe ser una URL válida.").optional().or(z.literal('')),
   availableTrainingPoints: z.number().min(0, "Debe ser al menos 0.").optional(),
@@ -63,6 +63,7 @@ export function EditCardDialog({ open, onOpenChange, onEditCard, initialData }: 
       form.reset({
           ...initialData,
           league: initialData.league || 'Sin Liga',
+          tier: initialData.tier || 'SIN TIER',
           availableTrainingPoints: initialData.availableTrainingPoints ?? undefined,
       });
     }
@@ -112,6 +113,28 @@ export function EditCardDialog({ open, onOpenChange, onEditCard, initialData }: 
                     <SelectContent>
                       {playerStyles.map((style) => (
                         <SelectItem key={style} value={style}>{style}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="tier"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tier de Carta</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona un tier" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {playerTiers.map((tier) => (
+                        <SelectItem key={tier} value={tier}>{tier}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
