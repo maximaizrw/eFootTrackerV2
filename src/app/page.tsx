@@ -43,12 +43,13 @@ import { useToast } from "@/hooks/use-toast";
 import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, League, Nationality } from '@/lib/types';
 import { positions, leagues, nationalities } from '@/lib/types';
 import type { FormationTemplate } from '@/lib/formation-templates';
-import { normalizeText } from '@/lib/utils';
+import { getPlayerTierBonus, normalizeText } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, LayoutDashboard } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 10;
+type ListSortCriteria = 'overall' | 'confidence' | 'average' | 'tier';
 
 export default function Home() {
 
@@ -90,7 +91,7 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState('');
   const [styleFilter, setStyleFilter] = useState<string>('all');
   const [cardFilter, setCardFilter] = useState<string>('all');
-  const [listSortCriteria, setListSortCriteria] = useState<'overall' | 'confidence' | 'average'>('overall');
+  const [listSortCriteria, setListSortCriteria] = useState<ListSortCriteria>('overall');
   
   const [isAddRatingDialogOpen, setAddRatingDialogOpen] = useState(false);
   const [isAddPlayerDialogOpen, setAddPlayerDialogOpen] = useState(false);
@@ -361,6 +362,11 @@ export default function Home() {
           if (listSortCriteria === 'average') {
             if (Math.abs(b.performance.stats.average - a.performance.stats.average) > 0.01) return b.performance.stats.average - a.performance.stats.average;
             return b.performance.stats.matches - a.performance.stats.matches;
+          }
+          if (listSortCriteria === 'tier') {
+            const tierDiff = getPlayerTierBonus(b.card.tier) - getPlayerTierBonus(a.card.tier);
+            if (Math.abs(tierDiff) > 0.01) return tierDiff;
+            return b.overall - a.overall;
           }
             // Sort by defining score (Overall + Average)
             return b.overall - a.overall;

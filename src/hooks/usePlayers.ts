@@ -39,6 +39,7 @@ export function usePlayers() {
                     id: card.id || uuidv4(),
                     style: normalizeStyleName(card.style),
                     tier: normalizePlayerTier(card.tier),
+                    tierUpdatedAt: card.tierUpdatedAt,
                     ratingsByPosition: card.ratingsByPosition || {},
                     likesByPosition: card.likesByPosition || {},
                     skills: (card.skills || []).filter((s: string) => validSkillsSet.has(s as any)),
@@ -153,6 +154,7 @@ export function usePlayers() {
             name: cardName,
             style,
             tier: 'SIN TIER',
+            tierUpdatedAt: new Date().toISOString(),
             league: league || 'Sin Liga',
             ratingsByPosition: { [pos]: [rating] },
             likesByPosition: { [pos]: [values.liked ?? null] },
@@ -168,6 +170,7 @@ export function usePlayers() {
             name: cardName,
             style,
             tier: 'SIN TIER',
+            tierUpdatedAt: new Date().toISOString(),
             league: league || 'Sin Liga',
             ratingsByPosition: { [pos]: [rating] },
             likesByPosition: { [pos]: [values.liked ?? null] },
@@ -210,6 +213,7 @@ export function usePlayers() {
       name: cardName,
       style: style || 'Ninguno',
       tier: normalizePlayerTier(tier),
+      tierUpdatedAt: new Date().toISOString(),
       league: league || 'Sin Liga',
       imageUrl: imageUrl || '',
       ratingsByPosition,
@@ -391,8 +395,9 @@ export function usePlayers() {
       const playerRef = doc(db, 'players', values.playerId);
       const playerDoc = await getDoc(playerRef);
       const playerData = playerDoc.data() as Player;
+      const now = new Date().toISOString();
       const newCards = playerData.cards.map(c =>
-        c.id === values.cardId ? { ...c, name: values.currentCardName, style: values.currentStyle, tier: normalizePlayerTier(values.tier), league: values.league, imageUrl: values.imageUrl, trainedPosition: values.trainedPosition ?? null } : c
+        c.id === values.cardId ? { ...c, name: values.currentCardName, style: values.currentStyle, tier: normalizePlayerTier(values.tier), tierUpdatedAt: now, league: values.league, imageUrl: values.imageUrl, trainedPosition: values.trainedPosition ?? null } : c
       );
       await updateDoc(playerRef, { cards: newCards });
       toast({ title: "Carta actualizada" });

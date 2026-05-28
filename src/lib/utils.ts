@@ -99,6 +99,18 @@ export function getPlayerTierBonus(tier: PlayerTier | undefined | null): number 
   return PLAYER_TIER_BONUSES[normalizePlayerTier(tier)];
 }
 
+export const TIER_STALE_DAYS = 7;
+
+export function isPlayerTierStale(tierUpdatedAt: string | undefined | null, now: Date = new Date()): boolean {
+  if (!tierUpdatedAt) return true;
+
+  const updatedAt = new Date(tierUpdatedAt);
+  if (Number.isNaN(updatedAt.getTime())) return true;
+
+  const staleAfterMs = TIER_STALE_DAYS * 24 * 60 * 60 * 1000;
+  return now.getTime() - updatedAt.getTime() >= staleAfterMs;
+}
+
 export function calculateLikeScore(likes: number, dislikes: number): number {
   // Bayesian smoothing: neutral baseline when no votes
   return ((likes + 1) / (likes + dislikes + 2)) * 100;

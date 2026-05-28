@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Trash2, Search, Dumbbell, Copy, CheckCircle2, History, X, ThumbsUp, ThumbsDown, MapPin, ShieldCheck, TrendingUp, AlertTriangle, TrendingDown, Sparkles, Gauge, Pencil } from 'lucide-react';
-import { cn, formatAverage, getAverageColorClass, getPlayerTierBonus, getProxiedImageUrl } from '@/lib/utils';
+import { cn, formatAverage, getAverageColorClass, getPlayerTierBonus, getProxiedImageUrl, isPlayerTierStale } from '@/lib/utils';
 import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating, PerformanceTag } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import { LiveUpdateRatingSelector } from './live-update-rating-selector';
@@ -159,6 +159,7 @@ const Filters = memo(({
                       <SelectItem value="overall">Ordenar por Puntaje</SelectItem>
                       <SelectItem value="confidence">Ordenar por Confianza</SelectItem>
                       <SelectItem value="average">Ordenar por Notas</SelectItem>
+                      <SelectItem value="tier">Ordenar por Tier</SelectItem>
                   </SelectContent>
               </Select>
           </div>
@@ -219,6 +220,7 @@ const PlayerTableMemo = memo(function PlayerTable({
             const cardAverage = performance.stats.average;
             const tier = card.tier || 'SIN TIER';
             const tierBonus = getPlayerTierBonus(card.tier);
+            const isTierStale = isPlayerTierStale(card.tierUpdatedAt);
             const tagMeta = performanceTagMeta[performance.tag || 'evaluar'];
             const TagIcon = tagMeta.Icon;
             return (
@@ -252,6 +254,18 @@ const PlayerTableMemo = memo(function PlayerTable({
                       </span>
                       <Badge variant="outline" className={cn("mt-1 h-5 w-fit px-1.5 text-[10px] font-bold", getTierBadgeClass(tier))}>
                         {tier}{tierBonus > 0 ? ` +${tierBonus}` : ''}
+                        {isTierStale && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <AlertTriangle className="ml-1 h-3 w-3 text-amber-500" aria-label="Tier pendiente de revisar" />
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-56">
+                                <p>Tier sin revisar hace 7+ dias. El tier se mantiene, pero conviene actualizarlo.</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
                       </Badge>
                     </div>
                   </div>

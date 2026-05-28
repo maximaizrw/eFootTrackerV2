@@ -132,6 +132,7 @@ export type PlayerCard = {
   name: string;
   style: PlayerStyle;
   tier?: PlayerTier;
+  tierUpdatedAt?: string;
   league?: League;
   imageUrl?: string;
   ratingsByPosition: { [key in Position]?: number[] };
