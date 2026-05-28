@@ -189,20 +189,21 @@ export function usePlayers() {
     if (!db) return null;
     const {
       playerName, cardName, imageUrl, nationality, style, league, tier,
-      height, weight, skills,
+      height, weight, skills, playerId, ratingEntries,
       ...statFields
     } = values;
 
     const attributeStats: PlayerAttributeStats = {};
     for (const [key, val] of Object.entries(statFields)) {
-      if (val !== undefined && val !== null) {
-        (attributeStats as any)[key] = Number(val);
+      const numericValue = Number(val);
+      if (val !== undefined && val !== null && Number.isFinite(numericValue)) {
+        (attributeStats as any)[key] = numericValue;
       }
     }
 
     const ratingsByPosition: { [key: string]: number[] } = {};
-    if (values.ratingEntries && values.ratingEntries.length > 0) {
-      for (const entry of values.ratingEntries) {
+    if (ratingEntries && ratingEntries.length > 0) {
+      for (const entry of ratingEntries) {
         if (!ratingsByPosition[entry.position]) ratingsByPosition[entry.position] = [];
         ratingsByPosition[entry.position].push(entry.rating);
       }
@@ -223,26 +224,43 @@ export function usePlayers() {
     if (height || weight) newCard.physicalAttributes = { ...(height ? { height } : {}), ...(weight ? { weight } : {}) };
     if (skills && skills.length > 0) newCard.skills = skills;
 
+    const stripInvalidFirestoreValues = (obj: any): any => {
+      if (Array.isArray(obj)) return obj.map(stripInvalidFirestoreValues);
+      if (obj !== null && typeof obj === 'object') {
+        return Object.fromEntries(
+          Object.entries(obj)
+            .filter(([, value]) => value !== undefined && !(typeof value === 'number' && !Number.isFinite(value)))
+            .map(([key, value]) => [key, stripInvalidFirestoreValues(value)])
+        );
+      }
+      return obj;
+    };
+
     try {
-      if (values.playerId) {
-        const existingPlayer = players.find(p => p.id === values.playerId);
+      if (playerId) {
+        const existingPlayer = players.find(p => p.id === playerId);
         if (existingPlayer) {
           const playerRef = doc(db, 'players', existingPlayer.id);
-          await updateDoc(playerRef, { cards: [...existingPlayer.cards, newCard] });
+          await updateDoc(playerRef, stripInvalidFirestoreValues({ cards: [...existingPlayer.cards, newCard] }));
           toast({ title: "Carta agregada", description: `Vinculada a ${existingPlayer.name}.` });
           return existingPlayer.id;
         }
       }
 
-      const ref = await addDoc(collection(db, 'players'), {
+      const ref = await addDoc(collection(db, 'players'), stripInvalidFirestoreValues({
         name: playerName,
         nationality: nationality || 'Sin Nacionalidad',
         cards: [newCard],
-      });
+      }));
       toast({ title: "Jugador guardado" });
       return ref.id;
-    } catch {
-      toast({ variant: "destructive", title: "Error al guardar jugador" });
+    } catch (error) {
+      console.error("Error al guardar jugador:", error);
+      toast({
+        variant: "destructive",
+        title: "Error al guardar jugador",
+        description: error instanceof Error ? error.message : "Revisá la consola para ver el detalle.",
+      });
       return null;
     }
   };

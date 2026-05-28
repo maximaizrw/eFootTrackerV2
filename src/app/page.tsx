@@ -433,6 +433,7 @@ export default function Home() {
               position: activeTab as Position,
             });
           }
+          return newId;
         }}
       />
       <AddFormationDialog

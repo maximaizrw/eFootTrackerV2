@@ -164,7 +164,7 @@ const statFields: { category: string; fields: { name: keyof PlayerAttributeStats
 type AddPlayerDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAddPlayer: (values: AddPlayerFormValues) => void;
+  onAddPlayer: (values: AddPlayerFormValues) => Promise<string | null>;
   players: Player[];
 };
 
@@ -215,9 +215,11 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
     }
   }, [open, form]);
 
-  function onSubmit(values: AddPlayerFormValues) {
-    onAddPlayer(values);
-    onOpenChange(false);
+  async function onSubmit(values: AddPlayerFormValues) {
+    const savedPlayerId = await onAddPlayer(values);
+    if (savedPlayerId) {
+      onOpenChange(false);
+    }
   }
 
   return (
