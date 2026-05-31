@@ -2,9 +2,9 @@
 
 import * as React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { FormationStats, League, Nationality } from '@/lib/types';
+import type { FormationStats, League, Nationality, IdealTeamMode } from '@/lib/types';
 import { Label } from './ui/label';
-import { ArrowRightLeft } from 'lucide-react';
+import { ArrowRightLeft, ShieldCheck } from 'lucide-react';
 import { Switch } from './ui/switch';
 import { calculateStats } from './formations-display';
 
@@ -24,6 +24,8 @@ type IdealTeamSetupProps = {
   onFlexibleWingersChange: (value: boolean) => void;
   selectionCriteria: 'overall' | 'average' | 'confidence';
   onSelectionCriteriaChange: (value: 'overall' | 'average' | 'confidence') => void;
+  mode: IdealTeamMode;
+  onModeChange: (value: IdealTeamMode) => void;
 };
 
 const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({ 
@@ -42,6 +44,8 @@ const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({
     onFlexibleWingersChange,
     selectionCriteria,
     onSelectionCriteriaChange,
+    mode,
+    onModeChange,
 }: IdealTeamSetupProps) {
 
   const selectedFormation = React.useMemo(() => {
@@ -113,6 +117,18 @@ const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({
                 <SelectItem value="average">Rendimiento (Solo Notas)</SelectItem>
             </SelectContent>
         </Select>
+      </div>
+
+      <div className="flex items-center space-x-2 rounded-md border px-3 py-2">
+        <Switch
+          id="ideal-team-mode"
+          checked={mode === 'league'}
+          onCheckedChange={(checked) => onModeChange(checked ? 'league' : 'event')}
+        />
+        <Label htmlFor="ideal-team-mode" className="flex cursor-pointer items-center gap-2">
+          <ShieldCheck className="h-4 w-4" />
+          {mode === 'league' ? 'Liga' : 'Evento'}
+        </Label>
       </div>
 
       <div className="space-y-2">

@@ -40,7 +40,7 @@ import { usePlayers } from '@/hooks/usePlayers';
 import { useFormations } from '@/hooks/useFormations';
 import { useToast } from "@/hooks/use-toast";
 
-import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, League, Nationality } from '@/lib/types';
+import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, League, Nationality, IdealTeamMode } from '@/lib/types';
 import { positions, leagues, nationalities } from '@/lib/types';
 import type { FormationTemplate } from '@/lib/formation-templates';
 import { getPlayerTierBonus, normalizeText } from '@/lib/utils';
@@ -123,6 +123,7 @@ export default function Home() {
   const [isFlexibleLaterals, setFlexibleLaterals] = useState(false);
   const [isFlexibleWingers, setFlexibleWingers] = useState(false);
   const [selectionCriteria, setSelectionCriteria] = useState<'overall' | 'average' | 'confidence'>('overall');
+  const [idealTeamMode, setIdealTeamMode] = useState<IdealTeamMode>('event');
   
   const [pagination, setPagination] = useState<Record<string, number>>({});
   
@@ -152,21 +153,22 @@ export default function Home() {
         selectedNationality,
         isFlexibleLaterals,
         isFlexibleWingers,
-        selectionCriteria
+        selectionCriteria,
+        idealTeamMode
     );
 
     setIdealTeam(newTeam);
     if (!silent) {
       toast({ title: "Equipo Generado", description: `Se ha generado una convocatoria para "${selectedFormation.name}".` });
     }
-  }, [players, selectedFormation, discardedCardIds, selectedLeague, selectedNationality, isFlexibleLaterals, isFlexibleWingers, selectionCriteria, toast]);
+  }, [players, selectedFormation, discardedCardIds, selectedLeague, selectedNationality, isFlexibleLaterals, isFlexibleWingers, selectionCriteria, idealTeamMode, toast]);
 
   // Automatically refresh team if it's already showing and discards or filters change
   useEffect(() => {
     if (idealTeam.length > 0) {
       handleGenerateTeam(true);
     }
-  }, [discardedCardIds, selectedLeague, selectedNationality, isFlexibleLaterals, isFlexibleWingers, selectionCriteria, handleGenerateTeam, idealTeam.length]);
+  }, [discardedCardIds, selectedLeague, selectedNationality, isFlexibleLaterals, isFlexibleWingers, selectionCriteria, idealTeamMode, handleGenerateTeam, idealTeam.length]);
 
   const handleOpenAddRating = useCallback((initialData?: Partial<AddRatingFormValues>) => {
     setAddDialogInitialData(initialData);
@@ -607,6 +609,8 @@ export default function Home() {
                     onFlexibleWingersChange={setFlexibleWingers}
                     selectionCriteria={selectionCriteria}
                     onSelectionCriteriaChange={setSelectionCriteria}
+                    mode={idealTeamMode}
+                    onModeChange={setIdealTeamMode}
                   />
                     <div className="flex flex-wrap items-center gap-4 mt-6">
                       <Button onClick={() => handleGenerateTeam()} disabled={!selectedFormationId}><Star className="mr-2 h-4 w-4" />Generar 11 Ideal</Button>

@@ -79,6 +79,7 @@ export type LiveUpdateRating = typeof liveUpdateRatings[number];
 
 export const playerTiers = ['SIN TIER', 'S+', 'S', 'A', 'B', 'C', 'D', 'E'] as const;
 export type PlayerTier = typeof playerTiers[number];
+export type IdealTeamMode = 'event' | 'league';
 
 export const PLAYER_TIER_BONUSES: Record<PlayerTier, number> = {
   'SIN TIER': 0,
