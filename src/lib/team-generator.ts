@@ -37,7 +37,7 @@ export function generateIdealTeam(
       // 3. Filter by league and manual discards
       if (league !== 'all' && card.league !== league) return [];
       if (discardedCardIds.has(card.id)) return [];
-      if (mode === 'league' && ['SIN TIER', 'C', 'D', 'E'].includes(normalizePlayerTier(card.tier))) return [];
+      if (mode === 'league' && ['SIN TIER', 'B', 'C', 'D', 'E'].includes(normalizePlayerTier(card.tier))) return [];
       
       const positionsWithRatings = Object.keys(card.ratingsByPosition || {}) as Position[];
 
