@@ -33,7 +33,7 @@ import { IdealTeamSetup } from '@/components/ideal-team-setup';
 import { PlayerTable } from '@/components/player-table';
 import { PositionIcon } from '@/components/position-icon';
 import { NationalityDistribution } from '@/components/nationality-distribution';
-import { SquadDashboard } from '@/components/squad-dashboard';
+import { TierlistUpdates, getPendingTierlistCards } from '@/components/tierlist-updates';
 
 
 import { usePlayers } from '@/hooks/usePlayers';
@@ -46,7 +46,7 @@ import type { FormationTemplate } from '@/lib/formation-templates';
 import { getPlayerTierBonus, normalizeText } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, LayoutDashboard } from 'lucide-react';
+import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, ListChecks } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 10;
 type ListSortCriteria = 'overall' | 'confidence' | 'average' | 'tier';
@@ -396,6 +396,10 @@ export default function Home() {
     return filters;
   }, [flatPlayers]);
 
+  const pendingTierlistCount = useMemo(() => {
+    return getPendingTierlistCards(allPlayers, flatPlayers).length;
+  }, [allPlayers, flatPlayers]);
+
 
   if (playersError || formationsError) {
     return <div className="flex items-center justify-center min-h-screen p-4"><div className="text-destructive font-bold">{playersError || formationsError}</div></div>;
@@ -521,7 +525,14 @@ export default function Home() {
               <TabsTrigger value="formations" className="py-2 px-3 text-sm"><Trophy className="mr-2 h-5 w-5"/>Formaciones</TabsTrigger>
               <TabsTrigger value="ideal-11" className="py-2 px-3 text-sm"><Star className="mr-2 h-5 w-5"/>11 Ideal</TabsTrigger>
               <TabsTrigger value="nationalities" className="py-2 px-3 text-sm"><Globe className="mr-2 h-5 w-5"/>Nacionalidades</TabsTrigger>
-              <TabsTrigger value="dashboard" className="py-2 px-3 text-sm"><LayoutDashboard className="mr-2 h-5 w-5"/>Dashboard</TabsTrigger>
+              <TabsTrigger value="tierlist-updates" className="py-2 px-3 text-sm">
+                <ListChecks className="mr-2 h-5 w-5"/>Tierlist
+                {pendingTierlistCount > 0 && (
+                  <span className="ml-2 rounded-full bg-amber-500/15 px-1.5 text-xs font-bold text-amber-500">
+                    {pendingTierlistCount}
+                  </span>
+                )}
+              </TabsTrigger>
             </TabsList>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
@@ -669,12 +680,11 @@ export default function Home() {
             <NationalityDistribution players={allPlayers} />
           </TabsContent>
 
-          <TabsContent value="dashboard" className="mt-6">
-            <SquadDashboard
-              flatPlayers={flatPlayers}
-              formations={formations}
+          <TabsContent value="tierlist-updates" className="mt-6">
+            <TierlistUpdates
               players={allPlayers}
-              onGoToTemplateFormation={handleGoToTemplateFormation}
+              flatPlayers={flatPlayers}
+              onOpenEditCard={handleOpenEditCard}
             />
           </TabsContent>
         </Tabs>
