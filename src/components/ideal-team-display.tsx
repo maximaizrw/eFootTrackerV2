@@ -33,8 +33,6 @@ const PlayerToken = memo(function PlayerToken({
   }
 
   const isHovered = hoveredId === player.card.id;
-  const confidenceScore = player.performance?.confidenceScore ?? player.confidenceScore;
-  const formationMatches = player.performance?.formationMatches ?? 0;
 
   return (
     <div
@@ -85,11 +83,6 @@ const PlayerToken = memo(function PlayerToken({
         {player.assignedPosition !== player.position && (
           <span className="text-[8px] text-white/40 italic leading-none" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>{player.assignedPosition}</span>
         )}
-        {typeof confidenceScore === 'number' && (
-          <span className="rounded-full bg-black/45 px-1.5 py-px text-[8px] font-bold text-cyan-200 ring-1 ring-white/10" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>
-            C{confidenceScore} · {formationMatches}F
-          </span>
-        )}
       </div>
     </div>
   );
@@ -104,9 +97,6 @@ const BenchCard = memo(function BenchCard({ player, formation, onDiscard, onUpda
       </div>
     );
   }
-
-  const confidenceScore = player.performance?.confidenceScore ?? player.confidenceScore;
-  const formationMatches = player.performance?.formationMatches ?? 0;
 
   return (
     <div
@@ -149,12 +139,7 @@ const BenchCard = memo(function BenchCard({ player, formation, onDiscard, onUpda
             </span>
             <span className="text-[10px] font-black ml-auto text-accent">{player.overall?.toFixed(0) || '-'}</span>
           </div>
-          <p className="text-[8px] text-muted-foreground leading-none">
-            Convocado como {player.assignedPosition}
-            {typeof confidenceScore === 'number' && (
-              <span className="ml-1 font-bold text-cyan-500">C{confidenceScore} · {formationMatches}F</span>
-            )}
-          </p>
+          <p className="text-[8px] text-muted-foreground leading-none">Convocado como {player.assignedPosition}</p>
         </div>
       </div>
     </div>
