@@ -1,6 +1,6 @@
 import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, FormationSlot, PlayerStyle, IdealTeamMode } from './types';
 import { getAvailableStylesForPosition } from './types';
-import { calculateStats, calculateOverall, calculateRecencyWeightedAverage, positionPriority, calculatePlayerConfidence, normalizePlayerTier } from './utils';
+import { calculateStats, calculateOverall, calculateRecencyWeightedAverage, positionPriority, calculatePlayerConfidence, normalizePlayerTier, getRatingEntriesForPosition, getFormationRatingEntries, calculateFormationConfidence } from './utils';
 
 type CandidatePlayer = {
   player: Player;
@@ -54,6 +54,9 @@ export function generateIdealTeam(
         const likesForPos = card.likesByPosition?.[pos] || [];
         const likes = likesForPos.filter(l => l === true).length;
         const dislikes = likesForPos.filter(l => l === false).length;
+        const generalEntries = getRatingEntriesForPosition(card, pos);
+        const formationEntries = getFormationRatingEntries(card, pos, formation.id);
+        const formationConfidence = calculateFormationConfidence(generalEntries, formationEntries, player.liveUpdateRating);
 
         const trueOverall = calculateOverall(stats.average, stats.matches, likes, dislikes, player.liveUpdateRating, recentAverage, card.tier);
         
@@ -61,14 +64,21 @@ export function generateIdealTeam(
         if (selectionCriteria === 'average') {
             scoreForSelection = stats.average;
         } else if (selectionCriteria === 'confidence') {
-            scoreForSelection = calculatePlayerConfidence(stats.average, stats.matches, stats.stdDev, likes, dislikes, player.liveUpdateRating, recentAverage).score;
+            scoreForSelection = formationConfidence.score;
         }
 
+        const confidence = calculatePlayerConfidence(stats.average, stats.matches, stats.stdDev, likes, dislikes, player.liveUpdateRating, recentAverage);
         const performance: PlayerPerformance = {
             stats,
-            isHotStreak: stats.matches >= 3 && (calculateStats(ratings.slice(-5)).average > stats.average + 0.5),
-            isConsistent: stats.matches >= 5 && stats.stdDev < 0.5,
-            isPromising: stats.matches > 0 && stats.matches < 5 && stats.average >= 7.0,
+            recentAverage: confidence.recentAverage,
+            confidenceScore: formationConfidence.score,
+            trendDelta: formationConfidence.trendDelta,
+            formationMatches: formationConfidence.formationMatches,
+            usesFormationContext: formationConfidence.usesFormationContext,
+            tag: formationConfidence.tag,
+            isHotStreak: formationConfidence.tag === 'racha',
+            isConsistent: formationConfidence.tag === 'fijo' || formationConfidence.tag === 'estable',
+            isPromising: formationConfidence.tag === 'promesa',
             isVersatile: Object.keys(card.ratingsByPosition).length >= 3,
         };
 

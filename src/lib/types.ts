@@ -126,7 +126,14 @@ export type PhysicalAttribute = {
   weight?: number;
 }
 
-
+export type PlayerRatingEntry = {
+  rating: number;
+  liked?: boolean | null;
+  formationId?: string;
+  formationName?: string;
+  position: Position;
+  date: string;
+};
 
 export type PlayerCard = {
   id: string;
@@ -138,6 +145,7 @@ export type PlayerCard = {
   imageUrl?: string;
   ratingsByPosition: { [key in Position]?: number[] };
   likesByPosition?: { [key in Position]?: (boolean | null)[] };
+  ratingEntriesByPosition?: { [key in Position]?: PlayerRatingEntry[] };
   attributeStats?: PlayerAttributeStats;
   physicalAttributes?: PhysicalAttribute;
   skills?: PlayerSkill[];
@@ -222,6 +230,8 @@ export type PlayerPerformance = {
   recentAverage?: number;
   confidenceScore?: number;
   trendDelta?: number;
+  formationMatches?: number;
+  usesFormationContext?: boolean;
   tag?: PerformanceTag;
   isHotStreak: boolean;
   isConsistent: boolean;

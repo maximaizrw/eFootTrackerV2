@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase-config';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, setDoc } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import { v4 as uuidv4 } from 'uuid';
-import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating, PlayerSkill, PlayerAttributeStats, PhysicalAttribute, Nationality, League } from '@/lib/types';
+import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating, PlayerSkill, PlayerAttributeStats, PhysicalAttribute, Nationality, League, PlayerRatingEntry } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import type { AddPlayerFormValues } from '@/components/add-player-dialog';
 import { getAvailableStylesForPosition, playerSkillsList } from '@/lib/types';
@@ -42,6 +42,7 @@ export function usePlayers() {
                     tierUpdatedAt: card.tierUpdatedAt,
                     ratingsByPosition: card.ratingsByPosition || {},
                     likesByPosition: card.likesByPosition || {},
+                    ratingEntriesByPosition: card.ratingEntriesByPosition || {},
                     skills: (card.skills || []).filter((s: string) => validSkillsSet.has(s as any)),
                 };
             });
@@ -130,6 +131,15 @@ export function usePlayers() {
     if (!validStylesForPosition.includes(style)) style = 'Ninguno';
 
     try {
+      const ratingEntry: PlayerRatingEntry = {
+        rating,
+        liked: values.liked ?? null,
+        position: pos,
+        date: new Date().toISOString(),
+      };
+      if ((values as any).formationId) ratingEntry.formationId = (values as any).formationId;
+      if ((values as any).formationName) ratingEntry.formationName = (values as any).formationName;
+
       if (playerId) {
         const playerRef = doc(db, 'players', playerId);
         const playerDoc = await getDoc(playerRef);
@@ -146,6 +156,10 @@ export function usePlayers() {
           if (!card.likesByPosition[pos]) card.likesByPosition[pos] = [];
           card.likesByPosition[pos]!.push(values.liked ?? null);
 
+          if (!card.ratingEntriesByPosition) card.ratingEntriesByPosition = {};
+          if (!card.ratingEntriesByPosition[pos]) card.ratingEntriesByPosition[pos] = [];
+          card.ratingEntriesByPosition[pos]!.push(ratingEntry);
+
           if (trainedPosition !== undefined) card.trainedPosition = trainedPosition;
           card.lastPlayedPosition = pos;
         } else {
@@ -158,6 +172,7 @@ export function usePlayers() {
             league: league || 'Sin Liga',
             ratingsByPosition: { [pos]: [rating] },
             likesByPosition: { [pos]: [values.liked ?? null] },
+            ratingEntriesByPosition: { [pos]: [ratingEntry] },
           } as any);
         }
         await updateDoc(playerRef, { cards: newCards });
@@ -174,6 +189,7 @@ export function usePlayers() {
             league: league || 'Sin Liga',
             ratingsByPosition: { [pos]: [rating] },
             likesByPosition: { [pos]: [values.liked ?? null] },
+            ratingEntriesByPosition: { [pos]: [ratingEntry] },
           }]
         });
       }
@@ -202,10 +218,18 @@ export function usePlayers() {
     }
 
     const ratingsByPosition: { [key: string]: number[] } = {};
+    const ratingEntriesByPosition: { [key: string]: PlayerRatingEntry[] } = {};
     if (ratingEntries && ratingEntries.length > 0) {
       for (const entry of ratingEntries) {
         if (!ratingsByPosition[entry.position]) ratingsByPosition[entry.position] = [];
         ratingsByPosition[entry.position].push(entry.rating);
+        if (!ratingEntriesByPosition[entry.position]) ratingEntriesByPosition[entry.position] = [];
+        ratingEntriesByPosition[entry.position].push({
+          rating: entry.rating,
+          liked: null,
+          position: entry.position,
+          date: new Date().toISOString(),
+        });
       }
     }
 
@@ -219,6 +243,7 @@ export function usePlayers() {
       imageUrl: imageUrl || '',
       ratingsByPosition,
       likesByPosition: {},
+      ratingEntriesByPosition,
     };
     if (Object.keys(attributeStats).length > 0) newCard.attributeStats = attributeStats;
     if (height || weight) newCard.physicalAttributes = { ...(height ? { height } : {}), ...(weight ? { weight } : {}) };
@@ -343,6 +368,15 @@ export function usePlayers() {
         if (!card.likesByPosition) card.likesByPosition = {};
         if (!card.likesByPosition[position]) card.likesByPosition[position] = [];
         card.likesByPosition[position]![index] = liked;
+        const entriesForPosition = card.ratingEntriesByPosition?.[position];
+        if (entriesForPosition) {
+          const ratingsCount = card.ratingsByPosition?.[position]?.length || 0;
+          const legacyOffset = Math.max(0, ratingsCount - entriesForPosition.length);
+          const entryIndex = index - legacyOffset;
+          if (entryIndex >= 0 && entriesForPosition[entryIndex]) {
+            entriesForPosition[entryIndex].liked = liked;
+          }
+        }
         await updateDoc(playerRef, { cards: newCards });
       }
     } catch (e) {
@@ -360,6 +394,8 @@ export function usePlayers() {
       const card = newCards.find(c => c.id === cardId);
       if (card?.ratingsByPosition?.[position]) {
           delete card.ratingsByPosition[position];
+          if (card.likesByPosition?.[position]) delete card.likesByPosition[position];
+          if (card.ratingEntriesByPosition?.[position]) delete card.ratingEntriesByPosition[position];
 
           const hasRatings = Object.keys(card.ratingsByPosition).length > 0;
           const finalCards = hasRatings ? newCards : newCards.filter(c => c.id !== cardId);
@@ -452,8 +488,17 @@ export function usePlayers() {
       const newCards = JSON.parse(JSON.stringify(playerData.cards));
       const card = newCards.find((c: any) => c.id === cardId);
       if (card?.ratingsByPosition?.[position]) {
+        const entriesForPosition = card.ratingEntriesByPosition?.[position];
+        if (entriesForPosition) {
+          const legacyOffset = Math.max(0, card.ratingsByPosition[position].length - entriesForPosition.length);
+          const entryIndex = index - legacyOffset;
+          if (entryIndex >= 0) entriesForPosition.splice(entryIndex, 1);
+        }
         card.ratingsByPosition[position].splice(index, 1);
+        if (card.likesByPosition?.[position]) card.likesByPosition[position].splice(index, 1);
         if (card.ratingsByPosition[position].length === 0) delete card.ratingsByPosition[position];
+        if (card.likesByPosition?.[position]?.length === 0) delete card.likesByPosition[position];
+        if (card.ratingEntriesByPosition?.[position]?.length === 0) delete card.ratingEntriesByPosition[position];
 
         // Remove cards with no positions; delete player doc if no cards remain
         const activeCards = newCards.filter((c: any) => Object.keys(c.ratingsByPosition || {}).length > 0);

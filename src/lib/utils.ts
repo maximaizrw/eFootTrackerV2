@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { PlayerAttributeStats, Position, LiveUpdateRating, PlayerSkill, PerformanceTag, PlayerTier } from "./types";
+import type { PlayerAttributeStats, Position, LiveUpdateRating, PlayerSkill, PerformanceTag, PlayerTier, PlayerCard, PlayerRatingEntry } from "./types";
 import { PLAYER_TIER_BONUSES } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
@@ -198,6 +198,95 @@ export function calculatePlayerConfidence(
   else if (matches >= 5 && score >= 68) tag = 'estable';
 
   return { score, tag, trendDelta, recentAverage: effectiveRecentAverage };
+}
+
+export function getRatingEntriesForPosition(card: PlayerCard, position: Position): PlayerRatingEntry[] {
+  const storedEntries = card.ratingEntriesByPosition?.[position];
+  const ratings = card.ratingsByPosition?.[position] || [];
+  const likes = card.likesByPosition?.[position] || [];
+  const normalizedStoredEntries = (storedEntries || [])
+    .filter(entry => typeof entry.rating === 'number')
+    .map(entry => ({
+      ...entry,
+      position: entry.position || position,
+      date: entry.date || '',
+    }));
+
+  if (normalizedStoredEntries.length > 0) {
+    const missingLegacyCount = Math.max(0, ratings.length - normalizedStoredEntries.length);
+    const legacyEntries = ratings.slice(0, missingLegacyCount).map((rating, index) => ({
+      rating,
+      liked: likes[index] ?? null,
+      position,
+      date: '',
+    }));
+
+    return [...legacyEntries, ...normalizedStoredEntries];
+  }
+
+  return ratings.map((rating, index) => ({
+    rating,
+    liked: likes[index] ?? null,
+    position,
+    date: '',
+  }));
+}
+
+export function getFormationRatingEntries(card: PlayerCard, position: Position, formationId?: string): PlayerRatingEntry[] {
+  if (!formationId) return [];
+  return getRatingEntriesForPosition(card, position).filter(entry => entry.formationId === formationId);
+}
+
+function calculateConfidenceFromEntries(
+  entries: PlayerRatingEntry[],
+  liveUpdateRating?: LiveUpdateRating | null,
+): PlayerConfidence {
+  const ratings = entries.map(entry => entry.rating);
+  const stats = calculateStats(ratings);
+  const recentAverage = calculateRecencyWeightedAverage(ratings, 5, 2.5, 0.9);
+  const likes = entries.filter(entry => entry.liked === true).length;
+  const dislikes = entries.filter(entry => entry.liked === false).length;
+  return calculatePlayerConfidence(stats.average, stats.matches, stats.stdDev, likes, dislikes, liveUpdateRating, recentAverage);
+}
+
+export type FormationConfidence = PlayerConfidence & {
+  formationMatches: number;
+  usesFormationContext: boolean;
+};
+
+export function calculateFormationConfidence(
+  generalEntries: PlayerRatingEntry[],
+  formationEntries: PlayerRatingEntry[],
+  liveUpdateRating?: LiveUpdateRating | null,
+): FormationConfidence {
+  if (formationEntries.length === 0) {
+    return {
+      ...calculateConfidenceFromEntries(generalEntries, liveUpdateRating),
+      formationMatches: 0,
+      usesFormationContext: false,
+    };
+  }
+
+  const formationConfidence = calculateConfidenceFromEntries(formationEntries, liveUpdateRating);
+  if (formationEntries.length >= 5) {
+    return {
+      ...formationConfidence,
+      formationMatches: formationEntries.length,
+      usesFormationContext: true,
+    };
+  }
+
+  const generalConfidence = calculateConfidenceFromEntries(generalEntries, liveUpdateRating);
+  const score = Math.round((formationConfidence.score * 0.7) + (generalConfidence.score * 0.3));
+
+  return {
+    score: Math.max(0, Math.min(100, score)),
+    tag: formationConfidence.tag,
+    trendDelta: (formationConfidence.trendDelta * 0.7) + (generalConfidence.trendDelta * 0.3),
+    recentAverage: (formationConfidence.recentAverage * 0.7) + (generalConfidence.recentAverage * 0.3),
+    formationMatches: formationEntries.length,
+    usesFormationContext: true,
+  };
 }
 
 export function getProxiedImageUrl(url: string | undefined): string {

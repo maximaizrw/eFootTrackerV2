@@ -20,7 +20,7 @@ import { Badge } from './ui/badge';
 
 
 const PlayerToken = memo(function PlayerToken({
-  player, style, hoveredId, onHover, onDiscard, onUpdateLiveUpdateRating, onUpdatePermanentLiveUpdateRating, onAddRating
+  player, formation, style, hoveredId, onHover, onDiscard, onUpdateLiveUpdateRating, onUpdatePermanentLiveUpdateRating, onAddRating
 }: any) {
   if (!player || player.player.id.startsWith('ph')) {
     return (
@@ -33,6 +33,8 @@ const PlayerToken = memo(function PlayerToken({
   }
 
   const isHovered = hoveredId === player.card.id;
+  const confidenceScore = player.performance?.confidenceScore ?? player.confidenceScore;
+  const formationMatches = player.performance?.formationMatches ?? 0;
 
   return (
     <div
@@ -40,7 +42,16 @@ const PlayerToken = memo(function PlayerToken({
       style={style}
       onPointerEnter={() => onHover(player.card.id)}
       onPointerLeave={() => onHover(null)}
-      onClick={() => onAddRating({ playerId: player.player.id, playerName: player.player.name, cardName: player.card.name, position: player.position })}
+      onClick={() => onAddRating({
+        playerId: player.player.id,
+        playerName: player.player.name,
+        cardName: player.card.name,
+        position: player.position,
+        style: player.card.style,
+        league: player.card.league || 'Sin Liga',
+        formationId: formation?.id,
+        formationName: formation?.name,
+      })}
     >
       <Button
         variant="destructive" size="icon" className={cn("absolute -top-1 -right-1 h-5 w-5 rounded-full z-[60] transition-opacity", isHovered ? "opacity-100" : "opacity-0")}
@@ -74,12 +85,17 @@ const PlayerToken = memo(function PlayerToken({
         {player.assignedPosition !== player.position && (
           <span className="text-[8px] text-white/40 italic leading-none" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>{player.assignedPosition}</span>
         )}
+        {typeof confidenceScore === 'number' && (
+          <span className="rounded-full bg-black/45 px-1.5 py-px text-[8px] font-bold text-cyan-200 ring-1 ring-white/10" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>
+            C{confidenceScore} · {formationMatches}F
+          </span>
+        )}
       </div>
     </div>
   );
 });
 
-const BenchCard = memo(function BenchCard({ player, onDiscard, onUpdateLiveUpdateRating, onUpdatePermanentLiveUpdateRating, onAddRating }: any) {
+const BenchCard = memo(function BenchCard({ player, formation, onDiscard, onUpdateLiveUpdateRating, onUpdatePermanentLiveUpdateRating, onAddRating }: any) {
   if (!player || player.player.id.startsWith('ph')) {
     return (
       <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-muted/20 border border-dashed border-foreground/10 min-h-[2.75rem]">
@@ -89,10 +105,22 @@ const BenchCard = memo(function BenchCard({ player, onDiscard, onUpdateLiveUpdat
     );
   }
 
+  const confidenceScore = player.performance?.confidenceScore ?? player.confidenceScore;
+  const formationMatches = player.performance?.formationMatches ?? 0;
+
   return (
     <div
       className="group/bench relative flex items-center gap-2 px-2 py-1.5 rounded-lg bg-card border border-border/50 min-h-[2.75rem] hover:bg-accent/10 cursor-pointer"
-      onClick={() => onAddRating({ playerId: player.player.id, playerName: player.player.name, cardName: player.card.name, position: player.position })}
+      onClick={() => onAddRating({
+        playerId: player.player.id,
+        playerName: player.player.name,
+        cardName: player.card.name,
+        position: player.position,
+        style: player.card.style,
+        league: player.card.league || 'Sin Liga',
+        formationId: formation?.id,
+        formationName: formation?.name,
+      })}
     >
       <Button
         variant="destructive" size="icon" className="absolute -top-1 -right-1 h-4 w-4 rounded-full opacity-0 group-hover/bench:opacity-100 transition-opacity"
@@ -121,7 +149,12 @@ const BenchCard = memo(function BenchCard({ player, onDiscard, onUpdateLiveUpdat
             </span>
             <span className="text-[10px] font-black ml-auto text-accent">{player.overall?.toFixed(0) || '-'}</span>
           </div>
-          <p className="text-[8px] text-muted-foreground leading-none">Convocado como {player.assignedPosition}</p>
+          <p className="text-[8px] text-muted-foreground leading-none">
+            Convocado como {player.assignedPosition}
+            {typeof confidenceScore === 'number' && (
+              <span className="ml-1 font-bold text-cyan-500">C{confidenceScore} · {formationMatches}F</span>
+            )}
+          </p>
         </div>
       </div>
     </div>
@@ -151,7 +184,7 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onUpda
         <FootballPitch className="aspect-[4/3] lg:aspect-[3/2]">
           {starters.map((starter: any, index: number) => {
             const slot = formation.slots[index];
-            return <PlayerToken key={starter?.card.id || `empty-${index}`} player={starter} style={{ top: `${slot?.top}%`, left: `${slot?.left}%` }} hoveredId={hoveredId} onHover={setHoveredId} onDiscard={onDiscardPlayer} onUpdateLiveUpdateRating={onUpdateLiveUpdateRating} onUpdatePermanentLiveUpdateRating={onUpdatePermanentLiveUpdateRating} onAddRating={onAddRating} />;
+            return <PlayerToken key={starter?.card.id || `empty-${index}`} player={starter} formation={formation} style={{ top: `${slot?.top}%`, left: `${slot?.left}%` }} hoveredId={hoveredId} onHover={setHoveredId} onDiscard={onDiscardPlayer} onUpdateLiveUpdateRating={onUpdateLiveUpdateRating} onUpdatePermanentLiveUpdateRating={onUpdatePermanentLiveUpdateRating} onAddRating={onAddRating} />;
           })}
         </FootballPitch>
       </div>
@@ -159,7 +192,7 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onUpda
         <h3 className="text-sm font-semibold mb-2 px-1">Banquillo — Probadores / Mejores <span className="text-muted-foreground font-normal">(prioridad &lt;5 partidos)</span></h3>
         <div className="grid grid-cols-2 lg:grid-cols-1 gap-1.5">
           {substitutes.map((sub: any, index: number) => (
-            <BenchCard key={sub?.card.id ? `sub-${sub.card.id}-${index}` : `vacante-${index}`} player={sub} onDiscard={onDiscardPlayer} onUpdateLiveUpdateRating={onUpdateLiveUpdateRating} onUpdatePermanentLiveUpdateRating={onUpdatePermanentLiveUpdateRating} onAddRating={onAddRating} />
+            <BenchCard key={sub?.card.id ? `sub-${sub.card.id}-${index}` : `vacante-${index}`} player={sub} formation={formation} onDiscard={onDiscardPlayer} onUpdateLiveUpdateRating={onUpdateLiveUpdateRating} onUpdatePermanentLiveUpdateRating={onUpdatePermanentLiveUpdateRating} onAddRating={onAddRating} />
           ))}
         </div>
       </div>

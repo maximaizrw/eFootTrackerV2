@@ -310,12 +310,14 @@ export default function Home() {
             rating: newRating,
             style: p.card.style,
             league: p.card.league || 'Sin Liga',
+            formationId: selectedFormation?.id,
+            formationName: selectedFormation?.name,
         } as any);
     });
 
     await Promise.all(promises);
     toast({ title: "Victoria por Abandono", description: `Se han sumado puntos a ${playersToUpdate.length} jugadores.` });
-  }, [idealTeam, addRating, toast]);
+  }, [idealTeam, selectedFormation, addRating, toast]);
   
   const handleDownloadBackup = useCallback(async () => {
     const playersData = await downloadPlayersBackup();

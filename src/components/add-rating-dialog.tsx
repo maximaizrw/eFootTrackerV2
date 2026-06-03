@@ -36,6 +36,8 @@ const formSchema = z.object({
   league: z.enum(leagues).optional(),
   rating: z.number().min(1).max(10),
   liked: z.boolean().nullable().optional(),
+  formationId: z.string().optional(),
+  formationName: z.string().optional(),
 });
 
 export type FormValues = z.infer<typeof formSchema>;
@@ -88,6 +90,8 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData, 
       league: "Sin Liga",
       rating: 5,
       liked: null,
+      formationId: undefined,
+      formationName: undefined,
     },
   });
 
@@ -108,6 +112,8 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData, 
         league: "Sin Liga" as League,
         rating: 5,
         liked: null,
+        formationId: undefined,
+        formationName: undefined,
         ...initialData,
       };
       form.reset(base);
@@ -146,6 +152,11 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData, 
                   {initialData?.cardName && (
                     <span className="text-xs text-muted-foreground">
                       {initialData.cardName}
+                    </span>
+                  )}
+                  {initialData?.formationName && (
+                    <span className="text-xs text-muted-foreground">
+                      {initialData.formationName}
                     </span>
                   )}
                 </div>
