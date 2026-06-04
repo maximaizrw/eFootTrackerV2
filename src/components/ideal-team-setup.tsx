@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { FormationStats, League, Nationality, IdealTeamMode } from '@/lib/types';
+import type { FormationStats, League, Nationality, IdealTeamMode, IdealTeamSelectionCriteria } from '@/lib/types';
 import { Label } from './ui/label';
 import { ArrowRightLeft, ShieldCheck } from 'lucide-react';
 import { Switch } from './ui/switch';
@@ -22,8 +22,8 @@ type IdealTeamSetupProps = {
   onFlexibleLateralsChange: (value: boolean) => void;
   isFlexibleWingers: boolean;
   onFlexibleWingersChange: (value: boolean) => void;
-  selectionCriteria: 'overall' | 'average' | 'confidence';
-  onSelectionCriteriaChange: (value: 'overall' | 'average' | 'confidence') => void;
+  selectionCriteria: IdealTeamSelectionCriteria;
+  onSelectionCriteriaChange: (value: IdealTeamSelectionCriteria) => void;
   mode: IdealTeamMode;
   onModeChange: (value: IdealTeamMode) => void;
 };
@@ -106,14 +106,15 @@ const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({
         </Label>
         <Select
             value={selectionCriteria}
-            onValueChange={(val) => onSelectionCriteriaChange(val as 'overall' | 'average' | 'confidence')}
+            onValueChange={(val) => onSelectionCriteriaChange(val as IdealTeamSelectionCriteria)}
         >
             <SelectTrigger className="w-full">
                 <SelectValue />
             </SelectTrigger>
             <SelectContent>
                 <SelectItem value="overall">Equilibrado (Overall + Notas)</SelectItem>
-                <SelectItem value="confidence">Confianza (Overall + Regularidad)</SelectItem>
+                <SelectItem value="confidence">Confianza por FormaciÃ³n</SelectItem>
+                <SelectItem value="general-confidence">Confianza General</SelectItem>
                 <SelectItem value="average">Rendimiento (Solo Notas)</SelectItem>
             </SelectContent>
         </Select>

@@ -40,7 +40,7 @@ import { usePlayers } from '@/hooks/usePlayers';
 import { useFormations } from '@/hooks/useFormations';
 import { useToast } from "@/hooks/use-toast";
 
-import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, League, Nationality, IdealTeamMode } from '@/lib/types';
+import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, League, Nationality, IdealTeamMode, IdealTeamSelectionCriteria } from '@/lib/types';
 import { positions, leagues, nationalities } from '@/lib/types';
 import type { FormationTemplate } from '@/lib/formation-templates';
 import { getPlayerTierBonus, normalizeText } from '@/lib/utils';
@@ -122,7 +122,7 @@ export default function Home() {
   const [discardedCardIds, setDiscardedCardIds] = useState<Set<string>>(new Set());
   const [isFlexibleLaterals, setFlexibleLaterals] = useState(false);
   const [isFlexibleWingers, setFlexibleWingers] = useState(false);
-  const [selectionCriteria, setSelectionCriteria] = useState<'overall' | 'average' | 'confidence'>('overall');
+  const [selectionCriteria, setSelectionCriteria] = useState<IdealTeamSelectionCriteria>('overall');
   const [idealTeamMode, setIdealTeamMode] = useState<IdealTeamMode>('event');
   
   const [pagination, setPagination] = useState<Record<string, number>>({});

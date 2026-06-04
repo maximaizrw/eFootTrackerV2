@@ -1,4 +1,4 @@
-import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, FormationSlot, PlayerStyle, IdealTeamMode } from './types';
+import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, FormationSlot, PlayerStyle, IdealTeamMode, IdealTeamSelectionCriteria } from './types';
 import { getAvailableStylesForPosition } from './types';
 import { calculateStats, calculateOverall, calculateRecencyWeightedAverage, positionPriority, calculatePlayerConfidence, normalizePlayerTier, getRatingEntriesForPosition, getFormationRatingEntries, calculateFormationConfidence } from './utils';
 
@@ -21,7 +21,7 @@ export function generateIdealTeam(
   nationality: Nationality | 'all' = 'all',
   isFlexibleLaterals: boolean = false,
   isFlexibleWingers: boolean = false,
-  selectionCriteria: 'overall' | 'average' | 'confidence' = 'overall',
+  selectionCriteria: IdealTeamSelectionCriteria = 'overall',
   mode: IdealTeamMode = 'event'
 ): IdealTeamSlot[] {
   
@@ -60,14 +60,16 @@ export function generateIdealTeam(
 
         const trueOverall = calculateOverall(stats.average, stats.matches, likes, dislikes, player.liveUpdateRating, recentAverage, card.tier);
         
+        const confidence = calculatePlayerConfidence(stats.average, stats.matches, stats.stdDev, likes, dislikes, player.liveUpdateRating, recentAverage);
         let scoreForSelection = trueOverall;
         if (selectionCriteria === 'average') {
             scoreForSelection = stats.average;
         } else if (selectionCriteria === 'confidence') {
             scoreForSelection = formationConfidence.score;
+        } else if (selectionCriteria === 'general-confidence') {
+            scoreForSelection = confidence.score;
         }
 
-        const confidence = calculatePlayerConfidence(stats.average, stats.matches, stats.stdDev, likes, dislikes, player.liveUpdateRating, recentAverage);
         const performance: PlayerPerformance = {
             stats,
             recentAverage: confidence.recentAverage,
