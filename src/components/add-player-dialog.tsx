@@ -74,6 +74,7 @@ const formSchema = z.object({
   nationality: z.enum(nationalities).optional(),
   style: z.enum(playerStyles).optional(),
   tier: z.enum(playerTiers).optional(),
+  tierPlacements: z.coerce.number().int().min(0).optional(),
   league: z.enum(leagues).optional(),
   ratingEntries: z.array(z.object({
     position: z.enum(positions),
@@ -108,6 +109,14 @@ const formSchema = z.object({
   physicalContact: statSchema,
   balance: statSchema,
   stamina: statSchema,
+}).superRefine((values, ctx) => {
+  if (values.tier && values.tier !== "SIN TIER" && (!values.tierPlacements || values.tierPlacements < 1)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["tierPlacements"],
+      message: "Debe ser al menos 1 para un tier asignado.",
+    });
+  }
 });
 
 export type AddPlayerFormValues = z.infer<typeof formSchema>;
@@ -182,6 +191,7 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
       nationality: "Sin Nacionalidad",
       style: "Ninguno",
       tier: "SIN TIER",
+      tierPlacements: 0,
       league: "Sin Liga",
       ratingEntries: [],
       skills: [],
@@ -195,6 +205,7 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
 
   const watchedSkills = form.watch("skills") || [];
   const watchedEntries = form.watch("ratingEntries") || [];
+  const watchedTier = form.watch("tier") || "SIN TIER";
   const playerIdValue = form.watch("playerId");
   const isExistingPlayer = !!playerIdValue;
 
@@ -208,6 +219,7 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
         nationality: "Sin Nacionalidad" as Nationality,
         style: "Ninguno" as PlayerStyle,
         tier: "SIN TIER" as PlayerTier,
+        tierPlacements: 0,
         league: "Sin Liga" as League,
         ratingEntries: [],
         skills: [],
@@ -402,7 +414,13 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Tier de Carta</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            form.setValue("tierPlacements", value === "SIN TIER" ? 0 : Math.max(1, form.getValues("tierPlacements") || 1), { shouldValidate: true });
+                          }}
+                          value={field.value}
+                        >
                           <FormControl>
                             <SelectTrigger><SelectValue /></SelectTrigger>
                           </FormControl>
@@ -412,6 +430,27 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
                             ))}
                           </SelectContent>
                         </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="tierPlacements"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Placements que validan el tier</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={watchedTier === "SIN TIER" ? 0 : 1}
+                            step={1}
+                            disabled={watchedTier === "SIN TIER"}
+                            {...field}
+                            value={field.value ?? 0}
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}

@@ -58,7 +58,7 @@ export function generateIdealTeam(
         const formationEntries = getFormationRatingEntries(card, pos, formation.id);
         const formationConfidence = calculateFormationConfidence(generalEntries, formationEntries, player.liveUpdateRating);
 
-        const trueOverall = calculateOverall(stats.average, stats.matches, likes, dislikes, player.liveUpdateRating, recentAverage, card.tier);
+        const trueOverall = calculateOverall(stats.average, stats.matches, likes, dislikes, player.liveUpdateRating, recentAverage, card.tier, card.tierPlacements);
         
         const confidence = calculatePlayerConfidence(stats.average, stats.matches, stats.stdDev, likes, dislikes, player.liveUpdateRating, recentAverage);
         let scoreForSelection = trueOverall;

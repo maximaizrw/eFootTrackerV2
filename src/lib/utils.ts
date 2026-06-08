@@ -95,8 +95,22 @@ export function normalizePlayerTier(tier: string | undefined | null): PlayerTier
   return tier in PLAYER_TIER_BONUSES ? tier as PlayerTier : 'SIN TIER';
 }
 
-export function getPlayerTierBonus(tier: PlayerTier | undefined | null): number {
-  return PLAYER_TIER_BONUSES[normalizePlayerTier(tier)];
+export function normalizeTierPlacements(tier: PlayerTier | string | undefined | null, tierPlacements: number | undefined | null): number {
+  if (normalizePlayerTier(tier) === 'SIN TIER') return 0;
+
+  const placements = Number(tierPlacements);
+  if (!Number.isFinite(placements)) return 1;
+  return Math.max(1, Math.floor(placements));
+}
+
+export function getPlayerTierBonus(tier: PlayerTier | undefined | null, tierPlacements?: number | null): number {
+  const normalizedTier = normalizePlayerTier(tier);
+  if (normalizedTier === 'SIN TIER') return 0;
+
+  const baseBonus = PLAYER_TIER_BONUSES[normalizedTier];
+  const placements = normalizeTierPlacements(normalizedTier, tierPlacements);
+  const multiplier = 0.5 + (0.5 * Math.min(1, Math.log2(placements) / 3));
+  return baseBonus * multiplier;
 }
 
 export const TIER_STALE_DAYS = 7;
@@ -124,6 +138,7 @@ export function calculateOverall(
   liveUpdateRating?: LiveUpdateRating | null,
   recentAverage?: number,
   tier?: PlayerTier | null,
+  tierPlacements?: number | null,
 ): number {
   const effectiveRecentAverage = recentAverage ?? overallAverage;
 
@@ -134,7 +149,7 @@ export function calculateOverall(
   const likeScore = calculateLikeScore(likes, dislikes);
 
   const liveUpdateBonus = liveUpdateRating ? LIVE_UPDATE_BONUSES[liveUpdateRating] : 0;
-  const tierBonus = getPlayerTierBonus(tier);
+  const tierBonus = getPlayerTierBonus(tier, tierPlacements);
 
   let experiencePenalty = 0;
   if (matches > 0) {

@@ -141,6 +141,7 @@ export type PlayerCard = {
   name: string;
   style: PlayerStyle;
   tier?: PlayerTier;
+  tierPlacements?: number;
   tierUpdatedAt?: string;
   league?: League;
   imageUrl?: string;

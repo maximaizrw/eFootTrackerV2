@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PositionIcon } from "@/components/position-icon";
 import type { FlatPlayer, Player, PlayerCard, Position } from "@/lib/types";
-import { getPlayerTierBonus, getProxiedImageUrl, isPlayerTierStale, normalizePlayerTier, TIER_STALE_DAYS } from "@/lib/utils";
+import { getPlayerTierBonus, getProxiedImageUrl, isPlayerTierStale, normalizePlayerTier, normalizeTierPlacements, TIER_STALE_DAYS } from "@/lib/utils";
 
 const SIN_TIER_STALE_DAYS = 3;
 
@@ -166,7 +166,8 @@ export function TierlistUpdates({ players, flatPlayers, onOpenEditCard }: Tierli
               <TableBody>
                 {pendingCards.map(({ player, card, positions, reason }) => {
                   const tier = normalizePlayerTier(card.tier);
-                  const tierBonus = getPlayerTierBonus(tier);
+                  const tierPlacements = normalizeTierPlacements(tier, card.tierPlacements);
+                  const tierBonus = getPlayerTierBonus(tier, card.tierPlacements);
 
                   return (
                     <TableRow key={`${player.id}-${card.id}`}>
@@ -191,7 +192,7 @@ export function TierlistUpdates({ players, flatPlayers, onOpenEditCard }: Tierli
                       <TableCell className="text-muted-foreground">{card.name}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className={getTierBadgeClass(tier)}>
-                          {tier}{tierBonus > 0 ? ` +${tierBonus}` : ""}
+                          {tier}{tierBonus > 0 ? ` +${tierBonus.toFixed(1)} · ${tierPlacements}p` : ""}
                         </Badge>
                       </TableCell>
                       <TableCell className="hidden md:table-cell">

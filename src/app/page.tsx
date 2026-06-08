@@ -198,6 +198,7 @@ export default function Home() {
         currentCardName: card.name,
         currentStyle: card.style,
         tier: card.tier || 'SIN TIER',
+        tierPlacements: card.tierPlacements,
         league: card.league || 'Sin Liga',
         imageUrl: card.imageUrl || '',
     });
@@ -368,7 +369,7 @@ export default function Home() {
             return b.performance.stats.matches - a.performance.stats.matches;
           }
           if (listSortCriteria === 'tier') {
-            const tierDiff = getPlayerTierBonus(b.card.tier) - getPlayerTierBonus(a.card.tier);
+            const tierDiff = getPlayerTierBonus(b.card.tier, b.card.tierPlacements) - getPlayerTierBonus(a.card.tier, a.card.tierPlacements);
             if (Math.abs(tierDiff) > 0.01) return tierDiff;
             return b.overall - a.overall;
           }

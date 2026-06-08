@@ -32,6 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { playerStyles, leagues, playerTiers } from "@/lib/types";
+import { normalizeTierPlacements } from "@/lib/utils";
 
 const formSchema = z.object({
   playerId: z.string(),
@@ -39,9 +40,18 @@ const formSchema = z.object({
   currentCardName: z.string().min(2, "El nombre de la carta debe tener al menos 2 caracteres."),
   currentStyle: z.enum(playerStyles),
   tier: z.enum(playerTiers).optional(),
+  tierPlacements: z.coerce.number().int().min(0).optional(),
   league: z.enum(leagues).optional(),
   imageUrl: z.string().url("Debe ser una URL válida.").optional().or(z.literal('')),
   availableTrainingPoints: z.number().min(0, "Debe ser al menos 0.").optional(),
+}).superRefine((values, ctx) => {
+  if (values.tier && values.tier !== "SIN TIER" && (!values.tierPlacements || values.tierPlacements < 1)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["tierPlacements"],
+      message: "Debe ser al menos 1 para un tier asignado.",
+    });
+  }
 });
 
 export type FormValues = z.infer<typeof formSchema>;
@@ -57,6 +67,7 @@ export function EditCardDialog({ open, onOpenChange, onEditCard, initialData }: 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
   });
+  const watchedTier = form.watch("tier") || "SIN TIER";
 
   useEffect(() => {
     if (open && initialData) {
@@ -64,6 +75,7 @@ export function EditCardDialog({ open, onOpenChange, onEditCard, initialData }: 
           ...initialData,
           league: initialData.league || 'Sin Liga',
           tier: initialData.tier || 'SIN TIER',
+          tierPlacements: normalizeTierPlacements(initialData.tier || 'SIN TIER', initialData.tierPlacements),
           availableTrainingPoints: initialData.availableTrainingPoints ?? undefined,
       });
     }
@@ -126,7 +138,13 @@ export function EditCardDialog({ open, onOpenChange, onEditCard, initialData }: 
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Tier de Carta</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      form.setValue("tierPlacements", value === "SIN TIER" ? 0 : Math.max(1, form.getValues("tierPlacements") || 1), { shouldValidate: true });
+                    }}
+                    value={field.value}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecciona un tier" />
@@ -138,6 +156,26 @@ export function EditCardDialog({ open, onOpenChange, onEditCard, initialData }: 
                       ))}
                     </SelectContent>
                   </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="tierPlacements"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Placements que validan el tier</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min={watchedTier === "SIN TIER" ? 0 : 1}
+                      step={1}
+                      disabled={watchedTier === "SIN TIER"}
+                      {...field}
+                      value={field.value ?? 0}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

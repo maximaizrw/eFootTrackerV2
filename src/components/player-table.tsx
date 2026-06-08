@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Trash2, Search, Dumbbell, Copy, CheckCircle2, History, X, ThumbsUp, ThumbsDown, MapPin, ShieldCheck, TrendingUp, AlertTriangle, TrendingDown, Sparkles, Gauge, Pencil } from 'lucide-react';
-import { cn, formatAverage, getAverageColorClass, getPlayerTierBonus, getProxiedImageUrl, isPlayerTierStale } from '@/lib/utils';
+import { cn, formatAverage, getAverageColorClass, getPlayerTierBonus, getProxiedImageUrl, isPlayerTierStale, normalizeTierPlacements } from '@/lib/utils';
 import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating, PerformanceTag } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import { LiveUpdateRatingSelector } from './live-update-rating-selector';
@@ -219,7 +219,8 @@ const PlayerTableMemo = memo(function PlayerTable({
             const dislikes = likesForPos.filter(l => l === false).length;
             const cardAverage = performance.stats.average;
             const tier = card.tier || 'SIN TIER';
-            const tierBonus = getPlayerTierBonus(card.tier);
+            const tierPlacements = normalizeTierPlacements(card.tier, card.tierPlacements);
+            const tierBonus = getPlayerTierBonus(card.tier, card.tierPlacements);
             const isTierStale = isPlayerTierStale(card.tierUpdatedAt);
             const tagMeta = performanceTagMeta[performance.tag || 'evaluar'];
             const TagIcon = tagMeta.Icon;
@@ -253,7 +254,7 @@ const PlayerTableMemo = memo(function PlayerTable({
                         {card.name} ({performance.stats.matches} P.)
                       </span>
                       <Badge variant="outline" className={cn("mt-1 h-5 w-fit px-1.5 text-[10px] font-bold", getTierBadgeClass(tier))}>
-                        {tier}{tierBonus > 0 ? ` +${tierBonus}` : ''}
+                        {tier}{tierBonus > 0 ? ` +${tierBonus.toFixed(1)} · ${tierPlacements}p` : ''}
                         {isTierStale && (
                           <TooltipProvider>
                             <Tooltip>
