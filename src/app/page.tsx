@@ -43,7 +43,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, League, Nationality, IdealTeamMode, IdealTeamSelectionCriteria } from '@/lib/types';
 import { positions, leagues, nationalities } from '@/lib/types';
 import type { FormationTemplate } from '@/lib/formation-templates';
-import { getPlayerTierBonus, normalizeText } from '@/lib/utils';
+import { getCardTierForPosition, getCardTierPlacementsForPosition, getPlayerTierBonus, normalizeText } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, ListChecks } from 'lucide-react';
@@ -191,14 +191,18 @@ export default function Home() {
     setAddRatingDialogOpen(true);
   }, []);
   
-  const handleOpenEditCard = useCallback((player: Player, card: PlayerCardType) => {
+  const handleOpenEditCard = useCallback((player: Player, card: PlayerCardType, position?: Position) => {
+    const effectiveTier = position ? getCardTierForPosition(card, position) : (card.tier || 'SIN TIER');
+    const effectiveTierPlacements = position ? getCardTierPlacementsForPosition(card, position) : card.tierPlacements;
+
     setEditCardDialogInitialData({
         playerId: player.id,
         cardId: card.id,
+        position,
         currentCardName: card.name,
         currentStyle: card.style,
-        tier: card.tier || 'SIN TIER',
-        tierPlacements: card.tierPlacements,
+        tier: effectiveTier,
+        tierPlacements: effectiveTierPlacements,
         league: card.league || 'Sin Liga',
         imageUrl: card.imageUrl || '',
     });
@@ -369,7 +373,7 @@ export default function Home() {
             return b.performance.stats.matches - a.performance.stats.matches;
           }
           if (listSortCriteria === 'tier') {
-            const tierDiff = getPlayerTierBonus(b.card.tier, b.card.tierPlacements) - getPlayerTierBonus(a.card.tier, a.card.tierPlacements);
+            const tierDiff = getPlayerTierBonus(b.tier, b.tierPlacements) - getPlayerTierBonus(a.tier, a.tierPlacements);
             if (Math.abs(tierDiff) > 0.01) return tierDiff;
             return b.overall - a.overall;
           }

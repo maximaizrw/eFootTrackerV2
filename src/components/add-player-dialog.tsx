@@ -79,6 +79,8 @@ const formSchema = z.object({
   ratingEntries: z.array(z.object({
     position: z.enum(positions),
     rating: z.number().min(1).max(10),
+    tier: z.enum(playerTiers).optional(),
+    tierPlacements: z.coerce.number().int().min(0).optional(),
   })).optional(),
   height: z.coerce.number().min(100).max(230).optional(),
   weight: z.coerce.number().min(40).max(150).optional(),
@@ -117,6 +119,16 @@ const formSchema = z.object({
       message: "Debe ser al menos 1 para un tier asignado.",
     });
   }
+
+  values.ratingEntries?.forEach((entry, index) => {
+    if (entry.tier && entry.tier !== "SIN TIER" && (!entry.tierPlacements || entry.tierPlacements < 1)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["ratingEntries", index, "tierPlacements"],
+        message: "Debe ser al menos 1 para un tier asignado.",
+      });
+    }
+  });
 });
 
 export type AddPlayerFormValues = z.infer<typeof formSchema>;
@@ -413,7 +425,7 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
                     name="tier"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Tier de Carta</FormLabel>
+                        <FormLabel>Tier base de Carta</FormLabel>
                         <Select
                           onValueChange={(value) => {
                             field.onChange(value);
@@ -489,12 +501,13 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
                   )}
 
                   {ratingFields.map((field, index) => (
-                    <div key={field.id} className="flex items-center gap-3 p-3 rounded-lg border bg-card">
+                    <div key={field.id} className="grid grid-cols-1 gap-3 p-3 rounded-lg border bg-card md:grid-cols-[88px_1fr_132px_90px_32px] md:items-end">
                       <FormField
                         control={form.control}
                         name={`ratingEntries.${index}.position`}
                         render={({ field }) => (
-                          <FormItem className="w-24 flex-shrink-0">
+                          <FormItem>
+                            <FormLabel className="text-xs">Pos.</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value}>
                               <FormControl>
                                 <SelectTrigger className="h-8 text-sm">
@@ -515,7 +528,8 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
                         control={form.control}
                         name={`ratingEntries.${index}.rating`}
                         render={({ field }) => (
-                          <FormItem className="flex-1">
+                          <FormItem>
+                            <FormLabel className="text-xs">Valoracion</FormLabel>
                             <div className="flex items-center gap-3">
                               <FormControl>
                                 <Slider
@@ -534,11 +548,66 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
                         )}
                       />
 
+                      <FormField
+                        control={form.control}
+                        name={`ratingEntries.${index}.tier`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Tier</FormLabel>
+                            <Select
+                              onValueChange={(value) => {
+                                field.onChange(value);
+                                form.setValue(
+                                  `ratingEntries.${index}.tierPlacements`,
+                                  value === "SIN TIER" ? 0 : Math.max(1, watchedEntries[index]?.tierPlacements || 1),
+                                  { shouldValidate: true },
+                                );
+                              }}
+                              value={field.value || "SIN TIER"}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="h-8 text-sm">
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {playerTiers.map((tier) => (
+                                  <SelectItem key={tier} value={tier}>{tier}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name={`ratingEntries.${index}.tierPlacements`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Plac.</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                min={watchedEntries[index]?.tier === "SIN TIER" ? 0 : 1}
+                                step={1}
+                                disabled={(watchedEntries[index]?.tier || "SIN TIER") === "SIN TIER"}
+                                {...field}
+                                value={field.value ?? 0}
+                                className="h-8"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive flex-shrink-0"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
                         onClick={() => removeRating(index)}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -550,7 +619,7 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
                     type="button"
                     variant="outline"
                     className="w-full"
-                    onClick={() => appendRating({ position: "DC", rating: 5 })}
+                    onClick={() => appendRating({ position: "DC", rating: 5, tier: watchedTier, tierPlacements: form.getValues("tierPlacements") || 0 })}
                   >
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Agregar Posición

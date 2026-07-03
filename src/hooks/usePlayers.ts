@@ -10,7 +10,7 @@ import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating, Player
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import type { AddPlayerFormValues } from '@/components/add-player-dialog';
 import { getAvailableStylesForPosition, playerSkillsList } from '@/lib/types';
-import { normalizeText, normalizeStyleName, normalizePlayerTier, normalizeTierPlacements, calculateStats, calculateOverall, calculateRecencyWeightedAverage, calculatePlayerConfidence } from '@/lib/utils';
+import { normalizeText, normalizeStyleName, normalizePlayerTier, normalizeTierPlacements, calculateStats, calculateOverall, calculateRecencyWeightedAverage, calculatePlayerConfidence, getCardTierForPosition, getCardTierPlacementsForPosition, getCardTierUpdatedAtForPosition } from '@/lib/utils';
 
 export function usePlayers() {
   const [players, setPlayers] = useState<Player[]>([]);
@@ -34,6 +34,16 @@ export function usePlayers() {
         const playerList = snapshot.docs.map(doc => {
             const data = doc.data();
             const newCards: PlayerCard[] = (data.cards || []).map((card: any) => {
+                const tierByPosition = Object.fromEntries(
+                    Object.entries(card.tierByPosition || {}).map(([position, tier]) => [position, normalizePlayerTier(tier as any)])
+                );
+                const tierPlacementsByPosition = Object.fromEntries(
+                    Object.entries(card.tierPlacementsByPosition || {}).map(([position, placements]) => [
+                        position,
+                        normalizeTierPlacements(card.tierByPosition?.[position as Position] || card.tier, placements as any),
+                    ])
+                );
+
                 return {
                     ...card,
                     id: card.id || uuidv4(),
@@ -41,6 +51,9 @@ export function usePlayers() {
                     tier: normalizePlayerTier(card.tier),
                     tierPlacements: normalizeTierPlacements(card.tier, card.tierPlacements),
                     tierUpdatedAt: card.tierUpdatedAt,
+                    tierByPosition,
+                    tierPlacementsByPosition,
+                    tierUpdatedAtByPosition: card.tierUpdatedAtByPosition || {},
                     ratingsByPosition: card.ratingsByPosition || {},
                     likesByPosition: card.likesByPosition || {},
                     ratingEntriesByPosition: card.ratingEntriesByPosition || {},
@@ -93,7 +106,10 @@ export function usePlayers() {
                 const likesForPos = card.likesByPosition?.[ratedPos] || [];
                 const likes = likesForPos.filter(l => l === true).length;
                 const dislikes = likesForPos.filter(l => l === false).length;
-                const overall = calculateOverall(stats.average, stats.matches, likes, dislikes, player.liveUpdateRating, recentAverage, card.tier, card.tierPlacements);
+                const tier = getCardTierForPosition(card, ratedPos);
+                const tierPlacements = getCardTierPlacementsForPosition(card, ratedPos);
+                const tierUpdatedAt = getCardTierUpdatedAtForPosition(card, ratedPos);
+                const overall = calculateOverall(stats.average, stats.matches, likes, dislikes, player.liveUpdateRating, recentAverage, tier, tierPlacements);
                 const confidence = calculatePlayerConfidence(stats.average, stats.matches, stats.stdDev, likes, dislikes, player.liveUpdateRating, recentAverage);
 
                 return {
@@ -114,7 +130,10 @@ export function usePlayers() {
                     },
                     overall,
                     confidenceScore: confidence.score,
-                    position: ratedPos
+                    position: ratedPos,
+                    tier,
+                    tierPlacements,
+                    tierUpdatedAt,
                 } as FlatPlayer;
             }).filter((p): p is FlatPlayer => p !== null);
         })
@@ -171,6 +190,9 @@ export function usePlayers() {
             tier: 'SIN TIER',
             tierPlacements: 0,
             tierUpdatedAt: new Date().toISOString(),
+            tierByPosition: { [pos]: 'SIN TIER' },
+            tierPlacementsByPosition: { [pos]: 0 },
+            tierUpdatedAtByPosition: { [pos]: new Date().toISOString() },
             league: league || 'Sin Liga',
             ratingsByPosition: { [pos]: [rating] },
             likesByPosition: { [pos]: [values.liked ?? null] },
@@ -189,6 +211,9 @@ export function usePlayers() {
             tier: 'SIN TIER',
             tierPlacements: 0,
             tierUpdatedAt: new Date().toISOString(),
+            tierByPosition: { [pos]: 'SIN TIER' },
+            tierPlacementsByPosition: { [pos]: 0 },
+            tierUpdatedAtByPosition: { [pos]: new Date().toISOString() },
             league: league || 'Sin Liga',
             ratingsByPosition: { [pos]: [rating] },
             likesByPosition: { [pos]: [values.liked ?? null] },
@@ -222,8 +247,15 @@ export function usePlayers() {
 
     const ratingsByPosition: { [key: string]: number[] } = {};
     const ratingEntriesByPosition: { [key: string]: PlayerRatingEntry[] } = {};
+    const tierByPosition: { [key: string]: string } = {};
+    const tierPlacementsByPosition: { [key: string]: number } = {};
+    const tierUpdatedAtByPosition: { [key: string]: string } = {};
+    const now = new Date().toISOString();
     if (ratingEntries && ratingEntries.length > 0) {
       for (const entry of ratingEntries) {
+        const entryTier = normalizePlayerTier((entry as any).tier || tier);
+        const entryTierPlacements = normalizeTierPlacements(entryTier, (entry as any).tierPlacements ?? tierPlacements);
+
         if (!ratingsByPosition[entry.position]) ratingsByPosition[entry.position] = [];
         ratingsByPosition[entry.position].push(entry.rating);
         if (!ratingEntriesByPosition[entry.position]) ratingEntriesByPosition[entry.position] = [];
@@ -233,6 +265,9 @@ export function usePlayers() {
           position: entry.position,
           date: new Date().toISOString(),
         });
+        tierByPosition[entry.position] = entryTier;
+        tierPlacementsByPosition[entry.position] = entryTierPlacements;
+        tierUpdatedAtByPosition[entry.position] = now;
       }
     }
 
@@ -242,7 +277,10 @@ export function usePlayers() {
       style: style || 'Ninguno',
       tier: normalizePlayerTier(tier),
       tierPlacements: normalizeTierPlacements(tier, tierPlacements),
-      tierUpdatedAt: new Date().toISOString(),
+      tierUpdatedAt: now,
+      tierByPosition,
+      tierPlacementsByPosition,
+      tierUpdatedAtByPosition,
       league: league || 'Sin Liga',
       imageUrl: imageUrl || '',
       ratingsByPosition,
@@ -400,6 +438,9 @@ export function usePlayers() {
           delete card.ratingsByPosition[position];
           if (card.likesByPosition?.[position]) delete card.likesByPosition[position];
           if (card.ratingEntriesByPosition?.[position]) delete card.ratingEntriesByPosition[position];
+          if (card.tierByPosition?.[position]) delete card.tierByPosition[position];
+          if (card.tierPlacementsByPosition?.[position] !== undefined) delete card.tierPlacementsByPosition[position];
+          if (card.tierUpdatedAtByPosition?.[position]) delete card.tierUpdatedAtByPosition[position];
 
           const hasRatings = Object.keys(card.ratingsByPosition).length > 0;
           const finalCards = hasRatings ? newCards : newCards.filter(c => c.id !== cardId);
@@ -454,9 +495,35 @@ export function usePlayers() {
       const playerDoc = await getDoc(playerRef);
       const playerData = playerDoc.data() as Player;
       const now = new Date().toISOString();
-      const newCards = playerData.cards.map(c =>
-        c.id === values.cardId ? { ...c, name: values.currentCardName, style: values.currentStyle, tier: normalizePlayerTier(values.tier), tierPlacements: normalizeTierPlacements(values.tier, values.tierPlacements), tierUpdatedAt: now, league: values.league, imageUrl: values.imageUrl, trainedPosition: values.trainedPosition ?? null } : c
-      );
+      const newCards = playerData.cards.map(c => {
+        if (c.id !== values.cardId) return c;
+
+        const updatedCard: PlayerCard = {
+          ...c,
+          name: values.currentCardName,
+          style: values.currentStyle,
+          league: values.league,
+          imageUrl: values.imageUrl,
+          trainedPosition: values.trainedPosition ?? null,
+        };
+
+        if (values.position) {
+          const position = values.position as Position;
+          const tier = normalizePlayerTier(values.tier);
+          updatedCard.tierByPosition = { ...(updatedCard.tierByPosition || {}), [position]: tier };
+          updatedCard.tierPlacementsByPosition = {
+            ...(updatedCard.tierPlacementsByPosition || {}),
+            [position]: normalizeTierPlacements(tier, values.tierPlacements),
+          };
+          updatedCard.tierUpdatedAtByPosition = { ...(updatedCard.tierUpdatedAtByPosition || {}), [position]: now };
+        } else {
+          updatedCard.tier = normalizePlayerTier(values.tier);
+          updatedCard.tierPlacements = normalizeTierPlacements(values.tier, values.tierPlacements);
+          updatedCard.tierUpdatedAt = now;
+        }
+
+        return updatedCard;
+      });
       await updateDoc(playerRef, { cards: newCards });
       toast({ title: "Carta actualizada" });
     } catch (e) {}
@@ -500,7 +567,12 @@ export function usePlayers() {
         }
         card.ratingsByPosition[position].splice(index, 1);
         if (card.likesByPosition?.[position]) card.likesByPosition[position].splice(index, 1);
-        if (card.ratingsByPosition[position].length === 0) delete card.ratingsByPosition[position];
+        if (card.ratingsByPosition[position].length === 0) {
+          delete card.ratingsByPosition[position];
+          if (card.tierByPosition?.[position]) delete card.tierByPosition[position];
+          if (card.tierPlacementsByPosition?.[position] !== undefined) delete card.tierPlacementsByPosition[position];
+          if (card.tierUpdatedAtByPosition?.[position]) delete card.tierUpdatedAtByPosition[position];
+        }
         if (card.likesByPosition?.[position]?.length === 0) delete card.likesByPosition[position];
         if (card.ratingEntriesByPosition?.[position]?.length === 0) delete card.ratingEntriesByPosition[position];
 

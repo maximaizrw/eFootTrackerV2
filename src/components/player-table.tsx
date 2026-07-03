@@ -38,7 +38,7 @@ type PlayerTableProps = {
   position: Position;
   onOpenAddRating: (initialData?: Partial<AddRatingFormValues>) => void;
   onOpenAddPosition: (player: Player, card: PlayerCard) => void;
-  onOpenEditCard: (player: Player, card: PlayerCard) => void;
+  onOpenEditCard: (player: Player, card: PlayerCard, position?: Position) => void;
   onOpenEditPlayer: (player: Player) => void;
   onOpenEditStats: (player: Player, card: PlayerCard) => void;
   onOpenPlayerDetail: (flatPlayer: FlatPlayer) => void;
@@ -218,10 +218,10 @@ const PlayerTableMemo = memo(function PlayerTable({
             const likes = likesForPos.filter(l => l === true).length;
             const dislikes = likesForPos.filter(l => l === false).length;
             const cardAverage = performance.stats.average;
-            const tier = card.tier || 'SIN TIER';
-            const tierPlacements = normalizeTierPlacements(card.tier, card.tierPlacements);
-            const tierBonus = getPlayerTierBonus(card.tier, card.tierPlacements);
-            const isTierStale = isPlayerTierStale(card.tierUpdatedAt);
+            const tier = flatPlayer.tier;
+            const tierPlacements = normalizeTierPlacements(flatPlayer.tier, flatPlayer.tierPlacements);
+            const tierBonus = getPlayerTierBonus(flatPlayer.tier, flatPlayer.tierPlacements);
+            const isTierStale = isPlayerTierStale(flatPlayer.tierUpdatedAt);
             const tagMeta = performanceTagMeta[performance.tag || 'evaluar'];
             const TagIcon = tagMeta.Icon;
             return (
@@ -350,7 +350,7 @@ const PlayerTableMemo = memo(function PlayerTable({
                   <div className="flex items-center justify-end gap-1">
                     <Button variant="ghost" size="icon" onClick={() => onOpenAddRating({ playerId: player.id, playerName: player.name, cardName: card.name, position, style: card.style } as any)}><PlusCircle className="h-4 w-4 text-primary" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => onOpenAddPosition(player, card)} title="Agregar en otra posición"><MapPin className="h-4 w-4 text-muted-foreground" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => onOpenEditCard(player, card)} title="Editar carta"><Pencil className="h-4 w-4 text-muted-foreground" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => onOpenEditCard(player, card, position)} title="Editar carta"><Pencil className="h-4 w-4 text-muted-foreground" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => onOpenPlayerDetail(flatPlayer)} title="Ficha Completa"><Dumbbell className="h-4 w-4" /></Button>
                     <AlertDialog>
                         <AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button></AlertDialogTrigger>

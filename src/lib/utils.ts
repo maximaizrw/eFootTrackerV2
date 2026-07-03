@@ -103,6 +103,19 @@ export function normalizeTierPlacements(tier: PlayerTier | string | undefined | 
   return Math.max(1, Math.floor(placements));
 }
 
+export function getCardTierForPosition(card: PlayerCard, position: Position): PlayerTier {
+  return normalizePlayerTier(card.tierByPosition?.[position] ?? card.tier);
+}
+
+export function getCardTierPlacementsForPosition(card: PlayerCard, position: Position): number {
+  const tier = getCardTierForPosition(card, position);
+  return normalizeTierPlacements(tier, card.tierPlacementsByPosition?.[position] ?? card.tierPlacements);
+}
+
+export function getCardTierUpdatedAtForPosition(card: PlayerCard, position: Position): string | undefined {
+  return card.tierUpdatedAtByPosition?.[position] ?? card.tierUpdatedAt;
+}
+
 export function getPlayerTierBonus(tier: PlayerTier | undefined | null, tierPlacements?: number | null): number {
   const normalizedTier = normalizePlayerTier(tier);
   if (normalizedTier === 'SIN TIER') return 0;

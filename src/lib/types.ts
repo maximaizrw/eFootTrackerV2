@@ -143,6 +143,9 @@ export type PlayerCard = {
   tier?: PlayerTier;
   tierPlacements?: number;
   tierUpdatedAt?: string;
+  tierByPosition?: { [key in Position]?: PlayerTier };
+  tierPlacementsByPosition?: { [key in Position]?: number };
+  tierUpdatedAtByPosition?: { [key in Position]?: string };
   league?: League;
   imageUrl?: string;
   ratingsByPosition: { [key in Position]?: number[] };
@@ -255,6 +258,9 @@ export type FlatPlayer = {
   overall: number;
   confidenceScore: number;
   position: Position;
+  tier: PlayerTier;
+  tierPlacements: number;
+  tierUpdatedAt?: string;
 };
 
 export function getAvailableStylesForPosition(position: Position, includeNone: boolean = false): PlayerStyle[] {

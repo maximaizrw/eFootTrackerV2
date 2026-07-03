@@ -31,12 +31,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { playerStyles, leagues, playerTiers } from "@/lib/types";
+import { playerStyles, leagues, playerTiers, positions, type Position } from "@/lib/types";
 import { normalizeTierPlacements } from "@/lib/utils";
 
 const formSchema = z.object({
   playerId: z.string(),
   cardId: z.string(),
+  position: z.enum(positions).optional(),
   currentCardName: z.string().min(2, "El nombre de la carta debe tener al menos 2 caracteres."),
   currentStyle: z.enum(playerStyles),
   tier: z.enum(playerTiers).optional(),
@@ -73,6 +74,7 @@ export function EditCardDialog({ open, onOpenChange, onEditCard, initialData }: 
     if (open && initialData) {
       form.reset({
           ...initialData,
+          position: initialData.position,
           league: initialData.league || 'Sin Liga',
           tier: initialData.tier || 'SIN TIER',
           tierPlacements: normalizeTierPlacements(initialData.tier || 'SIN TIER', initialData.tierPlacements),
@@ -90,9 +92,9 @@ export function EditCardDialog({ open, onOpenChange, onEditCard, initialData }: 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Editar Carta</DialogTitle>
+          <DialogTitle>Editar Carta{initialData?.position ? ` (${initialData.position})` : ""}</DialogTitle>
           <DialogDescription>
-            Modifica los detalles de la carta, incluyendo su nombre, estilo e imagen.
+            Modifica los detalles de la carta. El tier se guarda para la posiciÃ³n seleccionada.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -137,7 +139,7 @@ export function EditCardDialog({ open, onOpenChange, onEditCard, initialData }: 
               name="tier"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Tier de Carta</FormLabel>
+                  <FormLabel>Tier{initialData?.position ? ` en ${initialData.position as Position}` : " de Carta"}</FormLabel>
                   <Select
                     onValueChange={(value) => {
                       field.onChange(value);

@@ -17,13 +17,14 @@ const SIN_TIER_STALE_DAYS = 3;
 type TierlistUpdatesProps = {
   players: Player[];
   flatPlayers: FlatPlayer[];
-  onOpenEditCard: (player: Player, card: PlayerCard) => void;
+  onOpenEditCard: (player: Player, card: PlayerCard, position?: Position) => void;
 };
 
 type PendingTierCard = {
+  flatPlayer: FlatPlayer;
   player: Player;
   card: PlayerCard;
-  positions: Position[];
+  position: Position;
   reason: "missing" | "stale";
   daysSinceUpdate: number | null;
 };
@@ -41,8 +42,8 @@ function isPastReviewWindow(tierUpdatedAt: string | undefined, days: number): bo
   return daysSinceUpdate !== null && daysSinceUpdate >= days;
 }
 
-function formatLastUpdate(card: PlayerCard): string {
-  const days = getDaysSinceUpdate(card.tierUpdatedAt);
+function formatLastUpdate(tierUpdatedAt?: string): string {
+  const days = getDaysSinceUpdate(tierUpdatedAt);
   if (days === null) return "Sin revisar";
   if (days === 0) return "Hoy";
   if (days === 1) return "Ayer";
@@ -71,38 +72,29 @@ function getTierBadgeClass(tier: string): string {
 }
 
 export function getPendingTierlistCards(players: Player[], flatPlayers: FlatPlayer[]): PendingTierCard[] {
-  const positionsByCardId = new Map<string, Set<Position>>();
-
-  flatPlayers.forEach(fp => {
-    const current = positionsByCardId.get(fp.card.id) ?? new Set<Position>();
-    current.add(fp.position);
-    positionsByCardId.set(fp.card.id, current);
-  });
-
-  return players
-    .flatMap(player =>
-      (player.cards || []).map(card => {
-        const tier = normalizePlayerTier(card.tier);
-        if (getDaysSinceUpdate(card.tierUpdatedAt) === null) return null;
+  return flatPlayers
+    .map(flatPlayer => {
+        const tier = normalizePlayerTier(flatPlayer.tier);
+        if (getDaysSinceUpdate(flatPlayer.tierUpdatedAt) === null) return null;
 
         const reason =
-          tier === "SIN TIER" && isPastReviewWindow(card.tierUpdatedAt, SIN_TIER_STALE_DAYS)
+          tier === "SIN TIER" && isPastReviewWindow(flatPlayer.tierUpdatedAt, SIN_TIER_STALE_DAYS)
             ? "missing"
-            : tier !== "SIN TIER" && isPlayerTierStale(card.tierUpdatedAt)
+            : tier !== "SIN TIER" && isPlayerTierStale(flatPlayer.tierUpdatedAt)
               ? "stale"
               : null;
 
         if (!reason) return null;
 
         return {
-          player,
-          card,
-          positions: Array.from(positionsByCardId.get(card.id) ?? []),
+          flatPlayer,
+          player: flatPlayer.player,
+          card: flatPlayer.card,
+          position: flatPlayer.position,
           reason,
-          daysSinceUpdate: getDaysSinceUpdate(card.tierUpdatedAt),
+          daysSinceUpdate: getDaysSinceUpdate(flatPlayer.tierUpdatedAt),
         };
-      }),
-    )
+      })
     .filter((item): item is PendingTierCard => item !== null)
     .sort((a, b) => {
       if (a.reason !== b.reason) return a.reason === "missing" ? -1 : 1;
@@ -164,13 +156,13 @@ export function TierlistUpdates({ players, flatPlayers, onOpenEditCard }: Tierli
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pendingCards.map(({ player, card, positions, reason }) => {
-                  const tier = normalizePlayerTier(card.tier);
-                  const tierPlacements = normalizeTierPlacements(tier, card.tierPlacements);
-                  const tierBonus = getPlayerTierBonus(tier, card.tierPlacements);
+                {pendingCards.map(({ flatPlayer, player, card, position, reason }) => {
+                  const tier = normalizePlayerTier(flatPlayer.tier);
+                  const tierPlacements = normalizeTierPlacements(tier, flatPlayer.tierPlacements);
+                  const tierBonus = getPlayerTierBonus(tier, flatPlayer.tierPlacements);
 
                   return (
-                    <TableRow key={`${player.id}-${card.id}`}>
+                    <TableRow key={`${player.id}-${card.id}-${position}`}>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           {card.imageUrl ? (
@@ -196,21 +188,13 @@ export function TierlistUpdates({ players, flatPlayers, onOpenEditCard }: Tierli
                         </Badge>
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
-                        {positions.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {positions.map(position => (
-                              <Badge key={position} variant="secondary" className="gap-1">
-                                <PositionIcon position={position} className="h-3.5 w-3.5" />
-                                {position}
-                              </Badge>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">Sin valorar</span>
-                        )}
+                        <Badge variant="secondary" className="gap-1">
+                          <PositionIcon position={position} className="h-3.5 w-3.5" />
+                          {position}
+                        </Badge>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell text-muted-foreground">
-                        {formatLastUpdate(card)}
+                        {formatLastUpdate(flatPlayer.tierUpdatedAt)}
                       </TableCell>
                       <TableCell>
                         <Badge
@@ -225,7 +209,7 @@ export function TierlistUpdates({ players, flatPlayers, onOpenEditCard }: Tierli
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button size="sm" variant="outline" onClick={() => onOpenEditCard(player, card)}>
+                        <Button size="sm" variant="outline" onClick={() => onOpenEditCard(player, card, position)}>
                           <Pencil className="mr-2 h-4 w-4" />
                           Editar
                         </Button>

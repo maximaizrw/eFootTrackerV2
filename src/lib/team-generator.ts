@@ -1,6 +1,6 @@
 import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, FormationSlot, PlayerStyle, IdealTeamMode, IdealTeamSelectionCriteria } from './types';
 import { getAvailableStylesForPosition } from './types';
-import { calculateStats, calculateOverall, calculateRecencyWeightedAverage, positionPriority, calculatePlayerConfidence, normalizePlayerTier, getRatingEntriesForPosition, getFormationRatingEntries, calculateFormationConfidence } from './utils';
+import { calculateStats, calculateOverall, calculateRecencyWeightedAverage, positionPriority, calculatePlayerConfidence, normalizePlayerTier, getRatingEntriesForPosition, getFormationRatingEntries, calculateFormationConfidence, getCardTierForPosition, getCardTierPlacementsForPosition } from './utils';
 
 type CandidatePlayer = {
   player: Player;
@@ -37,7 +37,6 @@ export function generateIdealTeam(
       // 3. Filter by league and manual discards
       if (league !== 'all' && card.league !== league) return [];
       if (discardedCardIds.has(card.id)) return [];
-      if (mode === 'league' && ['SIN TIER', 'B', 'C', 'D', 'E'].includes(normalizePlayerTier(card.tier))) return [];
       
       const positionsWithRatings = Object.keys(card.ratingsByPosition || {}) as Position[];
 
@@ -54,11 +53,15 @@ export function generateIdealTeam(
         const likesForPos = card.likesByPosition?.[pos] || [];
         const likes = likesForPos.filter(l => l === true).length;
         const dislikes = likesForPos.filter(l => l === false).length;
+        const tier = getCardTierForPosition(card, pos);
+        const tierPlacements = getCardTierPlacementsForPosition(card, pos);
+        if (mode === 'league' && ['SIN TIER', 'B', 'C', 'D', 'E'].includes(normalizePlayerTier(tier))) return null;
+
         const generalEntries = getRatingEntriesForPosition(card, pos);
         const formationEntries = getFormationRatingEntries(card, pos, formation.id);
         const formationConfidence = calculateFormationConfidence(generalEntries, formationEntries, player.liveUpdateRating);
 
-        const trueOverall = calculateOverall(stats.average, stats.matches, likes, dislikes, player.liveUpdateRating, recentAverage, card.tier, card.tierPlacements);
+        const trueOverall = calculateOverall(stats.average, stats.matches, likes, dislikes, player.liveUpdateRating, recentAverage, tier, tierPlacements);
         
         const confidence = calculatePlayerConfidence(stats.average, stats.matches, stats.stdDev, likes, dislikes, player.liveUpdateRating, recentAverage);
         let scoreForSelection = trueOverall;
