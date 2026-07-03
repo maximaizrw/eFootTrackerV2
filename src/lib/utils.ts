@@ -103,17 +103,63 @@ export function normalizeTierPlacements(tier: PlayerTier | string | undefined | 
   return Math.max(1, Math.floor(placements));
 }
 
+type CardTierSource = {
+  tier: PlayerTier;
+  tierPlacements?: number;
+  tierUpdatedAt?: string;
+};
+
+function getBestCardTierSource(card: PlayerCard): CardTierSource | null {
+  const sources: CardTierSource[] = [
+    {
+      tier: normalizePlayerTier(card.tier),
+      tierPlacements: card.tierPlacements,
+      tierUpdatedAt: card.tierUpdatedAt,
+    },
+    ...Object.entries(card.tierByPosition || {}).map(([position, tier]) => ({
+      tier: normalizePlayerTier(tier),
+      tierPlacements: card.tierPlacementsByPosition?.[position as Position],
+      tierUpdatedAt: card.tierUpdatedAtByPosition?.[position as Position],
+    })),
+  ].filter(source => source.tier !== 'SIN TIER');
+
+  if (sources.length === 0) return null;
+
+  return sources.reduce((best, source) => {
+    const sourceBonus = PLAYER_TIER_BONUSES[source.tier];
+    const bestBonus = PLAYER_TIER_BONUSES[best.tier];
+    if (sourceBonus !== bestBonus) return sourceBonus > bestBonus ? source : best;
+
+    const sourcePlacements = normalizeTierPlacements(source.tier, source.tierPlacements);
+    const bestPlacements = normalizeTierPlacements(best.tier, best.tierPlacements);
+    return sourcePlacements > bestPlacements ? source : best;
+  });
+}
+
 export function getCardTierForPosition(card: PlayerCard, position: Position): PlayerTier {
-  return normalizePlayerTier(card.tierByPosition?.[position] ?? card.tier);
+  const positionTier = normalizePlayerTier(card.tierByPosition?.[position] ?? card.tier);
+  if (positionTier !== 'SIN TIER') return positionTier;
+
+  return getBestCardTierSource(card)?.tier ?? 'SIN TIER';
 }
 
 export function getCardTierPlacementsForPosition(card: PlayerCard, position: Position): number {
   const tier = getCardTierForPosition(card, position);
-  return normalizeTierPlacements(tier, card.tierPlacementsByPosition?.[position] ?? card.tierPlacements);
+  if (tier === 'SIN TIER') return 0;
+
+  const positionTier = normalizePlayerTier(card.tierByPosition?.[position] ?? card.tier);
+  if (positionTier !== 'SIN TIER') {
+    return normalizeTierPlacements(tier, card.tierPlacementsByPosition?.[position] ?? card.tierPlacements);
+  }
+
+  return normalizeTierPlacements(tier, getBestCardTierSource(card)?.tierPlacements);
 }
 
 export function getCardTierUpdatedAtForPosition(card: PlayerCard, position: Position): string | undefined {
-  return card.tierUpdatedAtByPosition?.[position] ?? card.tierUpdatedAt;
+  const positionTier = normalizePlayerTier(card.tierByPosition?.[position] ?? card.tier);
+  if (positionTier !== 'SIN TIER') return card.tierUpdatedAtByPosition?.[position] ?? card.tierUpdatedAt;
+
+  return getBestCardTierSource(card)?.tierUpdatedAt ?? card.tierUpdatedAtByPosition?.[position] ?? card.tierUpdatedAt;
 }
 
 export function getPlayerTierBonus(tier: PlayerTier | undefined | null, tierPlacements?: number | null): number {

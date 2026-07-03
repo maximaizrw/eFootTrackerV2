@@ -26,7 +26,8 @@ type PendingTierCard = {
   card: PlayerCard;
   position: Position;
   reason: "missing" | "stale";
-  daysSinceUpdate: number | null;
+  daysSinceUpdate: number;
+  tierUpdatedAt: string | undefined;
 };
 
 function getDaysSinceUpdate(tierUpdatedAt?: string): number | null {
@@ -74,13 +75,20 @@ function getTierBadgeClass(tier: string): string {
 export function getPendingTierlistCards(players: Player[], flatPlayers: FlatPlayer[]): PendingTierCard[] {
   return flatPlayers
     .map(flatPlayer => {
-        const tier = normalizePlayerTier(flatPlayer.tier);
-        if (getDaysSinceUpdate(flatPlayer.tierUpdatedAt) === null) return null;
+        const hasPositionTier = flatPlayer.card.tierByPosition?.[flatPlayer.position] !== undefined;
+        const tier = normalizePlayerTier(
+          hasPositionTier
+            ? flatPlayer.card.tierByPosition?.[flatPlayer.position]
+            : flatPlayer.card.tier
+        );
+        const tierUpdatedAt = flatPlayer.card.tierUpdatedAtByPosition?.[flatPlayer.position] ?? flatPlayer.card.tierUpdatedAt;
+        const daysSinceUpdate = getDaysSinceUpdate(tierUpdatedAt);
+        if (daysSinceUpdate === null) return null;
 
-        const reason =
-          tier === "SIN TIER" && isPastReviewWindow(flatPlayer.tierUpdatedAt, SIN_TIER_STALE_DAYS)
+        const reason: PendingTierCard["reason"] | null =
+          tier === "SIN TIER" && isPastReviewWindow(tierUpdatedAt, SIN_TIER_STALE_DAYS)
             ? "missing"
-            : tier !== "SIN TIER" && isPlayerTierStale(flatPlayer.tierUpdatedAt)
+            : tier !== "SIN TIER" && isPlayerTierStale(tierUpdatedAt)
               ? "stale"
               : null;
 
@@ -92,7 +100,8 @@ export function getPendingTierlistCards(players: Player[], flatPlayers: FlatPlay
           card: flatPlayer.card,
           position: flatPlayer.position,
           reason,
-          daysSinceUpdate: getDaysSinceUpdate(flatPlayer.tierUpdatedAt),
+          daysSinceUpdate,
+          tierUpdatedAt,
         };
       })
     .filter((item): item is PendingTierCard => item !== null)
@@ -156,7 +165,7 @@ export function TierlistUpdates({ players, flatPlayers, onOpenEditCard }: Tierli
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pendingCards.map(({ flatPlayer, player, card, position, reason }) => {
+                {pendingCards.map(({ flatPlayer, player, card, position, reason, tierUpdatedAt }) => {
                   const tier = normalizePlayerTier(flatPlayer.tier);
                   const tierPlacements = normalizeTierPlacements(tier, flatPlayer.tierPlacements);
                   const tierBonus = getPlayerTierBonus(tier, flatPlayer.tierPlacements);
@@ -194,7 +203,7 @@ export function TierlistUpdates({ players, flatPlayers, onOpenEditCard }: Tierli
                         </Badge>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell text-muted-foreground">
-                        {formatLastUpdate(flatPlayer.tierUpdatedAt)}
+                        {formatLastUpdate(tierUpdatedAt)}
                       </TableCell>
                       <TableCell>
                         <Badge
