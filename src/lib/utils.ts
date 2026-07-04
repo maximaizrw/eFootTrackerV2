@@ -136,11 +136,31 @@ function getBestCardTierSource(card: PlayerCard): CardTierSource | null {
   });
 }
 
+function getInheritedTier(tier: PlayerTier): PlayerTier {
+  switch (tier) {
+    case 'S+':
+      return 'S';
+    case 'S':
+      return 'A';
+    case 'A':
+      return 'B';
+    case 'B':
+      return 'C';
+    case 'C':
+      return 'D';
+    case 'D':
+      return 'E';
+    default:
+      return tier;
+  }
+}
+
 export function getCardTierForPosition(card: PlayerCard, position: Position): PlayerTier {
   const positionTier = normalizePlayerTier(card.tierByPosition?.[position] ?? card.tier);
   if (positionTier !== 'SIN TIER') return positionTier;
 
-  return getBestCardTierSource(card)?.tier ?? 'SIN TIER';
+  const bestTier = getBestCardTierSource(card)?.tier;
+  return bestTier ? getInheritedTier(bestTier) : 'SIN TIER';
 }
 
 export function getCardTierPlacementsForPosition(card: PlayerCard, position: Position): number {
