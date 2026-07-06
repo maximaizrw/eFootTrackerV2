@@ -191,15 +191,17 @@ export default function Home() {
     setAddRatingDialogOpen(true);
   }, []);
   
-  const handleOpenEditCard = useCallback((player: Player, card: PlayerCardType, position?: Position) => {
+  const handleOpenEditCard = useCallback((player: Player, card: PlayerCardType, position?: Position, editMode: EditCardFormValues["editMode"] = "full") => {
     const effectiveTier = position ? getCardTierForPosition(card, position) : (card.tier || 'SIN TIER');
     const effectiveTierPlacements = position ? getCardTierPlacementsForPosition(card, position) : card.tierPlacements;
 
     setEditCardDialogInitialData({
         playerId: player.id,
         cardId: card.id,
+        editMode,
         position,
         currentCardName: card.name,
+        efhubUrl: player.efhubUrl || '',
         currentStyle: card.style,
         tier: effectiveTier,
         tierPlacements: effectiveTierPlacements,
@@ -689,7 +691,7 @@ export default function Home() {
             <TierlistUpdates
               players={allPlayers}
               flatPlayers={flatPlayers}
-              onOpenEditCard={handleOpenEditCard}
+              onOpenEditCard={(player, card, position) => handleOpenEditCard(player, card, position, "tierlist")}
             />
           </TabsContent>
         </Tabs>

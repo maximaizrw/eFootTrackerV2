@@ -162,6 +162,7 @@ export type Player = {
   id: string;
   name: string;
   nationality: Nationality;
+  efhubUrl?: string;
   cards: PlayerCard[];
   liveUpdateRating?: LiveUpdateRating | null;
   permanentLiveUpdateRating?: boolean;

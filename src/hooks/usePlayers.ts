@@ -495,6 +495,7 @@ export function usePlayers() {
       const playerDoc = await getDoc(playerRef);
       const playerData = playerDoc.data() as Player;
       const now = new Date().toISOString();
+      const efhubUrl = typeof values.efhubUrl === 'string' ? values.efhubUrl.trim() : '';
       const newCards = playerData.cards.map(c => {
         if (c.id !== values.cardId) return c;
 
@@ -524,7 +525,7 @@ export function usePlayers() {
 
         return updatedCard;
       });
-      await updateDoc(playerRef, { cards: newCards });
+      await updateDoc(playerRef, { cards: newCards, efhubUrl });
       toast({ title: "Carta actualizada" });
     } catch (e) {}
   };

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect } from "react";
@@ -31,19 +30,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { playerStyles, leagues, playerTiers, positions, type Position } from "@/lib/types";
+import { leagues, playerStyles, playerTiers, positions, type Position } from "@/lib/types";
 import { normalizeTierPlacements } from "@/lib/utils";
 
 const formSchema = z.object({
   playerId: z.string(),
   cardId: z.string(),
+  editMode: z.enum(["full", "tierlist"]).optional(),
   position: z.enum(positions).optional(),
   currentCardName: z.string().min(2, "El nombre de la carta debe tener al menos 2 caracteres."),
+  efhubUrl: z.string().url("Debe ser una URL valida.").optional().or(z.literal("")),
   currentStyle: z.enum(playerStyles),
   tier: z.enum(playerTiers).optional(),
   tierPlacements: z.coerce.number().int().min(0).optional(),
   league: z.enum(leagues).optional(),
-  imageUrl: z.string().url("Debe ser una URL válida.").optional().or(z.literal('')),
+  imageUrl: z.string().url("Debe ser una URL valida.").optional().or(z.literal("")),
   availableTrainingPoints: z.number().min(0, "Debe ser al menos 0.").optional(),
 }).superRefine((values, ctx) => {
   if (values.tier && values.tier !== "SIN TIER" && (!values.tierPlacements || values.tierPlacements < 1)) {
@@ -69,20 +70,23 @@ export function EditCardDialog({ open, onOpenChange, onEditCard, initialData }: 
     resolver: zodResolver(formSchema),
   });
   const watchedTier = form.watch("tier") || "SIN TIER";
+  const isTierlistEdit = initialData?.editMode === "tierlist";
 
   useEffect(() => {
     if (open && initialData) {
       form.reset({
-          ...initialData,
-          position: initialData.position,
-          league: initialData.league || 'Sin Liga',
-          tier: initialData.tier || 'SIN TIER',
-          tierPlacements: normalizeTierPlacements(initialData.tier || 'SIN TIER', initialData.tierPlacements),
-          availableTrainingPoints: initialData.availableTrainingPoints ?? undefined,
+        ...initialData,
+        editMode: initialData.editMode || "full",
+        position: initialData.position,
+        efhubUrl: initialData.efhubUrl || "",
+        league: initialData.league || "Sin Liga",
+        tier: initialData.tier || "SIN TIER",
+        tierPlacements: normalizeTierPlacements(initialData.tier || "SIN TIER", initialData.tierPlacements),
+        availableTrainingPoints: initialData.availableTrainingPoints ?? undefined,
       });
     }
   }, [open, initialData, form]);
-  
+
   function onSubmit(values: FormValues) {
     onEditCard(values);
     onOpenChange(false);
@@ -92,48 +96,70 @@ export function EditCardDialog({ open, onOpenChange, onEditCard, initialData }: 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Editar Carta{initialData?.position ? ` (${initialData.position})` : ""}</DialogTitle>
+          <DialogTitle>
+            {isTierlistEdit ? "Actualizar Tierlist" : "Editar Carta"}
+            {initialData?.position ? ` (${initialData.position})` : ""}
+          </DialogTitle>
           <DialogDescription>
-            Modifica los detalles de la carta. El tier se guarda para la posiciÃ³n seleccionada.
+            {isTierlistEdit
+              ? "Completa solo el tier de esta posicion y el link EFHub del jugador."
+              : "Modifica los detalles de la carta. El tier se guarda para la posicion seleccionada."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {!isTierlistEdit && (
+              <FormField
+                control={form.control}
+                name="currentCardName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nombre de la Carta</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ej: POTW, Highlight..." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             <FormField
               control={form.control}
-              name="currentCardName"
+              name="efhubUrl"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nombre de la Carta</FormLabel>
+                  <FormLabel>Link EFHub del Jugador (Opcional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ej: POTW, Highlight..." {...field} />
+                    <Input placeholder="https://efootballhub.net/..." {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="currentStyle"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Estilo de Juego</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecciona un estilo" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {playerStyles.map((style) => (
-                        <SelectItem key={style} value={style}>{style}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {!isTierlistEdit && (
+              <FormField
+                control={form.control}
+                name="currentStyle"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Estilo de Juego</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona un estilo" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {playerStyles.map((style) => (
+                          <SelectItem key={style} value={style}>{style}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             <FormField
               control={form.control}
               name="tier"
@@ -143,7 +169,11 @@ export function EditCardDialog({ open, onOpenChange, onEditCard, initialData }: 
                   <Select
                     onValueChange={(value) => {
                       field.onChange(value);
-                      form.setValue("tierPlacements", value === "SIN TIER" ? 0 : Math.max(1, form.getValues("tierPlacements") || 1), { shouldValidate: true });
+                      form.setValue(
+                        "tierPlacements",
+                        value === "SIN TIER" ? 0 : Math.max(1, form.getValues("tierPlacements") || 1),
+                        { shouldValidate: true },
+                      );
                     }}
                     value={field.value}
                   >
@@ -182,63 +212,67 @@ export function EditCardDialog({ open, onOpenChange, onEditCard, initialData }: 
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="league"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Liga</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecciona una liga" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {leagues.map((league) => (
-                        <SelectItem key={league} value={league}>{league}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-             <FormField
-              control={form.control}
-              name="imageUrl"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>URL de la Imagen de la Carta (Opcional)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="https://ejemplo.com/imagen_carta.png" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="availableTrainingPoints"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Puntos de Entrenamiento Disponibles (Opcional)</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      placeholder="Ej: 56" 
-                      min="0"
-                      value={field.value ?? ''} 
-                      onChange={e => {
-                        const val = e.target.value;
-                        field.onChange(val === '' ? undefined : Number(val));
-                      }} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {!isTierlistEdit && (
+              <>
+                <FormField
+                  control={form.control}
+                  name="league"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Liga</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecciona una liga" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {leagues.map((league) => (
+                            <SelectItem key={league} value={league}>{league}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="imageUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>URL de la Imagen de la Carta (Opcional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="https://ejemplo.com/imagen_carta.png" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="availableTrainingPoints"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Puntos de Entrenamiento Disponibles (Opcional)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="Ej: 56"
+                          min="0"
+                          value={field.value ?? ""}
+                          onChange={e => {
+                            const val = e.target.value;
+                            field.onChange(val === "" ? undefined : Number(val));
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </>
+            )}
             <DialogFooter>
               <Button type="submit">Guardar Cambios</Button>
             </DialogFooter>

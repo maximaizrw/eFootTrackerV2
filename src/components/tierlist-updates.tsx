@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useMemo } from "react";
-import { AlertTriangle, CheckCircle2, Pencil } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ExternalLink, Pencil } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -187,7 +187,19 @@ export function TierlistUpdates({ players, flatPlayers, onOpenEditCard }: Tierli
                           ) : (
                             <div className="h-11 w-11 shrink-0 rounded-md bg-muted" />
                           )}
-                          <span className="font-medium">{player.name}</span>
+                          {player.efhubUrl ? (
+                            <a
+                              href={player.efhubUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 font-medium text-primary underline-offset-4 hover:underline"
+                            >
+                              {player.name}
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </a>
+                          ) : (
+                            <span className="font-medium">{player.name}</span>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground">{card.name}</TableCell>
