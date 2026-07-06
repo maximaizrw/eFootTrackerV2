@@ -132,6 +132,26 @@ export function EditCardDialog({ open, onOpenChange, onEditCard, initialData }: 
                 )}
               />
             )}
+            {isTierlistEdit && !initialData?.efhubUrl && (
+              <FormField
+                control={form.control}
+                name="efhubUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Link de eFHUB</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="url"
+                        placeholder="https://efootballhub.net/..."
+                        {...field}
+                        value={field.value ?? ""}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             <FormField
               control={form.control}
               name="tier"
