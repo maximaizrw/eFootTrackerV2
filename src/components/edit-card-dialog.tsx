@@ -39,12 +39,12 @@ const formSchema = z.object({
   editMode: z.enum(["full", "tierlist"]).optional(),
   position: z.enum(positions).optional(),
   currentCardName: z.string().min(2, "El nombre de la carta debe tener al menos 2 caracteres."),
-  efhubUrl: z.string().url("Debe ser una URL valida.").optional().or(z.literal("")),
+  efhubUrl: z.string().optional(),
   currentStyle: z.enum(playerStyles),
   tier: z.enum(playerTiers).optional(),
   tierPlacements: z.coerce.number().int().min(0).optional(),
   league: z.enum(leagues).optional(),
-  imageUrl: z.string().url("Debe ser una URL valida.").optional().or(z.literal("")),
+  imageUrl: z.string().optional(),
   availableTrainingPoints: z.number().min(0, "Debe ser al menos 0.").optional(),
 }).superRefine((values, ctx) => {
   if (values.tier && values.tier !== "SIN TIER" && (!values.tierPlacements || values.tierPlacements < 1)) {
@@ -102,40 +102,12 @@ export function EditCardDialog({ open, onOpenChange, onEditCard, initialData }: 
           </DialogTitle>
           <DialogDescription>
             {isTierlistEdit
-              ? "Completa solo el tier de esta posicion y el link EFHub del jugador."
-              : "Modifica los detalles de la carta. El tier se guarda para la posicion seleccionada."}
+              ? "Actualiza el tier de esta posicion."
+              : "Modifica el estilo de juego y el tier. El resto se edita desde la ficha del jugador."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {!isTierlistEdit && (
-              <FormField
-                control={form.control}
-                name="currentCardName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nombre de la Carta</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ej: POTW, Highlight..." {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-            <FormField
-              control={form.control}
-              name="efhubUrl"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Link EFHub del Jugador (Opcional)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="https://efootballhub.net/..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             {!isTierlistEdit && (
               <FormField
                 control={form.control}
@@ -212,67 +184,6 @@ export function EditCardDialog({ open, onOpenChange, onEditCard, initialData }: 
                 </FormItem>
               )}
             />
-            {!isTierlistEdit && (
-              <>
-                <FormField
-                  control={form.control}
-                  name="league"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Liga</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecciona una liga" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {leagues.map((league) => (
-                            <SelectItem key={league} value={league}>{league}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="imageUrl"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>URL de la Imagen de la Carta (Opcional)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://ejemplo.com/imagen_carta.png" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="availableTrainingPoints"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Puntos de Entrenamiento Disponibles (Opcional)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="Ej: 56"
-                          min="0"
-                          value={field.value ?? ""}
-                          onChange={e => {
-                            const val = e.target.value;
-                            field.onChange(val === "" ? undefined : Number(val));
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </>
-            )}
             <DialogFooter>
               <Button type="submit">Guardar Cambios</Button>
             </DialogFooter>
