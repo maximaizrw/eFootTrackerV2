@@ -132,7 +132,7 @@ export function EditCardDialog({ open, onOpenChange, onEditCard, initialData }: 
                 )}
               />
             )}
-            {isTierlistEdit && !initialData?.efhubUrl && (
+            {isTierlistEdit && (
               <FormField
                 control={form.control}
                 name="efhubUrl"
