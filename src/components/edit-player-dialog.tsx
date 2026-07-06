@@ -32,6 +32,7 @@ import { Switch } from "./ui/switch";
 const formSchema = z.object({
   playerId: z.string().min(1, "Se requiere el ID del jugador."),
   currentPlayerName: z.string().min(2, "El nombre del jugador debe tener al menos 2 caracteres."),
+  efhubUrl: z.string().optional(),
   nationality: z.enum(nationalities),
   permanentLiveUpdateRating: z.boolean().optional(),
 });
@@ -51,6 +52,7 @@ export function EditPlayerDialog({ open, onOpenChange, onEditPlayer, initialData
     defaultValues: {
         playerId: '',
         currentPlayerName: '',
+        efhubUrl: '',
         nationality: 'Sin Nacionalidad',
         permanentLiveUpdateRating: false,
     }
@@ -62,6 +64,7 @@ export function EditPlayerDialog({ open, onOpenChange, onEditPlayer, initialData
         ...initialData,
         playerId: initialData.playerId || '',
         currentPlayerName: initialData.currentPlayerName || '',
+        efhubUrl: initialData.efhubUrl || '',
         nationality: initialData.nationality || 'Sin Nacionalidad',
         permanentLiveUpdateRating: initialData.permanentLiveUpdateRating || false,
       });
@@ -92,6 +95,24 @@ export function EditPlayerDialog({ open, onOpenChange, onEditPlayer, initialData
                   <FormLabel>Nombre del Jugador</FormLabel>
                   <FormControl>
                     <Input placeholder="Ej: L. Messi" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="efhubUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Link de eFHUB</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="url"
+                      placeholder="https://efootballhub.net/..."
+                      {...field}
+                      value={field.value ?? ""}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

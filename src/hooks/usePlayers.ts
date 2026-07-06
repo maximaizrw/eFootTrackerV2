@@ -232,10 +232,11 @@ export function usePlayers() {
   const addPlayer = async (values: AddPlayerFormValues): Promise<string | null> => {
     if (!db) return null;
     const {
-      playerName, cardName, imageUrl, nationality, style, league, tier, tierPlacements,
+      playerName, efhubUrl, cardName, imageUrl, nationality, style, league, tier, tierPlacements,
       height, weight, skills, playerId, ratingEntries,
       ...statFields
     } = values;
+    const trimmedEfhubUrl = typeof efhubUrl === 'string' ? efhubUrl.trim() : '';
 
     const attributeStats: PlayerAttributeStats = {};
     for (const [key, val] of Object.entries(statFields)) {
@@ -308,7 +309,10 @@ export function usePlayers() {
         const existingPlayer = players.find(p => p.id === playerId);
         if (existingPlayer) {
           const playerRef = doc(db, 'players', existingPlayer.id);
-          await updateDoc(playerRef, stripInvalidFirestoreValues({ cards: [...existingPlayer.cards, newCard] }));
+          await updateDoc(playerRef, stripInvalidFirestoreValues({
+            cards: [...existingPlayer.cards, newCard],
+            ...(trimmedEfhubUrl ? { efhubUrl: trimmedEfhubUrl } : {}),
+          }));
           toast({ title: "Carta agregada", description: `Vinculada a ${existingPlayer.name}.` });
           return existingPlayer.id;
         }
@@ -317,6 +321,7 @@ export function usePlayers() {
       const ref = await addDoc(collection(db, 'players'), stripInvalidFirestoreValues({
         name: playerName,
         nationality: nationality || 'Sin Nacionalidad',
+        efhubUrl: trimmedEfhubUrl,
         cards: [newCard],
       }));
       toast({ title: "Jugador guardado" });
@@ -546,7 +551,13 @@ export function usePlayers() {
   const editPlayer = async (values: any) => {
     if (!db) return;
     try {
-      await updateDoc(doc(db, 'players', values.playerId), { name: values.currentPlayerName, nationality: values.nationality, permanentLiveUpdateRating: values.permanentLiveUpdateRating });
+      const efhubUrl = typeof values.efhubUrl === 'string' ? values.efhubUrl.trim() : '';
+      await updateDoc(doc(db, 'players', values.playerId), {
+        name: values.currentPlayerName,
+        efhubUrl,
+        nationality: values.nationality,
+        permanentLiveUpdateRating: values.permanentLiveUpdateRating,
+      });
       toast({ title: "Jugador actualizado" });
     } catch (e) {}
   };

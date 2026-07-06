@@ -215,6 +215,7 @@ export default function Home() {
     setEditPlayerDialogInitialData({
       playerId: player.id,
       currentPlayerName: player.name,
+      efhubUrl: player.efhubUrl || '',
       nationality: player.nationality || 'Sin Nacionalidad',
       permanentLiveUpdateRating: player.permanentLiveUpdateRating,
     });

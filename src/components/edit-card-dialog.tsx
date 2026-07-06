@@ -138,7 +138,7 @@ export function EditCardDialog({ open, onOpenChange, onEditCard, initialData }: 
                 name="efhubUrl"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Link de eFHUB</FormLabel>
+                    <FormLabel>Link de eFHUB del jugador</FormLabel>
                     <FormControl>
                       <Input
                         type="url"

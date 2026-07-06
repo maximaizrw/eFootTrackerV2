@@ -69,6 +69,7 @@ const statSchema = z.coerce.number().min(0).max(99).optional();
 const formSchema = z.object({
   playerId: z.string().optional(),
   playerName: z.string().min(2, "El nombre debe tener al menos 2 caracteres."),
+  efhubUrl: z.string().optional(),
   cardName: z.string().min(2, "El nombre de la carta debe tener al menos 2 caracteres."),
   imageUrl: z.string().min(1, "La imagen es requerida."),
   nationality: z.enum(nationalities).optional(),
@@ -198,6 +199,7 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
     defaultValues: {
       playerId: undefined,
       playerName: "",
+      efhubUrl: "",
       cardName: "",
       imageUrl: "",
       nationality: "Sin Nacionalidad",
@@ -226,6 +228,7 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
       form.reset({
         playerId: undefined,
         playerName: "",
+        efhubUrl: "",
         cardName: "",
         imageUrl: "",
         nationality: "Sin Nacionalidad" as Nationality,
@@ -294,6 +297,7 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
                                 onValueChange={(search) => {
                                   form.setValue("playerName", search, { shouldValidate: true });
                                   form.setValue("playerId", undefined);
+                                  form.setValue("efhubUrl", "");
                                 }}
                                 value={field.value}
                               />
@@ -310,6 +314,7 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
                                         onSelect={() => {
                                           form.setValue("playerId", player.id, { shouldValidate: true });
                                           form.setValue("playerName", player.name, { shouldValidate: true });
+                                          form.setValue("efhubUrl", player.efhubUrl || "", { shouldValidate: true });
                                           form.setValue("nationality", player.nationality, { shouldValidate: true });
                                           setPlayerPopoverOpen(false);
                                         }}
@@ -331,6 +336,7 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
                             title="Crear como jugador nuevo"
                             onClick={() => {
                               form.setValue("playerId", undefined);
+                              form.setValue("efhubUrl", "");
                               form.setValue("nationality", "Sin Nacionalidad");
                             }}
                           >
@@ -343,6 +349,25 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
                             Vinculando carta a jugador existente. Pulsá ✕ para crear uno nuevo.
                           </p>
                         )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="efhubUrl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Link de eFHUB del jugador</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="url"
+                            placeholder="https://efootballhub.net/..."
+                            {...field}
+                            value={field.value ?? ""}
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
