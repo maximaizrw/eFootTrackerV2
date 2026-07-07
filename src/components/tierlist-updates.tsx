@@ -169,6 +169,7 @@ export function TierlistUpdates({ players, flatPlayers, onOpenEditCard }: Tierli
                   const tier = normalizePlayerTier(flatPlayer.tier);
                   const tierPlacements = normalizeTierPlacements(tier, flatPlayer.tierPlacements);
                   const tierBonus = getPlayerTierBonus(tier, flatPlayer.tierPlacements);
+                  const tierlistUrl = card.tierlistUrl || player.efhubUrl;
 
                   return (
                     <TableRow key={`${player.id}-${card.id}-${position}`}>
@@ -187,9 +188,9 @@ export function TierlistUpdates({ players, flatPlayers, onOpenEditCard }: Tierli
                           ) : (
                             <div className="h-11 w-11 shrink-0 rounded-md bg-muted" />
                           )}
-                          {player.efhubUrl ? (
+                          {tierlistUrl ? (
                             <a
-                              href={player.efhubUrl}
+                              href={tierlistUrl}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1 font-medium text-primary underline-offset-4 hover:underline"

@@ -207,6 +207,7 @@ export default function Home() {
         tierPlacements: effectiveTierPlacements,
         league: card.league || 'Sin Liga',
         imageUrl: card.imageUrl || '',
+        tierlistUrl: card.tierlistUrl || player.efhubUrl || '',
     });
     setEditCardDialogOpen(true);
   }, []);

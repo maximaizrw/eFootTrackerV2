@@ -72,6 +72,7 @@ const formSchema = z.object({
   efhubUrl: z.string().optional(),
   cardName: z.string().min(2, "El nombre de la carta debe tener al menos 2 caracteres."),
   imageUrl: z.string().min(1, "La imagen es requerida."),
+  tierlistUrl: z.string().optional(),
   nationality: z.enum(nationalities).optional(),
   style: z.enum(playerStyles).optional(),
   tier: z.enum(playerTiers).optional(),
@@ -202,6 +203,7 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
       efhubUrl: "",
       cardName: "",
       imageUrl: "",
+      tierlistUrl: "",
       nationality: "Sin Nacionalidad",
       style: "Ninguno",
       tier: "SIN TIER",
@@ -231,6 +233,7 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
         efhubUrl: "",
         cardName: "",
         imageUrl: "",
+        tierlistUrl: "",
         nationality: "Sin Nacionalidad" as Nationality,
         style: "Ninguno" as PlayerStyle,
         tier: "SIN TIER" as PlayerTier,
@@ -395,6 +398,20 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
                         <FormLabel>URL de Imagen <span className="text-destructive">*</span></FormLabel>
                         <FormControl>
                           <Input placeholder="https://..." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="tierlistUrl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Link de Tierlist de la Carta</FormLabel>
+                        <FormControl>
+                          <Input type="url" placeholder="https://..." {...field} value={field.value ?? ""} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

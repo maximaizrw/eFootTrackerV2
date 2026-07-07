@@ -33,6 +33,7 @@ type PlayerDetailDialogProps = {
   flatPlayer: FlatPlayer | null;
   onSaveFullData: (playerId: string, cardId: string, position: Position, data: {
     imageUrl?: string;
+    tierlistUrl?: string;
     stats: PlayerAttributeStats;
     physical: PhysicalAttribute;
     skills: PlayerSkill[];
@@ -52,6 +53,7 @@ const statFields: { category: string, fields: { name: keyof PlayerAttributeStats
 
 export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullData }: PlayerDetailDialogProps) {
   const [imageUrl, setImageUrl] = React.useState('');
+  const [tierlistUrl, setTierlistUrl] = React.useState('');
   const [height, setHeight] = React.useState<number | ''>('');
   const [weight, setWeight] = React.useState<number | ''>('');
   const [skills, setSkills] = React.useState<PlayerSkill[]>([]);
@@ -68,6 +70,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
   React.useEffect(() => {
     if (open && flatPlayer && position && card) {
       setImageUrl(card.imageUrl || '');
+      setTierlistUrl(card.tierlistUrl || player?.efhubUrl || '');
       setHeight(card.physicalAttributes?.height ?? '');
       setWeight(card.physicalAttributes?.weight ?? '');
       setSkills(card.skills || []);
@@ -81,6 +84,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
     if (player && card && position) {
       onSaveFullData(player.id, card.id, position, {
         imageUrl,
+        tierlistUrl,
         stats,
         physical: { height: height === '' ? undefined : Number(height), weight: weight === '' ? undefined : Number(weight) },
         skills,
@@ -134,6 +138,10 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
                                 <div className="space-y-2">
                                     <Label>URL de Imagen (eFootballHub / ImgBB)</Label>
                                     <Input placeholder="https://..." value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Link de Tierlist de la Carta</Label>
+                                    <Input type="url" placeholder="https://..." value={tierlistUrl} onChange={(e) => setTierlistUrl(e.target.value)} />
                                 </div>
                                 <div className="grid grid-cols-2 gap-2">
                                     <div className="space-y-2">

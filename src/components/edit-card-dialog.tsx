@@ -45,6 +45,7 @@ const formSchema = z.object({
   tierPlacements: z.coerce.number().int().min(0).optional(),
   league: z.enum(leagues).optional(),
   imageUrl: z.string().optional(),
+  tierlistUrl: z.string().optional(),
   availableTrainingPoints: z.number().min(0, "Debe ser al menos 0.").optional(),
 }).superRefine((values, ctx) => {
   if (values.tier && values.tier !== "SIN TIER" && (!values.tierPlacements || values.tierPlacements < 1)) {
@@ -80,6 +81,7 @@ export function EditCardDialog({ open, onOpenChange, onEditCard, initialData }: 
         position: initialData.position,
         efhubUrl: initialData.efhubUrl || "",
         league: initialData.league || "Sin Liga",
+        tierlistUrl: initialData.tierlistUrl || "",
         tier: initialData.tier || "SIN TIER",
         tierPlacements: normalizeTierPlacements(initialData.tier || "SIN TIER", initialData.tierPlacements),
         availableTrainingPoints: initialData.availableTrainingPoints ?? undefined,
@@ -135,14 +137,14 @@ export function EditCardDialog({ open, onOpenChange, onEditCard, initialData }: 
             {isTierlistEdit && (
               <FormField
                 control={form.control}
-                name="efhubUrl"
+                name="tierlistUrl"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Link de eFHUB del jugador</FormLabel>
+                    <FormLabel>Link de Tierlist de esta carta</FormLabel>
                     <FormControl>
                       <Input
                         type="url"
-                        placeholder="https://efootballhub.net/..."
+                        placeholder="https://..."
                         {...field}
                         value={field.value ?? ""}
                       />

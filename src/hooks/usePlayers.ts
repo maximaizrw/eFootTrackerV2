@@ -233,7 +233,7 @@ export function usePlayers() {
     if (!db) return null;
     const {
       playerName, efhubUrl, cardName, imageUrl, nationality, style, league, tier, tierPlacements,
-      height, weight, skills, playerId, ratingEntries,
+      tierlistUrl, height, weight, skills, playerId, ratingEntries,
       ...statFields
     } = values;
     const trimmedEfhubUrl = typeof efhubUrl === 'string' ? efhubUrl.trim() : '';
@@ -284,6 +284,7 @@ export function usePlayers() {
       tierUpdatedAtByPosition,
       league: league || 'Sin Liga',
       imageUrl: imageUrl || '',
+      tierlistUrl: tierlistUrl || '',
       ratingsByPosition,
       likesByPosition: {},
       ratingEntriesByPosition,
@@ -347,6 +348,7 @@ export function usePlayers() {
 
   const updateFullPlayerData = async (playerId: string, cardId: string, position: Position, data: {
     imageUrl?: string;
+    tierlistUrl?: string;
     stats: PlayerAttributeStats;
     physical: PhysicalAttribute;
     skills: PlayerSkill[];
@@ -378,6 +380,7 @@ export function usePlayers() {
           const updatedCard: any = {
             ...card,
             imageUrl: data.imageUrl || card.imageUrl,
+            tierlistUrl: data.tierlistUrl ?? card.tierlistUrl,
             attributeStats: data.stats,
             physicalAttributes: data.physical,
             skills: data.skills,
@@ -510,6 +513,7 @@ export function usePlayers() {
           style: values.currentStyle,
           league: values.league,
           imageUrl: values.imageUrl,
+          tierlistUrl: values.tierlistUrl,
           trainedPosition: values.trainedPosition ?? null,
         };
 

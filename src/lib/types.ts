@@ -148,6 +148,7 @@ export type PlayerCard = {
   tierUpdatedAtByPosition?: { [key in Position]?: string };
   league?: League;
   imageUrl?: string;
+  tierlistUrl?: string;
   ratingsByPosition: { [key in Position]?: number[] };
   likesByPosition?: { [key in Position]?: (boolean | null)[] };
   ratingEntriesByPosition?: { [key in Position]?: PlayerRatingEntry[] };
