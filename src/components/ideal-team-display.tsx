@@ -154,6 +154,8 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onUpda
   if (teamSlots.length === 0 || !formation) return <div className="mt-8 text-center text-muted-foreground p-8 bg-card border border-dashed rounded-lg">Configura tu táctica y genera el equipo.</div>;
 
   const starters = teamSlots.slice(0, 11).map((s: any) => s.starter);
+  const validStarters = starters.filter((starter: IdealTeamPlayer | null): starter is IdealTeamPlayer => !!starter && !starter.player.id.startsWith('ph'));
+  const totalGeneralConfidenceScore = validStarters.reduce((total: number, starter: IdealTeamPlayer) => total + (starter.generalConfidenceScore ?? 0), 0);
 
   // Subs come pre-ordered from the generator: formation-position slots first (matching ideal 11),
   // then the extra 12th slot at the very end. We preserve that order.
@@ -164,7 +166,18 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onUpda
   const substitutes = [...validSubs, ...Array(emptySlotsCount).fill(null)].slice(0, 12);
 
   return (
-    <div className="mt-4 flex flex-col lg:flex-row gap-3">
+    <div className="mt-4 space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/50 bg-card px-3 py-2">
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground">Puntaje total del equipo</p>
+          <p className="text-[10px] text-muted-foreground/70">Basado en confianza general de titulares</p>
+        </div>
+        <div className="font-black tabular-nums text-accent">
+          <span className="text-2xl">{Math.round(totalGeneralConfidenceScore)}</span>
+          <span className="ml-1 text-xs text-muted-foreground">/1100</span>
+        </div>
+      </div>
+      <div className="flex flex-col lg:flex-row gap-3">
       <div className="flex-1">
         <FootballPitch className="aspect-[4/3] lg:aspect-[3/2]">
           {starters.map((starter: any, index: number) => {
@@ -181,7 +194,7 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onUpda
           ))}
         </div>
       </div>
-
+      </div>
     </div>
   );
 }

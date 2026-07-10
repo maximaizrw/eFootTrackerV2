@@ -178,6 +178,7 @@ export type IdealTeamPlayer = {
   average: number;
   overall: number;
   confidenceScore?: number;
+  generalConfidenceScore?: number;
   performance: PlayerPerformance;
 };
 

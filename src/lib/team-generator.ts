@@ -7,6 +7,7 @@ type CandidatePlayer = {
   card: PlayerCard;
   average: number;
   overall: number;
+  generalConfidenceScore: number;
   scoreForSelection: number;
   position: Position;
   role: PlayerStyle;
@@ -89,7 +90,7 @@ export function generateIdealTeam(
 
         return {
             player, card, position: pos, average: stats.average,
-            overall: trueOverall, scoreForSelection,
+            overall: trueOverall, generalConfidenceScore: confidence.score, scoreForSelection,
             role: effectiveRole,
             performance
         };
@@ -278,6 +279,7 @@ export function generateIdealTeam(
       player: { id, name: 'Vacante', cards: [], nationality: 'Sin Nacionalidad' }, 
       card: { id: `card-${id}`, name: 'N/A', style: 'Ninguno' as any, ratingsByPosition: {} }, 
       position: pos as any, assignedPosition: pos, role: 'Ninguno', average: 0, overall: 0,
+      generalConfidenceScore: 0,
       performance: { stats: { average: 0, matches: 0, stdDev: 0 }, isHotStreak: false, isConsistent: false, isPromising: false, isVersatile: false } 
   } as IdealTeamPlayer);
 
