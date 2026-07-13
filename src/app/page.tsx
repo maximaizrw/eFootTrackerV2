@@ -33,7 +33,7 @@ import { IdealTeamSetup } from '@/components/ideal-team-setup';
 import { PlayerTable } from '@/components/player-table';
 import { PositionIcon } from '@/components/position-icon';
 import { NationalityDistribution } from '@/components/nationality-distribution';
-import { TierlistUpdates, getPendingTierlistGroups } from '@/components/tierlist-updates';
+import { TierlistUpdates, getPendingTierlistCards } from '@/components/tierlist-updates';
 
 
 import { usePlayers } from '@/hooks/usePlayers';
@@ -407,7 +407,7 @@ export default function Home() {
   }, [flatPlayers]);
 
   const pendingTierlistCount = useMemo(() => {
-    return getPendingTierlistGroups(allPlayers, flatPlayers).length;
+    return getPendingTierlistCards(allPlayers, flatPlayers).length;
   }, [allPlayers, flatPlayers]);
 
 

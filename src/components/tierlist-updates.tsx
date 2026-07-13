@@ -13,7 +13,7 @@ import type { FlatPlayer, Player, PlayerCard, Position } from "@/lib/types";
 import { getPlayerTierBonus, getProxiedImageUrl, normalizePlayerTier, normalizeTierPlacements } from "@/lib/utils";
 
 const SIN_TIER_STALE_DAYS = 3;
-const INITIAL_VISIBLE_GROUPS = 10;
+const INITIAL_VISIBLE_ITEMS = 10;
 
 type TierlistUpdatesProps = {
   players: Player[];
@@ -30,16 +30,6 @@ type PendingTierCard = {
   reason: "missing" | "stale";
   daysSinceUpdate: number;
   tierUpdatedAt: string | undefined;
-};
-
-type PendingTierGroup = {
-  player: Player;
-  card: PlayerCard;
-  items: PendingTierCard[];
-  primaryItem: PendingTierCard;
-  reason: PendingTierCard["reason"];
-  daysSinceUpdate: number;
-  positions: Position[];
 };
 
 function getDaysSinceUpdate(tierUpdatedAt?: string): number | null {
@@ -164,42 +154,6 @@ export function getPendingTierlistCards(players: Player[], flatPlayers: FlatPlay
     });
 }
 
-export function getPendingTierlistGroups(players: Player[], flatPlayers: FlatPlayer[]): PendingTierGroup[] {
-  const groups = new Map<string, PendingTierCard[]>();
-
-  for (const item of getPendingTierlistCards(players, flatPlayers)) {
-    const key = `${item.player.id}-${item.card.id}`;
-    groups.set(key, [...(groups.get(key) || []), item]);
-  }
-
-  return Array.from(groups.values())
-    .map(items => {
-      const sortedItems = [...items].sort((a, b) => {
-        if (a.reason !== b.reason) return a.reason === "missing" ? -1 : 1;
-        const ageDiff = b.daysSinceUpdate - a.daysSinceUpdate;
-        if (ageDiff !== 0) return ageDiff;
-        return getTierUrgency(b.flatPlayer.tier) - getTierUrgency(a.flatPlayer.tier);
-      });
-      const primaryItem = sortedItems[0];
-
-      return {
-        player: primaryItem.player,
-        card: primaryItem.card,
-        items: sortedItems,
-        primaryItem,
-        reason: (sortedItems.some(item => item.reason === "missing") ? "missing" : "stale") as PendingTierCard["reason"],
-        daysSinceUpdate: Math.max(...sortedItems.map(item => item.daysSinceUpdate)),
-        positions: sortedItems.map(item => item.position),
-      };
-    })
-    .sort((a, b) => {
-      if (a.reason !== b.reason) return a.reason === "missing" ? -1 : 1;
-      const ageDiff = b.daysSinceUpdate - a.daysSinceUpdate;
-      if (ageDiff !== 0) return ageDiff;
-      return getTierUrgency(b.primaryItem.flatPlayer.tier) - getTierUrgency(a.primaryItem.flatPlayer.tier);
-    });
-}
-
 export function TierlistUpdates({ players, flatPlayers, onOpenEditCard, onMarkReviewed }: TierlistUpdatesProps) {
   const [showAll, setShowAll] = useState(false);
   const [reviewingKey, setReviewingKey] = useState<string | null>(null);
@@ -207,21 +161,17 @@ export function TierlistUpdates({ players, flatPlayers, onOpenEditCard, onMarkRe
     () => getPendingTierlistCards(players, flatPlayers),
     [players, flatPlayers],
   );
-  const pendingGroups = useMemo(
-    () => getPendingTierlistGroups(players, flatPlayers),
-    [players, flatPlayers],
-  );
 
-  const missingCount = pendingGroups.filter(item => item.reason === "missing").length;
-  const staleCount = pendingGroups.length - missingCount;
-  const visibleGroups = showAll ? pendingGroups : pendingGroups.slice(0, INITIAL_VISIBLE_GROUPS);
-  const hiddenGroupCount = Math.max(0, pendingGroups.length - visibleGroups.length);
+  const missingCount = pendingCards.filter(item => item.reason === "missing").length;
+  const staleCount = pendingCards.length - missingCount;
+  const visibleCards = showAll ? pendingCards : pendingCards.slice(0, INITIAL_VISIBLE_ITEMS);
+  const hiddenCount = Math.max(0, pendingCards.length - visibleCards.length);
 
-  async function handleMarkReviewed(group: PendingTierGroup) {
-    const key = `${group.player.id}-${group.card.id}`;
+  async function handleMarkReviewed(item: PendingTierCard) {
+    const key = `${item.player.id}-${item.card.id}-${item.position}`;
     setReviewingKey(key);
     try {
-      await onMarkReviewed(group.player, group.card, group.positions);
+      await onMarkReviewed(item.player, item.card, [item.position]);
     } finally {
       setReviewingKey(null);
     }
@@ -237,7 +187,7 @@ export function TierlistUpdates({ players, flatPlayers, onOpenEditCard, onMarkRe
               Tierlist por actualizar
             </CardTitle>
             <CardDescription>
-              {pendingGroups.length} cartas pendientes ({pendingCards.length} posiciones). SIN TIER vence a los {SIN_TIER_STALE_DAYS} dias; tiers bajos esperan mas.
+              {pendingCards.length} revisiones pendientes. SIN TIER vence a los {SIN_TIER_STALE_DAYS} dias; tiers bajos esperan mas.
             </CardDescription>
           </div>
           <div className="flex gap-2">
@@ -251,7 +201,7 @@ export function TierlistUpdates({ players, flatPlayers, onOpenEditCard, onMarkRe
         </div>
       </CardHeader>
       <CardContent>
-        {pendingGroups.length === 0 ? (
+        {pendingCards.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-10 text-center">
             <CheckCircle2 className="mb-3 h-8 w-8 text-emerald-500" />
             <p className="font-medium">Todos los tiers estan al dia.</p>
@@ -263,25 +213,24 @@ export function TierlistUpdates({ players, flatPlayers, onOpenEditCard, onMarkRe
               <TableHeader>
                 <TableRow>
                   <TableHead>Jugador</TableHead>
-                  <TableHead>Carta</TableHead>
                   <TableHead>Tier</TableHead>
-                  <TableHead>Posiciones</TableHead>
+                  <TableHead>Posicion</TableHead>
                   <TableHead className="hidden sm:table-cell">Ultima revision</TableHead>
                   <TableHead>Motivo</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {visibleGroups.map(group => {
-                  const { flatPlayer, player, card, position, reason, tierUpdatedAt } = group.primaryItem;
+                {visibleCards.map(item => {
+                  const { flatPlayer, player, card, position, reason, tierUpdatedAt } = item;
                   const tier = normalizePlayerTier(flatPlayer.tier);
                   const tierPlacements = normalizeTierPlacements(tier, flatPlayer.tierPlacements);
                   const tierBonus = getPlayerTierBonus(tier, flatPlayer.tierPlacements);
                   const tierlistUrl = card.tierlistUrl || player.efhubUrl;
-                  const groupKey = `${player.id}-${card.id}`;
+                  const rowKey = `${player.id}-${card.id}-${position}`;
 
                   return (
-                    <TableRow key={groupKey}>
+                    <TableRow key={rowKey}>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           {card.imageUrl ? (
@@ -312,21 +261,16 @@ export function TierlistUpdates({ players, flatPlayers, onOpenEditCard, onMarkRe
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">{card.name}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className={getTierBadgeClass(tier)}>
                           {tier}{tierBonus > 0 ? ` +${tierBonus.toFixed(1)} - ${tierPlacements}p` : ""}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex max-w-40 flex-wrap gap-1.5 md:max-w-none">
-                          {group.positions.map(groupPosition => (
-                            <Badge key={groupPosition} variant="secondary" className="gap-1">
-                              <PositionIcon position={groupPosition} className="h-3.5 w-3.5" />
-                              {groupPosition}
-                            </Badge>
-                          ))}
-                        </div>
+                        <Badge variant="secondary" className="gap-1">
+                          <PositionIcon position={position} className="h-3.5 w-3.5" />
+                          {position}
+                        </Badge>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell text-muted-foreground">
                         {formatLastUpdate(tierUpdatedAt)}
@@ -348,8 +292,8 @@ export function TierlistUpdates({ players, flatPlayers, onOpenEditCard, onMarkRe
                           <Button
                             size="sm"
                             variant="secondary"
-                            disabled={reviewingKey === groupKey}
-                            onClick={() => handleMarkReviewed(group)}
+                            disabled={reviewingKey === rowKey}
+                            onClick={() => handleMarkReviewed(item)}
                           >
                             <CheckCircle2 className="mr-2 h-4 w-4" />
                             Mantener
@@ -365,7 +309,7 @@ export function TierlistUpdates({ players, flatPlayers, onOpenEditCard, onMarkRe
                 })}
               </TableBody>
             </Table>
-            {pendingGroups.length > INITIAL_VISIBLE_GROUPS && (
+            {pendingCards.length > INITIAL_VISIBLE_ITEMS && (
               <div className="mt-4 flex justify-center">
                 <Button variant="outline" size="sm" onClick={() => setShowAll(value => !value)}>
                   {showAll ? (
@@ -373,7 +317,7 @@ export function TierlistUpdates({ players, flatPlayers, onOpenEditCard, onMarkRe
                   ) : (
                     <ChevronDown className="mr-2 h-4 w-4" />
                   )}
-                  {showAll ? "Ver menos" : `Ver ${hiddenGroupCount} restantes`}
+                  {showAll ? "Ver menos" : `Ver ${hiddenCount} restantes`}
                 </Button>
               </div>
             )}
