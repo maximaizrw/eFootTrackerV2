@@ -33,7 +33,7 @@ import { IdealTeamSetup } from '@/components/ideal-team-setup';
 import { PlayerTable } from '@/components/player-table';
 import { PositionIcon } from '@/components/position-icon';
 import { NationalityDistribution } from '@/components/nationality-distribution';
-import { TierlistUpdates, getPendingTierlistCards } from '@/components/tierlist-updates';
+import { TierlistUpdates, getPendingTierlistGroups } from '@/components/tierlist-updates';
 
 
 import { usePlayers } from '@/hooks/usePlayers';
@@ -70,6 +70,7 @@ export default function Home() {
     updatePermanentLiveUpdateRating,
     resetAllLiveUpdateRatings,
     updateFullPlayerData,
+    markTierlistReviewed,
   } = usePlayers();
 
   const {
@@ -406,7 +407,7 @@ export default function Home() {
   }, [flatPlayers]);
 
   const pendingTierlistCount = useMemo(() => {
-    return getPendingTierlistCards(allPlayers, flatPlayers).length;
+    return getPendingTierlistGroups(allPlayers, flatPlayers).length;
   }, [allPlayers, flatPlayers]);
 
 
@@ -694,6 +695,7 @@ export default function Home() {
               players={allPlayers}
               flatPlayers={flatPlayers}
               onOpenEditCard={(player, card, position) => handleOpenEditCard(player, card, position, "tierlist")}
+              onMarkReviewed={(player, card, pendingPositions) => markTierlistReviewed(player.id, card.id, pendingPositions)}
             />
           </TabsContent>
         </Tabs>

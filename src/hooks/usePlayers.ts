@@ -566,6 +566,35 @@ export function usePlayers() {
     } catch (e) {}
   };
 
+  const markTierlistReviewed = async (playerId: string, cardId: string, positions: Position[]) => {
+    if (!db) return;
+    try {
+      const playerRef = doc(db, 'players', playerId);
+      const playerDoc = await getDoc(playerRef);
+      const playerData = playerDoc.data() as Player;
+      const now = new Date().toISOString();
+      const newCards = playerData.cards.map(c => {
+        if (c.id !== cardId) return c;
+
+        const tierUpdatedAtByPosition = { ...(c.tierUpdatedAtByPosition || {}) };
+        for (const position of positions) {
+          tierUpdatedAtByPosition[position] = now;
+        }
+
+        return {
+          ...c,
+          tierUpdatedAt: now,
+          tierUpdatedAtByPosition,
+        };
+      });
+
+      await updateDoc(playerRef, { cards: newCards });
+      toast({ title: "Tierlist revisada", description: "Se mantuvo el tier actual." });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Error al marcar revision" });
+    }
+  };
+
   const deleteRating = async (playerId: string, cardId: string, position: Position, index: number) => {
     if (!db) return;
     try {
@@ -630,6 +659,6 @@ export function usePlayers() {
     players, flatPlayers, positionNotes, loading, error,
     addRating, addPlayer, savePositionNote,
     deletePositionRatings, updateLiveUpdateRating, updatePermanentLiveUpdateRating, resetAllLiveUpdateRatings,
-    editCard, editPlayer, deleteRating, downloadBackup, saveAttributeStats, updateFullPlayerData, updateLike, updateTrainedPosition
+    editCard, editPlayer, markTierlistReviewed, deleteRating, downloadBackup, saveAttributeStats, updateFullPlayerData, updateLike, updateTrainedPosition
   };
 }
