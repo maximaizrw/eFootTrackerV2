@@ -90,10 +90,15 @@ const PlayerToken = memo(function PlayerToken({
 
 const BenchCard = memo(function BenchCard({ player, formation, onDiscard, onUpdateLiveUpdateRating, onUpdatePermanentLiveUpdateRating, onAddRating }: any) {
   if (!player || player.player.id.startsWith('ph')) {
+    const vacantPosition = player?.position || player?.assignedPosition || 'Suplente';
+    const vacantRole = player?.assignedPosition && player.assignedPosition !== vacantPosition ? player.assignedPosition : null;
     return (
       <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-muted/20 border border-dashed border-foreground/10 min-h-[2.75rem]">
         <div className="w-8 h-8 flex items-center justify-center bg-muted/30 rounded-full"><Shirt className="w-3.5 h-3.5 text-foreground/30" /></div>
-        <span className="text-[10px] text-muted-foreground/50">Vacante</span>
+        <div className="flex flex-col min-w-0">
+          <span className="text-[10px] text-muted-foreground/60 font-semibold">Vacante {vacantPosition}</span>
+          {vacantRole && <span className="text-[8px] text-muted-foreground/45 leading-none truncate">{vacantRole}</span>}
+        </div>
       </div>
     );
   }
@@ -157,13 +162,8 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onUpda
   const validStarters = starters.filter((starter: IdealTeamPlayer | null): starter is IdealTeamPlayer => !!starter && !starter.player.id.startsWith('ph'));
   const totalGeneralConfidenceScore = validStarters.reduce((total: number, starter: IdealTeamPlayer) => total + (starter.generalConfidenceScore ?? 0), 0);
 
-  // Subs come pre-ordered from the generator: formation-position slots first (matching ideal 11),
-  // then the extra 12th slot at the very end. We preserve that order.
-  const rawSubs = teamSlots.map((s: any) => s.substitute).filter((s: any) => s !== null);
-  const validSubs = rawSubs.filter((s: any) => !s.player.id.startsWith('ph'));
-
-  const emptySlotsCount = Math.max(0, 12 - validSubs.length);
-  const substitutes = [...validSubs, ...Array(emptySlotsCount).fill(null)].slice(0, 12);
+  // Subs come pre-ordered from the generator. Preserve every slot, including vacancies.
+  const substitutes = teamSlots.map((s: any) => s.substitute).slice(0, 12);
 
   return (
     <div className="mt-4 space-y-3">
