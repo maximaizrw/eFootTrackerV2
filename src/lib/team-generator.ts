@@ -1,6 +1,6 @@
 import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, FormationSlot, PlayerStyle, IdealTeamMode, IdealTeamSelectionCriteria } from './types';
 import { getAvailableStylesForPosition } from './types';
-import { calculateStats, calculateOverall, calculateRecencyWeightedAverage, positionPriority, calculatePlayerConfidence, normalizePlayerTier, getRatingEntriesForPosition, getFormationRatingEntries, calculateFormationConfidence, getCardTierForPosition, getCardTierPlacementsForPosition } from './utils';
+import { calculateStats, calculateOverall, calculateRecencyWeightedAverage, positionPriority, calculatePlayerConfidence, normalizePlayerTier, getRatingEntriesForPosition, getFormationRatingEntries, calculateFormationConfidence, getCardTierForPosition, getCardTierPlacementsForPosition, getPlayerTierBonus } from './utils';
 
 type CandidatePlayer = {
   player: Player;
@@ -65,13 +65,15 @@ export function generateIdealTeam(
         const trueOverall = calculateOverall(stats.average, stats.matches, likes, dislikes, player.liveUpdateRating, recentAverage, tier, tierPlacements);
         
         const confidence = calculatePlayerConfidence(stats.average, stats.matches, stats.stdDev, likes, dislikes, player.liveUpdateRating, recentAverage);
+        const tierBonus = getPlayerTierBonus(tier, tierPlacements);
+        const tierAdjustedGeneralConfidence = confidence.score + tierBonus;
         let scoreForSelection = trueOverall;
         if (selectionCriteria === 'average') {
             scoreForSelection = stats.average;
         } else if (selectionCriteria === 'confidence') {
             scoreForSelection = formationConfidence.score;
         } else if (selectionCriteria === 'general-confidence') {
-            scoreForSelection = confidence.score;
+            scoreForSelection = tierAdjustedGeneralConfidence;
         }
 
         const performance: PlayerPerformance = {
@@ -90,7 +92,7 @@ export function generateIdealTeam(
 
         return {
             player, card, position: pos, average: stats.average,
-            overall: trueOverall, generalConfidenceScore: confidence.score, scoreForSelection,
+            overall: trueOverall, generalConfidenceScore: tierAdjustedGeneralConfidence, scoreForSelection,
             role: effectiveRole,
             performance
         };

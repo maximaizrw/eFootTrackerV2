@@ -90,6 +90,17 @@ export function normalizeStyleName(style: string): string {
 
 export const LIVE_UPDATE_BONUSES: Record<LiveUpdateRating, number> = { A: 6, B: 3, C: 0, D: -5, E: -10 };
 
+const TIER_PLACEMENT_WEIGHTS: Record<PlayerTier, number> = {
+  'SIN TIER': 0,
+  'S+': 3.5,
+  S: 3,
+  A: 2.5,
+  B: 1.8,
+  C: 1.2,
+  D: 0.8,
+  E: 0.5,
+};
+
 export function normalizePlayerTier(tier: string | undefined | null): PlayerTier {
   if (!tier) return 'SIN TIER';
   return tier in PLAYER_TIER_BONUSES ? tier as PlayerTier : 'SIN TIER';
@@ -188,8 +199,8 @@ export function getPlayerTierBonus(tier: PlayerTier | undefined | null, tierPlac
 
   const baseBonus = PLAYER_TIER_BONUSES[normalizedTier];
   const placements = normalizeTierPlacements(normalizedTier, tierPlacements);
-  const multiplier = 0.5 + (0.5 * Math.min(1, Math.log2(placements) / 3));
-  return baseBonus * multiplier;
+  const placementBonus = Math.log2(placements) * TIER_PLACEMENT_WEIGHTS[normalizedTier];
+  return baseBonus + placementBonus;
 }
 
 export const TIER_STALE_DAYS = 7;
@@ -240,7 +251,7 @@ export function calculateOverall(
 
   const finalOverall = (performanceScore * 0.6) + (likeScore * 0.4) + liveUpdateBonus + tierBonus + experiencePenalty;
 
-  return Math.max(0, Math.min(100, Math.round(finalOverall)));
+  return Math.max(0, Math.round(finalOverall));
 }
 
 export type PlayerConfidence = {

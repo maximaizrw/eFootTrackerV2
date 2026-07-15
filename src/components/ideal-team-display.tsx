@@ -169,12 +169,12 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onUpda
     <div className="mt-4 space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/50 bg-card px-3 py-2">
         <div>
-          <p className="text-xs font-semibold text-muted-foreground">Puntaje total del equipo</p>
-          <p className="text-[10px] text-muted-foreground/70">Basado en confianza general de titulares</p>
+          <p className="text-xs font-semibold text-muted-foreground">Confianza total del equipo</p>
+          <p className="text-[10px] text-muted-foreground/70">Basado en confianza general, tier y placements</p>
         </div>
         <div className="font-black tabular-nums text-accent">
           <span className="text-2xl">{Math.round(totalGeneralConfidenceScore)}</span>
-          <span className="ml-1 text-xs text-muted-foreground">/1100</span>
+          <span className="ml-1 text-xs text-muted-foreground">pts</span>
         </div>
       </div>
       <div className="flex flex-col lg:flex-row gap-3">
