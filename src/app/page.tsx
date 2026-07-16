@@ -43,7 +43,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, League, Nationality, IdealTeamMode, IdealTeamSelectionCriteria } from '@/lib/types';
 import { positions, leagues, nationalities } from '@/lib/types';
 import type { FormationTemplate } from '@/lib/formation-templates';
-import { getCardTierForPosition, getCardTierPlacementsForPosition, getPlayerTierBonus, normalizeText } from '@/lib/utils';
+import { getPlayerTierBonus, normalizePlayerTier, normalizeText, normalizeTierPlacements } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, ListChecks } from 'lucide-react';
@@ -193,8 +193,16 @@ export default function Home() {
   }, []);
   
   const handleOpenEditCard = useCallback((player: Player, card: PlayerCardType, position?: Position, editMode: EditCardFormValues["editMode"] = "full") => {
-    const effectiveTier = position ? getCardTierForPosition(card, position) : (card.tier || 'SIN TIER');
-    const effectiveTierPlacements = position ? getCardTierPlacementsForPosition(card, position) : card.tierPlacements;
+    const hasPositionTier = position
+      ? Object.prototype.hasOwnProperty.call(card.tierByPosition || {}, position)
+      : false;
+    const storedTier = normalizePlayerTier(
+      hasPositionTier && position ? card.tierByPosition?.[position] : card.tier
+    );
+    const storedTierPlacements = normalizeTierPlacements(
+      storedTier,
+      hasPositionTier && position ? card.tierPlacementsByPosition?.[position] : card.tierPlacements
+    );
 
     setEditCardDialogInitialData({
         playerId: player.id,
@@ -204,8 +212,8 @@ export default function Home() {
         currentCardName: card.name,
         efhubUrl: player.efhubUrl || '',
         currentStyle: card.style,
-        tier: effectiveTier,
-        tierPlacements: effectiveTierPlacements,
+        tier: storedTier,
+        tierPlacements: storedTierPlacements,
         league: card.league || 'Sin Liga',
         imageUrl: card.imageUrl || '',
         tierlistUrl: card.tierlistUrl || player.efhubUrl || '',
