@@ -10,7 +10,7 @@ import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating, Player
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import type { AddPlayerFormValues } from '@/components/add-player-dialog';
 import { getAvailableStylesForPosition, playerSkillsList } from '@/lib/types';
-import { normalizeText, normalizeStyleName, normalizePlayerTier, normalizeTierPlacements, calculateStats, calculateOverall, calculateRecencyWeightedAverage, calculatePlayerConfidence, getCardTierForPosition, getCardTierPlacementsForPosition, getCardTierUpdatedAtForPosition } from '@/lib/utils';
+import { normalizeText, normalizeStyleName, normalizePlayerTier, normalizeTierPlacements, calculateStats, calculateOverall, calculateRecencyWeightedAverage, calculatePlayerConfidence, getCardTierForPosition, getCardTierPlacementsForPosition, getCardTierUpdatedAtForPosition, getPlayerTierBonus } from '@/lib/utils';
 
 export function usePlayers() {
   const [players, setPlayers] = useState<Player[]>([]);
@@ -111,6 +111,7 @@ export function usePlayers() {
                 const tierUpdatedAt = getCardTierUpdatedAtForPosition(card, ratedPos);
                 const overall = calculateOverall(stats.average, stats.matches, likes, dislikes, player.liveUpdateRating, recentAverage, tier, tierPlacements);
                 const confidence = calculatePlayerConfidence(stats.average, stats.matches, stats.stdDev, likes, dislikes, player.liveUpdateRating, recentAverage);
+                const tierAdjustedConfidenceScore = Number((confidence.score + getPlayerTierBonus(tier, tierPlacements)).toFixed(1));
 
                 return {
                     player,
@@ -129,7 +130,7 @@ export function usePlayers() {
                       isVersatile: playerPositions.length >= 3
                     },
                     overall,
-                    confidenceScore: confidence.score,
+                    confidenceScore: tierAdjustedConfidenceScore,
                     position: ratedPos,
                     tier,
                     tierPlacements,

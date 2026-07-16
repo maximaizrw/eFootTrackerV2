@@ -300,7 +300,7 @@ const PlayerTableMemo = memo(function PlayerTable({
                       </TooltipTrigger>
                       <TooltipContent side="top" className="max-w-56">
                         <p>
-                          Confianza: combina promedio, últimas notas, regularidad, votos, partidos y letra actual.
+                          Confianza: combina promedio, últimas notas, regularidad, votos, partidos, letra actual, tier y placements.
                           Tendencia reciente: {performance.trendDelta && performance.trendDelta >= 0 ? '+' : ''}{(performance.trendDelta || 0).toFixed(1)}.
                         </p>
                       </TooltipContent>

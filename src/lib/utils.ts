@@ -167,7 +167,10 @@ function getInheritedTier(tier: PlayerTier): PlayerTier {
 }
 
 export function getCardTierForPosition(card: PlayerCard, position: Position): PlayerTier {
-  const positionTier = normalizePlayerTier(card.tierByPosition?.[position] ?? card.tier);
+  const hasPositionTier = Object.prototype.hasOwnProperty.call(card.tierByPosition || {}, position);
+  if (hasPositionTier) return normalizePlayerTier(card.tierByPosition?.[position]);
+
+  const positionTier = normalizePlayerTier(card.tier);
   if (positionTier !== 'SIN TIER') return positionTier;
 
   const bestTier = getBestCardTierSource(card)?.tier;
@@ -178,17 +181,21 @@ export function getCardTierPlacementsForPosition(card: PlayerCard, position: Pos
   const tier = getCardTierForPosition(card, position);
   if (tier === 'SIN TIER') return 0;
 
-  const positionTier = normalizePlayerTier(card.tierByPosition?.[position] ?? card.tier);
-  if (positionTier !== 'SIN TIER') {
-    return normalizeTierPlacements(tier, card.tierPlacementsByPosition?.[position] ?? card.tierPlacements);
-  }
+  const hasPositionTier = Object.prototype.hasOwnProperty.call(card.tierByPosition || {}, position);
+  if (hasPositionTier) return normalizeTierPlacements(tier, card.tierPlacementsByPosition?.[position] ?? card.tierPlacements);
+
+  const cardTier = normalizePlayerTier(card.tier);
+  if (cardTier !== 'SIN TIER') return normalizeTierPlacements(tier, card.tierPlacements);
 
   return normalizeTierPlacements(tier, getBestCardTierSource(card)?.tierPlacements);
 }
 
 export function getCardTierUpdatedAtForPosition(card: PlayerCard, position: Position): string | undefined {
-  const positionTier = normalizePlayerTier(card.tierByPosition?.[position] ?? card.tier);
-  if (positionTier !== 'SIN TIER') return card.tierUpdatedAtByPosition?.[position] ?? card.tierUpdatedAt;
+  const hasPositionTier = Object.prototype.hasOwnProperty.call(card.tierByPosition || {}, position);
+  if (hasPositionTier) return card.tierUpdatedAtByPosition?.[position] ?? card.tierUpdatedAt;
+
+  const positionTier = normalizePlayerTier(card.tier);
+  if (positionTier !== 'SIN TIER') return card.tierUpdatedAt;
 
   return getBestCardTierSource(card)?.tierUpdatedAt ?? card.tierUpdatedAtByPosition?.[position] ?? card.tierUpdatedAt;
 }
