@@ -143,9 +143,11 @@ export type PlayerCard = {
   tier?: PlayerTier;
   tierPlacements?: number;
   tierUpdatedAt?: string;
+  tierReviewDelayDays?: number;
   tierByPosition?: { [key in Position]?: PlayerTier };
   tierPlacementsByPosition?: { [key in Position]?: number };
   tierUpdatedAtByPosition?: { [key in Position]?: string };
+  tierReviewDelayDaysByPosition?: { [key in Position]?: number };
   league?: League;
   imageUrl?: string;
   tierlistUrl?: string;

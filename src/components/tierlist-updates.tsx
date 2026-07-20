@@ -29,6 +29,7 @@ type PendingTierCard = {
   position: Position;
   reason: "missing" | "stale";
   daysSinceUpdate: number;
+  reviewWindowDays: number;
   tierUpdatedAt: string | undefined;
 };
 
@@ -68,6 +69,11 @@ export function getTierReviewWindowDays(tier: string): number {
     default:
       return 21;
   }
+}
+
+function getTierReviewDelayDays(card: PlayerCard, position: Position): number {
+  const delay = card.tierReviewDelayDaysByPosition?.[position] ?? card.tierReviewDelayDays ?? 0;
+  return Number.isFinite(delay) ? Math.max(0, Math.floor(delay)) : 0;
 }
 
 function getTierUrgency(tier: string): number {
@@ -125,7 +131,7 @@ export function getPendingTierlistCards(players: Player[], flatPlayers: FlatPlay
       const daysSinceUpdate = getDaysSinceUpdate(tierUpdatedAt);
       if (daysSinceUpdate === null) return null;
 
-      const reviewWindowDays = getTierReviewWindowDays(tier);
+      const reviewWindowDays = getTierReviewWindowDays(tier) + getTierReviewDelayDays(flatPlayer.card, flatPlayer.position);
       const reason: PendingTierCard["reason"] | null =
         tier === "SIN TIER" && isPastReviewWindow(tierUpdatedAt, reviewWindowDays)
           ? "missing"
@@ -142,6 +148,7 @@ export function getPendingTierlistCards(players: Player[], flatPlayers: FlatPlay
         position: flatPlayer.position,
         reason,
         daysSinceUpdate,
+        reviewWindowDays,
         tierUpdatedAt,
       };
     })
@@ -222,7 +229,7 @@ export function TierlistUpdates({ players, flatPlayers, onOpenEditCard, onMarkRe
               </TableHeader>
               <TableBody>
                 {visibleCards.map(item => {
-                  const { flatPlayer, player, card, position, reason, tierUpdatedAt } = item;
+                  const { flatPlayer, player, card, position, reason, reviewWindowDays, tierUpdatedAt } = item;
                   const tier = normalizePlayerTier(flatPlayer.tier);
                   const tierPlacements = normalizeTierPlacements(tier, flatPlayer.tierPlacements);
                   const tierBonus = getPlayerTierBonus(tier, flatPlayer.tierPlacements);
@@ -273,7 +280,7 @@ export function TierlistUpdates({ players, flatPlayers, onOpenEditCard, onMarkRe
                         </Badge>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell text-muted-foreground">
-                        {formatLastUpdate(tierUpdatedAt)}
+                        {formatLastUpdate(tierUpdatedAt)} · vence en {reviewWindowDays}d
                       </TableCell>
                       <TableCell>
                         <Badge

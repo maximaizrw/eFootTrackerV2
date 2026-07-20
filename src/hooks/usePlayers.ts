@@ -43,6 +43,12 @@ export function usePlayers() {
                         normalizeTierPlacements(card.tierByPosition?.[position as Position] || card.tier, placements as any),
                     ])
                 );
+                const tierReviewDelayDaysByPosition = Object.fromEntries(
+                    Object.entries(card.tierReviewDelayDaysByPosition || {}).map(([position, delay]) => [
+                        position,
+                        Math.max(0, Math.floor(Number(delay) || 0)),
+                    ])
+                );
 
                 return {
                     ...card,
@@ -51,9 +57,11 @@ export function usePlayers() {
                     tier: normalizePlayerTier(card.tier),
                     tierPlacements: normalizeTierPlacements(card.tier, card.tierPlacements),
                     tierUpdatedAt: card.tierUpdatedAt,
+                    tierReviewDelayDays: Math.max(0, Math.floor(Number(card.tierReviewDelayDays) || 0)),
                     tierByPosition,
                     tierPlacementsByPosition,
                     tierUpdatedAtByPosition: card.tierUpdatedAtByPosition || {},
+                    tierReviewDelayDaysByPosition,
                     ratingsByPosition: card.ratingsByPosition || {},
                     likesByPosition: card.likesByPosition || {},
                     ratingEntriesByPosition: card.ratingEntriesByPosition || {},
@@ -450,6 +458,7 @@ export function usePlayers() {
           if (card.tierByPosition?.[position]) delete card.tierByPosition[position];
           if (card.tierPlacementsByPosition?.[position] !== undefined) delete card.tierPlacementsByPosition[position];
           if (card.tierUpdatedAtByPosition?.[position]) delete card.tierUpdatedAtByPosition[position];
+          if (card.tierReviewDelayDaysByPosition?.[position] !== undefined) delete card.tierReviewDelayDaysByPosition[position];
 
           const hasRatings = Object.keys(card.ratingsByPosition).length > 0;
           const finalCards = hasRatings ? newCards : newCards.filter(c => c.id !== cardId);
@@ -520,17 +529,42 @@ export function usePlayers() {
 
         if (values.position) {
           const position = values.position as Position;
+          const previousTier = normalizePlayerTier(c.tierByPosition?.[position] ?? c.tier);
+          const previousTierPlacements = normalizeTierPlacements(
+            previousTier,
+            c.tierPlacementsByPosition?.[position] ?? c.tierPlacements,
+          );
           const tier = normalizePlayerTier(values.tier);
+          const tierPlacements = normalizeTierPlacements(tier, values.tierPlacements);
           updatedCard.tierByPosition = { ...(updatedCard.tierByPosition || {}), [position]: tier };
           updatedCard.tierPlacementsByPosition = {
             ...(updatedCard.tierPlacementsByPosition || {}),
-            [position]: normalizeTierPlacements(tier, values.tierPlacements),
+            [position]: tierPlacements,
           };
           updatedCard.tierUpdatedAtByPosition = { ...(updatedCard.tierUpdatedAtByPosition || {}), [position]: now };
+          if (previousTier !== tier || previousTierPlacements !== tierPlacements) {
+            const tierReviewDelayDaysByPosition = { ...(updatedCard.tierReviewDelayDaysByPosition || {}) };
+            delete tierReviewDelayDaysByPosition[position];
+            updatedCard.tierReviewDelayDaysByPosition = tierReviewDelayDaysByPosition;
+          }
         } else {
-          updatedCard.tier = normalizePlayerTier(values.tier);
-          updatedCard.tierPlacements = normalizeTierPlacements(values.tier, values.tierPlacements);
+          const previousTier = normalizePlayerTier(c.tier);
+          const previousTierPlacements = normalizeTierPlacements(previousTier, c.tierPlacements);
+          const tier = normalizePlayerTier(values.tier);
+          const tierPlacements = normalizeTierPlacements(tier, values.tierPlacements);
+          updatedCard.tier = tier;
+          updatedCard.tierPlacements = tierPlacements;
           updatedCard.tierUpdatedAt = now;
+          if (previousTier !== tier || previousTierPlacements !== tierPlacements) {
+            const tierReviewDelayDaysByPosition = { ...(updatedCard.tierReviewDelayDaysByPosition || {}) };
+            for (const position of Object.keys(updatedCard.ratingsByPosition || {}) as Position[]) {
+              if (!Object.prototype.hasOwnProperty.call(updatedCard.tierByPosition || {}, position)) {
+                delete tierReviewDelayDaysByPosition[position];
+              }
+            }
+            updatedCard.tierReviewDelayDays = 0;
+            updatedCard.tierReviewDelayDaysByPosition = tierReviewDelayDaysByPosition;
+          }
         }
 
         return updatedCard;
@@ -578,14 +612,18 @@ export function usePlayers() {
         if (c.id !== cardId) return c;
 
         const tierUpdatedAtByPosition = { ...(c.tierUpdatedAtByPosition || {}) };
+        const tierReviewDelayDaysByPosition = { ...(c.tierReviewDelayDaysByPosition || {}) };
         for (const position of positions) {
           tierUpdatedAtByPosition[position] = now;
+          const currentDelay = Number(tierReviewDelayDaysByPosition[position] || 0);
+          tierReviewDelayDaysByPosition[position] = Math.max(0, Math.floor(currentDelay)) + 1;
         }
 
         return {
           ...c,
           tierUpdatedAt: now,
           tierUpdatedAtByPosition,
+          tierReviewDelayDaysByPosition,
         };
       });
 
@@ -618,6 +656,7 @@ export function usePlayers() {
           if (card.tierByPosition?.[position]) delete card.tierByPosition[position];
           if (card.tierPlacementsByPosition?.[position] !== undefined) delete card.tierPlacementsByPosition[position];
           if (card.tierUpdatedAtByPosition?.[position]) delete card.tierUpdatedAtByPosition[position];
+          if (card.tierReviewDelayDaysByPosition?.[position] !== undefined) delete card.tierReviewDelayDaysByPosition[position];
         }
         if (card.likesByPosition?.[position]?.length === 0) delete card.likesByPosition[position];
         if (card.ratingEntriesByPosition?.[position]?.length === 0) delete card.ratingEntriesByPosition[position];
