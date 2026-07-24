@@ -32,7 +32,6 @@ import { IdealTeamDisplay } from '@/components/ideal-team-display';
 import { IdealTeamSetup } from '@/components/ideal-team-setup';
 import { PlayerTable } from '@/components/player-table';
 import { PositionIcon } from '@/components/position-icon';
-import { NationalityDistribution } from '@/components/nationality-distribution';
 import { TierlistUpdates, getPendingTierlistCards } from '@/components/tierlist-updates';
 
 
@@ -46,7 +45,7 @@ import type { FormationTemplate } from '@/lib/formation-templates';
 import { getPlayerTierBonus, normalizePlayerTier, normalizeText, normalizeTierPlacements } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { PlusCircle, Star, Download, Trophy, RotateCcw, Globe, ListChecks } from 'lucide-react';
+import { PlusCircle, Star, Download, Trophy, RotateCcw, ListChecks } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 10;
 type ListSortCriteria = 'overall' | 'confidence' | 'average' | 'tier';
@@ -418,6 +417,24 @@ export default function Home() {
     return getPendingTierlistCards(allPlayers, flatPlayers).length;
   }, [allPlayers, flatPlayers]);
 
+  const nationalitiesByPlayerCount = useMemo(() => {
+    const playerCountByNationality = new Map<Nationality, number>();
+
+    allPlayers.forEach((player) => {
+      playerCountByNationality.set(
+        player.nationality,
+        (playerCountByNationality.get(player.nationality) || 0) + 1
+      );
+    });
+
+    return [...nationalities].sort((a, b) => {
+      const countDifference =
+        (playerCountByNationality.get(b) || 0) - (playerCountByNationality.get(a) || 0);
+
+      return countDifference || a.localeCompare(b, 'es');
+    });
+  }, [allPlayers]);
+
 
   if (playersError || formationsError) {
     return <div className="flex items-center justify-center min-h-screen p-4"><div className="text-destructive font-bold">{playersError || formationsError}</div></div>;
@@ -542,7 +559,6 @@ export default function Home() {
               ))}
               <TabsTrigger value="formations" className="py-2 px-3 text-sm"><Trophy className="mr-2 h-5 w-5"/>Formaciones</TabsTrigger>
               <TabsTrigger value="ideal-11" className="py-2 px-3 text-sm"><Star className="mr-2 h-5 w-5"/>11 Ideal</TabsTrigger>
-              <TabsTrigger value="nationalities" className="py-2 px-3 text-sm"><Globe className="mr-2 h-5 w-5"/>Nacionalidades</TabsTrigger>
               <TabsTrigger value="tierlist-updates" className="py-2 px-3 text-sm">
                 <ListChecks className="mr-2 h-5 w-5"/>Tierlist
                 {pendingTierlistCount > 0 && (
@@ -631,7 +647,7 @@ export default function Home() {
                     leagues={['all', ...leagues]}
                     selectedLeague={selectedLeague}
                     onLeagueChange={handleLeagueChange}
-                    nationalities={['all', ...nationalities]}
+                    nationalities={['all', ...nationalitiesByPlayerCount]}
                     selectedNationality={selectedNationality}
                     onNationalityChange={handleNationalityChange}
                     isFlexibleLaterals={isFlexibleLaterals}
@@ -694,10 +710,6 @@ export default function Home() {
             />
           </TabsContent>
           
-          <TabsContent value="nationalities" className="mt-6">
-            <NationalityDistribution players={allPlayers} />
-          </TabsContent>
-
           <TabsContent value="tierlist-updates" className="mt-6">
             <TierlistUpdates
               players={allPlayers}
