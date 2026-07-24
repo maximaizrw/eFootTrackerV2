@@ -49,6 +49,7 @@ const PlayerToken = memo(function PlayerToken({
         league: player.card.league || 'Sin Liga',
         formationId: formation?.id,
         formationName: formation?.name,
+        tierlistUrl: player.card.tierlistUrl,
       })}
     >
       <Button
@@ -115,6 +116,7 @@ const BenchCard = memo(function BenchCard({ player, formation, onDiscard, onUpda
         league: player.card.league || 'Sin Liga',
         formationId: formation?.id,
         formationName: formation?.name,
+        tierlistUrl: player.card.tierlistUrl,
       })}
     >
       <Button

@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
-import { ThumbsUp, ThumbsDown, Minus, Star } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Minus, Star, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -38,6 +38,7 @@ const formSchema = z.object({
   liked: z.boolean().nullable().optional(),
   formationId: z.string().optional(),
   formationName: z.string().optional(),
+  tierlistUrl: z.string().optional(),
 });
 
 export type FormValues = z.infer<typeof formSchema>;
@@ -92,6 +93,7 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData, 
       liked: null,
       formationId: undefined,
       formationName: undefined,
+      tierlistUrl: undefined,
     },
   });
 
@@ -292,9 +294,19 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData, 
               )}
             />
 
-            <Button type="submit" className="w-full font-semibold h-11">
-              Guardar valoración
-            </Button>
+            <div className="grid gap-2">
+              {initialData?.tierlistUrl && (
+                <Button type="button" variant="outline" className="w-full font-semibold h-11" asChild>
+                  <a href={initialData.tierlistUrl} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Ir al jugador
+                  </a>
+                </Button>
+              )}
+              <Button type="submit" className="w-full font-semibold h-11">
+                Guardar valoración
+              </Button>
+            </div>
           </form>
         </Form>
       </DialogContent>
