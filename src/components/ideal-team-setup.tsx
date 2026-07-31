@@ -115,6 +115,7 @@ const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({
                 <SelectItem value="overall">Equilibrado (Overall + Notas)</SelectItem>
                 <SelectItem value="confidence">Confianza por FormaciÃ³n</SelectItem>
                 <SelectItem value="general-confidence">Confianza General</SelectItem>
+                <SelectItem value="tier">Tier</SelectItem>
                 <SelectItem value="average">Rendimiento (Solo Notas)</SelectItem>
             </SelectContent>
         </Select>

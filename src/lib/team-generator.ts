@@ -74,6 +74,8 @@ export function generateIdealTeam(
             scoreForSelection = formationConfidence.score;
         } else if (selectionCriteria === 'general-confidence') {
             scoreForSelection = tierAdjustedGeneralConfidence;
+        } else if (selectionCriteria === 'tier') {
+            scoreForSelection = tierBonus;
         }
 
         const performance: PlayerPerformance = {
