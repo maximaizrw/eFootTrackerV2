@@ -307,7 +307,6 @@ export default function Home() {
     const playersToUpdate: import('@/lib/types').IdealTeamPlayer[] = [];
     idealTeam.forEach(slot => {
         if (slot.starter) playersToUpdate.push(slot.starter);
-        if (slot.substitute) playersToUpdate.push(slot.substitute);
     });
 
     if (playersToUpdate.length === 0) {
@@ -688,7 +687,7 @@ export default function Home() {
                           <AlertDialogHeader>
                             <AlertDialogTitle>¿Confirmas la victoria por abandono?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Esto le asignará a todos los titulares y suplentes actuales un puntaje igual a su promedio + 1 (mínimo 7). ¿Querés continuar?
+                              Esto le asignará a todos los titulares actuales un puntaje igual a su promedio + 1 (mínimo 7). ¿Querés continuar?
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
