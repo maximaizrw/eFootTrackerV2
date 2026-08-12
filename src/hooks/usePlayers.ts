@@ -633,7 +633,9 @@ export function usePlayers() {
         const tierReviewDelayDaysByPosition = { ...(c.tierReviewDelayDaysByPosition || {}) };
         for (const position of positions) {
           tierUpdatedAtByPosition[position] = now;
-          const currentDelay = Number(tierReviewDelayDaysByPosition[position] || 0);
+          const currentDelay = Number(
+            tierReviewDelayDaysByPosition[position] ?? c.tierReviewDelayDays ?? 0,
+          );
           tierReviewDelayDaysByPosition[position] = Math.max(0, Math.floor(currentDelay)) + 1;
         }
 
