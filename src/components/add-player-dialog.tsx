@@ -43,7 +43,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -54,17 +53,13 @@ import {
   leagues,
   playerTiers,
   positions,
-  playerSkillsList,
   type Player,
   type Nationality,
   type PlayerStyle,
   type PlayerTier,
   type League,
   type Position,
-  type PlayerAttributeStats,
 } from "@/lib/types";
-
-const statSchema = z.coerce.number().min(0).max(99).optional();
 
 const formSchema = z.object({
   playerId: z.string().optional(),
@@ -72,7 +67,6 @@ const formSchema = z.object({
   efhubUrl: z.string().optional(),
   cardName: z.string().min(2, "El nombre de la carta debe tener al menos 2 caracteres."),
   imageUrl: z.string().min(1, "La imagen es requerida."),
-  tierlistUrl: z.string().optional(),
   nationality: z.enum(nationalities).optional(),
   style: z.enum(playerStyles).optional(),
   tier: z.enum(playerTiers).optional(),
@@ -86,33 +80,6 @@ const formSchema = z.object({
   })).optional(),
   height: z.coerce.number().min(100).max(230).optional(),
   weight: z.coerce.number().min(40).max(150).optional(),
-  skills: z.array(z.string()).optional(),
-  offensiveAwareness: statSchema,
-  ballControl: statSchema,
-  dribbling: statSchema,
-  tightPossession: statSchema,
-  lowPass: statSchema,
-  loftedPass: statSchema,
-  finishing: statSchema,
-  heading: statSchema,
-  placeKicking: statSchema,
-  curl: statSchema,
-  defensiveAwareness: statSchema,
-  defensiveEngagement: statSchema,
-  tackling: statSchema,
-  aggression: statSchema,
-  goalkeeping: statSchema,
-  gkCatching: statSchema,
-  gkParrying: statSchema,
-  gkReflexes: statSchema,
-  gkReach: statSchema,
-  speed: statSchema,
-  acceleration: statSchema,
-  kickingPower: statSchema,
-  jump: statSchema,
-  physicalContact: statSchema,
-  balance: statSchema,
-  stamina: statSchema,
 }).superRefine((values, ctx) => {
   if (values.tier && values.tier !== "SIN TIER" && (!values.tierPlacements || values.tierPlacements < 1)) {
     ctx.addIssue({
@@ -135,55 +102,6 @@ const formSchema = z.object({
 
 export type AddPlayerFormValues = z.infer<typeof formSchema>;
 
-const statFields: { category: string; fields: { name: keyof PlayerAttributeStats; label: string }[] }[] = [
-  {
-    category: "Ataque",
-    fields: [
-      { name: "offensiveAwareness", label: "Act. Ofensiva" },
-      { name: "ballControl", label: "Control de Balón" },
-      { name: "dribbling", label: "Regate" },
-      { name: "tightPossession", label: "Posesión Estrecha" },
-      { name: "lowPass", label: "Pase Raso" },
-      { name: "loftedPass", label: "Pase Bombeado" },
-      { name: "finishing", label: "Finalización" },
-      { name: "heading", label: "Cabeceo" },
-      { name: "placeKicking", label: "Balón Parado" },
-      { name: "curl", label: "Efecto" },
-    ],
-  },
-  {
-    category: "Defensa",
-    fields: [
-      { name: "defensiveAwareness", label: "Act. Defensiva" },
-      { name: "defensiveEngagement", label: "Dedicación Defensiva" },
-      { name: "tackling", label: "Entrada" },
-      { name: "aggression", label: "Agresividad" },
-    ],
-  },
-  {
-    category: "Portería",
-    fields: [
-      { name: "goalkeeping", label: "Act. de Portero" },
-      { name: "gkCatching", label: "Atajar" },
-      { name: "gkParrying", label: "Parada" },
-      { name: "gkReflexes", label: "Reflejos" },
-      { name: "gkReach", label: "Cobertura" },
-    ],
-  },
-  {
-    category: "Atletismo",
-    fields: [
-      { name: "speed", label: "Velocidad" },
-      { name: "acceleration", label: "Aceleración" },
-      { name: "kickingPower", label: "Potencia de Tiro" },
-      { name: "jump", label: "Salto" },
-      { name: "physicalContact", label: "Contacto Físico" },
-      { name: "balance", label: "Equilibrio" },
-      { name: "stamina", label: "Resistencia" },
-    ],
-  },
-];
-
 type AddPlayerDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -193,7 +111,6 @@ type AddPlayerDialogProps = {
 
 export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: AddPlayerDialogProps) {
   const [playerPopoverOpen, setPlayerPopoverOpen] = useState(false);
-  const [skillsPopoverOpen, setSkillsPopoverOpen] = useState(false);
 
   const form = useForm<AddPlayerFormValues>({
     resolver: zodResolver(formSchema),
@@ -203,14 +120,12 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
       efhubUrl: "",
       cardName: "",
       imageUrl: "",
-      tierlistUrl: "",
       nationality: "Sin Nacionalidad",
       style: "Ninguno",
       tier: "SIN TIER",
       tierPlacements: 0,
       league: "Sin Liga",
       ratingEntries: [],
-      skills: [],
     },
   });
 
@@ -219,7 +134,6 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
     name: "ratingEntries",
   });
 
-  const watchedSkills = form.watch("skills") || [];
   const watchedEntries = form.watch("ratingEntries") || [];
   const watchedTier = form.watch("tier") || "SIN TIER";
   const playerIdValue = form.watch("playerId");
@@ -233,14 +147,12 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
         efhubUrl: "",
         cardName: "",
         imageUrl: "",
-        tierlistUrl: "",
         nationality: "Sin Nacionalidad" as Nationality,
         style: "Ninguno" as PlayerStyle,
         tier: "SIN TIER" as PlayerTier,
         tierPlacements: 0,
         league: "Sin Liga" as League,
         ratingEntries: [],
-        skills: [],
       });
     }
   }, [open, form]);
@@ -261,13 +173,12 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0">
             <Tabs defaultValue="ficha" className="flex flex-col flex-1 min-h-0">
-              <TabsList className="grid grid-cols-4 mb-4">
+              <TabsList className="grid grid-cols-3 mb-4">
                 <TabsTrigger value="ficha">Ficha</TabsTrigger>
                 <TabsTrigger value="posiciones">
                   Posiciones{ratingFields.length > 0 && <span className="ml-1 text-primary font-bold">({ratingFields.length})</span>}
                 </TabsTrigger>
-                <TabsTrigger value="atributos">Atributos</TabsTrigger>
-                <TabsTrigger value="habilidades">Skills</TabsTrigger>
+                <TabsTrigger value="atributos">Físico</TabsTrigger>
               </TabsList>
 
               {/* ── TAB 1: FICHA ── */}
@@ -362,7 +273,7 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
                     name="efhubUrl"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Link de eFHUB del jugador</FormLabel>
+                        <FormLabel>Link de eFHUB / Tierlist</FormLabel>
                         <FormControl>
                           <Input
                             type="url"
@@ -398,20 +309,6 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
                         <FormLabel>URL de Imagen <span className="text-destructive">*</span></FormLabel>
                         <FormControl>
                           <Input placeholder="https://..." {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="tierlistUrl"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Link de Tierlist de la Carta</FormLabel>
-                        <FormControl>
-                          <Input type="url" placeholder="https://..." {...field} value={field.value ?? ""} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -704,111 +601,8 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
                         />
                       </div>
                     </div>
-                    {statFields.map((cat) => (
-                      <div key={cat.category}>
-                        <p className="text-sm font-medium mb-3 text-muted-foreground">{cat.category}</p>
-                        <div className="grid grid-cols-2 gap-3">
-                          {cat.fields.map((f) => (
-                            <FormField
-                              key={f.name}
-                              control={form.control}
-                              name={f.name as keyof AddPlayerFormValues}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>{f.label}</FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      type="number"
-                                      min={0}
-                                      max={99}
-                                      placeholder="–"
-                                      {...field}
-                                      value={(field.value as number | undefined) ?? ""}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    ))}
                   </div>
                 </ScrollArea>
-              </TabsContent>
-
-              {/* ── TAB 4: HABILIDADES ── */}
-              <TabsContent value="habilidades" className="flex-1 overflow-auto">
-                <div className="space-y-3">
-                  <FormField
-                    control={form.control}
-                    name="skills"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Habilidades Especiales</FormLabel>
-                        <Popover open={skillsPopoverOpen} onOpenChange={setSkillsPopoverOpen}>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button variant="outline" role="combobox" className="w-full justify-between">
-                                {watchedSkills.length > 0
-                                  ? `${watchedSkills.length} seleccionada${watchedSkills.length > 1 ? "s" : ""}`
-                                  : "Seleccionar habilidades..."}
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                            <Command>
-                              <CommandInput placeholder="Buscar habilidad..." />
-                              <CommandEmpty>No encontrada.</CommandEmpty>
-                              <CommandList>
-                                <ScrollArea className="h-56">
-                                  <CommandGroup>
-                                    {playerSkillsList.map((skill) => {
-                                      const selected = watchedSkills.includes(skill);
-                                      return (
-                                        <CommandItem
-                                          key={skill}
-                                          value={skill}
-                                          onSelect={() => {
-                                            const current = field.value || [];
-                                            field.onChange(
-                                              selected
-                                                ? current.filter((s) => s !== skill)
-                                                : [...current, skill]
-                                            );
-                                          }}
-                                        >
-                                          <Check className={cn("mr-2 h-4 w-4", selected ? "opacity-100" : "opacity-0")} />
-                                          {skill}
-                                        </CommandItem>
-                                      );
-                                    })}
-                                  </CommandGroup>
-                                </ScrollArea>
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  {watchedSkills.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {watchedSkills.map((skill) => (
-                        <Badge
-                          key={skill}
-                          variant="secondary"
-                          className="cursor-pointer"
-                          onClick={() => form.setValue("skills", watchedSkills.filter((s) => s !== skill))}
-                        >
-                          {skill} ✕
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                </div>
               </TabsContent>
             </Tabs>
 

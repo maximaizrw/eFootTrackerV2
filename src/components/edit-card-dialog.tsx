@@ -140,7 +140,7 @@ export function EditCardDialog({ open, onOpenChange, onEditCard, initialData }: 
                 name="tierlistUrl"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Link de Tierlist de esta carta</FormLabel>
+                    <FormLabel>Link de eFHUB / Tierlist</FormLabel>
                     <FormControl>
                       <Input
                         type="url"

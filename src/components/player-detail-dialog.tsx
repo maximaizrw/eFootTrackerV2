@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import type { Position, FlatPlayer, PlayerSkill, PlayerAttributeStats, PhysicalAttribute, Nationality, League } from "@/lib/types";
+import type { Position, FlatPlayer, PhysicalAttribute, Nationality, League, PlayerStyle, PlayerTier } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -13,18 +13,14 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { Label } from "@/components/ui/label";
-import { Slider } from "./ui/slider";
 import { ScrollArea } from "./ui/scroll-area";
-import { Textarea } from "./ui/textarea";
 import { Input } from "./ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import Image from 'next/image';
-import { Target, Footprints, Dribbble, Zap, Beef, ChevronsUp, Shield, Hand, Dumbbell, Image as ImageIcon, SlidersHorizontal, Check, ChevronsUpDown, Globe, Trophy, LayersIcon } from "lucide-react";
-import { getProxiedImageUrl } from '@/lib/utils';
+import { Dumbbell, Image as ImageIcon, Globe, Trophy, LayersIcon } from "lucide-react";
+import { getProxiedImageUrl, normalizePlayerTier, normalizeTierPlacements } from '@/lib/utils';
 import { Badge } from "./ui/badge";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "./ui/command";
-import { playerSkillsList, nationalities, leagues } from "@/lib/types";
+import { nationalities, leagues, playerStyles, playerTiers } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type PlayerDetailDialogProps = {
@@ -33,10 +29,12 @@ type PlayerDetailDialogProps = {
   flatPlayer: FlatPlayer | null;
   onSaveFullData: (playerId: string, cardId: string, position: Position, data: {
     imageUrl?: string;
-    tierlistUrl?: string;
-    stats: PlayerAttributeStats;
+    efhubUrl?: string;
+    cardName: string;
+    style: PlayerStyle;
+    tier: PlayerTier;
+    tierPlacements: number;
     physical: PhysicalAttribute;
-    skills: PlayerSkill[];
     nationality?: Nationality;
     league?: League;
   }) => void;
@@ -44,37 +42,33 @@ type PlayerDetailDialogProps = {
 
 
 
-const statFields: { category: string, fields: { name: keyof PlayerAttributeStats, label: string }[] }[] = [
-    { category: 'Ataque', fields: [{ name: 'offensiveAwareness', label: 'Act. Ofensiva' }, { name: 'ballControl', label: 'Control' }, { name: 'dribbling', label: 'Regate' }, { name: 'tightPossession', label: 'Posesión' }, { name: 'lowPass', label: 'P. Raso' }, { name: 'loftedPass', label: 'P. Bombeado' }, { name: 'finishing', label: 'Finalización' }, { name: 'heading', label: 'Cabeceo' }, { name: 'placeKicking', label: 'B. Parado' }, { name: 'curl', label: 'Efecto' }] },
-    { category: 'Defensa', fields: [{ name: 'defensiveAwareness', label: 'Act. Defensiva' }, { name: 'defensiveEngagement', label: 'Dedicación' }, { name: 'tackling', label: 'Entrada' }, { name: 'aggression', label: 'Agresividad' }] },
-    { category: 'Atletismo', fields: [{ name: 'speed', label: 'Velocidad' }, { name: 'acceleration', label: 'Aceleración' }, { name: 'kickingPower', label: 'Potencia' }, { name: 'jump', label: 'Salto' }, { name: 'physicalContact', label: 'Físico' }, { name: 'balance', label: 'Equilibrio' }, { name: 'stamina', label: 'Resistencia' }] },
-    { category: 'Portería', fields: [{ name: 'goalkeeping', label: 'Act. Portero' }, { name: 'gkCatching', label: 'Atajar' }, { name: 'gkParrying', label: 'Parada' }, { name: 'gkReflexes', label: 'Reflejos' }, { name: 'gkReach', label: 'Cobertura' }] }
-];
-
 export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullData }: PlayerDetailDialogProps) {
   const [imageUrl, setImageUrl] = React.useState('');
-  const [tierlistUrl, setTierlistUrl] = React.useState('');
+  const [efhubUrl, setEfhubUrl] = React.useState('');
+  const [cardName, setCardName] = React.useState('');
+  const [style, setStyle] = React.useState<PlayerStyle>('Ninguno');
+  const [tier, setTier] = React.useState<PlayerTier>('SIN TIER');
+  const [tierPlacements, setTierPlacements] = React.useState(0);
   const [height, setHeight] = React.useState<number | ''>('');
   const [weight, setWeight] = React.useState<number | ''>('');
-  const [skills, setSkills] = React.useState<PlayerSkill[]>([]);
-  const [stats, setStats] = React.useState<PlayerAttributeStats>({});
   const [nationality, setNationality] = React.useState<Nationality>('Sin Nacionalidad');
   const [league, setLeague] = React.useState<League>('Sin Liga');
-  const [skillsPopoverOpen, setSkillsPopoverOpen] = React.useState(false);
 
   const position = flatPlayer?.position;
   const card = flatPlayer?.card;
   const player = flatPlayer?.player;
-  const isGoalkeeper = position === 'PT';
 
   React.useEffect(() => {
     if (open && flatPlayer && position && card) {
       setImageUrl(card.imageUrl || '');
-      setTierlistUrl(card.tierlistUrl || player?.efhubUrl || '');
+      setEfhubUrl(player?.efhubUrl || card.tierlistUrl || '');
+      setCardName(card.name);
+      setStyle(card.style || 'Ninguno');
+      const currentTier = normalizePlayerTier(card.tierByPosition?.[position] ?? card.tier);
+      setTier(currentTier);
+      setTierPlacements(normalizeTierPlacements(currentTier, card.tierPlacementsByPosition?.[position] ?? card.tierPlacements));
       setHeight(card.physicalAttributes?.height ?? '');
       setWeight(card.physicalAttributes?.weight ?? '');
-      setSkills(card.skills || []);
-      setStats(card.attributeStats || {});
       setNationality(player?.nationality || 'Sin Nacionalidad');
       setLeague(card.league || 'Sin Liga');
     }
@@ -84,29 +78,18 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
     if (player && card && position) {
       onSaveFullData(player.id, card.id, position, {
         imageUrl,
-        tierlistUrl,
-        stats,
+        efhubUrl,
+        cardName: cardName.trim(),
+        style,
+        tier,
+        tierPlacements,
         physical: { height: height === '' ? undefined : Number(height), weight: weight === '' ? undefined : Number(weight) },
-        skills,
         nationality,
         league,
       });
       onOpenChange(false);
     }
   };
-
-  const handleSkillToggle = (skillToToggle: string) => {
-    setSkills(prev => prev.includes(skillToToggle as PlayerSkill) 
-        ? prev.filter(s => s !== skillToToggle) 
-        : [...prev, skillToToggle as PlayerSkill]
-    );
-  };
-
-  const handleStatChange = (key: keyof PlayerAttributeStats, value: string) => {
-    setStats(prev => ({ ...prev, [key]: value === '' ? undefined : Number(value) }));
-  };
-
-
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -121,7 +104,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
                   </Badge>
                 )}
             </DialogTitle>
-            <DialogDescription>Edita todos los datos manuales de esta carta para la posición {position}. Los atributos son visuales y opcionales.</DialogDescription>
+            <DialogDescription>Edita los datos manuales de esta carta para la posición {position}.</DialogDescription>
             </DialogHeader>
         </div>
         
@@ -136,12 +119,16 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-4">
                                 <div className="space-y-2">
+                                    <Label>Nombre de la Carta</Label>
+                                    <Input value={cardName} onChange={(e) => setCardName(e.target.value)} />
+                                </div>
+                                <div className="space-y-2">
                                     <Label>URL de Imagen (eFootballHub / ImgBB)</Label>
                                     <Input placeholder="https://..." value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Link de Tierlist de la Carta</Label>
-                                    <Input type="url" placeholder="https://..." value={tierlistUrl} onChange={(e) => setTierlistUrl(e.target.value)} />
+                                    <Label>Link de eFHUB / Tierlist</Label>
+                                    <Input type="url" placeholder="https://efootballhub.net/..." value={efhubUrl} onChange={(e) => setEfhubUrl(e.target.value)} />
                                 </div>
                                 <div className="grid grid-cols-2 gap-2">
                                     <div className="space-y-2">
@@ -167,9 +154,44 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
                                         </Select>
                                     </div>
                                 </div>
+                                <div className="space-y-2">
+                                    <Label>Estilo de Juego</Label>
+                                    <Select value={style} onValueChange={(value) => setStyle(value as PlayerStyle)}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            {playerStyles.map(playerStyle => <SelectItem key={playerStyle} value={playerStyle}>{playerStyle}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
                             
-                            <div className="grid grid-cols-2 gap-4 items-end pb-1">
+                            <div className="grid grid-cols-2 gap-4 content-start pb-1">
+                                <div className="space-y-2">
+                                    <Label>Tier en {position}</Label>
+                                    <Select
+                                        value={tier}
+                                        onValueChange={(value) => {
+                                            const nextTier = value as PlayerTier;
+                                            setTier(nextTier);
+                                            setTierPlacements(nextTier === 'SIN TIER' ? 0 : Math.max(1, tierPlacements));
+                                        }}
+                                    >
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            {playerTiers.map(playerTier => <SelectItem key={playerTier} value={playerTier}>{playerTier}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Placements</Label>
+                                    <Input
+                                        type="number"
+                                        min={tier === 'SIN TIER' ? 0 : 1}
+                                        disabled={tier === 'SIN TIER'}
+                                        value={tierPlacements}
+                                        onChange={(e) => setTierPlacements(Number(e.target.value))}
+                                    />
+                                </div>
                                 <div className="space-y-2">
                                     <Label>Altura (cm)</Label>
                                     <Input type="number" value={height} onChange={(e) => setHeight(e.target.value === '' ? '' : Number(e.target.value))} />
@@ -180,36 +202,6 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    {/* Habilidades */}
-                    <div className="space-y-4">
-                        <h3 className="text-sm font-bold text-primary uppercase tracking-widest flex items-center gap-2">
-                            <Check className="h-4 w-4" /> Habilidades del Jugador
-                        </h3>
-                        <Popover open={skillsPopoverOpen} onOpenChange={setSkillsPopoverOpen}>
-                            <PopoverTrigger asChild>
-                                <Button variant="outline" className="w-full justify-between h-auto min-h-10 text-left">
-                                    <div className="flex gap-1 flex-wrap">
-                                        {skills.length > 0 ? skills.map(s => <Badge key={s} variant="secondary" className="text-[10px]">{s}</Badge>) : <span className="text-muted-foreground text-xs font-normal">Seleccionar habilidades...</span>}
-                                    </div>
-                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                <Command>
-                                    <CommandInput placeholder="Buscar habilidad..." />
-                                    <CommandList>
-                                        <CommandEmpty>No encontrada.</CommandEmpty>
-                                        {playerSkillsList.map(s => (
-                                            <CommandItem key={s} value={s} onSelect={() => handleSkillToggle(s)}>
-                                                <Check className={cn("mr-2 h-4 w-4", skills.includes(s) ? "opacity-100" : "opacity-0")} />{s}
-                                            </CommandItem>
-                                        ))}
-                                    </CommandList>
-                                </Command>
-                            </PopoverContent>
-                        </Popover>
                     </div>
 
                     {/* Otras cartas del jugador */}
@@ -279,37 +271,12 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
                       </div>
                     )}
 
-                    {/* Stats panel */}
-                    <div className="space-y-4">
-                        <h3 className="text-sm font-bold text-primary uppercase tracking-widest flex items-center gap-2">
-                            <SlidersHorizontal className="h-4 w-4" /> Atributos Técnicos (Stats)
-                        </h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border border-primary/10 rounded-lg p-4">
-                            {statFields.map(cat => (
-                                <div key={cat.category} className="space-y-1">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground pb-1 border-b border-border">{cat.category}</p>
-                                    {cat.fields.map(f => (
-                                        <div key={f.name} className="flex items-center gap-1.5 hover:bg-muted/50 p-1 rounded transition-colors">
-                                            <span className="text-xs flex-1 truncate text-foreground">{f.label}</span>
-                                            <Input
-                                                type="number"
-                                                value={(stats as any)[f.name] ?? ''}
-                                                onChange={(e) => handleStatChange(f.name, e.target.value)}
-                                                className="h-7 w-16 text-xs text-right px-2 tabular-nums"
-                                                min={0} max={99}
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
                 </div>
             </ScrollArea>
         </div>
 
         <DialogFooter className="p-6 border-t bg-background">
-          <Button onClick={handleSave} className="w-full md:w-auto px-10">Guardar Cambios</Button>
+          <Button onClick={handleSave} disabled={cardName.trim().length < 2} className="w-full md:w-auto px-10">Guardar Cambios</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

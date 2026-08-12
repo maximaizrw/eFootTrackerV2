@@ -21,7 +21,6 @@ import { AddRatingDialog, type FormValues as AddRatingFormValues } from '@/compo
 import { AddPlayerDialog, type AddPlayerFormValues } from '@/components/add-player-dialog';
 import { EditCardDialog, type FormValues as EditCardFormValues } from '@/components/edit-card-dialog';
 import { EditPlayerDialog, type FormValues as EditPlayerFormValues } from '@/components/edit-player-dialog';
-import { EditStatsDialog } from '@/components/edit-stats-dialog';
 import { AddFormationDialog } from '@/components/add-formation-dialog';
 import { EditFormationDialog } from '@/components/edit-formation-dialog';
 import { AddMatchDialog, type AddMatchFormValues } from '@/components/add-match-dialog';
@@ -63,7 +62,6 @@ export default function Home() {
     editPlayer,
     deleteRating,
     downloadBackup: downloadPlayersBackup,
-    saveAttributeStats,
     deletePositionRatings,
     updateLiveUpdateRating,
     updatePermanentLiveUpdateRating,
@@ -90,7 +88,6 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<string>('DC');
   const [searchTerm, setSearchTerm] = useState('');
   const [styleFilter, setStyleFilter] = useState<string>('all');
-  const [cardFilter, setCardFilter] = useState<string>('all');
   const [listSortCriteria, setListSortCriteria] = useState<ListSortCriteria>('overall');
   
   const [isAddRatingDialogOpen, setAddRatingDialogOpen] = useState(false);
@@ -100,7 +97,6 @@ export default function Home() {
   const [isAddMatchDialogOpen, setAddMatchDialogOpen] = useState(false);
   const [isEditCardDialogOpen, setEditCardDialogOpen] = useState(false);
   const [isEditPlayerDialogOpen, setEditPlayerDialogOpen] = useState(false);
-  const [isEditStatsDialogOpen, setEditStatsDialogOpen] = useState(false);
   const [isPlayerDetailDialogOpen, setPlayerDetailDialogOpen] = useState(false);
   const [isImageViewerOpen, setImageViewerOpen] = useState(false);
 
@@ -111,7 +107,6 @@ export default function Home() {
   const [editCardDialogInitialData, setEditCardDialogInitialData] = useState<EditCardFormValues | undefined>(undefined);
   const [editPlayerDialogInitialData, setEditPlayerDialogInitialData] = useState<Partial<EditPlayerFormValues> | undefined>(undefined);
   const [editFormationDialogInitialData, setEditFormationDialogInitialData] = useState<FormationStats | undefined>(undefined);
-  const [editStatsDialogInitialData, setEditStatsDialogInitialData] = useState<{ player: Player, card: PlayerCardType } | undefined>(undefined);
   const [selectedFlatPlayer, setSelectedFlatPlayer] = useState<FlatPlayer | null>(null);
   
   const [selectedFormationId, setSelectedFormationId] = useState<string | undefined>(undefined);
@@ -229,11 +224,6 @@ export default function Home() {
       permanentLiveUpdateRating: player.permanentLiveUpdateRating,
     });
     setEditPlayerDialogOpen(true);
-  }, []);
-
-  const handleOpenEditStats = useCallback((player: Player, card: PlayerCardType) => {
-    setEditStatsDialogInitialData({ player, card });
-    setEditStatsDialogOpen(true);
   }, []);
 
   const handleOpenPlayerDetail = useCallback((flatPlayer: FlatPlayer) => {
@@ -354,7 +344,6 @@ export default function Home() {
     setActiveTab(value);
     setSearchTerm('');
     setStyleFilter('all');
-    setCardFilter('all');
   }, []);
 
   const handlePageChange = useCallback((position: Position, direction: 'next' | 'prev') => {
@@ -372,8 +361,7 @@ export default function Home() {
         grouped[pos] = positionPlayers.filter(({ player, card }) => {
             const searchMatch = normalizeText(player.name).includes(normalizeText(searchTerm));
             const styleMatch = styleFilter === 'all' || card.style === styleFilter;
-            const cardMatch = cardFilter === 'all' || card.name === cardFilter;
-            return searchMatch && styleMatch && cardMatch;
+            return searchMatch && styleMatch;
         }).sort((a, b) => {
           if (listSortCriteria === 'confidence') {
             if (Math.abs(b.confidenceScore - a.confidenceScore) > 0.01) return b.confidenceScore - a.confidenceScore;
@@ -393,20 +381,17 @@ export default function Home() {
         });
     }
     return grouped;
-  }, [flatPlayers, searchTerm, styleFilter, cardFilter, listSortCriteria]);
+  }, [flatPlayers, searchTerm, styleFilter, listSortCriteria]);
 
   const uniqueFiltersByPosition = useMemo(() => {
-    const filters: Record<string, { uniqueStyles: string[], uniqueCardNames: string[] }> = {};
+    const filters: Record<string, { uniqueStyles: string[] }> = {};
     for (const pos of positions) {
       const allPositionalStyles = new Set<string>();
-      const allPositionalCards = new Set<string>();
       flatPlayers.filter(p => p.position === pos).forEach(p => {
         allPositionalStyles.add(p.card.style);
-        allPositionalCards.add(p.card.name);
       });
       filters[pos] = {
         uniqueStyles: ['all', ...Array.from(allPositionalStyles)],
-        uniqueCardNames: ['all', ...Array.from(allPositionalCards)],
       };
     }
     return filters;
@@ -507,12 +492,6 @@ export default function Home() {
         onEditPlayer={editPlayer}
         initialData={editPlayerDialogInitialData}
       />
-      <EditStatsDialog
-        open={isEditStatsDialogOpen}
-        onOpenChange={setEditStatsDialogOpen}
-        onSaveStats={saveAttributeStats}
-        initialData={editStatsDialogInitialData}
-      />
       <PlayerDetailDialog
         open={isPlayerDetailDialogOpen}
         onOpenChange={setPlayerDetailDialogOpen}
@@ -596,7 +575,7 @@ export default function Home() {
             const currentPage = pagination[pos] || 0;
             const paginatedPlayers = filteredPlayerList.slice(currentPage * ITEMS_PER_PAGE, (currentPage + 1) * ITEMS_PER_PAGE);
             const totalPages = Math.ceil(filteredPlayerList.length / ITEMS_PER_PAGE);
-            const { uniqueStyles, uniqueCardNames } = uniqueFiltersByPosition[pos] || { uniqueStyles: ['all'], uniqueCardNames: ['all'] };
+            const { uniqueStyles } = uniqueFiltersByPosition[pos] || { uniqueStyles: ['all'] };
 
             return (
               <TabsContent key={pos} value={pos} className="mt-6">
@@ -607,10 +586,7 @@ export default function Home() {
                           onSearchTermChange={setSearchTerm}
                           styleFilter={styleFilter}
                           onStyleFilterChange={setStyleFilter}
-                          cardFilter={cardFilter}
-                          onCardFilterChange={setCardFilter}
                           uniqueStyles={uniqueStyles}
-                          uniqueCardNames={uniqueCardNames}
                           sortCriteria={listSortCriteria}
                           onSortCriteriaChange={setListSortCriteria}
                           filteredPlayers={filteredPlayerList}
@@ -621,9 +597,7 @@ export default function Home() {
                       position={pos}
                       onOpenAddRating={handleOpenAddRating}
                       onOpenAddPosition={handleOpenAddPosition}
-                      onOpenEditCard={handleOpenEditCard}
                       onOpenEditPlayer={handleOpenEditPlayer}
-                      onOpenEditStats={handleOpenEditStats}
                       onOpenPlayerDetail={handleOpenPlayerDetail}
                       onViewImage={handleViewImage}
                       onDeletePositionRatings={deletePositionRatings}

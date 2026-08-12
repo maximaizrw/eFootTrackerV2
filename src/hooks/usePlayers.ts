@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase-config';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, setDoc } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import { v4 as uuidv4 } from 'uuid';
-import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating, PlayerSkill, PlayerAttributeStats, PhysicalAttribute, Nationality, League, PlayerRatingEntry } from '@/lib/types';
+import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating, PhysicalAttribute, Nationality, League, PlayerRatingEntry } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import type { AddPlayerFormValues } from '@/components/add-player-dialog';
 import { getAvailableStylesForPosition, playerSkillsList } from '@/lib/types';
@@ -242,18 +242,9 @@ export function usePlayers() {
     if (!db) return null;
     const {
       playerName, efhubUrl, cardName, imageUrl, nationality, style, league, tier, tierPlacements,
-      tierlistUrl, height, weight, skills, playerId, ratingEntries,
-      ...statFields
+      height, weight, playerId, ratingEntries,
     } = values;
     const trimmedEfhubUrl = typeof efhubUrl === 'string' ? efhubUrl.trim() : '';
-
-    const attributeStats: PlayerAttributeStats = {};
-    for (const [key, val] of Object.entries(statFields)) {
-      const numericValue = Number(val);
-      if (val !== undefined && val !== null && Number.isFinite(numericValue)) {
-        (attributeStats as any)[key] = numericValue;
-      }
-    }
 
     const ratingsByPosition: { [key: string]: number[] } = {};
     const ratingEntriesByPosition: { [key: string]: PlayerRatingEntry[] } = {};
@@ -293,14 +284,12 @@ export function usePlayers() {
       tierUpdatedAtByPosition,
       league: league || 'Sin Liga',
       imageUrl: imageUrl || '',
-      tierlistUrl: tierlistUrl || '',
+      tierlistUrl: trimmedEfhubUrl,
       ratingsByPosition,
       likesByPosition: {},
       ratingEntriesByPosition,
     };
-    if (Object.keys(attributeStats).length > 0) newCard.attributeStats = attributeStats;
     if (height || weight) newCard.physicalAttributes = { ...(height ? { height } : {}), ...(weight ? { weight } : {}) };
-    if (skills && skills.length > 0) newCard.skills = skills;
 
     const stripInvalidFirestoreValues = (obj: any): any => {
       if (Array.isArray(obj)) return obj.map(stripInvalidFirestoreValues);
@@ -319,9 +308,13 @@ export function usePlayers() {
         const existingPlayer = players.find(p => p.id === playerId);
         if (existingPlayer) {
           const playerRef = doc(db, 'players', existingPlayer.id);
+          const sharedLink = trimmedEfhubUrl || existingPlayer.efhubUrl || '';
           await updateDoc(playerRef, stripInvalidFirestoreValues({
-            cards: [...existingPlayer.cards, newCard],
-            ...(trimmedEfhubUrl ? { efhubUrl: trimmedEfhubUrl } : {}),
+            cards: [
+              ...existingPlayer.cards.map(card => ({ ...card, tierlistUrl: sharedLink })),
+              { ...newCard, tierlistUrl: sharedLink },
+            ],
+            efhubUrl: sharedLink,
           }));
           toast({ title: "Carta agregada", description: `Vinculada a ${existingPlayer.name}.` });
           return existingPlayer.id;
@@ -357,10 +350,12 @@ export function usePlayers() {
 
   const updateFullPlayerData = async (playerId: string, cardId: string, position: Position, data: {
     imageUrl?: string;
-    tierlistUrl?: string;
-    stats: PlayerAttributeStats;
+    efhubUrl?: string;
+    cardName: string;
+    style: PlayerCard['style'];
+    tier: NonNullable<PlayerCard['tier']>;
+    tierPlacements: number;
     physical: PhysicalAttribute;
-    skills: PlayerSkill[];
     nationality?: Nationality;
     league?: League;
   }) => {
@@ -384,23 +379,40 @@ export function usePlayers() {
       };
 
       const playerData = playerDoc.data() as Player;
+      const now = new Date().toISOString();
+      const sharedLink = typeof data.efhubUrl === 'string' ? data.efhubUrl.trim() : '';
       const newCards = playerData.cards.map(card => {
         if (card.id === cardId) {
+          const previousTier = normalizePlayerTier(card.tierByPosition?.[position] ?? card.tier);
+          const previousTierPlacements = normalizeTierPlacements(
+            previousTier,
+            card.tierPlacementsByPosition?.[position] ?? card.tierPlacements,
+          );
+          const tier = normalizePlayerTier(data.tier);
+          const tierPlacements = normalizeTierPlacements(tier, data.tierPlacements);
           const updatedCard: any = {
             ...card,
+            name: data.cardName,
+            style: data.style,
             imageUrl: data.imageUrl || card.imageUrl,
-            tierlistUrl: data.tierlistUrl ?? card.tierlistUrl,
-            attributeStats: data.stats,
+            tierlistUrl: sharedLink,
             physicalAttributes: data.physical,
-            skills: data.skills,
             league: data.league || card.league,
+            tierByPosition: { ...(card.tierByPosition || {}), [position]: tier },
+            tierPlacementsByPosition: { ...(card.tierPlacementsByPosition || {}), [position]: tierPlacements },
+            tierUpdatedAtByPosition: { ...(card.tierUpdatedAtByPosition || {}), [position]: now },
           };
+          if (previousTier !== tier || previousTierPlacements !== tierPlacements) {
+            const tierReviewDelayDaysByPosition = { ...(card.tierReviewDelayDaysByPosition || {}) };
+            delete tierReviewDelayDaysByPosition[position];
+            updatedCard.tierReviewDelayDaysByPosition = tierReviewDelayDaysByPosition;
+          }
           return stripUndefined(updatedCard);
         }
-        return card;
+        return { ...card, tierlistUrl: sharedLink };
       });
 
-      const updatePayload: any = { cards: newCards };
+      const updatePayload: any = { cards: newCards, efhubUrl: sharedLink };
       if (data.nationality) {
         updatePayload.nationality = data.nationality;
       }
@@ -513,9 +525,13 @@ export function usePlayers() {
       const playerDoc = await getDoc(playerRef);
       const playerData = playerDoc.data() as Player;
       const now = new Date().toISOString();
-      const efhubUrl = typeof values.efhubUrl === 'string' ? values.efhubUrl.trim() : '';
+      const sharedLink = typeof values.tierlistUrl === 'string'
+        ? values.tierlistUrl.trim()
+        : typeof values.efhubUrl === 'string'
+          ? values.efhubUrl.trim()
+          : '';
       const newCards = playerData.cards.map(c => {
-        if (c.id !== values.cardId) return c;
+        if (c.id !== values.cardId) return { ...c, tierlistUrl: sharedLink };
 
         const updatedCard: PlayerCard = {
           ...c,
@@ -523,7 +539,7 @@ export function usePlayers() {
           style: values.currentStyle,
           league: values.league,
           imageUrl: values.imageUrl,
-          tierlistUrl: values.tierlistUrl,
+          tierlistUrl: sharedLink,
           trainedPosition: values.trainedPosition ?? null,
         };
 
@@ -569,7 +585,7 @@ export function usePlayers() {
 
         return updatedCard;
       });
-      await updateDoc(playerRef, { cards: newCards, efhubUrl });
+      await updateDoc(playerRef, { cards: newCards, efhubUrl: sharedLink });
       toast({ title: "Carta actualizada" });
     } catch (e) {}
   };
@@ -591,9 +607,14 @@ export function usePlayers() {
     if (!db) return;
     try {
       const efhubUrl = typeof values.efhubUrl === 'string' ? values.efhubUrl.trim() : '';
-      await updateDoc(doc(db, 'players', values.playerId), {
+      const playerRef = doc(db, 'players', values.playerId);
+      const playerDoc = await getDoc(playerRef);
+      if (!playerDoc.exists()) return;
+      const playerData = playerDoc.data() as Player;
+      await updateDoc(playerRef, {
         name: values.currentPlayerName,
         efhubUrl,
+        cards: playerData.cards.map(card => ({ ...card, tierlistUrl: efhubUrl })),
         nationality: values.nationality,
         permanentLiveUpdateRating: values.permanentLiveUpdateRating,
       });
@@ -679,26 +700,10 @@ export function usePlayers() {
     return snap.docs.map(d => ({ id: d.id, ...d.data() }));
   };
 
-  const saveAttributeStats = async (playerId: string, cardId: string, stats: any, physical: any, skills: any) => {
-    if (!db) return;
-    try {
-      const playerRef = doc(db, 'players', playerId);
-      const playerDoc = await getDoc(playerRef);
-      const playerData = playerDoc.data() as Player;
-      const newCards = playerData.cards.map(c => 
-        c.id === cardId ? { ...c, attributeStats: stats, physicalAttributes: physical, skills: skills } : c
-      );
-      await updateDoc(playerRef, { cards: newCards });
-      toast({ title: "Atributos guardados" });
-    } catch (e) {}
-  };
-
-
-
   return {
     players, flatPlayers, positionNotes, loading, error,
     addRating, addPlayer, savePositionNote,
     deletePositionRatings, updateLiveUpdateRating, updatePermanentLiveUpdateRating, resetAllLiveUpdateRatings,
-    editCard, editPlayer, markTierlistReviewed, deleteRating, downloadBackup, saveAttributeStats, updateFullPlayerData, updateLike, updateTrainedPosition
+    editCard, editPlayer, markTierlistReviewed, deleteRating, downloadBackup, updateFullPlayerData, updateLike, updateTrainedPosition
   };
 }

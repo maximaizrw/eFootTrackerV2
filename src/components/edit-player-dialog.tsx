@@ -105,7 +105,7 @@ export function EditPlayerDialog({ open, onOpenChange, onEditPlayer, initialData
               name="efhubUrl"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Link de eFHUB</FormLabel>
+                  <FormLabel>Link de eFHUB / Tierlist</FormLabel>
                   <FormControl>
                     <Input
                       type="url"

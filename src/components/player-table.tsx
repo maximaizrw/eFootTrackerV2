@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, Search, Dumbbell, Copy, CheckCircle2, History, X, ThumbsUp, ThumbsDown, MapPin, ShieldCheck, TrendingUp, AlertTriangle, TrendingDown, Sparkles, Gauge, Pencil } from 'lucide-react';
+import { PlusCircle, Trash2, Search, Copy, CheckCircle2, History, X, ThumbsUp, ThumbsDown, MapPin, ShieldCheck, TrendingUp, AlertTriangle, TrendingDown, Sparkles, Gauge, Pencil } from 'lucide-react';
 import { cn, formatAverage, getAverageColorClass, getPlayerTierBonus, getProxiedImageUrl, isPlayerTierStale, normalizeTierPlacements } from '@/lib/utils';
 import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating, PerformanceTag } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
@@ -38,9 +38,7 @@ type PlayerTableProps = {
   position: Position;
   onOpenAddRating: (initialData?: Partial<AddRatingFormValues>) => void;
   onOpenAddPosition: (player: Player, card: PlayerCard) => void;
-  onOpenEditCard: (player: Player, card: PlayerCard, position?: Position) => void;
   onOpenEditPlayer: (player: Player) => void;
-  onOpenEditStats: (player: Player, card: PlayerCard) => void;
   onOpenPlayerDetail: (flatPlayer: FlatPlayer) => void;
   onViewImage: (url: string, name: string) => void;
   onDeletePositionRatings: (playerId: string, cardId: string, position: Position) => void;
@@ -85,10 +83,7 @@ const Filters = memo(({
   onSearchTermChange,
   styleFilter,
   onStyleFilterChange,
-  cardFilter,
-  onCardFilterChange,
   uniqueStyles,
-  uniqueCardNames,
   sortCriteria,
   onSortCriteriaChange,
   filteredPlayers,
@@ -134,13 +129,6 @@ const Filters = memo(({
                   {uniqueStyles.map((s: string) => <SelectItem key={s} value={s}>{s === 'all' ? 'Todos los Estilos' : s}</SelectItem>)}
               </SelectContent>
           </Select>
-          <Select value={cardFilter} onValueChange={onCardFilterChange}>
-              <SelectTrigger className="w-full md:w-[180px]"><SelectValue placeholder="Carta" /></SelectTrigger>
-              <SelectContent>
-                  {uniqueCardNames.map((n: string) => <SelectItem key={n} value={n}>{n === 'all' ? 'Todas las Cartas' : n}</SelectItem>)}
-              </SelectContent>
-          </Select>
-          
           <div className="flex items-center gap-2 ml-auto">
               <Button 
                 variant="outline" 
@@ -184,9 +172,7 @@ const PlayerTableMemo = memo(function PlayerTable({
   position,
   onOpenAddRating,
   onOpenAddPosition,
-  onOpenEditCard,
   onOpenEditPlayer,
-  onOpenEditStats,
   onOpenPlayerDetail,
   onViewImage,
   onDeletePositionRatings,
@@ -350,8 +336,7 @@ const PlayerTableMemo = memo(function PlayerTable({
                   <div className="flex items-center justify-end gap-1">
                     <Button variant="ghost" size="icon" onClick={() => onOpenAddRating({ playerId: player.id, playerName: player.name, cardName: card.name, position, style: card.style } as any)}><PlusCircle className="h-4 w-4 text-primary" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => onOpenAddPosition(player, card)} title="Agregar en otra posición"><MapPin className="h-4 w-4 text-muted-foreground" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => onOpenEditCard(player, card, position)} title="Editar carta"><Pencil className="h-4 w-4 text-muted-foreground" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => onOpenPlayerDetail(flatPlayer)} title="Ficha Completa"><Dumbbell className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => onOpenPlayerDetail(flatPlayer)} title="Editar ficha"><Pencil className="h-4 w-4 text-muted-foreground" /></Button>
                     <AlertDialog>
                         <AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button></AlertDialogTrigger>
                         <AlertDialogContent>
