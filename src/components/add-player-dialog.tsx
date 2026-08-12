@@ -43,7 +43,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
@@ -56,7 +55,6 @@ import {
   type Player,
   type Nationality,
   type PlayerStyle,
-  type PlayerTier,
   type League,
   type Position,
 } from "@/lib/types";
@@ -69,8 +67,6 @@ const formSchema = z.object({
   imageUrl: z.string().min(1, "La imagen es requerida."),
   nationality: z.enum(nationalities).optional(),
   style: z.enum(playerStyles).optional(),
-  tier: z.enum(playerTiers).optional(),
-  tierPlacements: z.coerce.number().int().min(0).optional(),
   league: z.enum(leagues).optional(),
   ratingEntries: z.array(z.object({
     position: z.enum(positions),
@@ -81,14 +77,6 @@ const formSchema = z.object({
   height: z.coerce.number().min(100).max(230).optional(),
   weight: z.coerce.number().min(40).max(150).optional(),
 }).superRefine((values, ctx) => {
-  if (values.tier && values.tier !== "SIN TIER" && (!values.tierPlacements || values.tierPlacements < 1)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["tierPlacements"],
-      message: "Debe ser al menos 1 para un tier asignado.",
-    });
-  }
-
   values.ratingEntries?.forEach((entry, index) => {
     if (entry.tier && entry.tier !== "SIN TIER" && (!entry.tierPlacements || entry.tierPlacements < 1)) {
       ctx.addIssue({
@@ -122,8 +110,6 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
       imageUrl: "",
       nationality: "Sin Nacionalidad",
       style: "Ninguno",
-      tier: "SIN TIER",
-      tierPlacements: 0,
       league: "Sin Liga",
       ratingEntries: [],
     },
@@ -135,7 +121,6 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
   });
 
   const watchedEntries = form.watch("ratingEntries") || [];
-  const watchedTier = form.watch("tier") || "SIN TIER";
   const playerIdValue = form.watch("playerId");
   const isExistingPlayer = !!playerIdValue;
 
@@ -149,8 +134,6 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
         imageUrl: "",
         nationality: "Sin Nacionalidad" as Nationality,
         style: "Ninguno" as PlayerStyle,
-        tier: "SIN TIER" as PlayerTier,
-        tierPlacements: 0,
         league: "Sin Liga" as League,
         ratingEntries: [],
       });
@@ -173,12 +156,11 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0">
             <Tabs defaultValue="ficha" className="flex flex-col flex-1 min-h-0">
-              <TabsList className="grid grid-cols-3 mb-4">
+              <TabsList className="grid grid-cols-2 mb-4">
                 <TabsTrigger value="ficha">Ficha</TabsTrigger>
                 <TabsTrigger value="posiciones">
                   Posiciones{ratingFields.length > 0 && <span className="ml-1 text-primary font-bold">({ratingFields.length})</span>}
                 </TabsTrigger>
-                <TabsTrigger value="atributos">Físico</TabsTrigger>
               </TabsList>
 
               {/* ── TAB 1: FICHA ── */}
@@ -273,7 +255,7 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
                     name="efhubUrl"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Link de eFHUB / Tierlist</FormLabel>
+                        <FormLabel>Link de eFHUB</FormLabel>
                         <FormControl>
                           <Input
                             type="url"
@@ -361,54 +343,6 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
 
                   <FormField
                     control={form.control}
-                    name="tier"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tier base de Carta</FormLabel>
-                        <Select
-                          onValueChange={(value) => {
-                            field.onChange(value);
-                            form.setValue("tierPlacements", value === "SIN TIER" ? 0 : Math.max(1, form.getValues("tierPlacements") || 1), { shouldValidate: true });
-                          }}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {playerTiers.map((tier) => (
-                              <SelectItem key={tier} value={tier}>{tier}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="tierPlacements"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Placements que validan el tier</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min={watchedTier === "SIN TIER" ? 0 : 1}
-                            step={1}
-                            disabled={watchedTier === "SIN TIER"}
-                            {...field}
-                            value={field.value ?? 0}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
                     name="league"
                     render={({ field }) => (
                       <FormItem>
@@ -427,6 +361,35 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
                       </FormItem>
                     )}
                   />
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormField
+                      control={form.control}
+                      name="height"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Altura (cm)</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="180" {...field} value={field.value ?? ""} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="weight"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Peso (kg)</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="75" {...field} value={field.value ?? ""} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
               </TabsContent>
 
@@ -558,7 +521,7 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
                     type="button"
                     variant="outline"
                     className="w-full"
-                    onClick={() => appendRating({ position: "DC", rating: 5, tier: watchedTier, tierPlacements: form.getValues("tierPlacements") || 0 })}
+                    onClick={() => appendRating({ position: "DC", rating: 5, tier: "SIN TIER", tierPlacements: 0 })}
                   >
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Agregar Posición
@@ -566,44 +529,6 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
                 </div>
               </TabsContent>
 
-              {/* ── TAB 3: ATRIBUTOS ── */}
-              <TabsContent value="atributos" className="flex-1 overflow-auto">
-                <ScrollArea className="h-[360px] pr-4">
-                  <div className="space-y-5">
-                    <div>
-                      <p className="text-sm font-medium mb-3 text-muted-foreground">Físico</p>
-                      <div className="grid grid-cols-2 gap-3">
-                        <FormField
-                          control={form.control}
-                          name="height"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Altura (cm)</FormLabel>
-                              <FormControl>
-                                <Input type="number" placeholder="180" {...field} value={field.value ?? ""} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="weight"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Peso (kg)</FormLabel>
-                              <FormControl>
-                                <Input type="number" placeholder="75" {...field} value={field.value ?? ""} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </ScrollArea>
-              </TabsContent>
             </Tabs>
 
             <DialogFooter className="pt-4 border-t mt-4">

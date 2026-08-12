@@ -46,8 +46,8 @@ export type League = typeof leagues[number];
 export const nationalities = [
   'Sin Nacionalidad', 'Argentina', 'Brasil', 'Francia', 'Alemania', 'Inglaterra',
   'España', 'Italia', 'Países Bajos', 'Portugal', 'Bélgica', 'Uruguay',
-  'Colombia', 'Croacia', 'Japón', 'Corea del Sur', 'Nigeria', 'Senegal',
-  'Marruecos', 'México', 'EE. UU.', 'Chile', 'Turquía', 'Polonia', 'Suecia',
+  'Colombia', 'Ecuador', 'Croacia', 'Japón', 'Corea del Sur', 'Nigeria', 'Senegal',
+  'Marruecos', 'México', 'EE. UU.', 'Canadá', 'Chile', 'Turquía', 'Polonia', 'Suecia',
   'Noruega', 'Dinamarca', 'Suiza', 'Austria', 'Serbia', 'Costa de Marfil',
   'Ghana', 'Egipto', 'Camerún', 'República Checa', 'Escocia', 'Irlanda',
   'Gales', 'Rumanía', 'Rusia'

@@ -241,7 +241,7 @@ export function usePlayers() {
   const addPlayer = async (values: AddPlayerFormValues): Promise<string | null> => {
     if (!db) return null;
     const {
-      playerName, efhubUrl, cardName, imageUrl, nationality, style, league, tier, tierPlacements,
+      playerName, efhubUrl, cardName, imageUrl, nationality, style, league,
       height, weight, playerId, ratingEntries,
     } = values;
     const trimmedEfhubUrl = typeof efhubUrl === 'string' ? efhubUrl.trim() : '';
@@ -254,8 +254,8 @@ export function usePlayers() {
     const now = new Date().toISOString();
     if (ratingEntries && ratingEntries.length > 0) {
       for (const entry of ratingEntries) {
-        const entryTier = normalizePlayerTier((entry as any).tier || tier);
-        const entryTierPlacements = normalizeTierPlacements(entryTier, (entry as any).tierPlacements ?? tierPlacements);
+        const entryTier = normalizePlayerTier(entry.tier);
+        const entryTierPlacements = normalizeTierPlacements(entryTier, entry.tierPlacements);
 
         if (!ratingsByPosition[entry.position]) ratingsByPosition[entry.position] = [];
         ratingsByPosition[entry.position].push(entry.rating);
@@ -276,9 +276,6 @@ export function usePlayers() {
       id: uuidv4(),
       name: cardName,
       style: style || 'Ninguno',
-      tier: normalizePlayerTier(tier),
-      tierPlacements: normalizeTierPlacements(tier, tierPlacements),
-      tierUpdatedAt: now,
       tierByPosition,
       tierPlacementsByPosition,
       tierUpdatedAtByPosition,
