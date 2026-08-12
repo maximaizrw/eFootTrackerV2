@@ -4,65 +4,65 @@
 
 @layer base {
   :root {
-    --background: 0 0% 98%; /* Light Gray */
-    --foreground: 240 10% 3.9%; /* Dark Blue/Black */
+    --background: 228 43% 97%;
+    --foreground: 232 55% 12%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --card: 225 50% 99%;
+    --card-foreground: 232 55% 12%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
+    --popover: 225 50% 99%;
+    --popover-foreground: 232 55% 12%;
 
-    --primary: 210 100% 50%; /* Bright Blue */
-    --primary-foreground: 0 0% 98%;
+    --primary: 184 100% 42%;
+    --primary-foreground: 232 70% 8%;
 
-    --secondary: 0 0% 94%;
-    --secondary-foreground: 240 10% 3.9%;
+    --secondary: 228 36% 93%;
+    --secondary-foreground: 232 55% 15%;
 
-    --muted: 0 0% 94%;
-    --muted-foreground: 240 5% 45%;
+    --muted: 228 32% 93%;
+    --muted-foreground: 229 18% 42%;
 
-    --accent: 24 94% 50%; /* Bright Orange */
-    --accent-foreground: 0 0% 98%;
+    --accent: 309 100% 48%;
+    --accent-foreground: 230 50% 98%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 210 100% 50%;
+    --border: 228 28% 86%;
+    --input: 228 30% 89%;
+    --ring: 184 100% 42%;
 
     --radius: 0.75rem;
   }
 
   .dark {
-    --background: 240 10% 3.9%; /* Deep Dark Blue/Black */
-    --foreground: 0 0% 98%; /* Almost White */
+    --background: 238 78% 8%;
+    --foreground: 190 45% 96%;
 
-    --card: 240 10% 8%;
-    --card-foreground: 0 0% 98%;
+    --card: 237 55% 11%;
+    --card-foreground: 190 45% 96%;
 
-    --popover: 240 10% 8%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 237 48% 13%;
+    --popover-foreground: 190 45% 96%;
 
-    --primary: 90 100% 50%; /* Electric Green */
-    --primary-foreground: 90 100% 10%;
+    --primary: 182 100% 48%;
+    --primary-foreground: 238 80% 7%;
 
-    --secondary: 240 5% 12%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 235 37% 16%;
+    --secondary-foreground: 190 45% 96%;
 
-    --muted: 240 5% 12%;
-    --muted-foreground: 0 0% 65%;
+    --muted: 235 34% 15%;
+    --muted-foreground: 224 20% 67%;
 
-    --accent: 320 100% 50%; /* Electric Fuchsia/Pink */
-    --accent-foreground: 0 0% 98%;
+    --accent: 309 100% 52%;
+    --accent-foreground: 230 50% 98%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 5% 15%;
-    --input: 240 5% 15%;
-    --ring: 90 100% 50%;
+    --border: 230 38% 22%;
+    --input: 236 42% 12%;
+    --ring: 182 100% 48%;
   }
 }
 
@@ -72,6 +72,19 @@
   }
   body {
     @apply bg-background text-foreground;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(circle at 12% -8%, hsl(var(--primary) / 0.12), transparent 26rem),
+      radial-gradient(circle at 92% 4%, hsl(var(--accent) / 0.09), transparent 28rem),
+      linear-gradient(hsl(var(--foreground) / 0.018) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--foreground) / 0.018) 1px, transparent 1px);
+    background-size: auto, auto, 48px 48px, 48px 48px;
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.28);
+    color: hsl(var(--foreground));
   }
 }
 
@@ -79,6 +92,60 @@
   /* This is to make the tabs list scrollable on mobile */
   [role="tablist"] {
     @apply flex-nowrap;
+  }
+
+  .app-header {
+    background: hsl(var(--background) / 0.82);
+    box-shadow: inset 0 -1px 0 hsl(var(--primary) / 0.08);
+  }
+
+  .brand-mark {
+    position: relative;
+    display: grid;
+    width: 2.35rem;
+    height: 2.35rem;
+    place-items: center;
+    border: 1px solid hsl(var(--primary) / 0.46);
+    border-radius: 50%;
+    color: hsl(var(--primary));
+  }
+
+  .brand-mark > span {
+    position: relative;
+    z-index: 1;
+  }
+
+  .brand-mark::before,
+  .brand-mark::after {
+    content: "";
+    position: absolute;
+    background: currentColor;
+  }
+
+  .brand-mark::before {
+    width: 70%;
+    height: 1px;
+  }
+
+  .brand-mark::after {
+    width: 0.55rem;
+    height: 0.55rem;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    background: hsl(var(--background));
+  }
+
+  .brand-e {
+    font-family: Bahnschrift, "DIN Alternate", "Arial Narrow", sans-serif;
+    font-size: 0.72rem;
+    font-weight: 800;
+    transform: translateX(-0.85rem);
+  }
+
+  .accent-rule {
+    height: 2px;
+    background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent)) 72%, transparent);
+    opacity: 0.85;
   }
 
   /* Formation editor pitch token pulse for selected state */
@@ -89,5 +156,16 @@
   /* Smooth token drag shadow */
   .formation-editor-pitch .cursor-grabbing * {
     cursor: grabbing !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

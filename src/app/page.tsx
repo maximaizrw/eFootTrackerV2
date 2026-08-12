@@ -533,9 +533,17 @@ export default function Home() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <header className="sticky top-0 z-10 bg-background/70 backdrop-blur-md border-b">
+      <header className="app-header sticky top-0 z-10 border-b border-border/70 backdrop-blur-xl">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-          <h1 className="text-xl sm:text-3xl font-bold font-headline text-primary">eFootTracker</h1>
+          <div className="flex items-center gap-3">
+            <span className="brand-mark" aria-hidden="true"><span className="brand-e">e</span></span>
+            <div className="leading-none">
+              <h1 className="font-headline text-xl font-extrabold tracking-tight text-foreground sm:text-2xl">
+                eFoot<span className="text-primary">Tracker</span>
+              </h1>
+              <p className="mt-1 hidden text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground sm:block">Centro de rendimiento</p>
+            </div>
+          </div>
           <div className="flex items-center gap-2">
             <Button onClick={handleDownloadBackup} variant="outline" size="sm"><Download className="mr-0 sm:mr-2 h-4 w-4" /><span className="hidden sm:inline">Backup</span></Button>
             {activeTab === 'formations' ? (
@@ -545,11 +553,12 @@ export default function Home() {
             )}
           </div>
         </div>
+        <div className="accent-rule" />
       </header>
 
       <main className="container mx-auto p-4 md:p-8">
         <Tabs defaultValue="DC" className="w-full" onValueChange={handleTabChange} value={activeTab}>
-           <ScrollArea className="w-full whitespace-nowrap rounded-md border">
+           <ScrollArea className="w-full whitespace-nowrap rounded-md border border-border/70 bg-card/45">
             <TabsList className="inline-flex h-auto p-1">
               {positions.map((pos) => (
                 <TabsTrigger key={pos} value={pos} className="py-2 px-3 text-sm">

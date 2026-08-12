@@ -10,8 +10,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
-        headline: ['"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+        body: ['"Avenir Next"', 'Avenir', '"Segoe UI Variable"', 'sans-serif'],
+        headline: ['Bahnschrift', '"DIN Alternate"', '"Arial Narrow"', 'sans-serif'],
       },
       colors: {
         background: 'hsl(var(--background))',
