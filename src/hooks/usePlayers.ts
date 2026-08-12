@@ -308,7 +308,7 @@ export function usePlayers() {
           const sharedLink = trimmedEfhubUrl || existingPlayer.efhubUrl || '';
           await updateDoc(playerRef, stripInvalidFirestoreValues({
             cards: [
-              ...existingPlayer.cards.map(card => ({ ...card, tierlistUrl: sharedLink })),
+              ...existingPlayer.cards,
               { ...newCard, tierlistUrl: sharedLink },
             ],
             efhubUrl: sharedLink,
@@ -406,7 +406,7 @@ export function usePlayers() {
           }
           return stripUndefined(updatedCard);
         }
-        return { ...card, tierlistUrl: sharedLink };
+        return card;
       });
 
       const updatePayload: any = { cards: newCards, efhubUrl: sharedLink };
@@ -528,7 +528,7 @@ export function usePlayers() {
           ? values.efhubUrl.trim()
           : '';
       const newCards = playerData.cards.map(c => {
-        if (c.id !== values.cardId) return { ...c, tierlistUrl: sharedLink };
+        if (c.id !== values.cardId) return c;
 
         const updatedCard: PlayerCard = {
           ...c,
@@ -611,7 +611,7 @@ export function usePlayers() {
       await updateDoc(playerRef, {
         name: values.currentPlayerName,
         efhubUrl,
-        cards: playerData.cards.map(card => ({ ...card, tierlistUrl: efhubUrl })),
+        cards: playerData.cards,
         nationality: values.nationality,
         permanentLiveUpdateRating: values.permanentLiveUpdateRating,
       });
