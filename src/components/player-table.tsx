@@ -339,7 +339,7 @@ const PlayerTableMemo = memo(function PlayerTable({
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => onOpenAddRating({ playerId: player.id, playerName: player.name, cardName: card.name, position, style: defensiveStylePositions.includes(position) ? cardStyles.defensiveStyle : cardStyles.offensiveStyle } as any)}><PlusCircle className="h-4 w-4 text-primary" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => onOpenAddRating({ playerId: player.id, cardId: card.id, playerName: player.name, cardName: card.name, position, style: defensiveStylePositions.includes(position) ? cardStyles.defensiveStyle : cardStyles.offensiveStyle } as any)}><PlusCircle className="h-4 w-4 text-primary" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => onOpenAddPosition(player, card)} title="Agregar en otra posición"><MapPin className="h-4 w-4 text-muted-foreground" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => onOpenPlayerDetail(flatPlayer)} title="Editar ficha"><Pencil className="h-4 w-4 text-muted-foreground" /></Button>
                     <AlertDialog>

@@ -213,7 +213,7 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
                                         onSelect={() => {
                                           form.setValue("playerId", player.id, { shouldValidate: true });
                                           form.setValue("playerName", player.name, { shouldValidate: true });
-                                          form.setValue("efhubUrl", player.efhubUrl || "", { shouldValidate: true });
+                                          form.setValue("efhubUrl", "", { shouldValidate: true });
                                           form.setValue("nationality", player.nationality, { shouldValidate: true });
                                           setPlayerPopoverOpen(false);
                                         }}
@@ -258,7 +258,7 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
                     name="efhubUrl"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Link de eFHUB</FormLabel>
+                        <FormLabel>Link de eFHUB de esta carta</FormLabel>
                         <FormControl>
                           <Input
                             type="url"

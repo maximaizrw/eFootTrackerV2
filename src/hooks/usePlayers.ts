@@ -159,7 +159,7 @@ export function usePlayers() {
   }, [players]);
 
   const addRating = async (values: AddRatingFormValues) => {
-    let { playerName, cardName, position, rating, style, league, nationality, playerId, trainedPosition } = values as any;
+    let { playerName, cardName, cardId, position, rating, style, league, nationality, playerId, trainedPosition } = values as any;
     if (!db) return;
     
     const pos = position as Position;
@@ -182,7 +182,9 @@ export function usePlayers() {
         const playerDoc = await getDoc(playerRef);
         const playerData = playerDoc.data() as Player;
         const newCards: PlayerCard[] = JSON.parse(JSON.stringify(playerData.cards || []));
-        let card = newCards.find(c => normalizeText(c.name) === normalizeText(cardName));
+        let card = cardId
+          ? newCards.find(c => c.id === cardId)
+          : [...newCards].reverse().find(c => normalizeText(c.name) === normalizeText(cardName));
 
         if (card) {
           if (!card.ratingsByPosition) card.ratingsByPosition = {};
@@ -331,13 +333,11 @@ export function usePlayers() {
         const existingPlayer = players.find(p => p.id === playerId);
         if (existingPlayer) {
           const playerRef = doc(db, 'players', existingPlayer.id);
-          const sharedLink = trimmedEfhubUrl || existingPlayer.efhubUrl || '';
           await updateDoc(playerRef, stripInvalidFirestoreValues({
             cards: [
               ...existingPlayer.cards,
-              { ...newCard, tierlistUrl: sharedLink },
+              newCard,
             ],
-            efhubUrl: sharedLink,
           }));
           toast({ title: "Carta agregada", description: `Vinculada a ${existingPlayer.name}.` });
           return existingPlayer.id;
@@ -347,7 +347,6 @@ export function usePlayers() {
       const ref = await addDoc(collection(db, 'players'), stripInvalidFirestoreValues({
         name: playerName,
         nationality: nationality || 'Sin Nacionalidad',
-        efhubUrl: trimmedEfhubUrl,
         cards: [newCard],
       }));
       toast({ title: "Jugador guardado" });
@@ -405,7 +404,7 @@ export function usePlayers() {
 
       const playerData = playerDoc.data() as Player;
       const now = new Date().toISOString();
-      const sharedLink = typeof data.efhubUrl === 'string' ? data.efhubUrl.trim() : '';
+      const cardLink = typeof data.efhubUrl === 'string' ? data.efhubUrl.trim() : '';
       const newCards = playerData.cards.map(card => {
         if (card.id === cardId) {
           const previousTier = normalizePlayerTier(card.tierByPosition?.[position] ?? card.tier);
@@ -421,8 +420,8 @@ export function usePlayers() {
             style: data.style,
             offensiveStyleByPosition: { ...(card.offensiveStyleByPosition || {}), [position]: data.offensiveStyle },
             defensiveStyleByPosition: { ...(card.defensiveStyleByPosition || {}), [position]: data.defensiveStyle },
-            imageUrl: data.imageUrl || card.imageUrl,
-            tierlistUrl: sharedLink,
+            imageUrl: typeof data.imageUrl === 'string' ? data.imageUrl.trim() : (card.imageUrl || ''),
+            tierlistUrl: cardLink,
             physicalAttributes: data.physical,
             league: data.league || card.league,
             tierByPosition: { ...(card.tierByPosition || {}), [position]: tier },
@@ -439,7 +438,7 @@ export function usePlayers() {
         return card;
       });
 
-      const updatePayload: any = { cards: newCards, efhubUrl: sharedLink };
+      const updatePayload: any = { cards: newCards };
       if (data.nationality) {
         updatePayload.nationality = data.nationality;
       }
@@ -552,11 +551,9 @@ export function usePlayers() {
       const playerDoc = await getDoc(playerRef);
       const playerData = playerDoc.data() as Player;
       const now = new Date().toISOString();
-      const sharedLink = typeof values.tierlistUrl === 'string'
+      const cardLink = typeof values.tierlistUrl === 'string'
         ? values.tierlistUrl.trim()
-        : typeof values.efhubUrl === 'string'
-          ? values.efhubUrl.trim()
-          : '';
+        : '';
       const newCards = playerData.cards.map(c => {
         if (c.id !== values.cardId) return c;
 
@@ -568,7 +565,7 @@ export function usePlayers() {
             : values.currentOffensiveStyle,
           league: values.league,
           imageUrl: values.imageUrl,
-          tierlistUrl: sharedLink,
+          tierlistUrl: cardLink,
           trainedPosition: values.trainedPosition ?? null,
         };
 
@@ -618,7 +615,7 @@ export function usePlayers() {
 
         return updatedCard;
       });
-      await updateDoc(playerRef, { cards: newCards, efhubUrl: sharedLink });
+      await updateDoc(playerRef, { cards: newCards });
       toast({ title: "Carta actualizada" });
     } catch (e) {}
   };
@@ -639,14 +636,12 @@ export function usePlayers() {
   const editPlayer = async (values: any) => {
     if (!db) return;
     try {
-      const efhubUrl = typeof values.efhubUrl === 'string' ? values.efhubUrl.trim() : '';
       const playerRef = doc(db, 'players', values.playerId);
       const playerDoc = await getDoc(playerRef);
       if (!playerDoc.exists()) return;
       const playerData = playerDoc.data() as Player;
       await updateDoc(playerRef, {
         name: values.currentPlayerName,
-        efhubUrl,
         cards: playerData.cards,
         nationality: values.nationality,
         permanentLiveUpdateRating: values.permanentLiveUpdateRating,

@@ -39,7 +39,6 @@ const formSchema = z.object({
   editMode: z.enum(["full", "tierlist"]).optional(),
   position: z.enum(positions).optional(),
   currentCardName: z.string().min(2, "El nombre de la carta debe tener al menos 2 caracteres."),
-  efhubUrl: z.string().optional(),
   currentStyle: z.enum(playerStyles),
   currentOffensiveStyle: z.enum(offensivePlayerStyles),
   currentDefensiveStyle: z.enum(defensivePlayerStyles),
@@ -81,7 +80,6 @@ export function EditCardDialog({ open, onOpenChange, onEditCard, initialData }: 
         ...initialData,
         editMode: initialData.editMode || "full",
         position: initialData.position,
-        efhubUrl: initialData.efhubUrl || "",
         league: initialData.league || "Sin Liga",
         tierlistUrl: initialData.tierlistUrl || "",
         tier: initialData.tier || "SIN TIER",
@@ -150,7 +148,7 @@ export function EditCardDialog({ open, onOpenChange, onEditCard, initialData }: 
                 name="tierlistUrl"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Link de eFHUB / Tierlist</FormLabel>
+                    <FormLabel>Link de eFHUB / Tierlist de esta carta</FormLabel>
                     <FormControl>
                       <Input
                         type="url"

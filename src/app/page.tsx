@@ -177,6 +177,7 @@ export default function Home() {
     const sourcePosition = (Object.keys(card.ratingsByPosition)[0] || 'DC') as Position;
     setAddDialogInitialData({
       playerId: player.id,
+      cardId: card.id,
       playerName: player.name,
       cardName: card.name,
       style: getPlayerStyleForPosition(card, sourcePosition, defensiveStylePositions.includes(sourcePosition) ? 'defensive' : 'offensive'),
@@ -207,7 +208,6 @@ export default function Home() {
         editMode,
         position,
         currentCardName: card.name,
-        efhubUrl: player.efhubUrl || '',
         currentStyle: card.style,
         currentOffensiveStyle: cardStyles.offensiveStyle,
         currentDefensiveStyle: cardStyles.defensiveStyle,
@@ -224,7 +224,6 @@ export default function Home() {
     setEditPlayerDialogInitialData({
       playerId: player.id,
       currentPlayerName: player.name,
-      efhubUrl: player.efhubUrl || '',
       nationality: player.nationality || 'Sin Nacionalidad',
       permanentLiveUpdateRating: player.permanentLiveUpdateRating,
     });
@@ -315,6 +314,7 @@ export default function Home() {
 
         return addRating({
             playerId: p.player.id,
+            cardId: p.card.id,
             playerName: p.player.name,
             cardName: p.card.name,
             position: p.position,

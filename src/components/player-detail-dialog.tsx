@@ -64,7 +64,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
   React.useEffect(() => {
     if (open && flatPlayer && position && card) {
       setImageUrl(card.imageUrl || '');
-      setEfhubUrl(player?.efhubUrl || card.tierlistUrl || '');
+      setEfhubUrl(card.tierlistUrl || player?.efhubUrl || '');
       setCardName(card.name);
       const cardStyles = getPlayerStylesForPosition(card, position);
       setOffensiveStyle(cardStyles.offensiveStyle);
@@ -134,7 +134,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
                                     <Input placeholder="https://..." value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Link de eFHUB / Tierlist</Label>
+                                    <Label>Link de eFHUB / Tierlist de esta carta</Label>
                                     <Input type="url" placeholder="https://efootballhub.net/..." value={efhubUrl} onChange={(e) => setEfhubUrl(e.target.value)} />
                                 </div>
                                 <div className="grid grid-cols-2 gap-2">

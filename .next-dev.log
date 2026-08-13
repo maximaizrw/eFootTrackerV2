@@ -4,9 +4,8 @@
 
    ▲ Next.js 15.3.8 (Turbopack)
    - Local:        http://localhost:9002
-   - Network:      http://192.168.1.205:9002
+   - Network:      http://10.130.234.42:9002
    - Environments: .env
 
  ✓ Starting...
-Creating turbopack project { dir: 'C:\\Users\\maxim\\Desktop\\eFootTrackerV2', testMode: true }
- ✓ Ready in 2000ms
+ ✓ Ready in 3.9s

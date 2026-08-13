@@ -28,6 +28,7 @@ import { positions, playerStyles, leagues, nationalities } from "@/lib/types";
 
 const formSchema = z.object({
   playerId: z.string().optional(),
+  cardId: z.string().optional(),
   playerName: z.string().min(2),
   nationality: z.enum(nationalities),
   cardName: z.string().min(2),
@@ -83,6 +84,7 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData, 
     resolver: zodResolver(formSchema),
     defaultValues: {
       playerId: undefined,
+      cardId: undefined,
       playerName: "",
       nationality: "Sin Nacionalidad",
       cardName: "Carta Base",
@@ -106,6 +108,7 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData, 
         : "DC";
       const base = {
         playerId: undefined,
+        cardId: undefined,
         playerName: "",
         nationality: "Sin Nacionalidad" as Nationality,
         cardName: "Carta Base",

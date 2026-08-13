@@ -43,6 +43,7 @@ const PlayerToken = memo(function PlayerToken({
       onPointerLeave={() => onHover(null)}
       onClick={() => onAddRating({
         playerId: player.player.id,
+        cardId: player.card.id,
         playerName: player.player.name,
         cardName: player.card.name,
         position: player.position,
@@ -110,6 +111,7 @@ const BenchCard = memo(function BenchCard({ player, formation, onDiscard, onUpda
       className="group/bench relative flex items-center gap-2 px-2 py-1.5 rounded-lg bg-card border border-border/50 min-h-[2.75rem] hover:bg-accent/10 cursor-pointer"
       onClick={() => onAddRating({
         playerId: player.player.id,
+        cardId: player.card.id,
         playerName: player.player.name,
         cardName: player.card.name,
         position: player.position,
