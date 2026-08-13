@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import type { EditFormationFormValues, FormationStats, FormationSlot } from "@/lib/types";
 import { formationPlayStyles, FormationSlotSchema } from "@/lib/types";
 import { VisualFormationEditor } from "./visual-formation-editor";
@@ -43,6 +44,8 @@ const formSchema = z.object({
   creator: z.string().optional(),
   playStyle: z.enum(formationPlayStyles),
   slots: z.array(FormationSlotSchema).length(11, "Debe definir exactamente 11 posiciones."),
+  isFluid: z.boolean().optional(),
+  defensiveSlots: z.array(FormationSlotSchema).length(11, "Debe definir exactamente 11 posiciones.").optional(),
   imageUrl: z.string().url("Debe ser una URL válida.").optional().or(z.literal('')),
   secondaryImageUrl: z.string().url("Debe ser una URL válida.").optional().or(z.literal('')),
   sourceUrl: z.string().url("Debe ser una URL válida.").optional().or(z.literal('')),
@@ -67,6 +70,8 @@ export function EditFormationDialog({ open, onOpenChange, onEditFormation, initi
       creator: "",
       playStyle: "Contraataque rápido",
       slots: defaultSlots,
+      isFluid: false,
+      defensiveSlots: undefined,
       imageUrl: "",
       secondaryImageUrl: "",
       sourceUrl: "",
@@ -81,6 +86,13 @@ export function EditFormationDialog({ open, onOpenChange, onEditFormation, initi
         creator: initialData.creator || "",
         playStyle: initialData.playStyle,
         slots: (initialData.slots && initialData.slots.length === 11 ? initialData.slots : defaultSlots).map(s => ({
+          ...s,
+          styles: s.styles || [],
+          top: s.top ?? 50,
+          left: s.left ?? 50,
+        })),
+        isFluid: initialData.isFluid || false,
+        defensiveSlots: initialData.defensiveSlots?.map(s => ({
           ...s,
           styles: s.styles || [],
           top: s.top ?? 50,
@@ -167,7 +179,7 @@ export function EditFormationDialog({ open, onOpenChange, onEditFormation, initi
                             name="slots"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Editor Visual</FormLabel>
+                                    <FormLabel>Formación ofensiva (predeterminada)</FormLabel>
                                     <FormControl>
                                         <VisualFormationEditor 
                                             value={field.value as FormationSlot[]} 
@@ -178,6 +190,47 @@ export function EditFormationDialog({ open, onOpenChange, onEditFormation, initi
                                 </FormItem>
                             )}
                         />
+
+                        <FormField
+                            control={form.control}
+                            name="isFluid"
+                            render={({ field }) => (
+                                <FormItem className="flex items-center justify-between rounded-lg border border-border bg-card/60 p-4">
+                                    <div className="space-y-1">
+                                        <FormLabel>Formación fluida</FormLabel>
+                                        <p className="text-sm text-muted-foreground">Guarda una variante defensiva dentro de esta misma táctica.</p>
+                                    </div>
+                                    <FormControl>
+                                        <Switch
+                                            checked={field.value || false}
+                                            onCheckedChange={(checked) => {
+                                                field.onChange(checked);
+                                                if (checked && !form.getValues('defensiveSlots')) {
+                                                    form.setValue('defensiveSlots', form.getValues('slots'), { shouldValidate: true });
+                                                }
+                                            }}
+                                            aria-label="Activar formación fluida"
+                                        />
+                                    </FormControl>
+                                </FormItem>
+                            )}
+                        />
+
+                        {form.watch('isFluid') && (
+                            <FormField
+                                control={form.control}
+                                name="defensiveSlots"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Formación defensiva</FormLabel>
+                                        <FormControl>
+                                            <VisualFormationEditor value={field.value || form.getValues('slots')} onChange={field.onChange} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        )}
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormField

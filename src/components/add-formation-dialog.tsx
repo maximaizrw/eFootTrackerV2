@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import type { AddFormationFormValues } from "@/lib/types";
 import { formationPlayStyles, FormationSlotSchema } from "@/lib/types";
 import { VisualFormationEditor } from "./visual-formation-editor";
@@ -41,6 +42,8 @@ const formSchema = z.object({
   creator: z.string().optional(),
   playStyle: z.enum(formationPlayStyles),
   slots: z.array(FormationSlotSchema).length(11, "Debe definir exactamente 11 posiciones."),
+  isFluid: z.boolean().optional(),
+  defensiveSlots: z.array(FormationSlotSchema).length(11, "Debe definir exactamente 11 posiciones.").optional(),
   imageUrl: z.string().url("Debe ser una URL válida.").optional().or(z.literal('')),
   secondaryImageUrl: z.string().url("Debe ser una URL válida.").optional().or(z.literal('')),
   sourceUrl: z.string().url("Debe ser una URL válida.").optional().or(z.literal('')),
@@ -64,6 +67,8 @@ export function AddFormationDialog({ open, onOpenChange, onAddFormation }: AddFo
       creator: "",
       playStyle: "Contraataque rápido",
       slots: defaultSlots,
+      isFluid: false,
+      defensiveSlots: undefined,
       imageUrl: "",
       secondaryImageUrl: "",
       sourceUrl: "",
@@ -89,6 +94,8 @@ export function AddFormationDialog({ open, onOpenChange, onAddFormation }: AddFo
         creator: "",
         playStyle: "Contraataque rápido",
         slots: defaultSlots,
+        isFluid: false,
+        defensiveSlots: undefined,
         imageUrl: "",
         secondaryImageUrl: "",
         sourceUrl: "",
@@ -187,7 +194,7 @@ export function AddFormationDialog({ open, onOpenChange, onAddFormation }: AddFo
                         name="slots"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Editor Visual</FormLabel>
+                                <FormLabel>Formación ofensiva (predeterminada)</FormLabel>
                                 <FormControl>
                                     <VisualFormationEditor 
                                         value={field.value} 
@@ -198,7 +205,48 @@ export function AddFormationDialog({ open, onOpenChange, onAddFormation }: AddFo
                             </FormItem>
                         )}
                     />
-                    
+
+                    <FormField
+                        control={form.control}
+                        name="isFluid"
+                        render={({ field }) => (
+                            <FormItem className="flex items-center justify-between rounded-lg border border-border bg-card/60 p-4">
+                                <div className="space-y-1">
+                                    <FormLabel>Formación fluida</FormLabel>
+                                    <p className="text-sm text-muted-foreground">Guarda una variante defensiva dentro de esta misma táctica.</p>
+                                </div>
+                                <FormControl>
+                                    <Switch
+                                        checked={field.value || false}
+                                        onCheckedChange={(checked) => {
+                                            field.onChange(checked);
+                                            if (checked && !getValues('defensiveSlots')) {
+                                                setValue('defensiveSlots', getValues('slots'), { shouldValidate: true });
+                                            }
+                                        }}
+                                        aria-label="Activar formación fluida"
+                                    />
+                                </FormControl>
+                            </FormItem>
+                        )}
+                    />
+
+                    {form.watch('isFluid') && (
+                        <FormField
+                            control={form.control}
+                            name="defensiveSlots"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Formación defensiva</FormLabel>
+                                    <FormControl>
+                                        <VisualFormationEditor value={field.value || getValues('slots')} onChange={field.onChange} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    )}
+
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <FormField
                             control={form.control}

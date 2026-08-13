@@ -220,6 +220,8 @@ export type FormationStats = {
   creator?: string;
   playStyle: FormationPlayStyle;
   slots: FormationSlot[];
+  isFluid?: boolean;
+  defensiveSlots?: FormationSlot[];
   imageUrl?: string;
   secondaryImageUrl?: string;
   sourceUrl?: string;

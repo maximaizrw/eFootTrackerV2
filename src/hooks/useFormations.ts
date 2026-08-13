@@ -55,6 +55,9 @@ export function useFormations() {
               slots: (data.slots && data.slots.length === 11) 
                 ? data.slots.map((s: any) => ({ ...s, styles: s.styles || [] })) 
                 : defaultSlots,
+              defensiveSlots: (data.defensiveSlots && data.defensiveSlots.length === 11)
+                ? data.defensiveSlots.map((s: any) => ({ ...s, styles: s.styles || [] }))
+                : undefined,
             } as FormationStats;
         });
         setFormations(formationsData);
@@ -83,6 +86,10 @@ export function useFormations() {
             creator: values.creator || '',
             playStyle: values.playStyle,
             slots: sanitizeSlots(values.slots),
+            isFluid: values.isFluid || false,
+            defensiveSlots: values.isFluid
+              ? sanitizeSlots(values.defensiveSlots || values.slots)
+              : [],
             matches: [],
             imageUrl: values.imageUrl || '',
             secondaryImageUrl: values.secondaryImageUrl || '',
@@ -109,6 +116,10 @@ export function useFormations() {
         creator: values.creator || '',
         playStyle: values.playStyle,
         slots: sanitizeSlots(values.slots),
+        isFluid: values.isFluid || false,
+        defensiveSlots: values.isFluid
+          ? sanitizeSlots(values.defensiveSlots || values.slots)
+          : [],
         imageUrl: values.imageUrl || '',
         secondaryImageUrl: values.secondaryImageUrl || '',
         sourceUrl: values.sourceUrl || '',

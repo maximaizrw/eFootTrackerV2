@@ -6,7 +6,7 @@ import Link from 'next/link';
 import type { FormationStats, MatchResult } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Trash2, Link as LinkIcon, Trophy, LayoutGrid, List, Pencil, History, Star, Target, BarChart } from 'lucide-react';
+import { PlusCircle, Trash2, Link as LinkIcon, Trophy, LayoutGrid, List, Pencil, History, Star, Target, BarChart, Shield } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
@@ -146,7 +146,12 @@ const FormationCard = ({ formation, onAddMatch, onDeleteFormation, onEdit, onVie
                   {formation.name}
                   {formation.creator && <span className="block text-sm font-normal text-muted-foreground -mt-1">{formation.creator}</span>}
                 </CardTitle>
-                <CardDescription>{formation.playStyle}</CardDescription>
+                <CardDescription className="flex items-center gap-2">
+                  {formation.playStyle}
+                  {formation.isFluid && formation.defensiveSlots && (
+                    <span className="inline-flex items-center gap-1 text-xs text-primary"><Shield className="h-3 w-3" /> Fluida</span>
+                  )}
+                </CardDescription>
               </div>
               {formation.sourceUrl && (
                 <TooltipProvider>
@@ -309,7 +314,7 @@ const FormationRow = ({ formation, onAddMatch, onEdit, onDeleteFormation, onGene
         <div className="flex items-center justify-between p-3 bg-card rounded-lg hover:bg-muted/50 transition-colors border">
             <div className="flex-1 overflow-hidden">
                 <p className="text-base font-semibold truncate">{formation.name}</p>
-                <p className="text-xs text-muted-foreground truncate">{formation.creator ? `${formation.creator} - ${formation.playStyle}` : formation.playStyle}</p>
+                <p className="text-xs text-muted-foreground truncate">{formation.creator ? `${formation.creator} - ${formation.playStyle}` : formation.playStyle}{formation.isFluid && formation.defensiveSlots ? ' · Fluida' : ''}</p>
             </div>
             <div className="hidden sm:flex items-center gap-4 mx-4 flex-shrink-0">
                 <div className="text-center w-16">
