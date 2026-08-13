@@ -1,6 +1,7 @@
 import * as z from "zod";
 
 export const playerStyles = [
+  'Básico',
   'Ninguno',
   'Cazagoles',
   'Hombre de área',
@@ -140,6 +141,10 @@ export type PlayerCard = {
   id: string;
   name: string;
   style: PlayerStyle;
+  offensiveStyle?: PlayerStyle;
+  defensiveStyle?: PlayerStyle;
+  offensiveStyleByPosition?: { [key in Position]?: PlayerStyle };
+  defensiveStyleByPosition?: { [key in Position]?: PlayerStyle };
   tier?: PlayerTier;
   tierPlacements?: number;
   tierUpdatedAt?: string;
@@ -271,7 +276,7 @@ export type FlatPlayer = {
 };
 
 export function getAvailableStylesForPosition(position: Position, includeNone: boolean = false): PlayerStyle[] {
-  const baseStyles: PlayerStyle[] = includeNone ? ['Ninguno'] : [];
+  const baseStyles: PlayerStyle[] = includeNone ? ['Básico', 'Ninguno'] : ['Básico'];
 
   switch (position) {
     case 'PT':
@@ -300,6 +305,23 @@ export function getAvailableStylesForPosition(position: Position, includeNone: b
     default:
       return [...playerStyles];
   }
+}
+
+export const defensiveStylePositions: Position[] = ['PT', 'DFC', 'LI', 'LD', 'MCD'];
+
+export function getPlayerStylesForPosition(card: PlayerCard, position: Position) {
+  const legacyStyle = card.style || 'Ninguno';
+  const keepsLegacyInDefense = defensiveStylePositions.includes(position);
+
+  return {
+    offensiveStyle: card.offensiveStyleByPosition?.[position] || card.offensiveStyle || (keepsLegacyInDefense ? 'Básico' : legacyStyle),
+    defensiveStyle: card.defensiveStyleByPosition?.[position] || card.defensiveStyle || (keepsLegacyInDefense ? legacyStyle : 'Básico'),
+  } satisfies { offensiveStyle: PlayerStyle; defensiveStyle: PlayerStyle };
+}
+
+export function getPlayerStyleForPosition(card: PlayerCard, position: Position, phase: 'offensive' | 'defensive') {
+  const styles = getPlayerStylesForPosition(card, position);
+  return phase === 'defensive' ? styles.defensiveStyle : styles.offensiveStyle;
 }
 
 export const positionLabels: Record<Position, string> = {

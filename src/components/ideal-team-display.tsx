@@ -1,6 +1,7 @@
 "use client";
 
 import type { IdealTeamPlayer, IdealTeamSlot, FormationStats, Position, LiveUpdateRating } from '@/lib/types';
+import { defensiveStylePositions, getPlayerStyleForPosition } from '@/lib/types';
 import Image from 'next/image';
 import { Users, Shirt, X } from 'lucide-react';
 import { Button } from './ui/button';
@@ -45,7 +46,7 @@ const PlayerToken = memo(function PlayerToken({
         playerName: player.player.name,
         cardName: player.card.name,
         position: player.position,
-        style: player.card.style,
+        style: getPlayerStyleForPosition(player.card, player.position, defensiveStylePositions.includes(player.position) ? 'defensive' : 'offensive'),
         league: player.card.league || 'Sin Liga',
         formationId: formation?.id,
         formationName: formation?.name,
@@ -112,7 +113,7 @@ const BenchCard = memo(function BenchCard({ player, formation, onDiscard, onUpda
         playerName: player.player.name,
         cardName: player.card.name,
         position: player.position,
-        style: player.card.style,
+        style: getPlayerStyleForPosition(player.card, player.position, defensiveStylePositions.includes(player.position) ? 'defensive' : 'offensive'),
         league: player.card.league || 'Sin Liga',
         formationId: formation?.id,
         formationName: formation?.name,

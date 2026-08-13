@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating, PhysicalAttribute, Nationality, League, PlayerRatingEntry } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import type { AddPlayerFormValues } from '@/components/add-player-dialog';
-import { getAvailableStylesForPosition, playerSkillsList } from '@/lib/types';
+import { defensiveStylePositions, getAvailableStylesForPosition, playerSkillsList } from '@/lib/types';
 import { normalizeText, normalizeStyleName, normalizePlayerTier, normalizeTierPlacements, calculateStats, calculateOverall, calculateRecencyWeightedAverage, calculatePlayerConfidence, getCardTierForPosition, getCardTierPlacementsForPosition, getCardTierUpdatedAtForPosition, getPlayerTierBonus } from '@/lib/utils';
 
 export function usePlayers() {
@@ -54,6 +54,14 @@ export function usePlayers() {
                     ...card,
                     id: card.id || uuidv4(),
                     style: normalizeStyleName(card.style),
+                    offensiveStyle: card.offensiveStyle ? normalizeStyleName(card.offensiveStyle) : undefined,
+                    defensiveStyle: card.defensiveStyle ? normalizeStyleName(card.defensiveStyle) : undefined,
+                    offensiveStyleByPosition: Object.fromEntries(
+                      Object.entries(card.offensiveStyleByPosition || {}).map(([position, style]) => [position, normalizeStyleName(style as string)])
+                    ),
+                    defensiveStyleByPosition: Object.fromEntries(
+                      Object.entries(card.defensiveStyleByPosition || {}).map(([position, style]) => [position, normalizeStyleName(style as string)])
+                    ),
                     tier: normalizePlayerTier(card.tier),
                     tierPlacements: normalizeTierPlacements(card.tier, card.tierPlacements),
                     tierUpdatedAt: card.tierUpdatedAt,
@@ -192,10 +200,15 @@ export function usePlayers() {
           if (trainedPosition !== undefined) card.trainedPosition = trainedPosition;
           card.lastPlayedPosition = pos;
         } else {
+          const keepsStyleInDefense = defensiveStylePositions.includes(pos);
           newCards.push({
             id: uuidv4(),
             name: cardName,
             style,
+            offensiveStyle: keepsStyleInDefense ? 'Básico' : style,
+            defensiveStyle: keepsStyleInDefense ? style : 'Básico',
+            offensiveStyleByPosition: { [pos]: keepsStyleInDefense ? 'Básico' : style },
+            defensiveStyleByPosition: { [pos]: keepsStyleInDefense ? style : 'Básico' },
             tier: 'SIN TIER',
             tierPlacements: 0,
             tierUpdatedAt: new Date().toISOString(),
@@ -210,6 +223,7 @@ export function usePlayers() {
         }
         await updateDoc(playerRef, { cards: newCards });
       } else {
+        const keepsStyleInDefense = defensiveStylePositions.includes(pos);
         await addDoc(collection(db, 'players'), {
           name: playerName,
           nationality,
@@ -217,6 +231,10 @@ export function usePlayers() {
             id: uuidv4(),
             name: cardName,
             style,
+            offensiveStyle: keepsStyleInDefense ? 'Básico' : style,
+            defensiveStyle: keepsStyleInDefense ? style : 'Básico',
+            offensiveStyleByPosition: { [pos]: keepsStyleInDefense ? 'Básico' : style },
+            defensiveStyleByPosition: { [pos]: keepsStyleInDefense ? style : 'Básico' },
             tier: 'SIN TIER',
             tierPlacements: 0,
             tierUpdatedAt: new Date().toISOString(),
@@ -241,7 +259,7 @@ export function usePlayers() {
   const addPlayer = async (values: AddPlayerFormValues): Promise<string | null> => {
     if (!db) return null;
     const {
-      playerName, efhubUrl, cardName, imageUrl, nationality, style, league,
+      playerName, efhubUrl, cardName, imageUrl, nationality, offensiveStyle, defensiveStyle, league,
       height, weight, playerId, ratingEntries,
     } = values;
     const trimmedEfhubUrl = typeof efhubUrl === 'string' ? efhubUrl.trim() : '';
@@ -275,7 +293,15 @@ export function usePlayers() {
     const newCard: any = {
       id: uuidv4(),
       name: cardName,
-      style: style || 'Ninguno',
+      style: offensiveStyle !== 'Básico' ? (offensiveStyle || 'Ninguno') : (defensiveStyle || 'Básico'),
+      offensiveStyle: offensiveStyle || 'Básico',
+      defensiveStyle: defensiveStyle || 'Básico',
+      offensiveStyleByPosition: Object.fromEntries(
+        (ratingEntries || []).map(entry => [entry.position, offensiveStyle || 'Básico'])
+      ),
+      defensiveStyleByPosition: Object.fromEntries(
+        (ratingEntries || []).map(entry => [entry.position, defensiveStyle || 'Básico'])
+      ),
       tierByPosition,
       tierPlacementsByPosition,
       tierUpdatedAtByPosition,
@@ -350,6 +376,8 @@ export function usePlayers() {
     efhubUrl?: string;
     cardName: string;
     style: PlayerCard['style'];
+    offensiveStyle: PlayerCard['style'];
+    defensiveStyle: PlayerCard['style'];
     tier: NonNullable<PlayerCard['tier']>;
     tierPlacements: number;
     physical: PhysicalAttribute;
@@ -391,6 +419,8 @@ export function usePlayers() {
             ...card,
             name: data.cardName,
             style: data.style,
+            offensiveStyleByPosition: { ...(card.offensiveStyleByPosition || {}), [position]: data.offensiveStyle },
+            defensiveStyleByPosition: { ...(card.defensiveStyleByPosition || {}), [position]: data.defensiveStyle },
             imageUrl: data.imageUrl || card.imageUrl,
             tierlistUrl: sharedLink,
             physicalAttributes: data.physical,
@@ -533,7 +563,9 @@ export function usePlayers() {
         const updatedCard: PlayerCard = {
           ...c,
           name: values.currentCardName,
-          style: values.currentStyle,
+          style: defensiveStylePositions.includes(values.position as Position)
+            ? values.currentDefensiveStyle
+            : values.currentOffensiveStyle,
           league: values.league,
           imageUrl: values.imageUrl,
           tierlistUrl: sharedLink,
@@ -550,6 +582,8 @@ export function usePlayers() {
           const tier = normalizePlayerTier(values.tier);
           const tierPlacements = normalizeTierPlacements(tier, values.tierPlacements);
           updatedCard.tierByPosition = { ...(updatedCard.tierByPosition || {}), [position]: tier };
+          updatedCard.offensiveStyleByPosition = { ...(updatedCard.offensiveStyleByPosition || {}), [position]: values.currentOffensiveStyle };
+          updatedCard.defensiveStyleByPosition = { ...(updatedCard.defensiveStyleByPosition || {}), [position]: values.currentDefensiveStyle };
           updatedCard.tierPlacementsByPosition = {
             ...(updatedCard.tierPlacementsByPosition || {}),
             [position]: tierPlacements,
@@ -561,6 +595,8 @@ export function usePlayers() {
             updatedCard.tierReviewDelayDaysByPosition = tierReviewDelayDaysByPosition;
           }
         } else {
+          updatedCard.offensiveStyle = values.currentOffensiveStyle;
+          updatedCard.defensiveStyle = values.currentDefensiveStyle;
           const previousTier = normalizePlayerTier(c.tier);
           const previousTierPlacements = normalizeTierPlacements(previousTier, c.tierPlacements);
           const tier = normalizePlayerTier(values.tier);

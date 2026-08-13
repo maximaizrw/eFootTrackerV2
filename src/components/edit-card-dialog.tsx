@@ -41,6 +41,8 @@ const formSchema = z.object({
   currentCardName: z.string().min(2, "El nombre de la carta debe tener al menos 2 caracteres."),
   efhubUrl: z.string().optional(),
   currentStyle: z.enum(playerStyles),
+  currentOffensiveStyle: z.enum(playerStyles),
+  currentDefensiveStyle: z.enum(playerStyles),
   tier: z.enum(playerTiers).optional(),
   tierPlacements: z.coerce.number().int().min(0).optional(),
   league: z.enum(leagues).optional(),
@@ -111,28 +113,36 @@ export function EditCardDialog({ open, onOpenChange, onEditCard, initialData }: 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             {!isTierlistEdit && (
-              <FormField
-                control={form.control}
-                name="currentStyle"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Estilo de Juego</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona un estilo" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {playerStyles.map((style) => (
-                          <SelectItem key={style} value={style}>{style}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-2 gap-3">
+                <FormField
+                  control={form.control}
+                  name="currentOffensiveStyle"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Ofensivo</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                        <SelectContent>{playerStyles.map((style) => <SelectItem key={style} value={style}>{style}</SelectItem>)}</SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="currentDefensiveStyle"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Defensivo</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                        <SelectContent>{playerStyles.map((style) => <SelectItem key={style} value={style}>{style}</SelectItem>)}</SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             )}
             {isTierlistEdit && (
               <FormField

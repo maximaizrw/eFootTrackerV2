@@ -39,7 +39,7 @@ import { useFormations } from '@/hooks/useFormations';
 import { useToast } from "@/hooks/use-toast";
 
 import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, League, Nationality, IdealTeamMode, IdealTeamSelectionCriteria } from '@/lib/types';
-import { positions, leagues, nationalities } from '@/lib/types';
+import { positions, leagues, nationalities, defensiveStylePositions, getPlayerStyleForPosition, getPlayerStylesForPosition } from '@/lib/types';
 import type { FormationTemplate } from '@/lib/formation-templates';
 import { getPlayerTierBonus, normalizePlayerTier, normalizeText, normalizeTierPlacements } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
@@ -174,11 +174,12 @@ export default function Home() {
   const [addDialogExistingPositions, setAddDialogExistingPositions] = useState<Position[]>([]);
 
   const handleOpenAddPosition = useCallback((player: import('@/lib/types').Player, card: import('@/lib/types').PlayerCard) => {
+    const sourcePosition = (Object.keys(card.ratingsByPosition)[0] || 'DC') as Position;
     setAddDialogInitialData({
       playerId: player.id,
       playerName: player.name,
       cardName: card.name,
-      style: card.style,
+      style: getPlayerStyleForPosition(card, sourcePosition, defensiveStylePositions.includes(sourcePosition) ? 'defensive' : 'offensive'),
       cardPositionCount: Object.keys(card.ratingsByPosition).length + 1,
     } as any);
     setAddDialogExistingPositions(Object.keys(card.ratingsByPosition) as Position[]);
@@ -187,6 +188,8 @@ export default function Home() {
   }, []);
   
   const handleOpenEditCard = useCallback((player: Player, card: PlayerCardType, position?: Position, editMode: EditCardFormValues["editMode"] = "full") => {
+    const stylePosition = position || (Object.keys(card.ratingsByPosition)[0] as Position) || 'DC';
+    const cardStyles = getPlayerStylesForPosition(card, stylePosition);
     const hasPositionTier = position
       ? Object.prototype.hasOwnProperty.call(card.tierByPosition || {}, position)
       : false;
@@ -206,6 +209,8 @@ export default function Home() {
         currentCardName: card.name,
         efhubUrl: player.efhubUrl || '',
         currentStyle: card.style,
+        currentOffensiveStyle: cardStyles.offensiveStyle,
+        currentDefensiveStyle: cardStyles.defensiveStyle,
         tier: storedTier,
         tierPlacements: storedTierPlacements,
         league: card.league || 'Sin Liga',
@@ -314,7 +319,7 @@ export default function Home() {
             cardName: p.card.name,
             position: p.position,
             rating: newRating,
-            style: p.card.style,
+            style: getPlayerStyleForPosition(p.card, p.position, defensiveStylePositions.includes(p.position) ? 'defensive' : 'offensive'),
             league: p.card.league || 'Sin Liga',
             formationId: selectedFormation?.id,
             formationName: selectedFormation?.name,
@@ -360,7 +365,8 @@ export default function Home() {
         const positionPlayers = flatPlayers.filter(p => p.position === pos);
         grouped[pos] = positionPlayers.filter(({ player, card }) => {
             const searchMatch = normalizeText(player.name).includes(normalizeText(searchTerm));
-            const styleMatch = styleFilter === 'all' || card.style === styleFilter;
+            const styles = getPlayerStylesForPosition(card, pos);
+            const styleMatch = styleFilter === 'all' || styles.offensiveStyle === styleFilter || styles.defensiveStyle === styleFilter;
             return searchMatch && styleMatch;
         }).sort((a, b) => {
           if (listSortCriteria === 'confidence') {
@@ -388,7 +394,9 @@ export default function Home() {
     for (const pos of positions) {
       const allPositionalStyles = new Set<string>();
       flatPlayers.filter(p => p.position === pos).forEach(p => {
-        allPositionalStyles.add(p.card.style);
+        const styles = getPlayerStylesForPosition(p.card, pos);
+        allPositionalStyles.add(styles.offensiveStyle);
+        allPositionalStyles.add(styles.defensiveStyle);
       });
       filters[pos] = {
         uniqueStyles: ['all', ...Array.from(allPositionalStyles)],

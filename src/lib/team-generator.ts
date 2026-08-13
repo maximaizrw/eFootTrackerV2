@@ -1,5 +1,5 @@
 import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, FormationSlot, PlayerStyle, IdealTeamMode, IdealTeamSelectionCriteria } from './types';
-import { getAvailableStylesForPosition } from './types';
+import { getAvailableStylesForPosition, getPlayerStyleForPosition } from './types';
 import { calculateStats, calculateOverall, calculateRecencyWeightedAverage, positionPriority, calculatePlayerConfidence, normalizePlayerTier, getRatingEntriesForPosition, getFormationRatingEntries, calculateFormationConfidence, getCardTierForPosition, getCardTierPlacementsForPosition, getPlayerTierBonus } from './utils';
 
 type CandidatePlayer = {
@@ -49,7 +49,8 @@ export function generateIdealTeam(
         const recentAverage = calculateRecencyWeightedAverage(ratings, 5, 2.5, 0.9);
         
         const availableStylesForPos = getAvailableStylesForPosition(pos, false);
-        const effectiveRole = availableStylesForPos.includes(card.style) ? card.style : 'Ninguno';
+        const offensiveStyle = getPlayerStyleForPosition(card, pos, 'offensive');
+        const effectiveRole = availableStylesForPos.includes(offensiveStyle) ? offensiveStyle : 'Ninguno';
         
         const likesForPos = card.likesByPosition?.[pos] || [];
         const likes = likesForPos.filter(l => l === true).length;

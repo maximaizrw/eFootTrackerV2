@@ -20,7 +20,7 @@ import Image from 'next/image';
 import { Dumbbell, Image as ImageIcon, Globe, Trophy, LayersIcon } from "lucide-react";
 import { getProxiedImageUrl, normalizePlayerTier, normalizeTierPlacements } from '@/lib/utils';
 import { Badge } from "./ui/badge";
-import { nationalities, leagues, playerStyles, playerTiers } from "@/lib/types";
+import { defensiveStylePositions, getPlayerStylesForPosition, nationalities, leagues, playerStyles, playerTiers } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type PlayerDetailDialogProps = {
@@ -32,6 +32,8 @@ type PlayerDetailDialogProps = {
     efhubUrl?: string;
     cardName: string;
     style: PlayerStyle;
+    offensiveStyle: PlayerStyle;
+    defensiveStyle: PlayerStyle;
     tier: PlayerTier;
     tierPlacements: number;
     physical: PhysicalAttribute;
@@ -46,7 +48,8 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
   const [imageUrl, setImageUrl] = React.useState('');
   const [efhubUrl, setEfhubUrl] = React.useState('');
   const [cardName, setCardName] = React.useState('');
-  const [style, setStyle] = React.useState<PlayerStyle>('Ninguno');
+  const [offensiveStyle, setOffensiveStyle] = React.useState<PlayerStyle>('Básico');
+  const [defensiveStyle, setDefensiveStyle] = React.useState<PlayerStyle>('Básico');
   const [tier, setTier] = React.useState<PlayerTier>('SIN TIER');
   const [tierPlacements, setTierPlacements] = React.useState(0);
   const [height, setHeight] = React.useState<number | ''>('');
@@ -63,7 +66,9 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
       setImageUrl(card.imageUrl || '');
       setEfhubUrl(player?.efhubUrl || card.tierlistUrl || '');
       setCardName(card.name);
-      setStyle(card.style || 'Ninguno');
+      const cardStyles = getPlayerStylesForPosition(card, position);
+      setOffensiveStyle(cardStyles.offensiveStyle);
+      setDefensiveStyle(cardStyles.defensiveStyle);
       const currentTier = normalizePlayerTier(card.tierByPosition?.[position] ?? card.tier);
       setTier(currentTier);
       setTierPlacements(normalizeTierPlacements(currentTier, card.tierPlacementsByPosition?.[position] ?? card.tierPlacements));
@@ -80,7 +85,9 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
         imageUrl,
         efhubUrl,
         cardName: cardName.trim(),
-        style,
+        style: defensiveStylePositions.includes(position) ? defensiveStyle : offensiveStyle,
+        offensiveStyle,
+        defensiveStyle,
         tier,
         tierPlacements,
         physical: { height: height === '' ? undefined : Number(height), weight: weight === '' ? undefined : Number(weight) },
@@ -154,14 +161,21 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
                                         </Select>
                                     </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label>Estilo de Juego</Label>
-                                    <Select value={style} onValueChange={(value) => setStyle(value as PlayerStyle)}>
-                                        <SelectTrigger><SelectValue /></SelectTrigger>
-                                        <SelectContent>
-                                            {playerStyles.map(playerStyle => <SelectItem key={playerStyle} value={playerStyle}>{playerStyle}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-2">
+                                        <Label>Estilo ofensivo</Label>
+                                        <Select value={offensiveStyle} onValueChange={(value) => setOffensiveStyle(value as PlayerStyle)}>
+                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                            <SelectContent>{playerStyles.map(playerStyle => <SelectItem key={playerStyle} value={playerStyle}>{playerStyle}</SelectItem>)}</SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Estilo defensivo</Label>
+                                        <Select value={defensiveStyle} onValueChange={(value) => setDefensiveStyle(value as PlayerStyle)}>
+                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                            <SelectContent>{playerStyles.map(playerStyle => <SelectItem key={playerStyle} value={playerStyle}>{playerStyle}</SelectItem>)}</SelectContent>
+                                        </Select>
+                                    </div>
                                 </div>
                             </div>
                             

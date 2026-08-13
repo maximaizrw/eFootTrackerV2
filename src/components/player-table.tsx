@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { PlusCircle, Trash2, Search, Copy, CheckCircle2, History, X, ThumbsUp, ThumbsDown, MapPin, ShieldCheck, TrendingUp, AlertTriangle, TrendingDown, Sparkles, Gauge, Pencil } from 'lucide-react';
 import { cn, formatAverage, getAverageColorClass, getPlayerTierBonus, getProxiedImageUrl, isPlayerTierStale, normalizeTierPlacements } from '@/lib/utils';
 import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating, PerformanceTag } from '@/lib/types';
+import { defensiveStylePositions, getPlayerStylesForPosition } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import { LiveUpdateRatingSelector } from './live-update-rating-selector';
 import { useToast } from '@/hooks/use-toast';
@@ -189,7 +190,7 @@ const PlayerTableMemo = memo(function PlayerTable({
         <TableHeader>
           <TableRow>
             <TableHead>Jugador</TableHead>
-            <TableHead className="hidden md:table-cell">Estilo</TableHead>
+            <TableHead className="hidden md:table-cell">Estilos O / D</TableHead>
             <TableHead>Votos</TableHead>
             <TableHead>Prom.</TableHead>
             <TableHead>Overall</TableHead>
@@ -210,6 +211,7 @@ const PlayerTableMemo = memo(function PlayerTable({
             const isTierStale = isPlayerTierStale(flatPlayer.tierUpdatedAt);
             const tagMeta = performanceTagMeta[performance.tag || 'evaluar'];
             const TagIcon = tagMeta.Icon;
+            const cardStyles = getPlayerStylesForPosition(card, position);
             return (
               <TableRow key={`${player.id}-${card.id}-${position}`} className="hover:bg-muted/50">
                 <TableCell className="p-2 md:p-4">
@@ -258,7 +260,10 @@ const PlayerTableMemo = memo(function PlayerTable({
                   </div>
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
-                  {card.style !== "Ninguno" ? <Badge variant="secondary">{card.style}</Badge> : '-'}
+                  <div className="flex flex-col items-start gap-1">
+                    <Badge variant="secondary" className="gap-1"><span className="text-primary">O</span>{cardStyles.offensiveStyle}</Badge>
+                    <Badge variant="outline" className="gap-1"><span className="text-muted-foreground">D</span>{cardStyles.defensiveStyle}</Badge>
+                  </div>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1 text-xs font-semibold">
@@ -334,7 +339,7 @@ const PlayerTableMemo = memo(function PlayerTable({
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => onOpenAddRating({ playerId: player.id, playerName: player.name, cardName: card.name, position, style: card.style } as any)}><PlusCircle className="h-4 w-4 text-primary" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => onOpenAddRating({ playerId: player.id, playerName: player.name, cardName: card.name, position, style: defensiveStylePositions.includes(position) ? cardStyles.defensiveStyle : cardStyles.offensiveStyle } as any)}><PlusCircle className="h-4 w-4 text-primary" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => onOpenAddPosition(player, card)} title="Agregar en otra posición"><MapPin className="h-4 w-4 text-muted-foreground" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => onOpenPlayerDetail(flatPlayer)} title="Editar ficha"><Pencil className="h-4 w-4 text-muted-foreground" /></Button>
                     <AlertDialog>

@@ -66,7 +66,8 @@ const formSchema = z.object({
   cardName: z.string().min(2, "El nombre de la carta debe tener al menos 2 caracteres."),
   imageUrl: z.string().min(1, "La imagen es requerida."),
   nationality: z.enum(nationalities).optional(),
-  style: z.enum(playerStyles).optional(),
+  offensiveStyle: z.enum(playerStyles).optional(),
+  defensiveStyle: z.enum(playerStyles).optional(),
   league: z.enum(leagues).optional(),
   ratingEntries: z.array(z.object({
     position: z.enum(positions),
@@ -109,7 +110,8 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
       cardName: "",
       imageUrl: "",
       nationality: "Sin Nacionalidad",
-      style: "Ninguno",
+      offensiveStyle: "Básico",
+      defensiveStyle: "Básico",
       league: "Sin Liga",
       ratingEntries: [],
     },
@@ -133,7 +135,8 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
         cardName: "",
         imageUrl: "",
         nationality: "Sin Nacionalidad" as Nationality,
-        style: "Ninguno" as PlayerStyle,
+        offensiveStyle: "Básico" as PlayerStyle,
+        defensiveStyle: "Básico" as PlayerStyle,
         league: "Sin Liga" as League,
         ratingEntries: [],
       });
@@ -320,26 +323,36 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="style"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Estilo de Juego</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {playerStyles.map((s) => (
-                              <SelectItem key={s} value={s}>{s}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name="offensiveStyle"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Estilo ofensivo</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                            <SelectContent>{playerStyles.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="defensiveStyle"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Estilo defensivo</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                            <SelectContent>{playerStyles.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
                   <FormField
                     control={form.control}
