@@ -30,7 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { leagues, playerStyles, playerTiers, positions, type Position } from "@/lib/types";
+import { defensivePlayerStyles, leagues, offensivePlayerStyles, playerStyles, playerTiers, positions, type Position } from "@/lib/types";
 import { normalizeTierPlacements } from "@/lib/utils";
 
 const formSchema = z.object({
@@ -41,8 +41,8 @@ const formSchema = z.object({
   currentCardName: z.string().min(2, "El nombre de la carta debe tener al menos 2 caracteres."),
   efhubUrl: z.string().optional(),
   currentStyle: z.enum(playerStyles),
-  currentOffensiveStyle: z.enum(playerStyles),
-  currentDefensiveStyle: z.enum(playerStyles),
+  currentOffensiveStyle: z.enum(offensivePlayerStyles),
+  currentDefensiveStyle: z.enum(defensivePlayerStyles),
   tier: z.enum(playerTiers).optional(),
   tierPlacements: z.coerce.number().int().min(0).optional(),
   league: z.enum(leagues).optional(),
@@ -122,7 +122,7 @@ export function EditCardDialog({ open, onOpenChange, onEditCard, initialData }: 
                       <FormLabel>Ofensivo</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                        <SelectContent>{playerStyles.map((style) => <SelectItem key={style} value={style}>{style}</SelectItem>)}</SelectContent>
+                        <SelectContent>{offensivePlayerStyles.map((style) => <SelectItem key={style} value={style}>{style}</SelectItem>)}</SelectContent>
                       </Select>
                       <FormMessage />
                     </FormItem>
@@ -136,7 +136,7 @@ export function EditCardDialog({ open, onOpenChange, onEditCard, initialData }: 
                       <FormLabel>Defensivo</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                        <SelectContent>{playerStyles.map((style) => <SelectItem key={style} value={style}>{style}</SelectItem>)}</SelectContent>
+                        <SelectContent>{defensivePlayerStyles.map((style) => <SelectItem key={style} value={style}>{style}</SelectItem>)}</SelectContent>
                       </Select>
                       <FormMessage />
                     </FormItem>

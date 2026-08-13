@@ -48,13 +48,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import {
   nationalities,
-  playerStyles,
+  offensivePlayerStyles,
+  defensivePlayerStyles,
   leagues,
   playerTiers,
   positions,
   type Player,
   type Nationality,
-  type PlayerStyle,
   type League,
   type Position,
 } from "@/lib/types";
@@ -66,8 +66,8 @@ const formSchema = z.object({
   cardName: z.string().min(2, "El nombre de la carta debe tener al menos 2 caracteres."),
   imageUrl: z.string().min(1, "La imagen es requerida."),
   nationality: z.enum(nationalities).optional(),
-  offensiveStyle: z.enum(playerStyles).optional(),
-  defensiveStyle: z.enum(playerStyles).optional(),
+  offensiveStyle: z.enum(offensivePlayerStyles).optional(),
+  defensiveStyle: z.enum(defensivePlayerStyles).optional(),
   league: z.enum(leagues).optional(),
   ratingEntries: z.array(z.object({
     position: z.enum(positions),
@@ -135,8 +135,8 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
         cardName: "",
         imageUrl: "",
         nationality: "Sin Nacionalidad" as Nationality,
-        offensiveStyle: "Básico" as PlayerStyle,
-        defensiveStyle: "Básico" as PlayerStyle,
+        offensiveStyle: "Básico",
+        defensiveStyle: "Básico",
         league: "Sin Liga" as League,
         ratingEntries: [],
       });
@@ -332,7 +332,7 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
                           <FormLabel>Estilo ofensivo</FormLabel>
                           <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                            <SelectContent>{playerStyles.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                            <SelectContent>{offensivePlayerStyles.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                           </Select>
                           <FormMessage />
                         </FormItem>
@@ -346,7 +346,7 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
                           <FormLabel>Estilo defensivo</FormLabel>
                           <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                            <SelectContent>{playerStyles.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                            <SelectContent>{defensivePlayerStyles.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                           </Select>
                           <FormMessage />
                         </FormItem>

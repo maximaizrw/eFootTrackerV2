@@ -32,7 +32,7 @@ import type {
   Position,
   PlayerStyle,
 } from "@/lib/types";
-import { positions, playerStyles } from "@/lib/types";
+import { defensivePlayerStyles, offensivePlayerStyles, positions } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { FootballPitch } from "./football-pitch";
 import { formationPresets } from "@/lib/formation-presets";
@@ -90,6 +90,7 @@ function ZoneColorDot({ position }: { position: Position }) {
 type VisualFormationEditorProps = {
   value: FormationSlot[];
   onChange: (value: FormationSlot[]) => void;
+  phase?: 'offensive' | 'defensive';
 };
 
 const PlayerToken = ({
@@ -99,6 +100,7 @@ const PlayerToken = ({
   style,
   isSelected,
   onPointerDown,
+  phase,
 }: {
   slot: FormationSlot;
   index: number;
@@ -106,6 +108,7 @@ const PlayerToken = ({
   style: React.CSSProperties;
   isSelected: boolean;
   onPointerDown: (e: React.PointerEvent) => void;
+  phase: 'offensive' | 'defensive';
 }) => {
   const [isPopoverOpen, setIsPopoverOpen] = React.useState(false);
 
@@ -130,8 +133,9 @@ const PlayerToken = ({
   };
 
   const displayLabel = slot.profileName || slot.position;
-  // Use ALL player styles for the tactical editor as requested
-  const allStyles: PlayerStyle[] = [...playerStyles];
+  const allStyles: PlayerStyle[] = phase === 'defensive'
+    ? [...defensivePlayerStyles]
+    : [...offensivePlayerStyles];
   
   const hasStyles = slot.styles && slot.styles.length > 0;
   const hasAdvanced = !!slot.minHeight || !!slot.secondaryPosition || !!slot.profileName;
@@ -370,6 +374,7 @@ function ZoneCounter({ slots }: { slots: FormationSlot[] }) {
 export function VisualFormationEditor({
   value,
   onChange,
+  phase = 'offensive',
 }: VisualFormationEditorProps) {
   const editorRef = React.useRef<HTMLDivElement>(null);
   const [movingTokenIndex, setMovingTokenIndex] = React.useState<number | null>(
@@ -503,6 +508,7 @@ export function VisualFormationEditor({
               style={tokenStyle}
               isSelected={movingTokenIndex === index}
               onPointerDown={(e) => handleTokenPointerDown(e, index)}
+              phase={phase}
             />
           );
         })}

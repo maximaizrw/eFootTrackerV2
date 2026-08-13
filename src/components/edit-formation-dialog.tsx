@@ -32,7 +32,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import type { EditFormationFormValues, FormationStats, FormationSlot } from "@/lib/types";
-import { formationPlayStyles, FormationSlotSchema } from "@/lib/types";
+import { defensivePlayerStyles, formationPlayStyles, FormationSlotSchema, offensivePlayerStyles } from "@/lib/types";
 import { VisualFormationEditor } from "./visual-formation-editor";
 import { formationPresets } from "@/lib/formation-presets";
 import { ScrollArea } from "./ui/scroll-area";
@@ -106,7 +106,17 @@ export function EditFormationDialog({ open, onOpenChange, onEditFormation, initi
   }, [open, initialData, form]);
   
   function onSubmit(values: EditFormationFormValues) {
-    onEditFormation(values);
+    onEditFormation({
+      ...values,
+      slots: values.slots.map(slot => ({
+        ...slot,
+        styles: (slot.styles || []).filter(style => offensivePlayerStyles.includes(style as any)),
+      })),
+      defensiveSlots: values.defensiveSlots?.map(slot => ({
+        ...slot,
+        styles: (slot.styles || []).filter(style => defensivePlayerStyles.includes(style as any)),
+      })),
+    });
     onOpenChange(false);
   }
 
@@ -206,7 +216,7 @@ export function EditFormationDialog({ open, onOpenChange, onEditFormation, initi
                                             onCheckedChange={(checked) => {
                                                 field.onChange(checked);
                                                 if (checked && !form.getValues('defensiveSlots')) {
-                                                    form.setValue('defensiveSlots', form.getValues('slots'), { shouldValidate: true });
+                                                    form.setValue('defensiveSlots', form.getValues('slots').map(slot => ({ ...slot, styles: [] })), { shouldValidate: true });
                                                 }
                                             }}
                                             aria-label="Activar formación fluida"
@@ -224,7 +234,7 @@ export function EditFormationDialog({ open, onOpenChange, onEditFormation, initi
                                     <FormItem>
                                         <FormLabel>Formación defensiva</FormLabel>
                                         <FormControl>
-                                            <VisualFormationEditor value={field.value || form.getValues('slots')} onChange={field.onChange} />
+                                            <VisualFormationEditor value={field.value || form.getValues('slots')} onChange={field.onChange} phase="defensive" />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>

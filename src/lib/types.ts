@@ -1,30 +1,62 @@
 import * as z from "zod";
 
-export const playerStyles = [
+export const offensivePlayerStyles = [
   'Básico',
-  'Ninguno',
   'Cazagoles',
-  'Hombre de área',
-  'Segundo delantero',
-  'Hombre objetivo',
   'Señuelo',
-  'Creador de juego',
+  'Hombre de área',
+  'Hombre objetivo',
+  'Segundo delantero',
   'Creador de jugadas',
-  'El destructor',
-  'Portero defensivo',
-  'Portero ofensivo',
-  'Atacante extra',
-  'Lateral defensivo',
-  'Lateral ofensivo',
-  'Lateral finalizador',
+  'Extremo prolífico',
+  'Extremo móvil',
   'Especialista en centros',
+  'Diez clásico',
+  'Jugador de huecos',
   'Omnipresente',
   'Medio escudo',
   'Organizador',
-  'Jugador de huecos',
-  'Extremo móvil',
-  'Extremo prolífico',
-  'Diez clásico'
+  'Creador de juego',
+  'Atacante extra',
+  'Lateral ofensivo',
+  'Lateral defensivo',
+  'Lateral finalizador',
+  'Portero adelantado',
+] as const;
+export type OffensivePlayerStyle = typeof offensivePlayerStyles[number];
+
+export const defensivePlayerStyles = [
+  'Básico',
+  'Presión en línea frontal',
+  'Cazador de primera línea',
+  'Salida de ataque',
+  'Defensa incansable',
+  'Interceptor de pases',
+  'Omnipresente',
+  'Medio escudo',
+  'El destructor',
+  'Rol de cobertura',
+  'Maestro de línea adelantada',
+  'Portero ofensivo',
+  'Portero defensivo',
+  'Portero líbero',
+] as const;
+export type DefensivePlayerStyle = typeof defensivePlayerStyles[number];
+
+export const playerStyles = [
+  ...offensivePlayerStyles,
+  'Presión en línea frontal',
+  'Cazador de primera línea',
+  'Salida de ataque',
+  'Defensa incansable',
+  'Interceptor de pases',
+  'El destructor',
+  'Rol de cobertura',
+  'Maestro de línea adelantada',
+  'Portero ofensivo',
+  'Portero defensivo',
+  'Portero líbero',
+  'Ninguno',
 ] as const;
 export type PlayerStyle = typeof playerStyles[number];
 
@@ -280,16 +312,16 @@ export function getAvailableStylesForPosition(position: Position, includeNone: b
 
   switch (position) {
     case 'PT':
-      return [...baseStyles, 'Portero defensivo', 'Portero ofensivo'];
+      return [...baseStyles, 'Portero adelantado'];
     case 'DFC':
-      return [...baseStyles, 'El destructor', 'Atacante extra', 'Creador de juego'];
+      return [...baseStyles, 'Atacante extra', 'Creador de juego'];
     case 'LI':
     case 'LD':
       return [...baseStyles, 'Lateral defensivo', 'Lateral ofensivo', 'Lateral finalizador'];
     case 'MCD':
-      return [...baseStyles, 'El destructor', 'Medio escudo', 'Omnipresente', 'Organizador'];
+      return [...baseStyles, 'Medio escudo', 'Omnipresente', 'Organizador'];
     case 'MC':
-      return [...baseStyles, 'Jugador de huecos', 'Omnipresente', 'Creador de jugadas', 'Organizador', 'El destructor'];
+      return [...baseStyles, 'Jugador de huecos', 'Omnipresente', 'Creador de jugadas', 'Organizador'];
     case 'MDI':
     case 'MDD':
       return [...baseStyles, 'Omnipresente', 'Especialista en centros', 'Creador de jugadas', 'Jugador de huecos', 'Extremo móvil', 'Organizador'];
@@ -303,7 +335,7 @@ export function getAvailableStylesForPosition(position: Position, includeNone: b
     case 'DC':
       return [...baseStyles, 'Cazagoles', 'Hombre de área', 'Segundo delantero', 'Hombre objetivo'];
     default:
-      return [...playerStyles];
+      return [...offensivePlayerStyles];
   }
 }
 
@@ -312,11 +344,17 @@ export const defensiveStylePositions: Position[] = ['PT', 'DFC', 'LI', 'LD', 'MC
 export function getPlayerStylesForPosition(card: PlayerCard, position: Position) {
   const legacyStyle = card.style || 'Ninguno';
   const keepsLegacyInDefense = defensiveStylePositions.includes(position);
+  const storedOffensiveStyle = card.offensiveStyleByPosition?.[position] || card.offensiveStyle || (keepsLegacyInDefense ? 'Básico' : legacyStyle);
+  const storedDefensiveStyle = card.defensiveStyleByPosition?.[position] || card.defensiveStyle || (keepsLegacyInDefense ? legacyStyle : 'Básico');
 
   return {
-    offensiveStyle: card.offensiveStyleByPosition?.[position] || card.offensiveStyle || (keepsLegacyInDefense ? 'Básico' : legacyStyle),
-    defensiveStyle: card.defensiveStyleByPosition?.[position] || card.defensiveStyle || (keepsLegacyInDefense ? legacyStyle : 'Básico'),
-  } satisfies { offensiveStyle: PlayerStyle; defensiveStyle: PlayerStyle };
+    offensiveStyle: offensivePlayerStyles.includes(storedOffensiveStyle as OffensivePlayerStyle)
+      ? storedOffensiveStyle as OffensivePlayerStyle
+      : 'Básico',
+    defensiveStyle: defensivePlayerStyles.includes(storedDefensiveStyle as DefensivePlayerStyle)
+      ? storedDefensiveStyle as DefensivePlayerStyle
+      : 'Básico',
+  } satisfies { offensiveStyle: OffensivePlayerStyle; defensiveStyle: DefensivePlayerStyle };
 }
 
 export function getPlayerStyleForPosition(card: PlayerCard, position: Position, phase: 'offensive' | 'defensive') {

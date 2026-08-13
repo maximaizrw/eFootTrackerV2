@@ -20,7 +20,7 @@ import Image from 'next/image';
 import { Dumbbell, Image as ImageIcon, Globe, Trophy, LayersIcon } from "lucide-react";
 import { getProxiedImageUrl, normalizePlayerTier, normalizeTierPlacements } from '@/lib/utils';
 import { Badge } from "./ui/badge";
-import { defensiveStylePositions, getPlayerStylesForPosition, nationalities, leagues, playerStyles, playerTiers } from "@/lib/types";
+import { defensivePlayerStyles, defensiveStylePositions, getPlayerStylesForPosition, nationalities, leagues, offensivePlayerStyles, playerTiers } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type PlayerDetailDialogProps = {
@@ -166,14 +166,14 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
                                         <Label>Estilo ofensivo</Label>
                                         <Select value={offensiveStyle} onValueChange={(value) => setOffensiveStyle(value as PlayerStyle)}>
                                             <SelectTrigger><SelectValue /></SelectTrigger>
-                                            <SelectContent>{playerStyles.map(playerStyle => <SelectItem key={playerStyle} value={playerStyle}>{playerStyle}</SelectItem>)}</SelectContent>
+                                            <SelectContent>{offensivePlayerStyles.map(playerStyle => <SelectItem key={playerStyle} value={playerStyle}>{playerStyle}</SelectItem>)}</SelectContent>
                                         </Select>
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Estilo defensivo</Label>
                                         <Select value={defensiveStyle} onValueChange={(value) => setDefensiveStyle(value as PlayerStyle)}>
                                             <SelectTrigger><SelectValue /></SelectTrigger>
-                                            <SelectContent>{playerStyles.map(playerStyle => <SelectItem key={playerStyle} value={playerStyle}>{playerStyle}</SelectItem>)}</SelectContent>
+                                            <SelectContent>{defensivePlayerStyles.map(playerStyle => <SelectItem key={playerStyle} value={playerStyle}>{playerStyle}</SelectItem>)}</SelectContent>
                                         </Select>
                                     </div>
                                 </div>
