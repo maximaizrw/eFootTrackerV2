@@ -1,5 +1,5 @@
 import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, FormationSlot, PlayerStyle, IdealTeamMode, IdealTeamSelectionCriteria } from './types';
-import { getAvailableStylesForPosition, getPlayerStyleForPosition } from './types';
+import { getPlayerStyleForPosition } from './types';
 import { calculateStats, calculateOverall, calculateRecencyWeightedAverage, positionPriority, calculatePlayerConfidence, normalizePlayerTier, getRatingEntriesForPosition, getFormationRatingEntries, calculateFormationConfidence, getCardTierForPosition, getCardTierPlacementsForPosition, getPlayerTierBonus } from './utils';
 
 type CandidatePlayer = {
@@ -16,6 +16,8 @@ type CandidatePlayer = {
 
 type FormationSelectionSlot = FormationSlot & {
   requiredPositions: Position[];
+  defensivePosition?: Position;
+  defensiveStyles: string[];
 };
 
 export function generateIdealTeam(
@@ -52,9 +54,7 @@ export function generateIdealTeam(
         const stats = calculateStats(ratings);
         const recentAverage = calculateRecencyWeightedAverage(ratings, 5, 2.5, 0.9);
         
-        const availableStylesForPos = getAvailableStylesForPosition(pos, false);
         const offensiveStyle = getPlayerStyleForPosition(card, pos, 'offensive');
-        const effectiveRole = availableStylesForPos.includes(offensiveStyle) ? offensiveStyle : 'Ninguno';
         
         const likesForPos = card.likesByPosition?.[pos] || [];
         const likes = likesForPos.filter(l => l === true).length;
@@ -100,7 +100,7 @@ export function generateIdealTeam(
         return {
             player, card, position: pos, average: stats.average,
             overall: trueOverall, generalConfidenceScore: tierAdjustedGeneralConfidence, scoreForSelection,
-            role: effectiveRole,
+            role: offensiveStyle as PlayerStyle,
             performance
         };
       }).filter((p): p is CandidatePlayer => p !== null);
@@ -114,14 +114,18 @@ export function generateIdealTeam(
   // Keep the offensive slot as the displayed/rated position, but require the card
   // to also be usable in the corresponding defensive position.
   const selectionSlots: FormationSelectionSlot[] = formation.slots.map((slot, index) => {
-    const defensivePosition = formation.isFluid
-      ? formation.defensiveSlots?.[index]?.position
-      : undefined;
+    const defensiveSlot = formation.isFluid ? formation.defensiveSlots?.[index] : undefined;
+    const defensivePosition = defensiveSlot?.position;
     const requiredPositions = [slot.secondaryPosition, defensivePosition]
       .filter((position): position is Position => Boolean(position) && position !== slot.position)
       .filter((position, positionIndex, positions) => positions.indexOf(position) === positionIndex);
 
-    return { ...slot, requiredPositions };
+    return {
+      ...slot,
+      requiredPositions,
+      defensivePosition,
+      defensiveStyles: defensiveSlot?.styles || [],
+    };
   });
   
   const candidateSort = (a: CandidatePlayer, b: CandidatePlayer) => {
@@ -138,6 +142,7 @@ export function generateIdealTeam(
     if (isFlexibleWingers && (primaryPos === 'EXI' || primaryPos === 'EXD')) targetPositions = ['EXI', 'EXD'];
     
     const requiredStyles = slot.styles && slot.styles.length > 0 ? slot.styles : null;
+    const requiredDefensiveStyles = slot.defensiveStyles.length > 0 ? slot.defensiveStyles : null;
 
     const baseFilter = (p: CandidatePlayer) => {
         if (!targetPositions.includes(p.position)) return false;
@@ -152,25 +157,25 @@ export function generateIdealTeam(
         return true;
     };
 
-    if (requiredStyles && !ignoreStyles) {
+    const matchesOffensiveStyles = (p: CandidatePlayer) => {
+        if (!requiredStyles) return true;
         const wantsNinguno = requiredStyles.includes('Ninguno');
         const specificStyles = requiredStyles.filter(s => s !== 'Ninguno');
 
-        const matchesRole = (p: CandidatePlayer) => {
-            if (specificStyles.includes(p.role)) return true;
-            if (wantsNinguno) {
-                // "Ninguno" = player's style is not a valid role for this position
-                const validForPos = getAvailableStylesForPosition(p.position, false);
-                return !validForPos.includes(p.role as any);
-            }
-            return false;
-        };
+        if (specificStyles.includes(p.role)) return true;
+        if (wantsNinguno) return p.role === 'Ninguno';
+        return false;
+    };
 
-        const withRole = allPlayerCandidates.filter(p => baseFilter(p) && matchesRole(p));
-        if (withRole.length > 0) return withRole.sort(candidateSort);
-    }
+    const matchesDefensiveStyles = (p: CandidatePlayer) => {
+        if (!requiredDefensiveStyles || !slot.defensivePosition) return true;
+        const defensiveRole = getPlayerStyleForPosition(p.card, slot.defensivePosition, 'defensive');
+        return requiredDefensiveStyles.includes(defensiveRole);
+    };
 
-    return allPlayerCandidates.filter(baseFilter).sort(candidateSort);
+    return allPlayerCandidates
+      .filter(p => baseFilter(p) && (ignoreStyles || (matchesOffensiveStyles(p) && matchesDefensiveStyles(p))))
+      .sort(candidateSort);
   };
 
   // Sort formation slots based on target priority: PT, DFC, LI/LD, MCD, MC, MDI/MDD, MO, EXI/EXD, SD, DC
