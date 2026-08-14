@@ -118,9 +118,7 @@ const PlayerToken = ({
   const handleStyleToggle = (styleToToggle: PlayerStyle) => {
     const currentValues = slot.styles || [];
     const isAlreadySelected = currentValues.includes(styleToToggle);
-    const newValues = isAlreadySelected
-      ? currentValues.filter((s) => s !== styleToToggle)
-      : [...currentValues, styleToToggle];
+    const newValues = isAlreadySelected ? [] : [styleToToggle];
     onSlotChange({ ...slot, styles: newValues });
   };
 
@@ -238,7 +236,7 @@ const PlayerToken = ({
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Estilos de Juego Sugeridos</label>
+                <label className="text-sm font-medium">Estilo de Juego Requerido</label>
                 <div className="flex flex-wrap gap-1.5">
                   {allStyles.map((s) => {
                     const isActive = slot.styles?.includes(s);

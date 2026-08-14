@@ -141,8 +141,11 @@ export function generateIdealTeam(
     if (isFlexibleLaterals && (primaryPos === 'LI' || primaryPos === 'LD')) targetPositions = ['LI', 'LD'];
     if (isFlexibleWingers && (primaryPos === 'EXI' || primaryPos === 'EXD')) targetPositions = ['EXI', 'EXD'];
     
-    const requiredStyles = slot.styles && slot.styles.length > 0 ? slot.styles : null;
-    const requiredDefensiveStyles = slot.defensiveStyles.length > 0 ? slot.defensiveStyles : null;
+    // A player has one offensive and one defensive style per position.
+    // Older formations may contain several values; the first one is the style
+    // shown on the formation token and therefore the authoritative requirement.
+    const requiredStyles = slot.styles?.[0] ? [slot.styles[0]] : null;
+    const requiredDefensiveStyles = slot.defensiveStyles[0] ? [slot.defensiveStyles[0]] : null;
 
     const baseFilter = (p: CandidatePlayer) => {
         if (!targetPositions.includes(p.position)) return false;
