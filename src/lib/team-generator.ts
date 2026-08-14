@@ -14,6 +14,10 @@ type CandidatePlayer = {
   performance: PlayerPerformance;
 };
 
+type FormationSelectionSlot = FormationSlot & {
+  requiredPositions: Position[];
+};
+
 export function generateIdealTeam(
   players: Player[],
   formation: FormationStats,
@@ -105,15 +109,28 @@ export function generateIdealTeam(
 
   const usedPlayerIds = new Set<string>();
   const usedCardIds = new Set<string>();
+
+  // In a fluid formation, every index represents the same player in both phases.
+  // Keep the offensive slot as the displayed/rated position, but require the card
+  // to also be usable in the corresponding defensive position.
+  const selectionSlots: FormationSelectionSlot[] = formation.slots.map((slot, index) => {
+    const defensivePosition = formation.isFluid
+      ? formation.defensiveSlots?.[index]?.position
+      : undefined;
+    const requiredPositions = [slot.secondaryPosition, defensivePosition]
+      .filter((position): position is Position => Boolean(position) && position !== slot.position)
+      .filter((position, positionIndex, positions) => positions.indexOf(position) === positionIndex);
+
+    return { ...slot, requiredPositions };
+  });
   
   const candidateSort = (a: CandidatePlayer, b: CandidatePlayer) => {
     if (Math.abs(b.scoreForSelection - a.scoreForSelection) > 0.001) return b.scoreForSelection - a.scoreForSelection;
     return b.performance.stats.matches - a.performance.stats.matches;
   };
 
-  const getCandidatesForSlot = (slot: FormationSlot, ignoreStyles = false): CandidatePlayer[] => {
+  const getCandidatesForSlot = (slot: FormationSelectionSlot, ignoreStyles = false): CandidatePlayer[] => {
     const primaryPos = slot.position;
-    const secondaryPos = slot.secondaryPosition;
     const minHeight = slot.minHeight;
     
     let targetPositions: Position[] = [primaryPos];
@@ -124,12 +141,10 @@ export function generateIdealTeam(
 
     const baseFilter = (p: CandidatePlayer) => {
         if (!targetPositions.includes(p.position)) return false;
-        if (secondaryPos) {
-            const hasSecondaryRating = p.card.ratingsByPosition &&
-                                       p.card.ratingsByPosition[secondaryPos] &&
-                                       p.card.ratingsByPosition[secondaryPos]!.length > 0;
-            if (!hasSecondaryRating) return false;
-        }
+        const hasAllRequiredPositions = slot.requiredPositions.every(position =>
+            (p.card.ratingsByPosition?.[position]?.length ?? 0) > 0
+        );
+        if (!hasAllRequiredPositions) return false;
         if (minHeight) {
             const playerHeight = p.card.physicalAttributes?.height || 0;
             if (playerHeight < minHeight) return false;
@@ -159,12 +174,12 @@ export function generateIdealTeam(
   };
 
   // Sort formation slots based on target priority: PT, DFC, LI/LD, MCD, MC, MDI/MDD, MO, EXI/EXD, SD, DC
-  const sortedFormationSlots = formation.slots
+  const sortedFormationSlots = selectionSlots
     .map((slot, originalIndex) => ({ slot, originalIndex }))
     .sort((a, b) => positionPriority[a.slot.position] - positionPriority[b.slot.position]);
 
   // 1. ASSIGN STARTERS (Respecting tactical order)
-  const starters: (IdealTeamPlayer | null)[] = formation.slots.map(slot => {
+  const starters: (IdealTeamPlayer | null)[] = selectionSlots.map(slot => {
     const candidates = getCandidatesForSlot(slot);
     const starter = candidates.find(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id));
 

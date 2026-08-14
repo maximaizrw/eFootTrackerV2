@@ -92,9 +92,9 @@ export function EditFormationDialog({ open, onOpenChange, onEditFormation, initi
           left: s.left ?? 50,
         })),
         isFluid: initialData.isFluid || false,
-        defensiveSlots: initialData.defensiveSlots?.map(s => ({
+        defensiveSlots: (initialData.defensiveSlots || (initialData.isFluid ? initialData.slots : undefined))?.map(s => ({
           ...s,
-          styles: s.styles || [],
+          styles: initialData.defensiveSlots ? (s.styles || []) : [],
           top: s.top ?? 50,
           left: s.left ?? 50,
         })),
@@ -106,13 +106,17 @@ export function EditFormationDialog({ open, onOpenChange, onEditFormation, initi
   }, [open, initialData, form]);
   
   function onSubmit(values: EditFormationFormValues) {
+    const defensiveSlots = values.isFluid
+      ? (values.defensiveSlots || values.slots.map(slot => ({ ...slot, styles: [] })))
+      : undefined;
+
     onEditFormation({
       ...values,
       slots: values.slots.map(slot => ({
         ...slot,
         styles: (slot.styles || []).filter(style => offensivePlayerStyles.includes(style as any)),
       })),
-      defensiveSlots: values.defensiveSlots?.map(slot => ({
+      defensiveSlots: defensiveSlots?.map(slot => ({
         ...slot,
         styles: (slot.styles || []).filter(style => defensivePlayerStyles.includes(style as any)),
       })),
@@ -215,7 +219,7 @@ export function EditFormationDialog({ open, onOpenChange, onEditFormation, initi
                                             checked={field.value || false}
                                             onCheckedChange={(checked) => {
                                                 field.onChange(checked);
-                                                if (checked && !form.getValues('defensiveSlots')) {
+                                                if (checked) {
                                                     form.setValue('defensiveSlots', form.getValues('slots').map(slot => ({ ...slot, styles: [] })), { shouldValidate: true });
                                                 }
                                             }}

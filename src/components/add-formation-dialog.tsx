@@ -105,13 +105,17 @@ export function AddFormationDialog({ open, onOpenChange, onAddFormation }: AddFo
   }, [open, reset]);
 
   function onSubmit(values: AddFormationFormValues) {
+    const defensiveSlots = values.isFluid
+      ? (values.defensiveSlots || values.slots.map(slot => ({ ...slot, styles: [] })))
+      : undefined;
+
     onAddFormation({
       ...values,
       slots: values.slots.map(slot => ({
         ...slot,
         styles: (slot.styles || []).filter(style => offensivePlayerStyles.includes(style as any)),
       })),
-      defensiveSlots: values.defensiveSlots?.map(slot => ({
+      defensiveSlots: defensiveSlots?.map(slot => ({
         ...slot,
         styles: (slot.styles || []).filter(style => defensivePlayerStyles.includes(style as any)),
       })),
@@ -230,7 +234,7 @@ export function AddFormationDialog({ open, onOpenChange, onAddFormation }: AddFo
                                         checked={field.value || false}
                                         onCheckedChange={(checked) => {
                                             field.onChange(checked);
-                                            if (checked && !getValues('defensiveSlots')) {
+                                            if (checked) {
                                                 setValue('defensiveSlots', getValues('slots').map(slot => ({ ...slot, styles: [] })), { shouldValidate: true });
                                             }
                                         }}
