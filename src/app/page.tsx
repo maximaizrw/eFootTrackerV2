@@ -213,6 +213,7 @@ export default function Home() {
         currentDefensiveStyle: cardStyles.defensiveStyle,
         tier: storedTier,
         tierPlacements: storedTierPlacements,
+        isSecondaryPosition: position ? card.secondaryPositions?.includes(position) || false : false,
         league: card.league || 'Sin Liga',
         imageUrl: card.imageUrl || '',
         tierlistUrl: card.tierlistUrl || player.efhubUrl || '',

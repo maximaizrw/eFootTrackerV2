@@ -185,6 +185,7 @@ export type PlayerCard = {
   tierPlacementsByPosition?: { [key in Position]?: number };
   tierUpdatedAtByPosition?: { [key in Position]?: string };
   tierReviewDelayDaysByPosition?: { [key in Position]?: number };
+  secondaryPositions?: Position[];
   league?: League;
   imageUrl?: string;
   tierlistUrl?: string;
@@ -305,6 +306,7 @@ export type FlatPlayer = {
   tier: PlayerTier;
   tierPlacements: number;
   tierUpdatedAt?: string;
+  isSecondaryPosition?: boolean;
 };
 
 export function getAvailableStylesForPosition(position: Position, includeNone: boolean = false): PlayerStyle[] {

@@ -219,7 +219,7 @@ export function EditFormationDialog({ open, onOpenChange, onEditFormation, initi
                                             checked={field.value || false}
                                             onCheckedChange={(checked) => {
                                                 field.onChange(checked);
-                                                if (checked) {
+                                                if (checked && !form.getValues('defensiveSlots')) {
                                                     form.setValue('defensiveSlots', form.getValues('slots').map(slot => ({ ...slot, styles: [] })), { shouldValidate: true });
                                                 }
                                             }}

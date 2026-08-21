@@ -35,7 +35,8 @@ type PlayerDetailDialogProps = {
     offensiveStyle: PlayerStyle;
     defensiveStyle: PlayerStyle;
     tier: PlayerTier;
-    tierPlacements: number;
+  tierPlacements: number;
+    isSecondaryPosition: boolean;
     physical: PhysicalAttribute;
     nationality?: Nationality;
     league?: League;
@@ -52,6 +53,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
   const [defensiveStyle, setDefensiveStyle] = React.useState<PlayerStyle>('Básico');
   const [tier, setTier] = React.useState<PlayerTier>('SIN TIER');
   const [tierPlacements, setTierPlacements] = React.useState(0);
+  const [isSecondaryPosition, setIsSecondaryPosition] = React.useState(false);
   const [height, setHeight] = React.useState<number | ''>('');
   const [weight, setWeight] = React.useState<number | ''>('');
   const [nationality, setNationality] = React.useState<Nationality>('Sin Nacionalidad');
@@ -72,6 +74,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
       const currentTier = normalizePlayerTier(card.tierByPosition?.[position] ?? card.tier);
       setTier(currentTier);
       setTierPlacements(normalizeTierPlacements(currentTier, card.tierPlacementsByPosition?.[position] ?? card.tierPlacements));
+      setIsSecondaryPosition(card.secondaryPositions?.includes(position) || false);
       setHeight(card.physicalAttributes?.height ?? '');
       setWeight(card.physicalAttributes?.weight ?? '');
       setNationality(player?.nationality || 'Sin Nacionalidad');
@@ -90,6 +93,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
         defensiveStyle,
         tier,
         tierPlacements,
+        isSecondaryPosition,
         physical: { height: height === '' ? undefined : Number(height), weight: weight === '' ? undefined : Number(weight) },
         nationality,
         league,
@@ -180,32 +184,52 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
                             </div>
                             
                             <div className="grid grid-cols-2 gap-4 content-start pb-1">
-                                <div className="space-y-2">
-                                    <Label>Tier en {position}</Label>
-                                    <Select
-                                        value={tier}
-                                        onValueChange={(value) => {
-                                            const nextTier = value as PlayerTier;
-                                            setTier(nextTier);
-                                            setTierPlacements(nextTier === 'SIN TIER' ? 0 : Math.max(1, tierPlacements));
-                                        }}
+                                <div className="col-span-2 rounded-md border border-border/60 bg-muted/20 p-3 space-y-2">
+                                    <Button
+                                        type="button"
+                                        variant={isSecondaryPosition ? "secondary" : "outline"}
+                                        className="w-full"
+                                        aria-pressed={isSecondaryPosition}
+                                        onClick={() => setIsSecondaryPosition(current => !current)}
                                     >
-                                        <SelectTrigger><SelectValue /></SelectTrigger>
-                                        <SelectContent>
-                                            {playerTiers.map(playerTier => <SelectItem key={playerTier} value={playerTier}>{playerTier}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
+                                        {isSecondaryPosition ? "Usar para selección" : "Marcar como secundaria"}
+                                    </Button>
+                                    <p className="text-xs text-muted-foreground">
+                                        {isSecondaryPosition
+                                            ? "Solo se usará como posición de apoyo en formaciones fluidas y no recibirá TIER."
+                                            : "Una posición secundaria no puede elegir al jugador como titular o suplente."}
+                                    </p>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label>Placements</Label>
-                                    <Input
-                                        type="number"
-                                        min={tier === 'SIN TIER' ? 0 : 1}
-                                        disabled={tier === 'SIN TIER'}
-                                        value={tierPlacements}
-                                        onChange={(e) => setTierPlacements(Number(e.target.value))}
-                                    />
-                                </div>
+                                {!isSecondaryPosition && (
+                                    <>
+                                        <div className="space-y-2">
+                                            <Label>Tier en {position}</Label>
+                                            <Select
+                                                value={tier}
+                                                onValueChange={(value) => {
+                                                    const nextTier = value as PlayerTier;
+                                                    setTier(nextTier);
+                                                    setTierPlacements(nextTier === 'SIN TIER' ? 0 : Math.max(1, tierPlacements));
+                                                }}
+                                            >
+                                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    {playerTiers.map(playerTier => <SelectItem key={playerTier} value={playerTier}>{playerTier}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Placements</Label>
+                                            <Input
+                                                type="number"
+                                                min={tier === 'SIN TIER' ? 0 : 1}
+                                                disabled={tier === 'SIN TIER'}
+                                                value={tierPlacements}
+                                                onChange={(e) => setTierPlacements(Number(e.target.value))}
+                                            />
+                                        </div>
+                                    </>
+                                )}
                                 <div className="space-y-2">
                                     <Label>Altura (cm)</Label>
                                     <Input type="number" value={height} onChange={(e) => setHeight(e.target.value === '' ? '' : Number(e.target.value))} />
@@ -272,7 +296,7 @@ export function PlayerDetailDialog({ open, onOpenChange, flatPlayer, onSaveFullD
                                     <div className="flex gap-1 mt-1 flex-wrap">
                                       {positions.map(([pos, ratings]) => (
                                         <span key={pos} className="text-[9px] bg-muted px-1.5 py-0.5 rounded font-mono">
-                                          {pos} <span className="text-muted-foreground">({(ratings as number[]).length}P)</span>
+                                          {pos}{c.secondaryPositions?.includes(pos as Position) ? " · Sec." : ""} <span className="text-muted-foreground">({(ratings as number[]).length}P)</span>
                                         </span>
                                       ))}
                                     </div>

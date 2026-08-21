@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type { Player, PlayerCard, Position, FlatPlayer, LiveUpdateRating, PhysicalAttribute, Nationality, League, PlayerRatingEntry } from '@/lib/types';
 import type { FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import type { AddPlayerFormValues } from '@/components/add-player-dialog';
-import { defensiveStylePositions, getAvailableStylesForPosition, playerSkillsList } from '@/lib/types';
+import { defensiveStylePositions, getAvailableStylesForPosition, playerSkillsList, positions } from '@/lib/types';
 import { normalizeText, normalizeStyleName, normalizePlayerTier, normalizeTierPlacements, calculateStats, calculateOverall, calculateRecencyWeightedAverage, calculatePlayerConfidence, getCardTierForPosition, getCardTierPlacementsForPosition, getCardTierUpdatedAtForPosition, getPlayerTierBonus } from '@/lib/utils';
 
 export function usePlayers() {
@@ -70,6 +70,7 @@ export function usePlayers() {
                     tierPlacementsByPosition,
                     tierUpdatedAtByPosition: card.tierUpdatedAtByPosition || {},
                     tierReviewDelayDaysByPosition,
+                    secondaryPositions: (card.secondaryPositions || []).filter((position: string) => positions.includes(position as Position)),
                     ratingsByPosition: card.ratingsByPosition || {},
                     likesByPosition: card.likesByPosition || {},
                     ratingEntriesByPosition: card.ratingEntriesByPosition || {},
@@ -151,6 +152,7 @@ export function usePlayers() {
                     tier,
                     tierPlacements,
                     tierUpdatedAt,
+                    isSecondaryPosition: card.secondaryPositions?.includes(ratedPos) || false,
                 } as FlatPlayer;
             }).filter((p): p is FlatPlayer => p !== null);
         })
@@ -271,6 +273,7 @@ export function usePlayers() {
     const tierByPosition: { [key: string]: string } = {};
     const tierPlacementsByPosition: { [key: string]: number } = {};
     const tierUpdatedAtByPosition: { [key: string]: string } = {};
+    const secondaryPositions: Position[] = [];
     const now = new Date().toISOString();
     if (ratingEntries && ratingEntries.length > 0) {
       for (const entry of ratingEntries) {
@@ -286,9 +289,13 @@ export function usePlayers() {
           position: entry.position,
           date: new Date().toISOString(),
         });
-        tierByPosition[entry.position] = entryTier;
-        tierPlacementsByPosition[entry.position] = entryTierPlacements;
-        tierUpdatedAtByPosition[entry.position] = now;
+        if (entry.isSecondaryPosition) {
+          secondaryPositions.push(entry.position);
+        } else {
+          tierByPosition[entry.position] = entryTier;
+          tierPlacementsByPosition[entry.position] = entryTierPlacements;
+          tierUpdatedAtByPosition[entry.position] = now;
+        }
       }
     }
 
@@ -307,6 +314,7 @@ export function usePlayers() {
       tierByPosition,
       tierPlacementsByPosition,
       tierUpdatedAtByPosition,
+      secondaryPositions: [...new Set(secondaryPositions)],
       league: league || 'Sin Liga',
       imageUrl: imageUrl || '',
       tierlistUrl: trimmedEfhubUrl,
@@ -379,6 +387,7 @@ export function usePlayers() {
     defensiveStyle: PlayerCard['style'];
     tier: NonNullable<PlayerCard['tier']>;
     tierPlacements: number;
+    isSecondaryPosition: boolean;
     physical: PhysicalAttribute;
     nationality?: Nationality;
     league?: League;
@@ -407,6 +416,7 @@ export function usePlayers() {
       const cardLink = typeof data.efhubUrl === 'string' ? data.efhubUrl.trim() : '';
       const newCards = playerData.cards.map(card => {
         if (card.id === cardId) {
+          const isSecondaryPosition = Boolean(data.isSecondaryPosition);
           const previousTier = normalizePlayerTier(card.tierByPosition?.[position] ?? card.tier);
           const previousTierPlacements = normalizeTierPlacements(
             previousTier,
@@ -414,6 +424,9 @@ export function usePlayers() {
           );
           const tier = normalizePlayerTier(data.tier);
           const tierPlacements = normalizeTierPlacements(tier, data.tierPlacements);
+          const secondaryPositions = new Set(card.secondaryPositions || []);
+          if (isSecondaryPosition) secondaryPositions.add(position);
+          else secondaryPositions.delete(position);
           const updatedCard: any = {
             ...card,
             name: data.cardName,
@@ -424,15 +437,29 @@ export function usePlayers() {
             tierlistUrl: cardLink,
             physicalAttributes: data.physical,
             league: data.league || card.league,
-            tierByPosition: { ...(card.tierByPosition || {}), [position]: tier },
-            tierPlacementsByPosition: { ...(card.tierPlacementsByPosition || {}), [position]: tierPlacements },
-            tierUpdatedAtByPosition: { ...(card.tierUpdatedAtByPosition || {}), [position]: now },
+            secondaryPositions: [...secondaryPositions],
           };
-          if (previousTier !== tier || previousTierPlacements !== tierPlacements) {
-            const tierReviewDelayDaysByPosition = { ...(card.tierReviewDelayDaysByPosition || {}) };
+          const tierByPosition = { ...(card.tierByPosition || {}) };
+          const tierPlacementsByPosition = { ...(card.tierPlacementsByPosition || {}) };
+          const tierUpdatedAtByPosition = { ...(card.tierUpdatedAtByPosition || {}) };
+          const tierReviewDelayDaysByPosition = { ...(card.tierReviewDelayDaysByPosition || {}) };
+          if (isSecondaryPosition) {
+            delete tierByPosition[position];
+            delete tierPlacementsByPosition[position];
+            delete tierUpdatedAtByPosition[position];
             delete tierReviewDelayDaysByPosition[position];
-            updatedCard.tierReviewDelayDaysByPosition = tierReviewDelayDaysByPosition;
+          } else {
+            tierByPosition[position] = tier;
+            tierPlacementsByPosition[position] = tierPlacements;
+            tierUpdatedAtByPosition[position] = now;
+            if (previousTier !== tier || previousTierPlacements !== tierPlacements) {
+              delete tierReviewDelayDaysByPosition[position];
+            }
           }
+          updatedCard.tierByPosition = tierByPosition;
+          updatedCard.tierPlacementsByPosition = tierPlacementsByPosition;
+          updatedCard.tierUpdatedAtByPosition = tierUpdatedAtByPosition;
+          updatedCard.tierReviewDelayDaysByPosition = tierReviewDelayDaysByPosition;
           return stripUndefined(updatedCard);
         }
         return card;
@@ -497,6 +524,7 @@ export function usePlayers() {
           if (card.tierPlacementsByPosition?.[position] !== undefined) delete card.tierPlacementsByPosition[position];
           if (card.tierUpdatedAtByPosition?.[position]) delete card.tierUpdatedAtByPosition[position];
           if (card.tierReviewDelayDaysByPosition?.[position] !== undefined) delete card.tierReviewDelayDaysByPosition[position];
+          card.secondaryPositions = (card.secondaryPositions || []).filter(pos => pos !== position);
 
           const hasRatings = Object.keys(card.ratingsByPosition).length > 0;
           const finalCards = hasRatings ? newCards : newCards.filter(c => c.id !== cardId);
@@ -571,6 +599,7 @@ export function usePlayers() {
 
         if (values.position) {
           const position = values.position as Position;
+          const isSecondaryPosition = Boolean(values.isSecondaryPosition);
           const previousTier = normalizePlayerTier(c.tierByPosition?.[position] ?? c.tier);
           const previousTierPlacements = normalizeTierPlacements(
             previousTier,
@@ -578,19 +607,33 @@ export function usePlayers() {
           );
           const tier = normalizePlayerTier(values.tier);
           const tierPlacements = normalizeTierPlacements(tier, values.tierPlacements);
-          updatedCard.tierByPosition = { ...(updatedCard.tierByPosition || {}), [position]: tier };
+          const secondaryPositions = new Set(updatedCard.secondaryPositions || []);
+          if (isSecondaryPosition) secondaryPositions.add(position);
+          else secondaryPositions.delete(position);
+          updatedCard.secondaryPositions = [...secondaryPositions];
           updatedCard.offensiveStyleByPosition = { ...(updatedCard.offensiveStyleByPosition || {}), [position]: values.currentOffensiveStyle };
           updatedCard.defensiveStyleByPosition = { ...(updatedCard.defensiveStyleByPosition || {}), [position]: values.currentDefensiveStyle };
-          updatedCard.tierPlacementsByPosition = {
-            ...(updatedCard.tierPlacementsByPosition || {}),
-            [position]: tierPlacements,
-          };
-          updatedCard.tierUpdatedAtByPosition = { ...(updatedCard.tierUpdatedAtByPosition || {}), [position]: now };
-          if (previousTier !== tier || previousTierPlacements !== tierPlacements) {
-            const tierReviewDelayDaysByPosition = { ...(updatedCard.tierReviewDelayDaysByPosition || {}) };
+          const tierByPosition = { ...(updatedCard.tierByPosition || {}) };
+          const tierPlacementsByPosition = { ...(updatedCard.tierPlacementsByPosition || {}) };
+          const tierUpdatedAtByPosition = { ...(updatedCard.tierUpdatedAtByPosition || {}) };
+          const tierReviewDelayDaysByPosition = { ...(updatedCard.tierReviewDelayDaysByPosition || {}) };
+          if (isSecondaryPosition) {
+            delete tierByPosition[position];
+            delete tierPlacementsByPosition[position];
+            delete tierUpdatedAtByPosition[position];
             delete tierReviewDelayDaysByPosition[position];
-            updatedCard.tierReviewDelayDaysByPosition = tierReviewDelayDaysByPosition;
+          } else {
+            tierByPosition[position] = tier;
+            tierPlacementsByPosition[position] = tierPlacements;
+            tierUpdatedAtByPosition[position] = now;
+            if (previousTier !== tier || previousTierPlacements !== tierPlacements) {
+              delete tierReviewDelayDaysByPosition[position];
+            }
           }
+          updatedCard.tierByPosition = tierByPosition;
+          updatedCard.tierPlacementsByPosition = tierPlacementsByPosition;
+          updatedCard.tierUpdatedAtByPosition = tierUpdatedAtByPosition;
+          updatedCard.tierReviewDelayDaysByPosition = tierReviewDelayDaysByPosition;
         } else {
           updatedCard.offensiveStyle = values.currentOffensiveStyle;
           updatedCard.defensiveStyle = values.currentDefensiveStyle;
@@ -663,6 +706,7 @@ export function usePlayers() {
         const tierUpdatedAtByPosition = { ...(c.tierUpdatedAtByPosition || {}) };
         const tierReviewDelayDaysByPosition = { ...(c.tierReviewDelayDaysByPosition || {}) };
         for (const position of positions) {
+          if (c.secondaryPositions?.includes(position)) continue;
           tierUpdatedAtByPosition[position] = now;
           const currentDelay = Number(
             tierReviewDelayDaysByPosition[position] ?? c.tierReviewDelayDays ?? 0,
@@ -708,6 +752,7 @@ export function usePlayers() {
           if (card.tierPlacementsByPosition?.[position] !== undefined) delete card.tierPlacementsByPosition[position];
           if (card.tierUpdatedAtByPosition?.[position]) delete card.tierUpdatedAtByPosition[position];
           if (card.tierReviewDelayDaysByPosition?.[position] !== undefined) delete card.tierReviewDelayDaysByPosition[position];
+          card.secondaryPositions = (card.secondaryPositions || []).filter((pos: Position) => pos !== position);
         }
         if (card.likesByPosition?.[position]?.length === 0) delete card.likesByPosition[position];
         if (card.ratingEntriesByPosition?.[position]?.length === 0) delete card.ratingEntriesByPosition[position];

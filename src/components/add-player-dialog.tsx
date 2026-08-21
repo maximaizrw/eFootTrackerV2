@@ -74,12 +74,13 @@ const formSchema = z.object({
     rating: z.number().min(1).max(10),
     tier: z.enum(playerTiers).optional(),
     tierPlacements: z.coerce.number().int().min(0).optional(),
+    isSecondaryPosition: z.boolean().optional(),
   })).optional(),
   height: z.coerce.number().min(100).max(230).optional(),
   weight: z.coerce.number().min(40).max(150).optional(),
 }).superRefine((values, ctx) => {
   values.ratingEntries?.forEach((entry, index) => {
-    if (entry.tier && entry.tier !== "SIN TIER" && (!entry.tierPlacements || entry.tierPlacements < 1)) {
+    if (!entry.isSecondaryPosition && entry.tier && entry.tier !== "SIN TIER" && (!entry.tierPlacements || entry.tierPlacements < 1)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["ratingEntries", index, "tierPlacements"],
@@ -479,6 +480,7 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
                                 );
                               }}
                               value={field.value || "SIN TIER"}
+                              disabled={watchedEntries[index]?.isSecondaryPosition}
                             >
                               <FormControl>
                                 <SelectTrigger className="h-8 text-sm">
@@ -507,7 +509,7 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
                                 type="number"
                                 min={watchedEntries[index]?.tier === "SIN TIER" ? 0 : 1}
                                 step={1}
-                                disabled={(watchedEntries[index]?.tier || "SIN TIER") === "SIN TIER"}
+                                disabled={watchedEntries[index]?.isSecondaryPosition || (watchedEntries[index]?.tier || "SIN TIER") === "SIN TIER"}
                                 {...field}
                                 value={field.value ?? 0}
                                 className="h-8"
@@ -527,6 +529,23 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
+
+                      <Button
+                        type="button"
+                        variant={watchedEntries[index]?.isSecondaryPosition ? "secondary" : "outline"}
+                        className="h-8 md:col-span-5"
+                        aria-pressed={watchedEntries[index]?.isSecondaryPosition || false}
+                        onClick={() => {
+                          const nextValue = !watchedEntries[index]?.isSecondaryPosition;
+                          form.setValue(`ratingEntries.${index}.isSecondaryPosition`, nextValue, { shouldDirty: true, shouldValidate: true });
+                          if (nextValue) {
+                            form.setValue(`ratingEntries.${index}.tier`, "SIN TIER", { shouldValidate: true });
+                            form.setValue(`ratingEntries.${index}.tierPlacements`, 0, { shouldValidate: true });
+                          }
+                        }}
+                      >
+                        {watchedEntries[index]?.isSecondaryPosition ? "Usar para selección" : "Marcar como secundaria"}
+                      </Button>
                     </div>
                   ))}
 
@@ -534,7 +553,7 @@ export function AddPlayerDialog({ open, onOpenChange, onAddPlayer, players }: Ad
                     type="button"
                     variant="outline"
                     className="w-full"
-                    onClick={() => appendRating({ position: "DC", rating: 5, tier: "SIN TIER", tierPlacements: 0 })}
+                    onClick={() => appendRating({ position: "DC", rating: 5, tier: "SIN TIER", tierPlacements: 0, isSecondaryPosition: false })}
                   >
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Agregar Posición

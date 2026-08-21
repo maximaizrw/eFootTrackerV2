@@ -48,6 +48,7 @@ export function generateIdealTeam(
       const positionsWithRatings = Object.keys(card.ratingsByPosition || {}) as Position[];
 
       return positionsWithRatings.map(pos => {
+        if (card.secondaryPositions?.includes(pos)) return null;
         const ratings = card.ratingsByPosition?.[pos];
         if (!ratings || ratings.length === 0) return null;
 
@@ -150,7 +151,8 @@ export function generateIdealTeam(
     const baseFilter = (p: CandidatePlayer) => {
         if (!targetPositions.includes(p.position)) return false;
         const hasAllRequiredPositions = slot.requiredPositions.every(position =>
-            (p.card.ratingsByPosition?.[position]?.length ?? 0) > 0
+            (p.card.ratingsByPosition?.[position]?.length ?? 0) > 0 ||
+            Boolean(p.card.secondaryPositions?.includes(position))
         );
         if (!hasAllRequiredPositions) return false;
         if (minHeight) {

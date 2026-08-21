@@ -234,7 +234,7 @@ export function AddFormationDialog({ open, onOpenChange, onAddFormation }: AddFo
                                         checked={field.value || false}
                                         onCheckedChange={(checked) => {
                                             field.onChange(checked);
-                                            if (checked) {
+                                            if (checked && !getValues('defensiveSlots')) {
                                                 setValue('defensiveSlots', getValues('slots').map(slot => ({ ...slot, styles: [] })), { shouldValidate: true });
                                             }
                                         }}

@@ -44,12 +44,13 @@ const formSchema = z.object({
   currentDefensiveStyle: z.enum(defensivePlayerStyles),
   tier: z.enum(playerTiers).optional(),
   tierPlacements: z.coerce.number().int().min(0).optional(),
+  isSecondaryPosition: z.boolean().optional(),
   league: z.enum(leagues).optional(),
   imageUrl: z.string().optional(),
   tierlistUrl: z.string().optional(),
   availableTrainingPoints: z.number().min(0, "Debe ser al menos 0.").optional(),
 }).superRefine((values, ctx) => {
-  if (values.tier && values.tier !== "SIN TIER" && (!values.tierPlacements || values.tierPlacements < 1)) {
+  if (!values.isSecondaryPosition && values.tier && values.tier !== "SIN TIER" && (!values.tierPlacements || values.tierPlacements < 1)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["tierPlacements"],
@@ -72,6 +73,7 @@ export function EditCardDialog({ open, onOpenChange, onEditCard, initialData }: 
     resolver: zodResolver(formSchema),
   });
   const watchedTier = form.watch("tier") || "SIN TIER";
+  const isSecondaryPosition = form.watch("isSecondaryPosition") || false;
   const isTierlistEdit = initialData?.editMode === "tierlist";
 
   useEffect(() => {
@@ -84,6 +86,7 @@ export function EditCardDialog({ open, onOpenChange, onEditCard, initialData }: 
         tierlistUrl: initialData.tierlistUrl || "",
         tier: initialData.tier || "SIN TIER",
         tierPlacements: normalizeTierPlacements(initialData.tier || "SIN TIER", initialData.tierPlacements),
+        isSecondaryPosition: initialData.isSecondaryPosition || false,
         availableTrainingPoints: initialData.availableTrainingPoints ?? undefined,
       });
     }
@@ -162,58 +165,80 @@ export function EditCardDialog({ open, onOpenChange, onEditCard, initialData }: 
                 )}
               />
             )}
-            <FormField
-              control={form.control}
-              name="tier"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tier{initialData?.position ? ` en ${initialData.position as Position}` : " de Carta"}</FormLabel>
-                  <Select
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                      form.setValue(
-                        "tierPlacements",
-                        value === "SIN TIER" ? 0 : Math.max(1, form.getValues("tierPlacements") || 1),
-                        { shouldValidate: true },
-                      );
-                    }}
-                    value={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecciona un tier" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {playerTiers.map((tier) => (
-                        <SelectItem key={tier} value={tier}>{tier}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="tierPlacements"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Placements que validan el tier</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      min={watchedTier === "SIN TIER" ? 0 : 1}
-                      step={1}
-                      disabled={watchedTier === "SIN TIER"}
-                      {...field}
-                      value={field.value ?? 0}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {initialData?.position && (
+              <div className="rounded-md border border-border/60 bg-muted/20 p-3 space-y-2">
+                <Button
+                  type="button"
+                  variant={isSecondaryPosition ? "secondary" : "outline"}
+                  className="w-full"
+                  aria-pressed={isSecondaryPosition}
+                  onClick={() => form.setValue("isSecondaryPosition", !isSecondaryPosition, { shouldDirty: true, shouldValidate: true })}
+                >
+                  {isSecondaryPosition ? "Usar para selección" : "Marcar como secundaria"}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  {isSecondaryPosition
+                    ? "Esta posición solo servirá de apoyo en formaciones fluidas y no recibirá TIER."
+                    : "Las posiciones secundarias no se usan para elegir al jugador."}
+                </p>
+              </div>
+            )}
+            {!isSecondaryPosition && (
+              <>
+                <FormField
+                  control={form.control}
+                  name="tier"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tier{initialData?.position ? ` en ${initialData.position as Position}` : " de Carta"}</FormLabel>
+                      <Select
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          form.setValue(
+                            "tierPlacements",
+                            value === "SIN TIER" ? 0 : Math.max(1, form.getValues("tierPlacements") || 1),
+                            { shouldValidate: true },
+                          );
+                        }}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecciona un tier" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {playerTiers.map((tier) => (
+                            <SelectItem key={tier} value={tier}>{tier}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="tierPlacements"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Placements que validan el tier</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={watchedTier === "SIN TIER" ? 0 : 1}
+                          step={1}
+                          disabled={watchedTier === "SIN TIER"}
+                          {...field}
+                          value={field.value ?? 0}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </>
+            )}
             <DialogFooter>
               <Button type="submit">Guardar Cambios</Button>
             </DialogFooter>

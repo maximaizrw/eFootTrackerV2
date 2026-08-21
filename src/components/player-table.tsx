@@ -241,9 +241,9 @@ const PlayerTableMemo = memo(function PlayerTable({
                       <span className="text-xs text-muted-foreground truncate block">
                         {card.name} ({performance.stats.matches} P.)
                       </span>
-                      <Badge variant="outline" className={cn("mt-1 h-5 w-fit px-1.5 text-[10px] font-bold", getTierBadgeClass(tier))}>
-                        {tier}{tierBonus > 0 ? ` +${tierBonus.toFixed(1)} · ${tierPlacements}p` : ''}
-                        {isTierStale && (
+                      <Badge variant="outline" className={cn("mt-1 h-5 w-fit px-1.5 text-[10px] font-bold", flatPlayer.isSecondaryPosition ? "border-muted-foreground/25 bg-muted text-muted-foreground" : getTierBadgeClass(tier))}>
+                        {flatPlayer.isSecondaryPosition ? "SECUNDARIA" : <>{tier}{tierBonus > 0 ? ` +${tierBonus.toFixed(1)} · ${tierPlacements}p` : ''}</>}
+                        {!flatPlayer.isSecondaryPosition && isTierStale && (
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>

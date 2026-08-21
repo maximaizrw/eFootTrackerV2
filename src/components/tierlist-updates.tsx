@@ -121,6 +121,7 @@ function getTierBadgeClass(tier: string): string {
 export function getPendingTierlistCards(players: Player[], flatPlayers: FlatPlayer[]): PendingTierCard[] {
   return flatPlayers
     .map(flatPlayer => {
+      if (flatPlayer.isSecondaryPosition) return null;
       const hasPositionTier = flatPlayer.card.tierByPosition?.[flatPlayer.position] !== undefined;
       const tier = normalizePlayerTier(
         hasPositionTier
