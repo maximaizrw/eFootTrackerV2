@@ -32,7 +32,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import type { AddFormationFormValues } from "@/lib/types";
-import { defensivePlayerStyles, formationPlayStyles, FormationSlotSchema, offensivePlayerStyles } from "@/lib/types";
+import { formationPlayStyles, FormationSlotSchema, offensivePlayerStyles } from "@/lib/types";
 import { VisualFormationEditor } from "./visual-formation-editor";
 import { formationPresets } from "@/lib/formation-presets";
 import { ScrollArea } from "./ui/scroll-area";
@@ -113,11 +113,13 @@ export function AddFormationDialog({ open, onOpenChange, onAddFormation }: AddFo
       ...values,
       slots: values.slots.map(slot => ({
         ...slot,
-        styles: (slot.styles || []).filter(style => offensivePlayerStyles.includes(style as any)),
+        styles: values.isFluid
+          ? (slot.offensiveStyles || []).filter(style => offensivePlayerStyles.includes(style as any))
+          : (slot.styles || []).filter(style => offensivePlayerStyles.includes(style as any)),
       })),
-      defensiveSlots: defensiveSlots?.map(slot => ({
+      defensiveSlots: defensiveSlots?.map(({ offensiveStyles: _offensiveStyles, defensiveStyles: _defensiveStyles, ...slot }) => ({
         ...slot,
-        styles: (slot.styles || []).filter(style => defensivePlayerStyles.includes(style as any)),
+        styles: [],
       })),
     });
     onOpenChange(false);
@@ -213,6 +215,7 @@ export function AddFormationDialog({ open, onOpenChange, onAddFormation }: AddFo
                                     <VisualFormationEditor 
                                         value={field.value} 
                                         onChange={field.onChange}
+                                        showBothStyleGroups={form.watch('isFluid')}
                                     />
                                 </FormControl>
                                 <FormMessage />
@@ -234,6 +237,12 @@ export function AddFormationDialog({ open, onOpenChange, onAddFormation }: AddFo
                                         checked={field.value || false}
                                         onCheckedChange={(checked) => {
                                             field.onChange(checked);
+                                            if (checked) {
+                                                setValue('slots', getValues('slots').map(slot => ({
+                                                    ...slot,
+                                                    offensiveStyles: slot.offensiveStyles || slot.styles || [],
+                                                })));
+                                            }
                                             if (checked && !getValues('defensiveSlots')) {
                                                 setValue('defensiveSlots', getValues('slots').map(slot => ({ ...slot, styles: [] })), { shouldValidate: true });
                                             }
@@ -253,7 +262,7 @@ export function AddFormationDialog({ open, onOpenChange, onAddFormation }: AddFo
                                 <FormItem>
                                     <FormLabel>Formación defensiva</FormLabel>
                                     <FormControl>
-                                        <VisualFormationEditor value={field.value || getValues('slots')} onChange={field.onChange} phase="defensive" />
+                                        <VisualFormationEditor value={field.value || getValues('slots')} onChange={field.onChange} phase="defensive" showStyleSelection={false} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>

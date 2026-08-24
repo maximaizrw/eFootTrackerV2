@@ -240,6 +240,8 @@ export const positionsList = positions;
 export const FormationSlotSchema = z.object({
   position: z.enum(positions),
   styles: z.array(z.string()).optional().default([]),
+  offensiveStyles: z.array(z.string()).optional(),
+  defensiveStyles: z.array(z.string()).optional(),
   top: z.number().optional(),
   left: z.number().optional(),
   profileName: z.string().optional(),

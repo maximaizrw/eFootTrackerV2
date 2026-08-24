@@ -32,7 +32,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import type { EditFormationFormValues, FormationStats, FormationSlot } from "@/lib/types";
-import { defensivePlayerStyles, formationPlayStyles, FormationSlotSchema, offensivePlayerStyles } from "@/lib/types";
+import { formationPlayStyles, FormationSlotSchema, offensivePlayerStyles } from "@/lib/types";
 import { VisualFormationEditor } from "./visual-formation-editor";
 import { formationPresets } from "@/lib/formation-presets";
 import { ScrollArea } from "./ui/scroll-area";
@@ -85,9 +85,11 @@ export function EditFormationDialog({ open, onOpenChange, onEditFormation, initi
         name: initialData.name,
         creator: initialData.creator || "",
         playStyle: initialData.playStyle,
-        slots: (initialData.slots && initialData.slots.length === 11 ? initialData.slots : defaultSlots).map(s => ({
+        slots: (initialData.slots && initialData.slots.length === 11 ? initialData.slots : defaultSlots).map((s, index) => ({
           ...s,
           styles: s.styles || [],
+          offensiveStyles: s.offensiveStyles || s.styles || [],
+          defensiveStyles: s.defensiveStyles || initialData.defensiveSlots?.[index]?.styles || [],
           top: s.top ?? 50,
           left: s.left ?? 50,
         })),
@@ -114,11 +116,13 @@ export function EditFormationDialog({ open, onOpenChange, onEditFormation, initi
       ...values,
       slots: values.slots.map(slot => ({
         ...slot,
-        styles: (slot.styles || []).filter(style => offensivePlayerStyles.includes(style as any)),
+        styles: values.isFluid
+          ? (slot.offensiveStyles || []).filter(style => offensivePlayerStyles.includes(style as any))
+          : (slot.styles || []).filter(style => offensivePlayerStyles.includes(style as any)),
       })),
-      defensiveSlots: defensiveSlots?.map(slot => ({
+      defensiveSlots: defensiveSlots?.map(({ offensiveStyles: _offensiveStyles, defensiveStyles: _defensiveStyles, ...slot }) => ({
         ...slot,
-        styles: (slot.styles || []).filter(style => defensivePlayerStyles.includes(style as any)),
+        styles: [],
       })),
     });
     onOpenChange(false);
@@ -198,6 +202,7 @@ export function EditFormationDialog({ open, onOpenChange, onEditFormation, initi
                                         <VisualFormationEditor 
                                             value={field.value as FormationSlot[]} 
                                             onChange={field.onChange}
+                                            showBothStyleGroups={form.watch('isFluid')}
                                         />
                                     </FormControl>
                                     <FormMessage />
@@ -219,6 +224,12 @@ export function EditFormationDialog({ open, onOpenChange, onEditFormation, initi
                                             checked={field.value || false}
                                             onCheckedChange={(checked) => {
                                                 field.onChange(checked);
+                                                if (checked) {
+                                                    form.setValue('slots', form.getValues('slots').map(slot => ({
+                                                        ...slot,
+                                                        offensiveStyles: slot.offensiveStyles || slot.styles || [],
+                                                    })));
+                                                }
                                                 if (checked && !form.getValues('defensiveSlots')) {
                                                     form.setValue('defensiveSlots', form.getValues('slots').map(slot => ({ ...slot, styles: [] })), { shouldValidate: true });
                                                 }
@@ -238,7 +249,7 @@ export function EditFormationDialog({ open, onOpenChange, onEditFormation, initi
                                     <FormItem>
                                         <FormLabel>Formación defensiva</FormLabel>
                                         <FormControl>
-                                            <VisualFormationEditor value={field.value || form.getValues('slots')} onChange={field.onChange} phase="defensive" />
+                                            <VisualFormationEditor value={field.value || form.getValues('slots')} onChange={field.onChange} phase="defensive" showStyleSelection={false} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>

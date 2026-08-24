@@ -20,6 +20,8 @@ const sanitizeSlots = (slots: FormationSlot[]) => {
       styles: slot.styles || [],
     };
     // Only add properties if they are explicitly defined to avoid Firebase undefined errors
+    if (slot.offensiveStyles !== undefined) s.offensiveStyles = slot.offensiveStyles;
+    if (slot.defensiveStyles !== undefined) s.defensiveStyles = slot.defensiveStyles;
     if (slot.profileName !== undefined && slot.profileName !== null && slot.profileName !== '') s.profileName = slot.profileName;
     if (slot.minHeight !== undefined && slot.minHeight !== null && slot.minHeight !== 0) s.minHeight = Number(slot.minHeight);
     if (slot.secondaryPosition !== undefined && slot.secondaryPosition !== null) s.secondaryPosition = slot.secondaryPosition;

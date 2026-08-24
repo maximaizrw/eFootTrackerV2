@@ -91,6 +91,8 @@ type VisualFormationEditorProps = {
   value: FormationSlot[];
   onChange: (value: FormationSlot[]) => void;
   phase?: 'offensive' | 'defensive';
+  showBothStyleGroups?: boolean;
+  showStyleSelection?: boolean;
 };
 
 const PlayerToken = ({
@@ -101,6 +103,8 @@ const PlayerToken = ({
   isSelected,
   onPointerDown,
   phase,
+  showBothStyleGroups,
+  showStyleSelection,
 }: {
   slot: FormationSlot;
   index: number;
@@ -109,17 +113,20 @@ const PlayerToken = ({
   isSelected: boolean;
   onPointerDown: (e: React.PointerEvent) => void;
   phase: 'offensive' | 'defensive';
+  showBothStyleGroups: boolean;
+  showStyleSelection: boolean;
 }) => {
   const [isPopoverOpen, setIsPopoverOpen] = React.useState(false);
 
   const zone = getPositionZone(slot.position);
   const config = zoneConfig[zone];
 
-  const handleStyleToggle = (styleToToggle: PlayerStyle) => {
-    const currentValues = slot.styles || [];
+  const handleStyleToggle = (styleToToggle: PlayerStyle, stylePhase: 'offensive' | 'defensive' = phase) => {
+    const styleField = stylePhase === 'offensive' ? 'offensiveStyles' : 'defensiveStyles';
+    const currentValues = showBothStyleGroups ? slot[styleField] || [] : slot.styles || [];
     const isAlreadySelected = currentValues.includes(styleToToggle);
     const newValues = isAlreadySelected ? [] : [styleToToggle];
-    onSlotChange({ ...slot, styles: newValues });
+    onSlotChange(showBothStyleGroups ? { ...slot, [styleField]: newValues } : { ...slot, styles: newValues });
   };
 
   const handlePositionChange = (newPos: Position) => {
@@ -131,11 +138,17 @@ const PlayerToken = ({
   };
 
   const displayLabel = slot.profileName || slot.position;
-  const allStyles: PlayerStyle[] = phase === 'defensive'
-    ? [...defensivePlayerStyles]
-    : [...offensivePlayerStyles];
+  const styleGroups = showBothStyleGroups
+    ? [
+        { label: 'Ofensivos', phase: 'offensive' as const, styles: offensivePlayerStyles },
+        { label: 'Defensivos', phase: 'defensive' as const, styles: defensivePlayerStyles },
+      ]
+    : [{ label: undefined, phase, styles: phase === 'defensive' ? defensivePlayerStyles : offensivePlayerStyles }];
   
-  const hasStyles = slot.styles && slot.styles.length > 0;
+  const displayedStyles = showBothStyleGroups
+    ? [...(slot.offensiveStyles || []), ...(slot.defensiveStyles || [])]
+    : slot.styles || [];
+  const hasStyles = displayedStyles.length > 0;
   const hasAdvanced = !!slot.minHeight || !!slot.secondaryPosition || !!slot.profileName;
 
   return (
@@ -235,30 +248,25 @@ const PlayerToken = ({
                 <p className="text-[10px] text-muted-foreground italic">Esta instrucción se mostrará en el 11 ideal.</p>
               </div>
 
-              <div className="space-y-2">
+              {showStyleSelection && <div className="space-y-2">
                 <label className="text-sm font-medium">Estilo de Juego Requerido</label>
-                <div className="flex flex-wrap gap-1.5">
-                  {allStyles.map((s) => {
-                    const isActive = slot.styles?.includes(s);
-                    return (
-                      <button
-                        key={s}
-                        type="button"
-                        onClick={() => handleStyleToggle(s)}
-                        className={cn(
-                          "inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors border",
-                          isActive
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "bg-secondary/50 text-secondary-foreground border-border hover:bg-secondary"
-                        )}
-                      >
-                        {isActive && <Check className="w-2.5 h-2.5" />}
-                        {s}
-                      </button>
-                    );
-                  })}
+                <div className="space-y-3">
+                  {styleGroups.map(({ label, phase: stylePhase, styles }) => (
+                    <div key={stylePhase} className="space-y-1.5">
+                      {label && <p className="text-xs font-medium text-muted-foreground">{label}</p>}
+                      <div className="flex flex-wrap gap-1.5">
+                        {styles.map((s) => {
+                          const selectedStyles = showBothStyleGroups ? slot[stylePhase === 'offensive' ? 'offensiveStyles' : 'defensiveStyles'] || [] : slot.styles || [];
+                          const isActive = selectedStyles.includes(s);
+                          return <button key={s} type="button" onClick={() => handleStyleToggle(s, stylePhase)} className={cn("inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors border", isActive ? "bg-primary text-primary-foreground border-primary" : "bg-secondary/50 text-secondary-foreground border-border hover:bg-secondary")}>
+                            {isActive && <Check className="w-2.5 h-2.5" />}{s}
+                          </button>;
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
+              </div>}
 
               <div className="pt-2 border-t space-y-3">
                 <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Requisitos Técnicos</label>
@@ -313,7 +321,7 @@ const PlayerToken = ({
         <div className="flex items-center gap-0.5 max-w-[60px] sm:max-w-[72px]">
           {hasStyles && (
             <span className="truncate text-[8px] sm:text-[9px] font-medium text-white/80 bg-black/40 px-1 py-px rounded backdrop-blur-sm">
-              {slot.styles![0].substring(0, 4)}
+              {displayedStyles[0].substring(0, 4)}
             </span>
           )}
           {hasAdvanced && (
@@ -373,6 +381,8 @@ export function VisualFormationEditor({
   value,
   onChange,
   phase = 'offensive',
+  showBothStyleGroups = false,
+  showStyleSelection = true,
 }: VisualFormationEditorProps) {
   const editorRef = React.useRef<HTMLDivElement>(null);
   const [movingTokenIndex, setMovingTokenIndex] = React.useState<number | null>(
@@ -507,6 +517,8 @@ export function VisualFormationEditor({
               isSelected={movingTokenIndex === index}
               onPointerDown={(e) => handleTokenPointerDown(e, index)}
               phase={phase}
+              showBothStyleGroups={showBothStyleGroups}
+              showStyleSelection={showStyleSelection}
             />
           );
         })}

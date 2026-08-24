@@ -125,7 +125,7 @@ export function generateIdealTeam(
       ...slot,
       requiredPositions,
       defensivePosition,
-      defensiveStyles: defensiveSlot?.styles || [],
+      defensiveStyles: slot.defensiveStyles || defensiveSlot?.styles || [],
     };
   });
   
@@ -145,7 +145,8 @@ export function generateIdealTeam(
     // A player has one offensive and one defensive style per position.
     // Older formations may contain several values; the first one is the style
     // shown on the formation token and therefore the authoritative requirement.
-    const requiredStyles = slot.styles?.[0] ? [slot.styles[0]] : null;
+    const selectedOffensiveStyles = slot.offensiveStyles || slot.styles || [];
+    const requiredStyles = selectedOffensiveStyles[0] ? [selectedOffensiveStyles[0]] : null;
     const requiredDefensiveStyles = slot.defensiveStyles[0] ? [slot.defensiveStyles[0]] : null;
 
     const baseFilter = (p: CandidatePlayer) => {
@@ -223,9 +224,9 @@ export function generateIdealTeam(
     let backup: CandidatePlayer | undefined;
 
     // Priority 1: same role as the starter (only if formation specifies styles, tester preferred)
-    const slotRequiresStyles = slot.styles && slot.styles.length > 0;
+    const slotRequiresStyles = (slot.offensiveStyles || slot.styles || []).length > 0;
     if (slotRequiresStyles && starterRole && starterRole !== 'Ninguno') {
-      const sameRoleCandidates = getCandidatesForSlot({ ...slot, styles: [starterRole] });
+      const sameRoleCandidates = getCandidatesForSlot({ ...slot, styles: [starterRole], offensiveStyles: [starterRole] });
       backup = sameRoleCandidates.find(p => isTester(p) && isAvailable(p))
              ?? sameRoleCandidates.find(isAvailable);
     }
@@ -267,12 +268,12 @@ export function generateIdealTeam(
     for (let i = 0; i < sortedFormationSlots.length; i++) {
       const { slot, originalIndex } = sortedFormationSlots[i];
       const starterRole = starters[originalIndex]?.role;
-      const slotRequiresStyles = slot.styles && slot.styles.length > 0;
+      const slotRequiresStyles = (slot.offensiveStyles || slot.styles || []).length > 0;
 
       let candidates: CandidatePlayer[];
       if (slotRequiresStyles && starterRole && starterRole !== 'Ninguno') {
         // Same role as the starter (only if formation specifies styles)
-        candidates = getCandidatesForSlot({ ...slot, styles: [starterRole] });
+        candidates = getCandidatesForSlot({ ...slot, styles: [starterRole], offensiveStyles: [starterRole] });
         // Fallback: slot's required styles
         if (candidates.filter(isAvailableForExtra).length === 0) {
           candidates = getCandidatesForSlot(slot);
