@@ -125,7 +125,9 @@ const PlayerToken = ({
     const styleField = stylePhase === 'offensive' ? 'offensiveStyles' : 'defensiveStyles';
     const currentValues = showBothStyleGroups ? slot[styleField] || [] : slot.styles || [];
     const isAlreadySelected = currentValues.includes(styleToToggle);
-    const newValues = isAlreadySelected ? [] : [styleToToggle];
+    const newValues = isAlreadySelected
+      ? currentValues.filter(style => style !== styleToToggle)
+      : [...currentValues, styleToToggle];
     onSlotChange(showBothStyleGroups ? { ...slot, [styleField]: newValues } : { ...slot, styles: newValues });
   };
 
