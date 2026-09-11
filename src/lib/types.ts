@@ -214,6 +214,7 @@ export type IdealTeamPlayer = {
   card: PlayerCard;
   position: Position;
   assignedPosition: string; // The role/position name in the tactical scheme
+  isAlternativeSelection?: boolean;
   role?: PlayerStyle;
   average: number;
   overall: number;

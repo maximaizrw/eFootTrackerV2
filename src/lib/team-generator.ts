@@ -188,15 +188,25 @@ export function generateIdealTeam(
     .map((slot, originalIndex) => ({ slot, originalIndex }))
     .sort((a, b) => positionPriority[a.slot.position] - positionPriority[b.slot.position]);
 
+  const isUnusedStarter = (p: CandidatePlayer) => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id);
+  const toIdealTeamPlayer = (candidate: CandidatePlayer, assignedPosition: string, isAlternativeSelection = false): IdealTeamPlayer => ({
+    ...candidate,
+    assignedPosition,
+    isAlternativeSelection,
+  });
+
   // 1. ASSIGN STARTERS (Respecting tactical order)
   const starters: (IdealTeamPlayer | null)[] = selectionSlots.map(slot => {
-    const candidates = getCandidatesForSlot(slot);
-    const starter = candidates.find(p => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id));
+    const exactStarter = getCandidatesForSlot(slot).find(isUnusedStarter);
+    const fallbackStarter = exactStarter
+      ?? getCandidatesForSlot(slot, true).find(isUnusedStarter)
+      ?? [...allPlayerCandidates].sort(candidateSort).find(isUnusedStarter);
+    const starter = fallbackStarter;
 
     if (starter) {
         usedPlayerIds.add(starter.player.id);
         usedCardIds.add(starter.card.id);
-        return { ...starter, assignedPosition: slot.profileName || slot.position } as IdealTeamPlayer;
+        return toIdealTeamPlayer(starter, slot.profileName || slot.position, starter !== exactStarter);
     }
     return null;
   });
@@ -247,7 +257,7 @@ export function generateIdealTeam(
     if (backup) {
       usedPlayerIdsForBench.add(backup.player.id);
       usedCardIdsForBench.add(backup.card.id);
-      benchAssignments[i] = { ...backup, assignedPosition: slot.profileName || slot.position } as IdealTeamPlayer;
+      benchAssignments[i] = toIdealTeamPlayer(backup, slot.profileName || slot.position, !getCandidatesForSlot(slot).some(p => p.card.id === backup!.card.id));
     }
   }
 
@@ -300,7 +310,7 @@ export function generateIdealTeam(
     const extra = allRemainingCandidates.find(isTester) ?? allRemainingCandidates[0];
 
     if (extra) {
-      extraBenchAssignment = { ...extra, assignedPosition: extra.position } as IdealTeamPlayer;
+      extraBenchAssignment = toIdealTeamPlayer(extra, extra.position);
     }
   }
 

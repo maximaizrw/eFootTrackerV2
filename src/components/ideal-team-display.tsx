@@ -78,7 +78,7 @@ const PlayerToken = memo(function PlayerToken({
             isPermanent={!!player.player.permanentLiveUpdateRating}
             onPermanentChange={(isPermanent) => onUpdatePermanentLiveUpdateRating(player.player.id, isPermanent)}
           />
-          <span className="text-[10px] md:text-xs font-bold text-white whitespace-nowrap flex items-center gap-1" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>
+          <span className={cn("text-[10px] md:text-xs font-bold whitespace-nowrap flex items-center gap-1", player.isAlternativeSelection ? "text-amber-300" : "text-white")} style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>
               {player.player.name}
               <span className="ml-0.5 text-accent">{player.overall?.toFixed(0) || '-'}</span>
           </span>
@@ -144,7 +144,7 @@ const BenchCard = memo(function BenchCard({ player, formation, onDiscard, onUpda
               isPermanent={!!player.player.permanentLiveUpdateRating}
               onPermanentChange={(isPermanent) => onUpdatePermanentLiveUpdateRating(player.player.id, isPermanent)}
             />
-            <span className="text-[10px] font-semibold truncate flex items-center gap-1">
+            <span className={cn("text-[10px] font-semibold truncate flex items-center gap-1", player.isAlternativeSelection && "text-amber-500")}>
               {player.player.name}
             </span>
             <span className="text-[10px] font-black ml-auto text-accent">{player.overall?.toFixed(0) || '-'}</span>
