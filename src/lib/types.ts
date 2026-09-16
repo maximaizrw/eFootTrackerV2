@@ -252,6 +252,22 @@ export const FormationSlotSchema = z.object({
 
 export type FormationSlot = z.infer<typeof FormationSlotSchema>;
 
+export function getFormationSlotStyles(slot: FormationSlot, isFluid = false, defensiveSlot?: FormationSlot) {
+  const legacyStyles = slot.styles || [];
+  const offensiveStyles = (isFluid ? (slot.offensiveStyles ?? legacyStyles) : legacyStyles)
+    .filter(style => offensivePlayerStyles.includes(style as OffensivePlayerStyle) || style === 'Ninguno');
+  const legacyDefensiveStyles = legacyStyles.filter(style =>
+    defensivePlayerStyles.includes(style as DefensivePlayerStyle) &&
+    !offensivePlayerStyles.includes(style as OffensivePlayerStyle)
+  );
+  return {
+    offensiveStyles,
+    defensiveStyles: slot.defensiveStyles?.length
+      ? slot.defensiveStyles
+      : [...new Set([...legacyDefensiveStyles, ...(defensiveSlot?.styles || [])])],
+  };
+}
+
 export const formationPlayStyles = ['Contraataque rápido', 'Contraataque largo', 'Por las bandas', 'Balones largos', 'Posesión', 'Sobrecarga'] as const;
 export type FormationPlayStyle = typeof formationPlayStyles[number];
 

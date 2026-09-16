@@ -1,5 +1,5 @@
 import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, FormationSlot, PlayerStyle, IdealTeamMode, IdealTeamSelectionCriteria } from './types';
-import { getPlayerStyleForPosition } from './types';
+import { getFormationSlotStyles, getPlayerStyleForPosition } from './types';
 import { calculateStats, calculateOverall, calculateRecencyWeightedAverage, positionPriority, calculatePlayerConfidence, normalizePlayerTier, getRatingEntriesForPosition, getFormationRatingEntries, calculateFormationConfidence, getCardTierForPosition, getCardTierPlacementsForPosition, getPlayerTierBonus } from './utils';
 
 type CandidatePlayer = {
@@ -123,10 +123,9 @@ export function generateIdealTeam(
 
     return {
       ...slot,
-      offensiveStyles: formation.isFluid ? (slot.offensiveStyles ?? slot.styles) : slot.styles,
+      ...getFormationSlotStyles(slot, formation.isFluid, defensiveSlot),
       requiredPositions,
       defensivePosition,
-      defensiveStyles: slot.defensiveStyles || defensiveSlot?.styles || [],
     };
   });
   

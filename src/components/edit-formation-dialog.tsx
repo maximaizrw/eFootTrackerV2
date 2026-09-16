@@ -32,7 +32,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import type { EditFormationFormValues, FormationStats, FormationSlot } from "@/lib/types";
-import { formationPlayStyles, FormationSlotSchema, offensivePlayerStyles } from "@/lib/types";
+import { formationPlayStyles, FormationSlotSchema, getFormationSlotStyles } from "@/lib/types";
 import { VisualFormationEditor } from "./visual-formation-editor";
 import { formationPresets } from "@/lib/formation-presets";
 import { ScrollArea } from "./ui/scroll-area";
@@ -87,9 +87,8 @@ export function EditFormationDialog({ open, onOpenChange, onEditFormation, initi
         playStyle: initialData.playStyle,
         slots: (initialData.slots && initialData.slots.length === 11 ? initialData.slots : defaultSlots).map((s, index) => ({
           ...s,
-          styles: s.styles || [],
-            offensiveStyles: initialData.isFluid ? (s.offensiveStyles || s.styles || []) : (s.styles || []),
-          defensiveStyles: s.defensiveStyles || initialData.defensiveSlots?.[index]?.styles || [],
+          styles: getFormationSlotStyles(s, initialData.isFluid).offensiveStyles,
+          ...getFormationSlotStyles(s, initialData.isFluid, initialData.isFluid ? initialData.defensiveSlots?.[index] : undefined),
           top: s.top ?? 50,
           left: s.left ?? 50,
         })),
@@ -116,9 +115,8 @@ export function EditFormationDialog({ open, onOpenChange, onEditFormation, initi
       ...values,
       slots: values.slots.map(slot => ({
         ...slot,
-        styles: values.isFluid
-          ? (slot.offensiveStyles || []).filter(style => offensivePlayerStyles.includes(style as any))
-          : (slot.styles || []).filter(style => offensivePlayerStyles.includes(style as any)),
+        ...getFormationSlotStyles(slot, values.isFluid),
+        styles: getFormationSlotStyles(slot, values.isFluid).offensiveStyles,
       })),
       defensiveSlots: defensiveSlots?.map(({ offensiveStyles: _offensiveStyles, defensiveStyles: _defensiveStyles, ...slot }) => ({
         ...slot,
@@ -202,7 +200,7 @@ export function EditFormationDialog({ open, onOpenChange, onEditFormation, initi
                                         <VisualFormationEditor 
                                             value={field.value as FormationSlot[]} 
                                             onChange={field.onChange}
-                                            showBothStyleGroups={form.watch('isFluid')}
+                                            showBothStyleGroups
                                         />
                                     </FormControl>
                                     <FormMessage />

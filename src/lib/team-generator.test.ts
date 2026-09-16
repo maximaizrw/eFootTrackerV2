@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { generateIdealTeam } from './team-generator';
+import { getFormationSlotStyles } from './types';
 import type { FormationSlot, FormationStats, Player, PlayerCard } from './types';
 
 const player = (id: string, card: Partial<PlayerCard>): Player => ({
@@ -12,6 +13,28 @@ const formation = (slots: FormationSlot[], extra: Partial<FormationStats> = {}):
 });
 const holePlayer = player('huecos', { offensiveStyle: 'Jugador de huecos' });
 const goalscorer = player('cazagoles', { offensiveStyle: 'Cazagoles', ratingsByPosition: { DC: [10] } });
+
+for (const [position, style] of [['PT', 'Portero ofensivo'], ['DFC', 'El destructor']] as const) {
+  for (const legacy of [false, true]) {
+    test(`${position} respects ${style} in ${legacy ? 'legacy' : 'explicit'} defensive requirements`, () => {
+      const compatible = player('compatible', {
+        style, ratingsByPosition: { [position]: [7] },
+      });
+      const other = player('other', { ratingsByPosition: { [position]: [10] } });
+      const slot: FormationSlot = legacy
+        ? { position, styles: [style], defensiveStyles: [] }
+        : { position, styles: [], defensiveStyles: [style] };
+      const selected = formation([slot]);
+      assert.equal(generateIdealTeam([other, compatible], selected)[0].starter?.player.id, 'compatible');
+      assert.equal(generateIdealTeam([other], selected)[0].starter?.player.name, 'Vacante');
+      const normalized = getFormationSlotStyles(slot);
+      assert.deepEqual(normalized, { offensiveStyles: [], defensiveStyles: [style] });
+      const saved = { ...slot, ...normalized, styles: normalized.offensiveStyles };
+      assert.deepEqual(getFormationSlotStyles(saved), normalized);
+      assert.deepEqual(getFormationSlotStyles({ ...saved, defensiveStyles: [] }).defensiveStyles, []);
+    });
+  }
+}
 
 test('the visible DC requirement overrides stale offensiveStyles in a non-fluid formation', () => {
   for (const offensiveStyles of [[], ['Cazagoles']]) {

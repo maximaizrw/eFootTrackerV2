@@ -32,7 +32,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import type { AddFormationFormValues } from "@/lib/types";
-import { formationPlayStyles, FormationSlotSchema, offensivePlayerStyles } from "@/lib/types";
+import { formationPlayStyles, FormationSlotSchema, getFormationSlotStyles } from "@/lib/types";
 import { VisualFormationEditor } from "./visual-formation-editor";
 import { formationPresets } from "@/lib/formation-presets";
 import { ScrollArea } from "./ui/scroll-area";
@@ -113,9 +113,8 @@ export function AddFormationDialog({ open, onOpenChange, onAddFormation }: AddFo
       ...values,
       slots: values.slots.map(slot => ({
         ...slot,
-        styles: values.isFluid
-          ? (slot.offensiveStyles || []).filter(style => offensivePlayerStyles.includes(style as any))
-          : (slot.styles || []).filter(style => offensivePlayerStyles.includes(style as any)),
+        ...getFormationSlotStyles(slot, values.isFluid),
+        styles: getFormationSlotStyles(slot, values.isFluid).offensiveStyles,
       })),
       defensiveSlots: defensiveSlots?.map(({ offensiveStyles: _offensiveStyles, defensiveStyles: _defensiveStyles, ...slot }) => ({
         ...slot,
@@ -215,7 +214,7 @@ export function AddFormationDialog({ open, onOpenChange, onAddFormation }: AddFo
                                     <VisualFormationEditor 
                                         value={field.value} 
                                         onChange={field.onChange}
-                                        showBothStyleGroups={form.watch('isFluid')}
+                                        showBothStyleGroups
                                     />
                                 </FormControl>
                                 <FormMessage />
