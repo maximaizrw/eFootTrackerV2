@@ -240,7 +240,7 @@ export function AddFormationDialog({ open, onOpenChange, onAddFormation }: AddFo
                                             if (checked) {
                                                 setValue('slots', getValues('slots').map(slot => ({
                                                     ...slot,
-                                                    offensiveStyles: slot.offensiveStyles || slot.styles || [],
+                                                    offensiveStyles: slot.styles || [],
                                                 })));
                                             }
                                             if (checked && !getValues('defensiveSlots')) {

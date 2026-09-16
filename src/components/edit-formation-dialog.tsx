@@ -88,7 +88,7 @@ export function EditFormationDialog({ open, onOpenChange, onEditFormation, initi
         slots: (initialData.slots && initialData.slots.length === 11 ? initialData.slots : defaultSlots).map((s, index) => ({
           ...s,
           styles: s.styles || [],
-          offensiveStyles: s.offensiveStyles || s.styles || [],
+            offensiveStyles: initialData.isFluid ? (s.offensiveStyles || s.styles || []) : (s.styles || []),
           defensiveStyles: s.defensiveStyles || initialData.defensiveSlots?.[index]?.styles || [],
           top: s.top ?? 50,
           left: s.left ?? 50,
@@ -227,7 +227,7 @@ export function EditFormationDialog({ open, onOpenChange, onEditFormation, initi
                                                 if (checked) {
                                                     form.setValue('slots', form.getValues('slots').map(slot => ({
                                                         ...slot,
-                                                        offensiveStyles: slot.offensiveStyles || slot.styles || [],
+                                                        offensiveStyles: slot.styles || [],
                                                     })));
                                                 }
                                                 if (checked && !form.getValues('defensiveSlots')) {

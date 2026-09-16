@@ -128,7 +128,9 @@ const PlayerToken = ({
     const newValues = isAlreadySelected
       ? currentValues.filter(style => style !== styleToToggle)
       : [...currentValues, styleToToggle];
-    onSlotChange(showBothStyleGroups ? { ...slot, [styleField]: newValues } : { ...slot, styles: newValues });
+    onSlotChange(showBothStyleGroups
+      ? { ...slot, [styleField]: newValues, ...(stylePhase === 'offensive' ? { styles: newValues } : {}) }
+      : { ...slot, styles: newValues, [styleField]: newValues });
   };
 
   const handlePositionChange = (newPos: Position) => {
@@ -136,6 +138,8 @@ const PlayerToken = ({
       ...slot,
       position: newPos,
       styles: [],
+      offensiveStyles: [],
+      defensiveStyles: [],
     });
   };
 

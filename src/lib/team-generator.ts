@@ -123,6 +123,7 @@ export function generateIdealTeam(
 
     return {
       ...slot,
+      offensiveStyles: formation.isFluid ? (slot.offensiveStyles ?? slot.styles) : slot.styles,
       requiredPositions,
       defensivePosition,
       defensiveStyles: slot.defensiveStyles || defensiveSlot?.styles || [],
@@ -173,8 +174,8 @@ export function generateIdealTeam(
     };
 
     const matchesDefensiveStyles = (p: CandidatePlayer) => {
-        if (!requiredDefensiveStyles || !slot.defensivePosition) return true;
-        const defensiveRole = getPlayerStyleForPosition(p.card, slot.defensivePosition, 'defensive');
+        if (!requiredDefensiveStyles) return true;
+        const defensiveRole = getPlayerStyleForPosition(p.card, slot.defensivePosition ?? p.position, 'defensive');
         return requiredDefensiveStyles.includes(defensiveRole);
     };
 
@@ -195,20 +196,48 @@ export function generateIdealTeam(
     isAlternativeSelection,
   });
 
-  // 1. ASSIGN STARTERS (Respecting tactical order)
-  const starters: (IdealTeamPlayer | null)[] = selectionSlots.map(slot => {
-    const exactStarter = getCandidatesForSlot(slot).find(isUnusedStarter);
-    const fallbackStarter = exactStarter
-      ?? getCandidatesForSlot(slot, true).find(isUnusedStarter)
-      ?? [...allPlayerCandidates].sort(candidateSort).find(isUnusedStarter);
-    const starter = fallbackStarter;
-
-    if (starter) {
-        usedPlayerIds.add(starter.player.id);
-        usedCardIds.add(starter.card.id);
-        return toIdealTeamPlayer(starter, slot.profileName || slot.position, starter !== exactStarter);
+  // Match all slots before considering alternatives. Reassign a shared player
+  // when another compatible player can cover their previous slot.
+  const starterCandidates = selectionSlots.map(slot => getCandidatesForSlot(slot));
+  const assignedStarters: (CandidatePlayer | null)[] = selectionSlots.map(() => null);
+  const assignStarter = (index: number, visited: Set<number>): boolean => {
+    if (visited.has(index)) return false;
+    visited.add(index);
+    const findOwner = (candidate: CandidatePlayer) => assignedStarters.findIndex(assigned =>
+      assigned?.player.id === candidate.player.id || assigned?.card.id === candidate.card.id
+    );
+    const available = starterCandidates[index].find(candidate => findOwner(candidate) === -1);
+    if (available) {
+      assignedStarters[index] = available;
+      return true;
     }
-    return null;
+    for (const candidate of starterCandidates[index]) {
+      const owner = findOwner(candidate);
+      if (owner !== index && assignStarter(owner, visited)) {
+        assignedStarters[index] = candidate;
+        return true;
+      }
+    }
+    return false;
+  };
+  selectionSlots.forEach((_, index) => assignStarter(index, new Set()));
+  assignedStarters.forEach(starter => {
+    if (starter) {
+      usedPlayerIds.add(starter.player.id);
+      usedCardIds.add(starter.card.id);
+    }
+  });
+  const starters: (IdealTeamPlayer | null)[] = selectionSlots.map((slot, index) => {
+    const exactStarter = assignedStarters[index];
+    const requiresStyles = (slot.offensiveStyles || []).length > 0 || slot.defensiveStyles.length > 0;
+    const starter = exactStarter ?? (requiresStyles ? null : (
+      getCandidatesForSlot(slot, true).find(isUnusedStarter)
+      ?? [...allPlayerCandidates].sort(candidateSort).find(isUnusedStarter)
+    ));
+    if (!starter) return null;
+    usedPlayerIds.add(starter.player.id);
+    usedCardIds.add(starter.card.id);
+    return toIdealTeamPlayer(starter, slot.profileName || slot.position, starter !== exactStarter);
   });
 
   // 2. ASSIGN BENCH — prioritized "player testers": candidates with < 5 matches in the position.
