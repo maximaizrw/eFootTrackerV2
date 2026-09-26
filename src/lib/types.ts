@@ -66,7 +66,7 @@ export type Position = typeof positions[number];
 
 export const leagues = [
   "Sin Liga", "Premier League", "Ligue 1 Uber Eats", "Serie A TIM", "LaLiga EA SPORTS",
-  "Eredivisie", "Liga Portugal Betclic", "Credit Suisse Super League", "Super Lig",
+  "Eredivisie", "Liga Portugal Betclic", "Credit Suisse Super League", "Super Lig", "Trendyol Süper Lig",
   "Scottish Premiership", "3F Superliga", "Jupiler Pro League", "Championship",
   "Serie BKT", "Ligue 2 BKT", "LaLiga Hypermotion", "BELGIAN LEAGUE",
   "SWISS LEAGUE", "BRASILEIRAO ASSAI", "BRASILEIRAO SERIE B",
