@@ -114,6 +114,7 @@ export const playerTiers = ['SIN TIER', 'S+', 'S', 'A', 'B', 'C', 'D', 'E'] as c
 export type PlayerTier = typeof playerTiers[number];
 export type IdealTeamMode = 'event' | 'league';
 export type IdealTeamSelectionCriteria = 'overall' | 'average' | 'confidence' | 'general-confidence' | 'tier';
+export type IdealTeamCardFilter = 'all' | 'POTW';
 
 export const PLAYER_TIER_BONUSES: Record<PlayerTier, number> = {
   'SIN TIER': 0,

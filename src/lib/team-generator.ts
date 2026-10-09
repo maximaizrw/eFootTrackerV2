@@ -1,4 +1,4 @@
-import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, FormationSlot, PlayerStyle, IdealTeamMode, IdealTeamSelectionCriteria } from './types';
+import type { Player, FormationStats, IdealTeamPlayer, Position, IdealTeamSlot, PlayerCard, PlayerPerformance, League, Nationality, FormationSlot, PlayerStyle, IdealTeamMode, IdealTeamSelectionCriteria, IdealTeamCardFilter } from './types';
 import { getFormationSlotStyles, getPlayerStyleForPosition } from './types';
 import { calculateStats, calculateOverall, calculateRecencyWeightedAverage, positionPriority, calculatePlayerConfidence, normalizePlayerTier, getRatingEntriesForPosition, getFormationRatingEntries, calculateFormationConfidence, getCardTierForPosition, getCardTierPlacementsForPosition, getPlayerTierBonus } from './utils';
 
@@ -29,7 +29,8 @@ export function generateIdealTeam(
   isFlexibleLaterals: boolean = false,
   isFlexibleWingers: boolean = false,
   selectionCriteria: IdealTeamSelectionCriteria = 'overall',
-  mode: IdealTeamMode = 'event'
+  mode: IdealTeamMode = 'event',
+  cardFilter: IdealTeamCardFilter = 'all'
 ): IdealTeamSlot[] {
   
   // Create sorted list of candidates once
@@ -43,6 +44,7 @@ export function generateIdealTeam(
     return (player.cards || []).flatMap(card => {
       // 3. Filter by league and manual discards
       if (league !== 'all' && card.league !== league) return [];
+      if (cardFilter === 'POTW' && !card.name.toUpperCase().includes('POTW')) return [];
       if (discardedCardIds.has(card.id)) return [];
       
       const positionsWithRatings = Object.keys(card.ratingsByPosition || {}) as Position[];

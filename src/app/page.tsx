@@ -38,7 +38,7 @@ import { usePlayers } from '@/hooks/usePlayers';
 import { useFormations } from '@/hooks/useFormations';
 import { useToast } from "@/hooks/use-toast";
 
-import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, League, Nationality, IdealTeamMode, IdealTeamSelectionCriteria } from '@/lib/types';
+import type { Player, PlayerCard as PlayerCardType, FormationStats, IdealTeamSlot, FlatPlayer, Position, League, Nationality, IdealTeamMode, IdealTeamSelectionCriteria, IdealTeamCardFilter } from '@/lib/types';
 import { positions, leagues, nationalities, defensiveStylePositions, getPlayerStyleForPosition, getPlayerStylesForPosition } from '@/lib/types';
 import type { FormationTemplate } from '@/lib/formation-templates';
 import { getPlayerTierBonus, normalizePlayerTier, normalizeText, normalizeTierPlacements } from '@/lib/utils';
@@ -113,6 +113,7 @@ export default function Home() {
   const [tempFormation, setTempFormation] = useState<FormationStats | null>(null);
   const [selectedLeague, setSelectedLeague] = useState<League | 'all'>('all');
   const [selectedNationality, setSelectedNationality] = useState<Nationality | 'all'>('all');
+  const [selectedCardFilter, setSelectedCardFilter] = useState<IdealTeamCardFilter>('all');
   const [idealTeam, setIdealTeam] = useState<IdealTeamSlot[]>([]);
   const [discardedCardIds, setDiscardedCardIds] = useState<Set<string>>(new Set());
   const [isFlexibleLaterals, setFlexibleLaterals] = useState(false);
@@ -149,21 +150,22 @@ export default function Home() {
         isFlexibleLaterals,
         isFlexibleWingers,
         selectionCriteria,
-        idealTeamMode
+        idealTeamMode,
+        selectedCardFilter
     );
 
     setIdealTeam(newTeam);
     if (!silent) {
       toast({ title: "Equipo Generado", description: `Se ha generado una convocatoria para "${selectedFormation.name}".` });
     }
-  }, [players, selectedFormation, discardedCardIds, selectedLeague, selectedNationality, isFlexibleLaterals, isFlexibleWingers, selectionCriteria, idealTeamMode, toast]);
+  }, [players, selectedFormation, discardedCardIds, selectedLeague, selectedNationality, selectedCardFilter, isFlexibleLaterals, isFlexibleWingers, selectionCriteria, idealTeamMode, toast]);
 
   // Automatically refresh team if it's already showing and discards or filters change
   useEffect(() => {
     if (idealTeam.length > 0) {
       handleGenerateTeam(true);
     }
-  }, [discardedCardIds, selectedLeague, selectedNationality, isFlexibleLaterals, isFlexibleWingers, selectionCriteria, idealTeamMode, handleGenerateTeam, idealTeam.length]);
+  }, [discardedCardIds, selectedLeague, selectedNationality, selectedCardFilter, isFlexibleLaterals, isFlexibleWingers, selectionCriteria, idealTeamMode, handleGenerateTeam, idealTeam.length]);
 
   const handleOpenAddRating = useCallback((initialData?: Partial<AddRatingFormValues>) => {
     setAddDialogInitialData(initialData);
@@ -641,6 +643,8 @@ export default function Home() {
                     nationalities={['all', ...nationalitiesByPlayerCount]}
                     selectedNationality={selectedNationality}
                     onNationalityChange={handleNationalityChange}
+                    selectedCardFilter={selectedCardFilter}
+                    onCardFilterChange={setSelectedCardFilter}
                     isFlexibleLaterals={isFlexibleLaterals}
                     onFlexibleLateralsChange={setFlexibleLaterals}
                     isFlexibleWingers={isFlexibleWingers}

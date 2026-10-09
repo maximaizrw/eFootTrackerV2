@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { FormationStats, League, Nationality, IdealTeamMode, IdealTeamSelectionCriteria } from '@/lib/types';
+import type { FormationStats, League, Nationality, IdealTeamMode, IdealTeamSelectionCriteria, IdealTeamCardFilter } from '@/lib/types';
 import { Label } from './ui/label';
 import { ArrowRightLeft, ShieldCheck } from 'lucide-react';
 import { Switch } from './ui/switch';
@@ -18,6 +18,8 @@ type IdealTeamSetupProps = {
   nationalities: (Nationality | 'all')[];
   selectedNationality: Nationality | 'all';
   onNationalityChange: (nationality: Nationality | 'all') => void;
+  selectedCardFilter: IdealTeamCardFilter;
+  onCardFilterChange: (filter: IdealTeamCardFilter) => void;
   isFlexibleLaterals: boolean;
   onFlexibleLateralsChange: (value: boolean) => void;
   isFlexibleWingers: boolean;
@@ -38,6 +40,8 @@ const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({
     nationalities,
     selectedNationality,
     onNationalityChange,
+    selectedCardFilter,
+    onCardFilterChange,
     isFlexibleLaterals,
     onFlexibleLateralsChange,
     isFlexibleWingers,
@@ -168,6 +172,23 @@ const IdealTeamSetupMemo = React.memo(function IdealTeamSetup({
                 {nationalities.filter(n => n !== 'all').map(n => (
                     <SelectItem key={n} value={n as string}>{n}</SelectItem>
                 ))}
+            </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label>
+            Filtrar por Carta
+        </Label>
+        <Select
+            value={selectedCardFilter}
+            onValueChange={(value) => onCardFilterChange(value as IdealTeamCardFilter)}
+        >
+            <SelectTrigger className="w-full">
+                <SelectValue placeholder="Filtrar por carta..." />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem value="all">Todas las Cartas</SelectItem>
+                <SelectItem value="POTW">Cartas POTW</SelectItem>
             </SelectContent>
         </Select>
       </div>
