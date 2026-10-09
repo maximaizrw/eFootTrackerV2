@@ -32,6 +32,10 @@ export function generateIdealTeam(
   mode: IdealTeamMode = 'event',
   cardFilter: IdealTeamCardFilter = 'all'
 ): IdealTeamSlot[] {
+  const meetsTierRequirement = (card: PlayerCard, position: Position) => {
+    const tier = normalizePlayerTier(card.tierByPosition?.[position] ?? card.tier);
+    return mode === 'league' ? ['A', 'S', 'S+'].includes(tier) : tier !== 'SIN TIER';
+  };
   
   // Create sorted list of candidates once
   const allPlayerCandidates: CandidatePlayer[] = players.flatMap(player => {
@@ -64,7 +68,6 @@ export function generateIdealTeam(
         const dislikes = likesForPos.filter(l => l === false).length;
         const tier = getCardTierForPosition(card, pos);
         const tierPlacements = getCardTierPlacementsForPosition(card, pos);
-        if (mode === 'league' && ['SIN TIER', 'B', 'C', 'D', 'E'].includes(normalizePlayerTier(tier))) return null;
 
         const generalEntries = getRatingEntriesForPosition(card, pos);
         const formationEntries = getFormationRatingEntries(card, pos, formation.id);
@@ -136,7 +139,10 @@ export function generateIdealTeam(
     return b.performance.stats.matches - a.performance.stats.matches;
   };
 
-  const getCandidatesForSlot = (slot: FormationSelectionSlot, ignoreStyles = false): CandidatePlayer[] => {
+  const meetsSlotTierRequirement = (p: CandidatePlayer, slot: FormationSelectionSlot) =>
+    [p.position, ...slot.requiredPositions].every(position => meetsTierRequirement(p.card, position));
+
+  const getCandidatesForSlot = (slot: FormationSelectionSlot, ignoreStyles = false, allowTierFallback = false): CandidatePlayer[] => {
     const primaryPos = slot.position;
     const minHeight = slot.minHeight;
     
@@ -152,6 +158,7 @@ export function generateIdealTeam(
 
     const baseFilter = (p: CandidatePlayer) => {
         if (!targetPositions.includes(p.position)) return false;
+        if (!allowTierFallback && !meetsSlotTierRequirement(p, slot)) return false;
         const hasAllRequiredPositions = slot.requiredPositions.every(position =>
             (p.card.ratingsByPosition?.[position]?.length ?? 0) > 0 ||
             Boolean(p.card.secondaryPositions?.includes(position))
@@ -191,10 +198,11 @@ export function generateIdealTeam(
     .sort((a, b) => positionPriority[a.slot.position] - positionPriority[b.slot.position]);
 
   const isUnusedStarter = (p: CandidatePlayer) => !usedPlayerIds.has(p.player.id) && !usedCardIds.has(p.card.id);
-  const toIdealTeamPlayer = (candidate: CandidatePlayer, assignedPosition: string, isAlternativeSelection = false): IdealTeamPlayer => ({
+  const toIdealTeamPlayer = (candidate: CandidatePlayer, assignedPosition: string, isAlternativeSelection = false, isTierException = !meetsTierRequirement(candidate.card, candidate.position)): IdealTeamPlayer => ({
     ...candidate,
     assignedPosition,
     isAlternativeSelection,
+    isTierException,
   });
 
   // Match all slots before considering alternatives. Reassign a shared player
@@ -207,12 +215,15 @@ export function generateIdealTeam(
     const findOwner = (candidate: CandidatePlayer) => assignedStarters.findIndex(assigned =>
       assigned?.player.id === candidate.player.id || assigned?.card.id === candidate.card.id
     );
-    const available = starterCandidates[index].find(candidate => findOwner(candidate) === -1);
+    const candidates = assignedStarters[index] && meetsSlotTierRequirement(assignedStarters[index]!, selectionSlots[index])
+      ? starterCandidates[index].filter(candidate => meetsSlotTierRequirement(candidate, selectionSlots[index]))
+      : starterCandidates[index];
+    const available = candidates.find(candidate => findOwner(candidate) === -1);
     if (available) {
       assignedStarters[index] = available;
       return true;
     }
-    for (const candidate of starterCandidates[index]) {
+    for (const candidate of candidates) {
       const owner = findOwner(candidate);
       if (owner !== index && assignStarter(owner, visited)) {
         assignedStarters[index] = candidate;
@@ -222,6 +233,16 @@ export function generateIdealTeam(
     return false;
   };
   selectionSlots.forEach((_, index) => assignStarter(index, new Set()));
+  // Only expand the pool after all possible tier-qualified assignments are made.
+  selectionSlots.forEach((slot, index) => {
+    starterCandidates[index] = [
+      ...starterCandidates[index],
+      ...getCandidatesForSlot(slot, false, true).filter(p => !meetsSlotTierRequirement(p, slot)),
+    ];
+  });
+  selectionSlots.forEach((_, index) => {
+    if (!assignedStarters[index]) assignStarter(index, new Set());
+  });
   assignedStarters.forEach(starter => {
     if (starter) {
       usedPlayerIds.add(starter.player.id);
@@ -233,12 +254,14 @@ export function generateIdealTeam(
     const requiresStyles = (slot.offensiveStyles || []).length > 0 || slot.defensiveStyles.length > 0;
     const starter = exactStarter ?? (requiresStyles ? null : (
       getCandidatesForSlot(slot, true).find(isUnusedStarter)
+      ?? [...allPlayerCandidates].filter(p => meetsTierRequirement(p.card, p.position)).sort(candidateSort).find(isUnusedStarter)
+      ?? getCandidatesForSlot(slot, true, true).find(isUnusedStarter)
       ?? [...allPlayerCandidates].sort(candidateSort).find(isUnusedStarter)
     ));
     if (!starter) return null;
     usedPlayerIds.add(starter.player.id);
     usedCardIds.add(starter.card.id);
-    return toIdealTeamPlayer(starter, slot.profileName || slot.position, starter !== exactStarter);
+    return toIdealTeamPlayer(starter, slot.profileName || slot.position, starter !== exactStarter, !meetsSlotTierRequirement(starter, slot));
   });
 
   // 2. ASSIGN BENCH — prioritized "player testers": candidates with < 5 matches in the position.
@@ -251,49 +274,58 @@ export function generateIdealTeam(
   const usedPlayerIdsForBench = new Set<string>(usedPlayerIds);
   const usedCardIdsForBench = new Set<string>(usedCardIds);
 
-  // First pass: one backup per formation slot in position order, testers preferred, then best available.
-  for (let i = 0; i < sortedFormationSlots.length && i < 11; i++) {
-    const { slot, originalIndex } = sortedFormationSlots[i];
-    const starterRole = starters[originalIndex]?.role;
-    const isAvailable = (p: CandidatePlayer) =>
-      !usedPlayerIdsForBench.has(p.player.id) &&
-      !usedCardIdsForBench.has(p.card.id) &&
-      !usedPlayerIds.has(p.player.id);
-
-    let backup: CandidatePlayer | undefined;
-
-    // Priority 1: same role as the starter (only if formation specifies styles, tester preferred)
-    const slotRequiresStyles = (slot.offensiveStyles || slot.styles || []).length > 0;
-    if (slotRequiresStyles && starterRole && starterRole !== 'Ninguno') {
-      const sameRoleCandidates = getCandidatesForSlot({ ...slot, styles: [starterRole], offensiveStyles: [starterRole] });
-      backup = sameRoleCandidates.find(p => isTester(p) && isAvailable(p))
-             ?? sameRoleCandidates.find(isAvailable);
-    }
-
-    // Priority 2: slot's required styles (tester preferred)
-    if (!backup) {
-      const candidates = getCandidatesForSlot(slot);
-      backup = candidates.find(p => isTester(p) && isAvailable(p))
-             ?? candidates.find(isAvailable);
-    }
-
-    // Last resort: ignore styles, any position match
-    if (!backup) {
-      const fallbackCandidates = getCandidatesForSlot(slot, true);
-      backup = fallbackCandidates.find(p => isTester(p) && isAvailable(p))
-             ?? fallbackCandidates.find(isAvailable);
-    }
-
-    if (backup) {
-      usedPlayerIdsForBench.add(backup.player.id);
-      usedCardIdsForBench.add(backup.card.id);
-      benchAssignments[i] = toIdealTeamPlayer(backup, slot.profileName || slot.position, !getCandidatesForSlot(slot).some(p => p.card.id === backup!.card.id));
-    }
+  // Fill qualified backups first; only then fill remaining vacancies with exceptions.
+  const assignedBackups: (CandidatePlayer | null)[] = sortedFormationSlots.slice(0, 11).map(() => null);
+  for (const allowTierFallback of [false, true]) {
+    const backupCandidates = sortedFormationSlots.slice(0, 11).map(({ slot, originalIndex }) => {
+      const starterRole = starters[originalIndex]?.role;
+      const sameRole = (slot.offensiveStyles || slot.styles || []).length > 0 && starterRole && starterRole !== 'Ninguno'
+        ? getCandidatesForSlot({ ...slot, styles: [starterRole], offensiveStyles: [starterRole] }, false, allowTierFallback)
+        : [];
+      const groups = [sameRole, getCandidatesForSlot(slot, false, allowTierFallback), getCandidatesForSlot(slot, true, allowTierFallback)];
+      return [...new Set(groups.flatMap(group => [...group.filter(isTester), ...group.filter(p => !isTester(p))]))]
+        .filter(isUnusedStarter);
+    });
+    const assignBackup = (index: number, visited: Set<number>): boolean => {
+      if (visited.has(index)) return false;
+      visited.add(index);
+      const slot = sortedFormationSlots[index].slot;
+      const candidates = assignedBackups[index] && meetsSlotTierRequirement(assignedBackups[index]!, slot)
+        ? backupCandidates[index].filter(p => meetsSlotTierRequirement(p, slot))
+        : backupCandidates[index];
+      const findOwner = (p: CandidatePlayer) => assignedBackups.findIndex(assigned =>
+        assigned?.player.id === p.player.id || assigned?.card.id === p.card.id
+      );
+      const available = candidates.find(p => findOwner(p) === -1);
+      if (available) {
+        assignedBackups[index] = available;
+        return true;
+      }
+      for (const candidate of candidates) {
+        const owner = findOwner(candidate);
+        if (owner !== index && assignBackup(owner, visited)) {
+          assignedBackups[index] = candidate;
+          return true;
+        }
+      }
+      return false;
+    };
+    assignedBackups.forEach((backup, index) => {
+      if (!backup) assignBackup(index, new Set());
+    });
   }
+  assignedBackups.forEach((backup, index) => {
+    if (!backup) return;
+    const slot = sortedFormationSlots[index].slot;
+    usedPlayerIdsForBench.add(backup.player.id);
+    usedCardIdsForBench.add(backup.card.id);
+    benchAssignments[index] = toIdealTeamPlayer(backup, slot.profileName || slot.position, !getCandidatesForSlot(slot, false, true).includes(backup), !meetsSlotTierRequirement(backup, slot));
+  });
 
   // Slot 12: extra tester or best remaining — any position, same role criteria as bench slots 1-11
   let extraBenchAssignment: IdealTeamPlayer | null = null;
-  {
+  for (const allowTierFallback of [false, true]) {
+    if (extraBenchAssignment) break;
     const isAvailableForExtra = (p: CandidatePlayer) =>
       !usedPlayerIdsForBench.has(p.player.id) &&
       !usedCardIdsForBench.has(p.card.id) &&
@@ -312,13 +344,16 @@ export function generateIdealTeam(
       let candidates: CandidatePlayer[];
       if (slotRequiresStyles && starterRole && starterRole !== 'Ninguno') {
         // Same role as the starter (only if formation specifies styles)
-        candidates = getCandidatesForSlot({ ...slot, styles: [starterRole], offensiveStyles: [starterRole] });
+        candidates = getCandidatesForSlot({ ...slot, styles: [starterRole], offensiveStyles: [starterRole] }, false, allowTierFallback);
         // Fallback: slot's required styles
         if (candidates.filter(isAvailableForExtra).length === 0) {
-          candidates = getCandidatesForSlot(slot);
+          candidates = getCandidatesForSlot(slot, false, allowTierFallback);
         }
       } else {
-        candidates = getCandidatesForSlot(slot);
+        candidates = getCandidatesForSlot(slot, false, allowTierFallback);
+      }
+      if (!candidates.some(isAvailableForExtra)) {
+        candidates = getCandidatesForSlot(slot, true, allowTierFallback);
       }
 
       for (const p of candidates) {
@@ -340,7 +375,8 @@ export function generateIdealTeam(
     const extra = allRemainingCandidates.find(isTester) ?? allRemainingCandidates[0];
 
     if (extra) {
-      extraBenchAssignment = toIdealTeamPlayer(extra, extra.position);
+      const matchingSlot = selectionSlots.find(slot => getCandidatesForSlot(slot, true, allowTierFallback).includes(extra));
+      extraBenchAssignment = toIdealTeamPlayer(extra, extra.position, false, matchingSlot ? !meetsSlotTierRequirement(extra, matchingSlot) : !meetsTierRequirement(extra.card, extra.position));
     }
   }
 

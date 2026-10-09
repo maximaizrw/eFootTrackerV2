@@ -31,6 +31,7 @@ export const defensivePlayerStyles = [
   'Cazador de primera línea',
   'Salida de ataque',
   'Defensa incansable',
+  'Defensa profunda',
   'Interceptor de pases',
   'Omnipresente',
   'Medio escudo',
@@ -49,6 +50,7 @@ export const playerStyles = [
   'Cazador de primera línea',
   'Salida de ataque',
   'Defensa incansable',
+  'Defensa profunda',
   'Interceptor de pases',
   'El destructor',
   'Rol de cobertura',
@@ -216,6 +218,7 @@ export type IdealTeamPlayer = {
   position: Position;
   assignedPosition: string; // The role/position name in the tactical scheme
   isAlternativeSelection?: boolean;
+  isTierException?: boolean;
   role?: PlayerStyle;
   average: number;
   overall: number;

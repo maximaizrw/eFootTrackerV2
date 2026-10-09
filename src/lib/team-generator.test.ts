@@ -92,3 +92,67 @@ test('accepts any selected style and respects manual discards', () => {
   assert.equal(generateIdealTeam([holePlayer, goalscorer], selected)[0].starter?.player.id, 'cazagoles');
   assert.equal(generateIdealTeam([holePlayer, goalscorer], selected, new Set(['card-cazagoles']))[0].starter?.player.id, 'huecos');
 });
+
+for (const mode of ['event', 'league'] as const) {
+  test(`${mode}: tier eligibility takes priority over score and tester status for starters, backups and the extra substitute`, () => {
+    const qualified = ['A', 'S', 'S+'].map((tier, index) => player(`qualified-${index}`, {
+      tier: tier as 'A' | 'S' | 'S+', ratingsByPosition: { DC: [6, 6, 6, 6, 6] },
+    }));
+    const unqualified = player('unqualified', {
+      tier: 'S+', tierByPosition: { DC: 'SIN TIER', MO: 'S+' }, ratingsByPosition: { DC: [10] },
+    });
+    const team = generateIdealTeam([unqualified, ...qualified], formation([{ position: 'DC', styles: [] }]),
+      new Set(), 'all', 'all', false, false, 'average', mode);
+    for (const selected of [team[0].starter, team[0].substitute, team[11].substitute]) {
+      assert.ok(selected?.player.id.startsWith('qualified-'));
+      assert.equal(selected?.isTierException, false);
+    }
+  });
+
+  test(`${mode}: exceptions only fill shortages and are marked in starters and all substitutes`, () => {
+    const players = Array.from({ length: 3 }, (_, index) => player(`exception-${index}`, {
+      tier: mode === 'league' ? 'B' : 'SIN TIER',
+    }));
+    const team = generateIdealTeam(players, formation([{ position: 'DC', styles: [] }]),
+      new Set(), 'all', 'all', false, false, 'overall', mode);
+    for (const selected of [team[0].starter, team[0].substitute, team[11].substitute]) {
+      assert.ok(selected && !selected.player.id.startsWith('ph'));
+      assert.equal(selected?.isTierException, true);
+    }
+  });
+}
+
+test('event allows B tier while league uses it only as an exception', () => {
+  const selected = formation([{ position: 'DC', styles: [] }]);
+  const candidate = player('tier-b', { tier: 'B' });
+  assert.equal(generateIdealTeam([candidate], selected)[0].starter?.isTierException, false);
+  assert.equal(generateIdealTeam([candidate], selected, new Set(), 'all', 'all', false, false, 'overall', 'league')[0].starter?.isTierException, true);
+});
+
+test('qualified backups are reassigned before admitting a no-tier tester', () => {
+  const starters = [player('starter-mo', { tier: 'S+', ratingsByPosition: { MO: [10] } }), player('starter-dc', { tier: 'S+', ratingsByPosition: { DC: [10] } })];
+  const versatile = player('versatile-backup', { tier: 'A', ratingsByPosition: { MO: [8], DC: [8] } });
+  const midfielder = player('mo-backup', { tier: 'A', ratingsByPosition: { MO: [6, 6, 6, 6, 6] } });
+  const tester = player('no-tier-tester', { ratingsByPosition: { DC: [9] } });
+  const team = generateIdealTeam([...starters, versatile, midfielder, tester], formation([
+    { position: 'MO', styles: [] }, { position: 'DC', styles: [] },
+  ]));
+  assert.equal(team[0].substitute?.player.id, 'mo-backup');
+  assert.equal(team[1].substitute?.player.id, 'versatile-backup');
+  assert.equal(team[0].substitute?.isTierException, false);
+  assert.equal(team[1].substitute?.isTierException, false);
+});
+
+test('fluid positions must each meet tier requirements', () => {
+  const candidate = player('partial-tier', {
+    tier: 'S+', tierByPosition: { DC: 'A', MO: 'SIN TIER' }, secondaryPositions: ['MO'],
+  });
+  const qualified = player('both-tiers', {
+    tierByPosition: { DC: 'A', MO: 'A' }, secondaryPositions: ['MO'], ratingsByPosition: { DC: [6] },
+  });
+  const selected = formation([{ position: 'DC', styles: [] }], {
+    isFluid: true, defensiveSlots: [{ position: 'MO', styles: [] }],
+  });
+  assert.equal(generateIdealTeam([candidate, qualified], selected)[0].starter?.player.id, 'both-tiers');
+  assert.equal(generateIdealTeam([candidate], selected)[0].starter?.isTierException, true);
+});

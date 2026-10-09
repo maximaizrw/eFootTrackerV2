@@ -78,7 +78,7 @@ const PlayerToken = memo(function PlayerToken({
             isPermanent={!!player.player.permanentLiveUpdateRating}
             onPermanentChange={(isPermanent) => onUpdatePermanentLiveUpdateRating(player.player.id, isPermanent)}
           />
-          <span className={cn("text-[10px] md:text-xs font-bold whitespace-nowrap flex items-center gap-1", player.isAlternativeSelection ? "text-amber-300" : "text-white")} style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>
+          <span title={player.isTierException ? 'Excepción de tier: no hay jugadores disponibles que cumplan los requisitos para este lugar.' : undefined} className={cn("text-[10px] md:text-xs font-bold whitespace-nowrap flex items-center gap-1", player.isTierException ? "text-orange-300" : player.isAlternativeSelection ? "text-amber-300" : "text-white")} style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>
               {player.player.name}
               <span className="ml-0.5 text-accent">{player.overall?.toFixed(0) || '-'}</span>
           </span>
@@ -144,7 +144,7 @@ const BenchCard = memo(function BenchCard({ player, formation, onDiscard, onUpda
               isPermanent={!!player.player.permanentLiveUpdateRating}
               onPermanentChange={(isPermanent) => onUpdatePermanentLiveUpdateRating(player.player.id, isPermanent)}
             />
-            <span className={cn("text-[10px] font-semibold truncate flex items-center gap-1", player.isAlternativeSelection && "text-amber-500")}>
+            <span title={player.isTierException ? 'Excepción de tier: no hay jugadores disponibles que cumplan los requisitos para este lugar.' : undefined} className={cn("text-[10px] font-semibold truncate flex items-center gap-1", player.isTierException ? "text-orange-500" : player.isAlternativeSelection && "text-amber-500")}>
               {player.player.name}
             </span>
             <span className="text-[10px] font-black ml-auto text-accent">{player.overall?.toFixed(0) || '-'}</span>
@@ -172,6 +172,9 @@ export function IdealTeamDisplay({ teamSlots, formation, onDiscardPlayer, onUpda
 
   return (
     <div className="mt-4 space-y-3">
+      {teamSlots.some((slot: IdealTeamSlot) => slot.starter?.isTierException || slot.substitute?.isTierException) && (
+        <p className="text-xs text-orange-500">Nombre naranja: excepción de tier para completar el equipo por falta de jugadores disponibles que cumplan los requisitos.</p>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/50 bg-card px-3 py-2">
         <div>
           <p className="text-xs font-semibold text-muted-foreground">Confianza total del equipo</p>
