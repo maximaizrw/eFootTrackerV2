@@ -58,6 +58,14 @@ For multi-step tasks, state a brief plan:
 3. [Step] → verify: [check]
 ```
 
+## Forma de trabajar
+- Haz solo lo que se pide: no añadas funcionalidades por tu cuenta.
+- Cambios pequeños y enfocados; no reescribas lo que ya funciona.
+- Al terminar, resume qué has cambiado y cualquier decisión que deba revisar.
+- ✅ Siempre: respetar las reglas de fechas y racha, mantener los textos en español.
+- ⚠️ Pregunta antes: crear archivos nuevos, cambiar el formato de los datos guardados.
+- 🚫 Nunca: añadir dependencias, frameworks o un paso de build.
+
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
 ---
