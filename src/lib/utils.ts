@@ -7,6 +7,22 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+export const ratingMatchTypes = ["Evento", "División 3", "División 2", "División 1"] as const;
+export const ratingMatchResults = ["Victoria", "Empate", "Derrota"] as const;
+export type RatingMatchType = typeof ratingMatchTypes[number];
+export type RatingMatchResult = typeof ratingMatchResults[number];
+
+export function getMatchRatingAdjustment(type: RatingMatchType, result: RatingMatchResult): number {
+  if (result === "Empate") return 0;
+  const adjustments: Record<RatingMatchType, [number, number]> = {
+    "Evento": [0.5, -0.5],
+    "División 3": [0.5, -2],
+    "División 2": [1.5, -1],
+    "División 1": [2, -0.5],
+  };
+  return adjustments[type][result === "Victoria" ? 0 : 1];
+}
+
 export type PlayerRatingStats = {
     average: number;
     matches: number;

@@ -16,6 +16,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { ratingMatchTypes, ratingMatchResults, type RatingMatchType, type RatingMatchResult } from '@/lib/utils';
 
 import { AddRatingDialog, type FormValues as AddRatingFormValues } from '@/components/add-rating-dialog';
 import { AddPlayerDialog, type AddPlayerFormValues } from '@/components/add-player-dialog';
@@ -86,6 +89,29 @@ export default function Home() {
   const allPlayers = players || [];
 
   const [activeTab, setActiveTab] = useState<string>('DC');
+  const [ratingMatchType, setRatingMatchType] = useState<RatingMatchType>('Evento');
+  const [ratingMatchResult, setRatingMatchResult] = useState<RatingMatchResult>('Empate');
+  const [ratingPreferencesLoaded, setRatingPreferencesLoaded] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('idealTeamRatingPreferences') || 'null');
+      if (saved && ratingMatchTypes.includes(saved.matchType)) setRatingMatchType(saved.matchType);
+      if (saved && ratingMatchResults.includes(saved.matchResult)) setRatingMatchResult(saved.matchResult);
+    } catch (error) {
+      console.error('No se pudieron leer las preferencias de valoración.', error);
+    }
+    setRatingPreferencesLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!ratingPreferencesLoaded) return;
+    try {
+      localStorage.setItem('idealTeamRatingPreferences', JSON.stringify({ matchType: ratingMatchType, matchResult: ratingMatchResult }));
+    } catch (error) {
+      console.error('No se pudieron guardar las preferencias de valoración.', error);
+    }
+  }, [ratingMatchType, ratingMatchResult, ratingPreferencesLoaded]);
   const [searchTerm, setSearchTerm] = useState('');
   const [styleFilter, setStyleFilter] = useState<string>('all');
   const [listSortCriteria, setListSortCriteria] = useState<ListSortCriteria>('overall');
@@ -695,13 +721,35 @@ export default function Home() {
                     </div>
                </CardContent>
              </Card>
+            <Card className="mb-4">
+              <CardHeader>
+                <CardTitle>Valoraciones del partido</CardTitle>
+                <CardDescription>Se aplican al abrir la valoración de cada jugador. La selección se recuerda en este navegador.</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="ideal-rating-match-type">Tipo de partido</Label>
+                  <Select value={ratingMatchType} onValueChange={(value: RatingMatchType) => setRatingMatchType(value)}>
+                    <SelectTrigger id="ideal-rating-match-type"><SelectValue /></SelectTrigger>
+                    <SelectContent>{ratingMatchTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="ideal-rating-match-result">Resultado</Label>
+                  <Select value={ratingMatchResult} onValueChange={(value: RatingMatchResult) => setRatingMatchResult(value)}>
+                    <SelectTrigger id="ideal-rating-match-result"><SelectValue /></SelectTrigger>
+                    <SelectContent>{ratingMatchResults.map(result => <SelectItem key={result} value={result}>{result}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
             <IdealTeamDisplay
                 teamSlots={idealTeam}
                 formation={selectedFormation}
                 onDiscardPlayer={handleDiscardPlayer}
                 onUpdateLiveUpdateRating={updateLiveUpdateRating}
                 onUpdatePermanentLiveUpdateRating={updatePermanentLiveUpdateRating}
-                onAddRating={handleOpenAddRating}
+                onAddRating={(values: Partial<AddRatingFormValues>) => handleOpenAddRating({ ...values, matchType: ratingMatchType, matchResult: ratingMatchResult })}
             />
           </TabsContent>
           

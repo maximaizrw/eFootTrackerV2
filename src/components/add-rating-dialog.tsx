@@ -25,6 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import type { Player, Position, PlayerStyle, League, Nationality } from "@/lib/types";
 import { positions, playerStyles, leagues, nationalities } from "@/lib/types";
+import { ratingMatchTypes, ratingMatchResults, getMatchRatingAdjustment } from "@/lib/utils";
 
 const formSchema = z.object({
   playerId: z.string().optional(),
@@ -36,6 +37,8 @@ const formSchema = z.object({
   style: z.enum(playerStyles),
   league: z.enum(leagues).optional(),
   rating: z.number().min(1).max(10),
+  matchType: z.enum(ratingMatchTypes).default("Evento"),
+  matchResult: z.enum(ratingMatchResults).default("Empate"),
   liked: z.boolean().nullable().optional(),
   formationId: z.string().optional(),
   formationName: z.string().optional(),
@@ -92,6 +95,8 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData, 
       style: "Básico",
       league: "Sin Liga",
       rating: 5,
+      matchType: "Evento",
+      matchResult: "Empate",
       liked: null,
       formationId: undefined,
       formationName: undefined,
@@ -116,6 +121,8 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData, 
         style: "Básico" as PlayerStyle,
         league: "Sin Liga" as League,
         rating: 5,
+        matchType: "Evento" as const,
+        matchResult: "Empate" as const,
         liked: null,
         formationId: undefined,
         formationName: undefined,
@@ -126,11 +133,12 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData, 
   }, [open, initialData, form, showPositionSelector, existingPositions]);
 
   function onSubmit(values: FormValues) {
-    onAddRating(values);
+    onAddRating({ ...values, rating: values.rating + getMatchRatingAdjustment(values.matchType, values.matchResult) });
     onOpenChange(false);
   }
 
   const rating = form.watch("rating");
+  const adjustment = getMatchRatingAdjustment(form.watch("matchType"), form.watch("matchResult"));
   const position = form.watch("position");
 
   const availablePositions = showPositionSelector
@@ -139,7 +147,7 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData, 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[380px] p-0 overflow-hidden gap-0">
+      <DialogContent className="sm:max-w-[380px] p-0 max-h-[90dvh] overflow-y-auto gap-0">
         {/* Header */}
         <div className="bg-primary/5 border-b px-6 pt-6 pb-4">
           <DialogHeader>
@@ -201,6 +209,28 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData, 
             )}
 
             {/* Rating */}
+            <div className="grid grid-cols-2 gap-3">
+              <FormField control={form.control} name="matchType" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tipo de partido</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                    <SelectContent>{ratingMatchTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="matchResult" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Resultado</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                    <SelectContent>{ratingMatchResults.map(result => <SelectItem key={result} value={result}>{result}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            </div>
             <FormField
               control={form.control}
               name="rating"
@@ -244,6 +274,10 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData, 
                 </FormItem>
               )}
             />
+
+            <p className="rounded-lg border bg-primary/5 p-3 text-sm" aria-live="polite">
+              Nota final: {rating.toLocaleString("es")} {adjustment < 0 ? "−" : "+"} {Math.abs(adjustment).toLocaleString("es")} = <strong>{(rating + adjustment).toLocaleString("es")}</strong>
+            </p>
 
             {/* Liked */}
             <FormField
