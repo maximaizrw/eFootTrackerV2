@@ -5,13 +5,14 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
-import { ThumbsUp, ThumbsDown, Minus, Star, ExternalLink } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Minus, Plus, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -23,6 +24,7 @@ import {
 } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { Player, Position, PlayerStyle, League, Nationality } from "@/lib/types";
 import { positions, playerStyles, leagues, nationalities } from "@/lib/types";
 import { ratingMatchTypes, ratingMatchResults, getMatchRatingAdjustment } from "@/lib/utils";
@@ -147,13 +149,13 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData, 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[380px] p-0 max-h-[90dvh] overflow-y-auto gap-0">
+      <DialogContent className="w-[calc(100%_-_1rem)] sm:max-w-[540px] p-0 max-h-[calc(100dvh_-_1rem)] overflow-y-auto gap-0 rounded-lg">
         {/* Header */}
-        <div className="bg-primary/5 border-b px-6 pt-6 pb-4">
-          <DialogHeader>
+        <div className="bg-primary/5 border-b px-4 py-3 pr-12">
+          <DialogHeader className="text-left">
             <div className="flex items-start gap-3">
               <div className="flex-1 min-w-0">
-                <DialogTitle className="text-lg font-bold truncate">
+                <DialogTitle className="text-lg font-bold break-words">
                   {initialData?.playerName || "Jugador"}
                 </DialogTitle>
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
@@ -174,13 +176,13 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData, 
                   )}
                 </div>
               </div>
-              <Star className="h-5 w-5 text-primary shrink-0 mt-0.5" />
             </div>
+            <DialogDescription className="sr-only">Ajusta la valoración y los datos del partido antes de guardar.</DialogDescription>
           </DialogHeader>
         </div>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="px-6 py-5 space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="px-4 py-3 space-y-3">
 
             {/* Position Selector */}
             {showPositionSelector && (
@@ -188,11 +190,11 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData, 
                 control={form.control}
                 name="position"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="flex flex-wrap items-center gap-3 space-y-0">
                     <FormLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Posición</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-11 flex-1">
                           <SelectValue placeholder="Seleccionar posición..." />
                         </SelectTrigger>
                       </FormControl>
@@ -209,24 +211,36 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData, 
             )}
 
             {/* Rating */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-2">
               <FormField control={form.control} name="matchType" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Tipo de partido</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                    <SelectContent>{ratingMatchTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent>
-                  </Select>
+                  <FormControl>
+                    <RadioGroup onValueChange={field.onChange} value={field.value} className="grid grid-cols-4 gap-2">
+                      {ratingMatchTypes.map(type => (
+                        <label key={type} className="relative cursor-pointer">
+                          <RadioGroupItem value={type} className="peer sr-only" />
+                          <span className="flex min-h-11 items-center justify-center rounded-md border px-1 text-xs font-medium transition-colors hover:bg-accent peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground peer-focus-visible:ring-2 peer-focus-visible:ring-ring motion-reduce:transition-none">{type}</span>
+                        </label>
+                      ))}
+                    </RadioGroup>
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
               <FormField control={form.control} name="matchResult" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Resultado</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                    <SelectContent>{ratingMatchResults.map(result => <SelectItem key={result} value={result}>{result}</SelectItem>)}</SelectContent>
-                  </Select>
+                  <FormControl>
+                    <RadioGroup onValueChange={field.onChange} value={field.value} className="grid grid-cols-3 gap-2">
+                      {ratingMatchResults.map(result => (
+                        <label key={result} className="relative cursor-pointer">
+                          <RadioGroupItem value={result} className="peer sr-only" />
+                          <span className="flex min-h-11 items-center justify-center rounded-md border px-2 text-sm font-medium transition-colors hover:bg-accent peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground peer-focus-visible:ring-2 peer-focus-visible:ring-ring motion-reduce:transition-none">{result}</span>
+                        </label>
+                      ))}
+                    </RadioGroup>
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -235,29 +249,20 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData, 
               control={form.control}
               name="rating"
               render={({ field }) => (
-                <FormItem className="space-y-3">
-                  <div className={`flex items-center justify-between rounded-xl border p-4 transition-colors ${getRatingBg(field.value)}`}>
+                <FormItem className="space-y-0">
+                  <div className={`flex items-center justify-between gap-3 rounded-xl border px-3 py-2 transition-colors motion-reduce:transition-none ${getRatingBg(field.value)}`}>
                     <div>
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Valoración</p>
-                      <p className={`text-4xl font-black mt-0.5 leading-none ${getRatingColor(field.value)}`}>
+                      <FormLabel className="text-xs font-medium text-muted-foreground">Valoración</FormLabel>
+                      <p className={`text-3xl tabular-nums font-black leading-none ${getRatingColor(field.value)}`}>
                         {field.value.toFixed(1)}
                       </p>
                       <p className={`text-xs font-semibold mt-1 ${getRatingColor(field.value)}`}>
                         {getRatingLabel(field.value)}
                       </p>
                     </div>
-                    <div className="flex gap-0.5">
-                      {[1,2,3,4,5,6,7,8,9,10].map((i) => (
-                        <div
-                          key={i}
-                          className={`w-1.5 rounded-full transition-all ${
-                            i <= Math.round(field.value)
-                              ? field.value >= 8 ? "bg-emerald-500" : field.value >= 6 ? "bg-yellow-500" : field.value >= 4 ? "bg-orange-500" : "bg-red-500"
-                              : "bg-border"
-                          }`}
-                          style={{ height: `${8 + i * 2.5}px` }}
-                        />
-                      ))}
+                    <div className="flex items-center gap-2">
+                      <Button type="button" variant="outline" className="h-11 w-11 p-0" aria-label="Restar medio punto" disabled={field.value <= 1} onClick={() => field.onChange(Math.max(1, field.value - 0.5))}><Minus className="h-4 w-4" /></Button>
+                      <Button type="button" variant="outline" className="h-11 w-11 p-0" aria-label="Sumar medio punto" disabled={field.value >= 10} onClick={() => field.onChange(Math.min(10, field.value + 0.5))}><Plus className="h-4 w-4" /></Button>
                     </div>
                   </div>
                   <FormControl>
@@ -265,9 +270,10 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData, 
                       min={1}
                       max={10}
                       step={0.5}
+                      aria-label="Valoración"
                       value={[field.value]}
                       onValueChange={(value) => field.onChange(value[0])}
-                      className="w-full"
+                      className="w-full min-h-11"
                     />
                   </FormControl>
                   <FormMessage />
@@ -275,7 +281,7 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData, 
               )}
             />
 
-            <p className="rounded-lg border bg-primary/5 p-3 text-sm" aria-live="polite">
+            <p className="rounded-lg border bg-primary/5 px-3 py-2 text-sm tabular-nums" aria-live="polite">
               Nota final: {rating.toLocaleString("es")} {adjustment < 0 ? "−" : "+"} {Math.abs(adjustment).toLocaleString("es")} = <strong>{(rating + adjustment).toLocaleString("es")}</strong>
             </p>
 
@@ -291,7 +297,8 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData, 
                       <button
                         type="button"
                         onClick={() => field.onChange(field.value === true ? null : true)}
-                        className={`flex flex-col items-center gap-1.5 rounded-xl border py-3 px-2 text-xs font-semibold transition-all ${
+                        aria-pressed={field.value === true}
+                        className={`flex min-h-11 items-center justify-center gap-1.5 rounded-lg border px-2 text-xs font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none ${
                           field.value === true
                             ? "bg-emerald-500 border-emerald-500 text-white shadow-md shadow-emerald-500/20"
                             : "border-border hover:border-emerald-500/50 hover:bg-emerald-500/5 text-muted-foreground"
@@ -303,7 +310,8 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData, 
                       <button
                         type="button"
                         onClick={() => field.onChange(null)}
-                        className={`flex flex-col items-center gap-1.5 rounded-xl border py-3 px-2 text-xs font-semibold transition-all ${
+                        aria-pressed={field.value === null}
+                        className={`flex min-h-11 items-center justify-center gap-1.5 rounded-lg border px-2 text-xs font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none ${
                           field.value === null
                             ? "bg-secondary border-border text-foreground shadow-sm"
                             : "border-border hover:bg-secondary/60 text-muted-foreground"
@@ -315,7 +323,8 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData, 
                       <button
                         type="button"
                         onClick={() => field.onChange(field.value === false ? null : false)}
-                        className={`flex flex-col items-center gap-1.5 rounded-xl border py-3 px-2 text-xs font-semibold transition-all ${
+                        aria-pressed={field.value === false}
+                        className={`flex min-h-11 items-center justify-center gap-1.5 rounded-lg border px-2 text-xs font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none ${
                           field.value === false
                             ? "bg-red-500 border-red-500 text-white shadow-md shadow-red-500/20"
                             : "border-border hover:border-red-500/50 hover:bg-red-500/5 text-muted-foreground"
@@ -331,16 +340,16 @@ export function AddRatingDialog({ open, onOpenChange, onAddRating, initialData, 
               )}
             />
 
-            <div className="grid gap-2">
+            <div className="sticky bottom-0 flex gap-2 border-t bg-popover pt-3 pb-1">
               {initialData?.tierlistUrl && (
-                <Button type="button" variant="outline" className="w-full font-semibold h-11" asChild>
+                <Button type="button" variant="outline" className="shrink-0 font-semibold h-11 px-3" asChild>
                   <a href={initialData.tierlistUrl} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="mr-2 h-4 w-4" />
                     Ir al jugador
                   </a>
                 </Button>
               )}
-              <Button type="submit" className="w-full font-semibold h-11">
+              <Button type="submit" className="flex-1 font-semibold h-11 px-3">
                 Guardar valoración
               </Button>
             </div>
