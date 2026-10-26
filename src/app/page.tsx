@@ -35,6 +35,7 @@ import { IdealTeamSetup } from '@/components/ideal-team-setup';
 import { PlayerTable } from '@/components/player-table';
 import { PositionIcon } from '@/components/position-icon';
 import { TierlistUpdates, getPendingTierlistCards } from '@/components/tierlist-updates';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 
 import { usePlayers } from '@/hooks/usePlayers';
@@ -47,10 +48,29 @@ import type { FormationTemplate } from '@/lib/formation-templates';
 import { getPlayerTierBonus, normalizePlayerTier, normalizeText, normalizeTierPlacements } from '@/lib/utils';
 import { generateIdealTeam } from '@/lib/team-generator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { PlusCircle, Star, Download, Trophy, RotateCcw, ListChecks } from 'lucide-react';
+import { PlusCircle, Star, Download, Trophy, RotateCcw, ListChecks, CalendarClock } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 10;
 type ListSortCriteria = 'overall' | 'confidence' | 'average' | 'tier';
+
+type RatingRecency = {
+  player: Player;
+  ratingCount: number;
+  latestDate: string | null;
+  daysSince: number | null;
+  linkUrl?: string;
+};
+
+function getNaturalDaysSince(date: string): number | null {
+  const match = date.slice(0, 10).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+  const [, year, month, day] = match;
+  const ratingDay = new Date(Number(year), Number(month) - 1, Number(day));
+  const today = new Date();
+  const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const difference = Math.floor((todayDay.getTime() - ratingDay.getTime()) / 86400000);
+  return Math.max(0, difference);
+}
 
 export default function Home() {
 
@@ -438,6 +458,46 @@ export default function Home() {
     return getPendingTierlistCards(allPlayers, flatPlayers).length;
   }, [allPlayers, flatPlayers]);
 
+  const ratingRecency = useMemo<RatingRecency[]>(() => {
+    return allPlayers
+      .map((player) => {
+        let ratingCount = 0;
+        let latestDate: string | null = null;
+        let latestCardUrl: string | undefined;
+        let firstCardUrl: string | undefined;
+
+        player.cards.forEach((card) => {
+          if (!firstCardUrl && card.tierlistUrl) firstCardUrl = card.tierlistUrl;
+          Object.values(card.ratingsByPosition || {}).forEach((ratings) => {
+            ratingCount += ratings?.length || 0;
+          });
+          Object.values(card.ratingEntriesByPosition || {}).forEach((entries) => {
+            entries?.forEach((entry) => {
+              if (entry.date && (!latestDate || entry.date > latestDate)) {
+                latestDate = entry.date;
+                latestCardUrl = card.tierlistUrl;
+              }
+            });
+          });
+        });
+        const linkUrl = latestCardUrl || firstCardUrl || player.efhubUrl;
+
+        return {
+          player,
+          ratingCount,
+          latestDate,
+          daysSince: latestDate ? getNaturalDaysSince(latestDate) : null,
+          linkUrl,
+        };
+      })
+      .filter((item) => item.ratingCount >= 2)
+      .sort((a, b) => {
+        if (a.daysSince === null) return 1;
+        if (b.daysSince === null) return -1;
+        return b.daysSince - a.daysSince || a.player.name.localeCompare(b.player.name, 'es');
+      });
+  }, [allPlayers]);
+
   const nationalitiesByPlayerCount = useMemo(() => {
     const playerCountByNationality = new Map<Nationality, number>();
 
@@ -583,14 +643,17 @@ export default function Home() {
               ))}
               <TabsTrigger value="formations" className="py-2 px-3 text-sm"><Trophy className="mr-2 h-5 w-5"/>Formaciones</TabsTrigger>
               <TabsTrigger value="ideal-11" className="py-2 px-3 text-sm"><Star className="mr-2 h-5 w-5"/>11 Ideal</TabsTrigger>
-              <TabsTrigger value="tierlist-updates" className="py-2 px-3 text-sm">
-                <ListChecks className="mr-2 h-5 w-5"/>Tierlist
+               <TabsTrigger value="tierlist-updates" className="py-2 px-3 text-sm">
+                 <ListChecks className="mr-2 h-5 w-5"/>Tierlist
                 {pendingTierlistCount > 0 && (
                   <span className="ml-2 rounded-full bg-amber-500/15 px-1.5 text-xs font-bold text-amber-500">
                     {pendingTierlistCount}
                   </span>
-                )}
-              </TabsTrigger>
+                 )}
+               </TabsTrigger>
+               <TabsTrigger value="rating-recency" className="py-2 px-3 text-sm">
+                 <CalendarClock className="mr-2 h-5 w-5"/>Última valoración
+               </TabsTrigger>
             </TabsList>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
@@ -753,15 +816,71 @@ export default function Home() {
             />
           </TabsContent>
           
-          <TabsContent value="tierlist-updates" className="mt-6">
+           <TabsContent value="tierlist-updates" className="mt-6">
             <TierlistUpdates
               players={allPlayers}
               flatPlayers={flatPlayers}
               onOpenEditCard={(player, card, position) => handleOpenEditCard(player, card, position, "tierlist")}
               onMarkReviewed={(player, card, pendingPositions) => markTierlistReviewed(player.id, card.id, pendingPositions)}
             />
-          </TabsContent>
-        </Tabs>
+           </TabsContent>
+
+           <TabsContent value="rating-recency" className="mt-6">
+             <Card>
+               <CardHeader>
+                 <CardTitle className="flex items-center gap-2"><CalendarClock /> Última valoración</CardTitle>
+                 <CardDescription>
+                   Jugadores con al menos 2 valoraciones, ordenados por los días naturales desde su última valoración.
+                 </CardDescription>
+               </CardHeader>
+               <CardContent>
+                 {ratingRecency.length === 0 ? (
+                   <p className="py-8 text-center text-sm text-muted-foreground">
+                     Todavía no hay jugadores con 2 o más valoraciones.
+                   </p>
+                 ) : (
+                   <Table>
+                     <TableHeader>
+                       <TableRow>
+                         <TableHead>Jugador</TableHead>
+                         <TableHead className="text-right">Días sin valorar</TableHead>
+                         <TableHead className="text-right">Valoraciones</TableHead>
+                         <TableHead className="text-right">Última fecha</TableHead>
+                       </TableRow>
+                     </TableHeader>
+                     <TableBody>
+                       {ratingRecency.map(({ player, ratingCount, latestDate, daysSince, linkUrl }) => (
+                         <TableRow key={player.id}>
+                           <TableCell className="font-semibold">
+                             {linkUrl ? (
+                               <a
+                                 href={linkUrl}
+                                 target="_blank"
+                                 rel="noopener noreferrer"
+                                 className="text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                               >
+                                 {player.name}
+                               </a>
+                             ) : (
+                               player.name
+                             )}
+                           </TableCell>
+                           <TableCell className="text-right font-bold tabular-nums">
+                             {daysSince === null ? 'Sin fecha' : `${daysSince} ${daysSince === 1 ? 'día' : 'días'}`}
+                           </TableCell>
+                           <TableCell className="text-right tabular-nums">{ratingCount}</TableCell>
+                           <TableCell className="text-right text-muted-foreground">
+                             {latestDate ? new Date(latestDate).toLocaleDateString('es-ES') : 'Sin fecha registrada'}
+                           </TableCell>
+                         </TableRow>
+                       ))}
+                     </TableBody>
+                   </Table>
+                 )}
+               </CardContent>
+             </Card>
+           </TabsContent>
+         </Tabs>
       </main>
     </div>
   );
